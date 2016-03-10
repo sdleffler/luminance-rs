@@ -1,6 +1,7 @@
 use core::marker::PhantomData;
 use core::mem;
 use std::vec::Vec;
+use std::ops::Index;
 
 /// Implement this trait to provide buffers.
 pub trait HasBuffer {
@@ -27,7 +28,7 @@ pub trait HasBuffer {
   ///
   /// `Err(BufferError::Overflow)` if you provide an offset that doesn’t lie in the GPU allocated
   /// region.
-  fn read<T>(buffer: &Self::ABuffer, offset: usize) -> Result<(), BufferError>;
+  fn read<T>(buffer: &Self::ABuffer, offset: usize) -> Result<&T, BufferError>;
 }
 
 /// Buffer errors.
@@ -62,9 +63,10 @@ impl<C: HasBuffer, A, T> Buffer<C, A, T> where T: Clone {
   }
 }
 
-//impl<C: HasBuffer, A, T> Index<u32> for Buffer<C, A, T> {
-//  type Output = T;
-//
-//  fn index(&self, i) -> &T {
-//  }
-//}
+impl<C: HasBuffer, A, T> Index<u32> for Buffer<C, A, T> {
+  type Output = T;
+
+  fn index(&self, i: u32) -> &T {
+		C::read(&self.repr, i as usize * mem::size_of::<T>()).unwrap()
+  }
+}
