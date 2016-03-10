@@ -26,9 +26,8 @@ pub trait HasBuffer {
   ///
   /// # Failures
   ///
-  /// `Err(BufferError::Overflow)` if you provide an offset that doesn’t lie in the GPU allocated
-  /// region.
-  fn read<T>(buffer: &Self::ABuffer, offset: usize) -> Result<&T, BufferError>;
+  /// `None` if you provide an offset that doesn’t lie in the GPU allocated region.
+  fn read<T>(buffer: &Self::ABuffer, offset: usize) -> Option<&T>;
 }
 
 /// Buffer errors.
@@ -54,6 +53,10 @@ impl<C: HasBuffer, A, T> Buffer<C, A, T> {
     let buffer = C::new(size * mem::size_of::<T>());
     Buffer { repr: buffer, size: size, _a: PhantomData, _t: PhantomData }
   }
+
+  pub fn get(&self, i: u32) -> Option<&T> {
+    C::read(&self.repr, i as usize * mem::size_of::<T>())
+  }
 }
 
 impl<C: HasBuffer, A, T> Buffer<C, A, T> where T: Clone {
@@ -67,6 +70,6 @@ impl<C: HasBuffer, A, T> Index<u32> for Buffer<C, A, T> {
   type Output = T;
 
   fn index(&self, i: u32) -> &T {
-		C::read(&self.repr, i as usize * mem::size_of::<T>()).unwrap()
+		self.get(i).unwrap()
   }
 }
