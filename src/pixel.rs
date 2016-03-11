@@ -1,13 +1,42 @@
 use core::marker::PhantomData;
 
+/// Leverage a static channel size to runtime.
+trait ChanSize {
+	fn chan_size() -> u8;
+}
+
+/// Leverage a static channel type to runtime.
+trait ChanType<T> {
+	fn chan_type() -> Type;
+}
+
+/// Channel type.
+enum Type {
+	  Integral
+	, Unsigned
+	, Floating
+}
+
 /// A 8-bit channel.
 struct C8;
+
+impl ChanSize for C8 {
+	fn chan_size() -> u8 { 8 }
+}
 
 /// A 16-bit channel.
 struct C16;
 
+impl ChanSize for C16 {
+	fn chan_size() -> u8 { 16 }
+}
+
 /// A 32-bit channel.
 struct C32;
+
+impl ChanSize for C32 {
+	fn chan_size() -> u8 { 32 }
+}
 
 /// Integral channel.
 struct Integral;
