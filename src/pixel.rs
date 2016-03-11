@@ -28,8 +28,6 @@ enum Format {
 	, Depth(u8)
 }
 
-// --------------------------------------------------------
-// Supported pixel formats
 struct RGB8UI;
 
 impl Pixel for RGB8UI {
@@ -47,6 +45,28 @@ impl Pixel for RGBA8UI {
 	fn pixel_format() -> PixelFormat { 
 		PixelFormat {
 				encoding_type: Type::Unsigned
+			, format: Format::RGBA(8, 8, 8, 8)
+		}
+	}
+}
+
+struct RGB8F;
+
+impl Pixel for RGB8F {
+	fn pixel_format() -> PixelFormat { 
+		PixelFormat {
+				encoding_type: Type::Floating
+			, format: Format::RGB(8, 8, 8)
+		}
+	}
+}
+
+struct RGBA8F;
+
+impl Pixel for RGBA8F {
+	fn pixel_format() -> PixelFormat { 
+		PixelFormat {
+				encoding_type: Type::Floating
 			, format: Format::RGBA(8, 8, 8, 8)
 		}
 	}
