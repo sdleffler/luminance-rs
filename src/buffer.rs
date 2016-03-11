@@ -17,7 +17,7 @@ pub trait HasBuffer {
   ///
   /// # Failures
   ///
-  /// `Err(BufferError::Overflow)` if you provide an offset that doesn’t lie in the GPU allocated
+  /// `Err(BufferError::Overflow)` if you provide an offset that doesn’t lie in the allocated GPU
   /// region.
   fn write<T>(buffer: &Self::ABuffer, offset: usize, x: &T) -> Result<(), BufferError>;
   /// Read all values from the buffer.
@@ -26,7 +26,7 @@ pub trait HasBuffer {
   ///
   /// # Failures
   ///
-  /// `None` if you provide an offset that doesn’t lie in the GPU allocated region.
+  /// `None` if you provide an offset that doesn’t lie in the allocated GPU region.
   fn read<T>(buffer: &Self::ABuffer, offset: usize) -> Option<&T>;
 }
 
