@@ -12,7 +12,19 @@ pub trait HasBuffer {
   /// Create a new buffer with a given size.
   fn new(size: usize) -> Self::ABuffer;
   /// Write values into the buffer.
-  fn write_whole<T>(buffer: &Self::ABuffer, values: &Vec<T>);
+	///
+	/// # Warnings
+	///
+	///  Those warnings are just **hints**. The behavior for each warning is specific and should be
+	///  accounted.
+	///
+	/// `Err(BufferError::TooManyValues)` if you provide more values than the buffer’s size. In that
+	/// case, the extra items are just ignored and all others are written; that is, the `values`
+	/// argument is considered having the same size as `buffer`.
+	///
+	/// `Err(BufferError::TooFewValues)` if you provide less avlues than the buffer’s size. In that
+	/// case, all `values` are written and the missing ones remain the same in `buffer`.
+  fn write_whole<T>(buffer: &Self::ABuffer, values: &Vec<T>) -> Result<(),BufferError>;
   /// Write a single value in the buffer at a given offset.
   ///
   /// # Failures
@@ -76,7 +88,7 @@ impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
 
   /// Fill the `Buffer` with a single value.
   pub fn clear(&self, x: &T) {
-    C::write_whole(&self.repr, &vec![x; self.size]);
+    let _ = C::write_whole(&self.repr, &vec![x; self.size]);
   }
 }
 
