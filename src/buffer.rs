@@ -58,14 +58,16 @@ impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
     C::read(&self.repr, i as usize * mem::size_of::<T>())
   }
 
+	pub fn whole(&self) -> Vec<T> {
+		C::read_whole(&self.repr)
+	}
+
   pub fn set(&mut self, i: u32, x: &T) -> Result<(), BufferError> {
     C::write(&self.repr, i as usize * mem::size_of::<T>(), x)
   }
-}
 
-impl<C, A, T> Buffer<C, A, T> where C: HasBuffer, T: Clone {
   /// Fill a `Buffer` with a single value.
-  pub fn clear(&self, x: T) {
+  pub fn clear(&self, x: &T) {
     C::write_whole(&self.repr, &vec![x; self.size]);
   }
 }
