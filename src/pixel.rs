@@ -1,23 +1,23 @@
 /// Reify a static pixel format to runtime.
-trait Pixel {
+pub trait Pixel {
   fn pixel_format() -> PixelFormat;
 }
 
 /// A `PixelFormat` gathers a `Type` along with a `Format`.
-struct PixelFormat {
+pub struct PixelFormat {
     encoding_type: Type
   , format: Format
 }
 
 /// Pixel type.
-enum Type {
+pub enum Type {
     Integral
   , Unsigned
   , Floating
 }
 
 /// Format of a pixel.
-enum Format {
+pub enum Format {
     R(u8)
   , RG(u8, u8)
   , RGB(u8, u8, u8)
@@ -25,7 +25,18 @@ enum Format {
   , Depth(u8)
 }
 
-struct RGB8UI;
+pub fn is_color_pixel(f: PixelFormat) -> bool {
+  match f.format {
+      Format::Depth(_) => false
+    , _ => true
+  }
+}
+
+pub fn is_depth_pixel(f: PixelFormat) -> bool {
+  !is_color_pixel(f)
+}
+
+pub struct RGB8UI;
 
 impl Pixel for RGB8UI {
   fn pixel_format() -> PixelFormat {
@@ -36,7 +47,7 @@ impl Pixel for RGB8UI {
   }
 }
 
-struct RGBA8UI;
+pub struct RGBA8UI;
 
 impl Pixel for RGBA8UI {
   fn pixel_format() -> PixelFormat {
@@ -47,7 +58,7 @@ impl Pixel for RGBA8UI {
   }
 }
 
-struct RGB8F;
+pub struct RGB8F;
 
 impl Pixel for RGB8F {
   fn pixel_format() -> PixelFormat {
@@ -58,7 +69,7 @@ impl Pixel for RGB8F {
   }
 }
 
-struct RGBA8F;
+pub struct RGBA8F;
 
 impl Pixel for RGBA8F {
   fn pixel_format() -> PixelFormat {
@@ -69,7 +80,7 @@ impl Pixel for RGBA8F {
   }
 }
 
-struct RGB32F;
+pub struct RGB32F;
 
 impl Pixel for RGB32F {
   fn pixel_format() -> PixelFormat {
@@ -80,7 +91,7 @@ impl Pixel for RGB32F {
   }
 }
 
-struct RGBA32F;
+pub struct RGBA32F;
 
 impl Pixel for RGBA32F {
   fn pixel_format() -> PixelFormat {
@@ -91,7 +102,7 @@ impl Pixel for RGBA32F {
   }
 }
 
-struct Depth32F;
+pub struct Depth32F;
 
 impl Pixel for Depth32F {
   fn pixel_format() -> PixelFormat {
