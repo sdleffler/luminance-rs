@@ -1,3 +1,8 @@
+use std::vec::Vec;
+
+/// A `VertexFormat` is a list of `VertexComponentFormat`s.
+type VertexFormat = Vec<VertexComponentType>;
+
 /// Possible type of vertex components.
 pub enum VertexComponentType {
     Integral
