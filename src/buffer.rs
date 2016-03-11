@@ -61,7 +61,6 @@ impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
   pub fn set(&mut self, i: u32, x: &T) -> Result<(), BufferError> {
     C::write(&self.repr, i as usize * mem::size_of::<T>(), x)
   }
-
 }
 
 impl<C, A, T> Buffer<C, A, T> where C: HasBuffer, T: Clone {
@@ -78,8 +77,3 @@ impl<C, A, T> Index<u32> for Buffer<C, A, T> where C: HasBuffer {
 		self.get(i).unwrap()
   }
 }
-
-//impl<C, A, T> IndexMut<u32> for Buffer<C, A, T> where C: HasBuffer {
-//  fn index_mut(&mut self, i: u32) -> &mut T {
-//  }
-//}
