@@ -31,7 +31,7 @@ enum Format {
 struct RGB8UI;
 
 impl Pixel for RGB8UI {
-	fn pixel_format() -> PixelFormat { 
+	fn pixel_format() -> PixelFormat {
 		PixelFormat {
 				encoding_type: Type::Unsigned
 			, format: Format::RGB(8, 8, 8)
@@ -42,7 +42,7 @@ impl Pixel for RGB8UI {
 struct RGBA8UI;
 
 impl Pixel for RGBA8UI {
-	fn pixel_format() -> PixelFormat { 
+	fn pixel_format() -> PixelFormat {
 		PixelFormat {
 				encoding_type: Type::Unsigned
 			, format: Format::RGBA(8, 8, 8, 8)
@@ -53,7 +53,7 @@ impl Pixel for RGBA8UI {
 struct RGB8F;
 
 impl Pixel for RGB8F {
-	fn pixel_format() -> PixelFormat { 
+	fn pixel_format() -> PixelFormat {
 		PixelFormat {
 				encoding_type: Type::Floating
 			, format: Format::RGB(8, 8, 8)
@@ -64,10 +64,43 @@ impl Pixel for RGB8F {
 struct RGBA8F;
 
 impl Pixel for RGBA8F {
-	fn pixel_format() -> PixelFormat { 
+	fn pixel_format() -> PixelFormat {
 		PixelFormat {
 				encoding_type: Type::Floating
 			, format: Format::RGBA(8, 8, 8, 8)
+		}
+	}
+}
+
+struct RGB32F;
+
+impl Pixel for RGB32F {
+	fn pixel_format() -> PixelFormat {
+		PixelFormat {
+				encoding_type: Type::Floating
+			, format: Format::RGB(32, 32, 32)
+		}
+	}
+}
+
+struct RGBA32F;
+
+impl Pixel for RGBA32F {
+	fn pixel_format() -> PixelFormat {
+		PixelFormat {
+				encoding_type: Type::Floating
+			, format: Format::RGBA(32, 32, 32, 32)
+		}
+	}
+}
+
+struct Depth32F;
+
+impl Pixel for Depth32F {
+	fn pixel_format() -> PixelFormat {
+		PixelFormat {
+			  encoding_type: Type::Floating
+			, format: Format::Depth(32)
 		}
 	}
 }
