@@ -1,11 +1,5 @@
 use core::marker::PhantomData;
 
-/// Channel type.
-enum Type {
-	  Integral
-	, Unsigned
-	, Floating
-}
 
 /// Reify a static pixel format to runtime.
 trait Pixel {
@@ -16,6 +10,13 @@ trait Pixel {
 struct PixelFormat {
 		encoding_type: Type
 	, format: Format
+}
+
+/// Pixel type.
+enum Type {
+	  Integral
+	, Unsigned
+	, Floating
 }
 
 /// Format of a pixel.
