@@ -1,15 +1,5 @@
 use core::marker::PhantomData;
 
-/// Leverage a static channel size to runtime.
-trait ChanSize {
-	fn chan_size() -> u8;
-}
-
-/// Leverage a static channel type to runtime.
-trait ChanType<T> {
-	fn chan_type() -> Type;
-}
-
 /// Channel type.
 enum Type {
 	  Integral
@@ -17,45 +7,46 @@ enum Type {
 	, Floating
 }
 
-/// A 8-bit channel.
-struct C8;
-
-impl ChanSize for C8 {
-	fn chan_size() -> u8 { 8 }
+/// Reify a static pixel format to runtime.
+trait Pixel {
+	fn pixel_format() -> PixelFormat;
 }
 
-/// A 16-bit channel.
-struct C16;
-
-impl ChanSize for C16 {
-	fn chan_size() -> u8 { 16 }
+/// A `PixelFormat` gathers a `Type` along with a `Format`.
+struct PixelFormat {
+		encoding_type: Type
+	, format: Format
 }
 
-/// A 32-bit channel.
-struct C32;
-
-impl ChanSize for C32 {
-	fn chan_size() -> u8 { 32 }
+/// Format of a pixel.
+enum Format {
+		R(u8)
+	, RG(u8, u8)
+	, RGB(u8, u8, u8)
+	, RGBA(u8, u8, u8, u8)
+	, Depth(u8)
 }
 
-/// Integral channel.
-struct Integral;
+// --------------------------------------------------------
+// Supported pixel formats
+struct RGB8UI;
 
-/// Unsigned integral channel.
-struct Unsigned;
-
-/// Floating channel.
-struct Floating;
-
-/// Depth channel.
-struct Depth<D> {
-    _d: PhantomData<D>
+impl Pixel for RGB8UI {
+	fn pixel_format() -> PixelFormat { 
+		PixelFormat {
+				encoding_type: Type::Unsigned
+			, format: Format::RGB(8, 8, 8)
+		}
+	}
 }
 
-type RGB8UI = (Unsigned, C8, C8, C8);
-type RGBA8UI = (Unsigned, C8, C8, C8, C8);
-type RGB8F = (Floating, C8, C8, C8);
-type RGBA8F = (Floating, C8, C8, C8, C8);
-type RGB32F = (Floating, C32, C32, C32);
-type RGBA32F = (Floating, C32, C32, C32, C32);
-type Depth32F = (Floating, Depth<C32>);
+struct RGBA8UI;
+
+impl Pixel for RGBA8UI {
+	fn pixel_format() -> PixelFormat { 
+		PixelFormat {
+				encoding_type: Type::Unsigned
+			, format: Format::RGBA(8, 8, 8, 8)
+		}
+	}
+}
