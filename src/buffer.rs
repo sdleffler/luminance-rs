@@ -48,25 +48,33 @@ pub struct Buffer<C, A, T> where C: HasBuffer {
 }
 
 impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
+	/// Create a new `Buffer` with a given number of elements.
   pub fn new(_: A, size: u32) -> Buffer<C, A, T> {
     let size = size as usize;
     let buffer = C::new(size * mem::size_of::<T>());
     Buffer { repr: buffer, size: size, _a: PhantomData, _t: PhantomData }
   }
 
+	/// Retrieve a reference to an element in the `Buffer`.
+	///
+	/// Checks boundaries.
   pub fn get(&self, i: u32) -> Option<&T> {
     C::read(&self.repr, i as usize * mem::size_of::<T>())
   }
 
+	/// Retrieve the whole content of the `Buffer`.
 	pub fn whole(&self) -> Vec<T> {
 		C::read_whole(&self.repr)
 	}
 
+	/// Set a value at a given index in the `Buffer`.
+	///
+	/// Checks boundaries.
   pub fn set(&mut self, i: u32, x: &T) -> Result<(), BufferError> {
     C::write(&self.repr, i as usize * mem::size_of::<T>(), x)
   }
 
-  /// Fill a `Buffer` with a single value.
+  /// Fill the `Buffer` with a single value.
   pub fn clear(&self, x: &T) {
     C::write_whole(&self.repr, &vec![x; self.size]);
   }
