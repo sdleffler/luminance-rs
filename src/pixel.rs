@@ -1,5 +1,3 @@
-use core::marker::PhantomData;
-
 /// Reify a static pixel format to runtime.
 trait Pixel {
   fn pixel_format() -> PixelFormat;
