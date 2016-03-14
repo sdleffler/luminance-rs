@@ -1,3 +1,5 @@
+//! GPU *buffers*.
+
 use core::marker::PhantomData;
 use core::mem;
 use std::vec::Vec;
@@ -53,8 +55,8 @@ pub enum BufferError {
 /// resized. The size is expressed in number of elements lying in the buffer, not in bytes.
 #[derive(Debug)]
 pub struct Buffer<C, A, T> where C: HasBuffer {
-    repr: C::ABuffer
-  , size: usize // FIXME: should be compile-time, not runtime
+    pub repr: C::ABuffer
+  , pub size: usize // FIXME: should be compile-time, not runtime
   , _a: PhantomData<A>
   , _t: PhantomData<T>
 }
