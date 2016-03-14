@@ -79,8 +79,10 @@ pub enum VertexComponentDim {
 ///
 /// # Examples
 ///
+/// ```
 /// type V0 = VertexComponent<f32>; // a single floating value
 /// type V1 = VertexComponent<i32, VertexComponent<[f32; 3]>>; // a i32 and three f32
+/// ```
 pub struct VertexComponent<T, N=()> {
 		component: T
 	, next: N
