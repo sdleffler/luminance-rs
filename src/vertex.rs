@@ -43,6 +43,7 @@ use std::vec::Vec;
 /// A `VertexFormat` is a list of `VertexComponentFormat`s.
 pub type VertexFormat = Vec<VertexComponentFormat>;
 
+/// Retrieve the number of components in a `VertexFormat`.
 pub fn vertex_format_size(vf: &VertexFormat) -> usize {
 	vf.len()
 }
