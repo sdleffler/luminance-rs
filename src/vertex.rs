@@ -41,7 +41,7 @@
 use std::vec::Vec;
 
 /// A `VertexFormat` is a list of `VertexComponentFormat`s.
-type VertexFormat = Vec<VertexComponentFormat>;
+pub type VertexFormat = Vec<VertexComponentFormat>;
 
 /// A `VertexComponentFormat` gives hints about:
 ///
@@ -81,7 +81,7 @@ pub enum VertexComponentDim {
 ///
 /// type V0 = VertexComponent<f32>; // a single floating value
 /// type V1 = VertexComponent<i32, VertexComponent<[f32; 3]>>; // a i32 and three f32
-struct VertexComponent<T, N=()> {
+pub struct VertexComponent<T, N=()> {
 		component: T
 	, next: N
 }
@@ -91,7 +91,7 @@ struct VertexComponent<T, N=()> {
 ///
 /// If you’re not sure on how to implement that or if you want to use automatic types, feel free
 /// to use the primary supported types and `VertexComponent` or tuples.
-trait Vertex {
+pub trait Vertex {
 	fn vertex_format() -> VertexFormat;
 }
 
