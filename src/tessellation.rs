@@ -1,6 +1,7 @@
 // use std::collections::BTreeSet;
 use vertex::Vertex;
 
+/// Vertices can be connected via several modes.
 pub enum Mode {
     Point
   , Line
