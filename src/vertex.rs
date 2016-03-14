@@ -89,8 +89,8 @@ pub enum VertexComponentDim {
 /// type V1 = VertexComponent<i32, VertexComponent<[f32; 3]>>; // a i32 and three f32
 /// ```
 pub struct VertexComponent<T, N=()> where T: Vertex, N: Vertex {
-		component: T
-	, next: N
+		pub component: T
+	, pub next: N
 }
 
 /// A type that can be used as a `Vertex` has to implement that trait – it must provide a mapping
