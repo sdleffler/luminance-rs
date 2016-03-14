@@ -212,17 +212,10 @@ impl Vertex for [bool; 4] {
 	}
 }
 
-impl<T, N> VertexComponent<T, N> where T: Vertex, N: Vertex {
+impl<T, N> Vertex for VertexComponent<T, N> where T: Vertex, N: Vertex {
 	fn vertex_format() -> VertexFormat {
 		let mut t = T::vertex_format();
 		t.extend(N::vertex_format());
 		t
 	}
-}
-
-fn test<T>() where T: Vertex {
-}
-
-fn foo() {
-	//test::<>();
 }
