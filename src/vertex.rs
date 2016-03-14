@@ -1,7 +1,7 @@
 //! # Vertices
 //!
-//! A vertex is a type representing points in space. It’s common to find vertex position, normals,
-//! colors or even texture coordinates. However, you’re free to use whichever type you want.
+//! A vertex is a type representing a point. It’s common to find vertex position, normals, colors or
+//! even texture coordinates. However, you’re free to use whichever type you want.
 //! Nevertheless, you’re limited to a range of types and dimensions. See `VertexComponentType` and
 //! `VertexComponentDim` for further details.
 //!
