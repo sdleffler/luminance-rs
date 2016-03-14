@@ -24,8 +24,8 @@
 //!
 //! As mentionned above, you can use tuples and structs as `Vertex`. If you look at the definition
 //! of `VertexFormat`, you’ll notice that it’s a `Vec<VertexComponentFormat>`. That means simple
-//! and primary types are unit vectors – i.e. their size is 1 – but tuples and structs need several
-//! `VertexComponentFormat`s to be represented, hence vectors with sizes greater than 1.
+//! and primary types map to unit vectors – i.e. their size is 1 – but tuples and structs need
+//! several `VertexComponentFormat`s to be represented, hence vectors with sizes greater than 1.
 //!
 //! # Generic implementation
 //!
