@@ -5,8 +5,8 @@ pub trait Pixel {
 
 /// A `PixelFormat` gathers a `Type` along with a `Format`.
 pub struct PixelFormat {
-    encoding_type: Type
-  , format: Format
+    pub encoding_type: Type
+  , pub format: Format
 }
 
 /// Pixel type.
