@@ -4,4 +4,5 @@ pub mod backends;
 pub mod buffer;
 pub mod pixel;
 pub mod rw;
+pub mod tessellation;
 pub mod vertex;
