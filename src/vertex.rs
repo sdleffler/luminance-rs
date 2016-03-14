@@ -48,8 +48,8 @@ pub type VertexFormat = Vec<VertexComponentFormat>;
 /// - the type of the component (`VertexComponentType`);
 /// - the dimension of the component (`u8`).
 pub struct VertexComponentFormat {
-    component_type: VertexComponentType
-  , dim: VertexComponentDim
+    pub component_type: VertexComponentType
+  , pub dim: VertexComponentDim
 }
 
 /// Possible type of vertex components.
