@@ -83,7 +83,7 @@ pub enum VertexComponentDim {
 /// type V0 = VertexComponent<f32>; // a single floating value
 /// type V1 = VertexComponent<i32, VertexComponent<[f32; 3]>>; // a i32 and three f32
 /// ```
-pub struct VertexComponent<T, N=()> {
+pub struct VertexComponent<T, N=()> where T: Vertex, N: Vertex {
 		component: T
 	, next: N
 }
@@ -95,6 +95,12 @@ pub struct VertexComponent<T, N=()> {
 /// to use the primary supported types and `VertexComponent` or tuples.
 pub trait Vertex {
 	fn vertex_format() -> VertexFormat;
+}
+
+impl Vertex for () {
+	fn vertex_format() -> VertexFormat {
+		Vec::new()
+	}
 }
 
 impl Vertex for i32 {
