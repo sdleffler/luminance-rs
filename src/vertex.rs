@@ -67,7 +67,9 @@ pub enum VertexComponentDim {
 	, DIM4
 }
 
-/// Used to store vertex component in a list of vertex components.
+/// Generic type to represent list of vertex components. You should use that type or tuples to
+/// design your vertex types. You can also implement `Vertex` by mapping your internal structs’ to
+/// that type or tuples.
 ///
 /// `T` refers to the type of the vertex component and `N` represents the next component.
 ///
@@ -87,7 +89,7 @@ struct VertexComponent<T, N=()> {
 /// to `VertexFormat`.
 ///
 /// If you’re not sure on how to implement that or if you want to use automatic types, feel free
-/// to use the primary supported types and `VertexComponent`.
+/// to use the primary supported types and `VertexComponent` or tuples.
 trait Vertex {
 	fn vertex_format() -> VertexFormat;
 }
@@ -217,5 +219,35 @@ impl<T, N> Vertex for VertexComponent<T, N> where T: Vertex, N: Vertex {
 		let mut t = T::vertex_format();
 		t.extend(N::vertex_format());
 		t
+	}
+}
+
+impl<A, B> Vertex for (A, B) where A: Vertex, B: Vertex {
+	fn vertex_format() -> VertexFormat {
+		VertexComponent::<A, B>::vertex_format()
+	}
+}
+
+impl<A, B, C> Vertex for (A, B, C) where A: Vertex, B: Vertex, C: Vertex {
+	fn vertex_format() -> VertexFormat {
+		VertexComponent::<A, VertexComponent<B, C>>::vertex_format()
+	}
+}
+
+impl<A, B, C, D> Vertex for (A, B, C, D) where A: Vertex, B: Vertex, C: Vertex, D: Vertex {
+	fn vertex_format() -> VertexFormat {
+		VertexComponent::<A, VertexComponent<B, VertexComponent<C, D>>>::vertex_format()
+	}
+}
+
+impl<A, B, C, D, E> Vertex for (A, B, C, D, E) where A: Vertex, B: Vertex, C: Vertex, D: Vertex, E: Vertex {
+	fn vertex_format() -> VertexFormat {
+		VertexComponent::<A, VertexComponent<B, VertexComponent<C, VertexComponent<D, E>>>>::vertex_format()
+	}
+}
+
+impl<A, B, C, D, E, F> Vertex for (A, B, C, D, E, F) where A: Vertex, B: Vertex, C: Vertex, D: Vertex, E: Vertex, F: Vertex {
+	fn vertex_format() -> VertexFormat {
+		VertexComponent::<A, VertexComponent<B, VertexComponent<C, VertexComponent<D, VertexComponent<E, F>>>>>::vertex_format()
 	}
 }
