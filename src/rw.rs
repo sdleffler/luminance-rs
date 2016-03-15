@@ -1,3 +1,5 @@
+//! I/O access rights.
+//!
 //! I/O functions might operate in three favours:
 //!
 //! - in *read-only* (`R`);
