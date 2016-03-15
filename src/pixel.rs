@@ -25,15 +25,15 @@ pub enum Type {
 /// Whichever the constructor you choose, the carried `u8`s represents how many bytes are used to
 /// represent each channel.
 pub enum Format {
-		/// Holds a red-only channel.
+    /// Holds a red-only channel.
   R(u8),
-		/// Holds red and green channels. 
+    /// Holds red and green channels. 
   RG(u8, u8),
-	/// Holds red, green and blue channels.
+  /// Holds red, green and blue channels.
   RGB(u8, u8, u8),
-	/// Holds red, green, blue and alpha channels.
+  /// Holds red, green, blue and alpha channels.
   RGBA(u8, u8, u8, u8),
-	/// Holds a depth channel.
+  /// Holds a depth channel.
   Depth(u8)
 }
 
