@@ -19,6 +19,7 @@
 //! is an associated type found in `HasTessellation`.
 //!
 //! You create a new `Tessellation` with the `new` function, and you can render it with `render`.
+
 // use std::collections::BTreeSet;
 use vertex::Vertex;
 
