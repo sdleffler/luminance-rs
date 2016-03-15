@@ -15,9 +15,9 @@ pub struct PixelFormat {
 
 /// Pixel type.
 pub enum Type {
-  Integral
+  Integral,
   Unsigned,
-  Floating,
+  Floating
 }
 
 /// Format of a pixel.
