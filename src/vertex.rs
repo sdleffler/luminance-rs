@@ -51,24 +51,24 @@ pub fn vertex_format_size(vf: &VertexFormat) -> usize {
 /// - the type of the component (`VertexComponentType`);
 /// - the dimension of the component (`VertexComponentDim`).
 pub struct VertexComponentFormat {
-    pub component_type: VertexComponentType
-  , pub dim: VertexComponentDim
+  pub component_type: VertexComponentType,
+  pub dim: VertexComponentDim
 }
 
 /// Possible type of vertex components.
 pub enum VertexComponentType {
-    Integral
-  , Unsigned
-  , Floating
-  , Boolean
+  Integral,
+  Unsigned,
+  Floating,
+  Boolean
 }
 
 /// Possible dimension of vertex components.
 pub enum VertexComponentDim {
-    DIM1
-  , DIM2
-  , DIM3
-  , DIM4
+  DIM1,
+  DIM2,
+  DIM3,
+  DIM4
 }
 
 /// Generic type to represent list of vertex components. You should use that type or tuples to
@@ -87,8 +87,8 @@ pub enum VertexComponentDim {
 /// type V1 = VertexComponent<i32, VertexComponent<[f32; 3]>>; // a i32 and three f32
 /// ```
 pub struct VertexComponent<T, N=()> where T: Vertex, N: Vertex {
-    pub component: T
-  , pub next: N
+  pub component: T,
+  pub next: N
 }
 
 /// A type that can be used as a `Vertex` has to implement that trait – it must provide a mapping
