@@ -15,31 +15,26 @@ pub struct PixelFormat {
 
 /// Pixel type.
 pub enum Type {
-    Integral
-  , Unsigned
-  , Floating
+  Integral
+  Unsigned,
+  Floating,
 }
 
 /// Format of a pixel.
 ///
-/// The `R` constructor holds a red-only channel.
-///
-/// The `RG` constructor holds red and green channels. 
-///
-/// The `RGB` constructor holds red, green and blue channels.
-///
-/// The `RGBA` constructor holds red, green, blue and alpha channels.
-///
-/// The `Depth` constructor holds a depth channel.
-///
 /// Whichever the constructor you choose, the carried `u8`s represents how many bytes are used to
 /// represent each channel.
 pub enum Format {
-    R(u8)
-  , RG(u8, u8)
-  , RGB(u8, u8, u8)
-  , RGBA(u8, u8, u8, u8)
-  , Depth(u8)
+		/// Holds a red-only channel.
+  R(u8),
+		/// Holds red and green channels. 
+  RG(u8, u8),
+	/// Holds red, green and blue channels.
+  RGB(u8, u8, u8),
+	/// Holds red, green, blue and alpha channels.
+  RGBA(u8, u8, u8, u8),
+	/// Holds a depth channel.
+  Depth(u8)
 }
 
 /// Does a `PixelFormat` represent a color?
