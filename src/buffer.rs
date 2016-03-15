@@ -14,18 +14,18 @@ pub trait HasBuffer {
   /// Create a new buffer with a given size.
   fn new(size: usize) -> Self::ABuffer;
   /// Write values into the buffer.
-	///
-	/// # Warnings
-	///
-	///  Those warnings are just **hints**. The behavior for each warning is specific and should be
-	///  accounted.
-	///
-	/// `Err(BufferError::TooManyValues)` if you provide more values than the buffer’s size. In that
-	/// case, the extra items are just ignored and all others are written; that is, the `values`
-	/// argument is considered having the same size as `buffer`.
-	///
-	/// `Err(BufferError::TooFewValues)` if you provide less avlues than the buffer’s size. In that
-	/// case, all `values` are written and the missing ones remain the same in `buffer`.
+  ///
+  /// # Warnings
+  ///
+  ///  Those warnings are just **hints**. The behavior for each warning is specific and should be
+  ///  accounted.
+  ///
+  /// `Err(BufferError::TooManyValues)` if you provide more values than the buffer’s size. In that
+  /// case, the extra items are just ignored and all others are written; that is, the `values`
+  /// argument is considered having the same size as `buffer`.
+  ///
+  /// `Err(BufferError::TooFewValues)` if you provide less avlues than the buffer’s size. In that
+  /// case, all `values` are written and the missing ones remain the same in `buffer`.
   fn write_whole<T>(buffer: &Self::ABuffer, values: &Vec<T>) -> Result<(),BufferError>;
   /// Write a single value in the buffer at a given offset.
   ///
@@ -62,28 +62,28 @@ pub struct Buffer<C, A, T> where C: HasBuffer {
 }
 
 impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
-	/// Create a new `Buffer` with a given number of elements.
+  /// Create a new `Buffer` with a given number of elements.
   pub fn new(_: A, size: u32) -> Buffer<C, A, T> {
     let size = size as usize;
     let buffer = C::new(size * mem::size_of::<T>());
     Buffer { repr: buffer, size: size, _a: PhantomData, _t: PhantomData }
   }
 
-	/// Retrieve a reference to an element in the `Buffer`.
-	///
-	/// Checks boundaries.
+  /// Retrieve a reference to an element in the `Buffer`.
+  ///
+  /// Checks boundaries.
   pub fn get(&self, i: u32) -> Option<&T> {
     C::read(&self.repr, i as usize * mem::size_of::<T>())
   }
 
-	/// Retrieve the whole content of the `Buffer`.
-	pub fn whole(&self) -> Vec<T> {
-		C::read_whole(&self.repr)
-	}
+  /// Retrieve the whole content of the `Buffer`.
+  pub fn whole(&self) -> Vec<T> {
+    C::read_whole(&self.repr)
+  }
 
-	/// Set a value at a given index in the `Buffer`.
-	///
-	/// Checks boundaries.
+  /// Set a value at a given index in the `Buffer`.
+  ///
+  /// Checks boundaries.
   pub fn set(&mut self, i: u32, x: &T) -> Result<(), BufferError> {
     C::write(&self.repr, i as usize * mem::size_of::<T>(), x)
   }
@@ -98,6 +98,6 @@ impl<C, A, T> Index<u32> for Buffer<C, A, T> where C: HasBuffer {
   type Output = T;
 
   fn index(&self, i: u32) -> &T {
-		self.get(i).unwrap()
+    self.get(i).unwrap()
   }
 }
