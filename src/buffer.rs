@@ -47,18 +47,18 @@ pub trait HasBuffer {
 /// Buffer errors.
 #[derive(Debug)]
 pub enum BufferError {
-    Overflow
-  , TooManyValues
+  Overflow,
+  TooManyValues
 }
 
 /// A `Buffer` is a GPU region you can picture as an array. It has a static size and cannot be
 /// resized. The size is expressed in number of elements lying in the buffer, not in bytes.
 #[derive(Debug)]
 pub struct Buffer<C, A, T> where C: HasBuffer {
-    pub repr: C::ABuffer
-  , pub size: usize // FIXME: should be compile-time, not runtime
-  , _a: PhantomData<A>
-  , _t: PhantomData<T>
+  pub repr: C::ABuffer,
+  pub size: usize, // FIXME: should be compile-time, not runtime
+  _a: PhantomData<A>,
+  _t: PhantomData<T>
 }
 
 impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
