@@ -1,3 +1,24 @@
+//! Tessellation features.
+//!
+//! # Tessellation mode
+//!
+//! Tessellation is geometric information. Currently, several kind of tessellation is supported:
+//!
+//! - *point clouds*;
+//! - *lines*;
+//! - *line strips*;
+//! - *triangles*;
+//! - *triangle fans*;
+//! - *triangle strips*.
+//!
+//! Those kind of tessellation are designated by the `Mode` type.
+//!
+//! # Tessellation abstraction
+//!
+//! The tessellation is an abstract concept that depends on the backend. That’s why `Tessellation`
+//! is an associated type found in `HasTessellation`.
+//!
+//! You create a new `Tessellation` with the `new` function, and you can render it with `render`.
 // use std::collections::BTreeSet;
 use vertex::Vertex;
 
