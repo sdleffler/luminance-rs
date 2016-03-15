@@ -1,3 +1,4 @@
+use core::marker::PhantomData;
 use pixel::Pixel;
 
 /// How to wrap texture coordinates while sampling textures?
@@ -47,6 +48,8 @@ pub enum DepthComparison {
 
 /// Reify a type into a `Dim`.
 pub trait Dimensionable {
+  type Size;
+
   fn dim() -> Dim;
 }
 
@@ -60,19 +63,35 @@ pub enum Dim {
 
 pub struct DIM1;
 
-impl Dimensionable for DIM1 { fn dim() -> Dim { Dim::DIM1 } }
+impl Dimensionable for DIM1 {
+  type Size = u32;
+
+  fn dim() -> Dim { Dim::DIM1 }
+}
 
 pub struct DIM2;
 
-impl Dimensionable for DIM2 { fn dim() -> Dim { Dim::DIM2 } }
+impl Dimensionable for DIM2 {
+  type Size = (u32, u32);
+
+  fn dim() -> Dim { Dim::DIM2 }
+}
 
 pub struct DIM3;
 
-impl Dimensionable for DIM3 { fn dim() -> Dim { Dim::DIM3 } }
+impl Dimensionable for DIM3 {
+  type Size = (u32, u32, u32);
+
+  fn dim() -> Dim { Dim::DIM3 }
+}
 
 pub struct Cubemap;
 
-impl Dimensionable for Cubemap { fn dim() -> Dim { Dim::Cubemap } }
+impl Dimensionable for Cubemap {
+  type Size = (u32, u32, u32);
+
+  fn dim() -> Dim { Dim::Cubemap }
+}
 
 /// Reify a type into a `Layering`.
 pub trait Layerable {
@@ -95,13 +114,33 @@ pub struct Layered;
 
 impl Layerable for Layered { fn layering() -> Layering { Layering::Layered } }
 
-/// A `Texture` gathers three important information:
-///
-/// - a **layering** type, `L`, representing whether the texture is *regular* or an *array*;
-/// - a **dimension** type, `D`, giving the dimension of the texture;
-/// - a **pixel format**, `P`, giving the format of each texel;
-pub struct Texture<L, D, P> where L: Layerable, D: Dimensionable, P: Pixel {
-  pub layering: L,
-  pub dim: D,
-  pub format: P
+/// Trait to implement to provide texture features.
+pub trait HasTexture {
+  type ATex;
+
+  fn new<L, D, P>(size: D::Size, mipmaps: u32, sampling: ()) -> Self::ATex
+    where L: Layerable,
+          D: Dimensionable,
+          P: Pixel;
+}
+
+pub struct Tex<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, P: Pixel {
+  pub repr: C::ATex,
+  pub size: D::Size,
+  pub mipmaps: u32,
+  _l: PhantomData<L>,
+  _c: PhantomData<C>,
+  _p: PhantomData<P>
+}
+
+impl<C, L, D, P> Tex<C, L, D, P>
+    where C: HasTexture,
+          L: Layerable,
+          D: Dimensionable,
+          D::Size: Copy,
+          P: Pixel {
+  pub fn new(size: D::Size, mipmaps: u32, sampling: ()) -> Self {
+    let tex = C::new::<L, D, P>(size, mipmaps, sampling);
+    Tex { repr: tex, size: size, mipmaps: mipmaps, _c: PhantomData, _l: PhantomData, _p: PhantomData }
+  }
 }
