@@ -33,7 +33,7 @@ pub enum Mode {
 }
 
 /// Trait to implement to provide tessellation features.
-trait HasTessellation {
+pub trait HasTessellation {
   /// A type representing tessellation on GPU.
   type Tessellation;
 
