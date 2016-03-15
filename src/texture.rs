@@ -1,3 +1,5 @@
+//! This module provides texture features.
+
 use core::marker::PhantomData;
 use pixel::Pixel;
 
