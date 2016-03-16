@@ -137,7 +137,6 @@ pub struct Tex<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, 
 	pub texels: Vec<P::Encoding>,
   _l: PhantomData<L>,
   _c: PhantomData<C>,
-  _p: PhantomData<P>
 }
 
 impl<C, L, D, P> Tex<C, L, D, P>
@@ -148,6 +147,7 @@ impl<C, L, D, P> Tex<C, L, D, P>
           P: Pixel {
   pub fn new(size: D::Size, mipmaps: u32, sampling: ()) -> Self {
     let tex = C::new::<L, D, P>(size, mipmaps, sampling);
+
     Tex {
 			repr: tex,
 			size: size,
@@ -155,7 +155,6 @@ impl<C, L, D, P> Tex<C, L, D, P>
 			texels: Vec::new(), // FIXME: with_capacity(size_something)
 			_c: PhantomData,
 			_l: PhantomData,
-			_p: PhantomData
 		}
   }
 }
