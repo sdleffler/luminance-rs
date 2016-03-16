@@ -4,6 +4,7 @@
 
 /// Reify a static pixel format to runtime.
 pub trait Pixel {
+	/// Encoding of a single pixel. It should match the `PixelFormat` mapping.
 	type Encoding;
 
   fn pixel_format() -> PixelFormat;
