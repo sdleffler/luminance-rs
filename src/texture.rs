@@ -126,6 +126,10 @@ pub trait HasTexture {
           P: Pixel;
 }
 
+/// Texture.
+///
+/// `L` refers to the layering type; `D` refers to the dimension; `P` is the pixel format for the
+/// texels.
 pub struct Tex<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, P: Pixel {
   pub repr: C::ATex,
   pub size: D::Size,
