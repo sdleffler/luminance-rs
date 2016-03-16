@@ -4,6 +4,8 @@
 
 /// Reify a static pixel format to runtime.
 pub trait Pixel {
+	type Encoding;
+
   fn pixel_format() -> PixelFormat;
 }
 
@@ -54,6 +56,8 @@ pub fn is_depth_pixel(f: PixelFormat) -> bool {
 pub struct RGB8UI;
 
 impl Pixel for RGB8UI {
+	type Encoding = (u8, u8, u8);
+
   fn pixel_format() -> PixelFormat {
     PixelFormat {
         encoding_type: Type::Unsigned
@@ -66,33 +70,11 @@ impl Pixel for RGB8UI {
 pub struct RGBA8UI;
 
 impl Pixel for RGBA8UI {
+	type Encoding = (u8, u8, u8, u8);
+
   fn pixel_format() -> PixelFormat {
     PixelFormat {
         encoding_type: Type::Unsigned
-      , format: Format::RGBA(8, 8, 8, 8)
-    }
-  }
-}
-
-/// A red, green and blue 8-bit floating pixel format.
-pub struct RGB8F;
-
-impl Pixel for RGB8F {
-  fn pixel_format() -> PixelFormat {
-    PixelFormat {
-        encoding_type: Type::Floating
-      , format: Format::RGB(8, 8, 8)
-    }
-  }
-}
-
-/// A red, green, blue and alpha 8-bit floating pixel format.
-pub struct RGBA8F;
-
-impl Pixel for RGBA8F {
-  fn pixel_format() -> PixelFormat {
-    PixelFormat {
-        encoding_type: Type::Floating
       , format: Format::RGBA(8, 8, 8, 8)
     }
   }
@@ -102,6 +84,8 @@ impl Pixel for RGBA8F {
 pub struct RGB32F;
 
 impl Pixel for RGB32F {
+	type Encoding = (f32, f32, f32);
+
   fn pixel_format() -> PixelFormat {
     PixelFormat {
         encoding_type: Type::Floating
@@ -114,6 +98,8 @@ impl Pixel for RGB32F {
 pub struct RGBA32F;
 
 impl Pixel for RGBA32F {
+	type Encoding = (f32, f32, f32, f32);
+
   fn pixel_format() -> PixelFormat {
     PixelFormat {
         encoding_type: Type::Floating
@@ -126,6 +112,8 @@ impl Pixel for RGBA32F {
 pub struct Depth32F;
 
 impl Pixel for Depth32F {
+	type Encoding = f32;
+
   fn pixel_format() -> PixelFormat {
     PixelFormat {
         encoding_type: Type::Floating
