@@ -52,7 +52,14 @@ pub enum DepthComparison {
 pub trait Dimensionable {
   type Size;
 
+	/// Dimension.
   fn dim() -> Dim;
+	/// Width of the associated `Size`. If it doesn’t have one, set it to 0.
+	fn width(size: &Self::Size) -> u32;
+	/// Height of the associated `Size`. If it doesn’t have one, set it to 0.
+	fn height(size: &Self::Size) -> u32 { 0 }
+	/// Depth of the associated `Size`. If it doesn’t have one, set it to 0.
+	fn depth(size: &Self::Size) -> u32 { 0 }
 }
 
 /// Dimension of a texture.
@@ -69,6 +76,8 @@ impl Dimensionable for DIM1 {
   type Size = u32;
 
   fn dim() -> Dim { Dim::DIM1 }
+	
+	fn width(w: &u32) -> u32 { *w }
 }
 
 pub struct DIM2;
@@ -77,6 +86,10 @@ impl Dimensionable for DIM2 {
   type Size = (u32, u32);
 
   fn dim() -> Dim { Dim::DIM2 }
+
+	fn width(&(w, _): &(u32, u32)) -> u32 { w }
+
+	fn height(&(_, h): &(u32, u32)) -> u32 { h }
 }
 
 pub struct DIM3;
@@ -85,14 +98,26 @@ impl Dimensionable for DIM3 {
   type Size = (u32, u32, u32);
 
   fn dim() -> Dim { Dim::DIM3 }
+
+	fn width(&(w, _, _): &(u32, u32, u32)) -> u32 { w }
+
+	fn height(&(_, h, _): &(u32, u32, u32)) -> u32 { h }
+
+	fn depth(&(_, _, d): &(u32, u32, u32)) -> u32 { d }
 }
 
 pub struct Cubemap;
 
 impl Dimensionable for Cubemap {
-  type Size = (u32, u32, u32);
+  type Size = u32;
 
   fn dim() -> Dim { Dim::Cubemap }
+
+	fn width(s: &u32) -> u32 { *s }
+
+	fn height(s: &u32) -> u32 { *s }
+
+	fn depth(s: &u32) -> u32 { *s }
 }
 
 /// Reify a type into a `Layering`.
