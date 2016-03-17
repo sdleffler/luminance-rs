@@ -106,6 +106,24 @@ impl Uniformable for (f32, f32, f32, f32) {
   fn value_type() -> Type { Type::Floating }
 }
 
+impl Uniformable for ((f32, f32), (f32, f32)) {
+  fn uniform_dim() -> Dim { Dim::DIM22 }
+
+  fn value_type() -> Type { Type::Floating}
+}
+
+impl Uniformable for ((f32, f32, f32), (f32, f32, f32), (f32, f32, f32)) {
+  fn uniform_dim() -> Dim { Dim::DIM33 }
+
+  fn value_type() -> Type { Type::Floating}
+}
+
+impl Uniformable for ((f32, f32, f32, f32), (f32, f32, f32, f32), (f32, f32, f32, f32), (f32, f32, f32, f32)) {
+  fn uniform_dim() -> Dim { Dim::DIM44 }
+
+  fn value_type() -> Type { Type::Floating}
+}
+
 impl Uniformable for bool {
   fn uniform_dim() -> Dim { Dim::DIM1 }
 
