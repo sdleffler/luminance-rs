@@ -28,6 +28,12 @@ pub struct Uniform<C, T> where C: HasUniform {
   _t: PhantomData<T>
 }
 
+/// Name of a `Uniform`.
+pub enum UniformName<'a> {
+  StringName(&'a str),
+  SemanticName(u32)
+}
+
 pub trait Uniformable {
   /// Dimension of the uniform type.
   fn uniform_dim() -> Dim;
