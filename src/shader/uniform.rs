@@ -8,7 +8,10 @@ pub enum Dim {
   DIM1,
   DIM2,
   DIM3,
-  DIM4
+  DIM4,
+  DIM22,
+  DIM33,
+  DIM44
 }
 
 pub enum Type {
