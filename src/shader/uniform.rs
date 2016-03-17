@@ -34,7 +34,7 @@ pub trait Uniformable {
   /// Type of the target value.
   fn value_type() -> Type;
   /// Number of target values the uniform handles.
-  fn value_size() -> u32;
+  fn value_size(_: &Self) -> usize;
 }
 
 impl Uniformable for i32 {
@@ -42,7 +42,7 @@ impl Uniformable for i32 {
 
   fn value_type() -> Type { Type::Integral }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for (i32, i32) {
@@ -50,7 +50,7 @@ impl Uniformable for (i32, i32) {
 
   fn value_type() -> Type { Type::Integral }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for (i32, i32, i32) {
@@ -58,7 +58,7 @@ impl Uniformable for (i32, i32, i32) {
 
   fn value_type() -> Type { Type::Integral }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for (i32, i32, i32, i32) {
@@ -66,7 +66,7 @@ impl Uniformable for (i32, i32, i32, i32) {
 
   fn value_type() -> Type { Type::Integral }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for u32 {
@@ -74,7 +74,7 @@ impl Uniformable for u32 {
 
   fn value_type() -> Type { Type::Unsigned }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for (u32, u32) {
@@ -82,7 +82,7 @@ impl Uniformable for (u32, u32) {
 
   fn value_type() -> Type { Type::Unsigned }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for (u32, u32, u32) {
@@ -90,7 +90,7 @@ impl Uniformable for (u32, u32, u32) {
 
   fn value_type() -> Type { Type::Unsigned }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for (u32, u32, u32, u32) {
@@ -98,7 +98,7 @@ impl Uniformable for (u32, u32, u32, u32) {
 
   fn value_type() -> Type { Type::Unsigned }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for f32 {
@@ -106,7 +106,7 @@ impl Uniformable for f32 {
 
   fn value_type() -> Type { Type::Floating }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for (f32, f32) {
@@ -114,7 +114,7 @@ impl Uniformable for (f32, f32) {
 
   fn value_type() -> Type { Type::Floating }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for (f32, f32, f32) {
@@ -122,7 +122,7 @@ impl Uniformable for (f32, f32, f32) {
 
   fn value_type() -> Type { Type::Floating }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for (f32, f32, f32, f32) {
@@ -130,7 +130,7 @@ impl Uniformable for (f32, f32, f32, f32) {
 
   fn value_type() -> Type { Type::Floating }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for ((f32, f32), (f32, f32)) {
@@ -138,7 +138,7 @@ impl Uniformable for ((f32, f32), (f32, f32)) {
 
   fn value_type() -> Type { Type::Floating}
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for ((f32, f32, f32), (f32, f32, f32), (f32, f32, f32)) {
@@ -146,7 +146,7 @@ impl Uniformable for ((f32, f32, f32), (f32, f32, f32), (f32, f32, f32)) {
 
   fn value_type() -> Type { Type::Floating}
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for ((f32, f32, f32, f32), (f32, f32, f32, f32), (f32, f32, f32, f32), (f32, f32, f32, f32)) {
@@ -154,7 +154,7 @@ impl Uniformable for ((f32, f32, f32, f32), (f32, f32, f32, f32), (f32, f32, f32
 
   fn value_type() -> Type { Type::Floating}
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for bool {
@@ -162,7 +162,7 @@ impl Uniformable for bool {
 
   fn value_type() -> Type { Type::Boolean }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for (bool, bool) {
@@ -170,7 +170,7 @@ impl Uniformable for (bool, bool) {
 
   fn value_type() -> Type { Type::Boolean }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for (bool, bool, bool) {
@@ -178,7 +178,7 @@ impl Uniformable for (bool, bool, bool) {
 
   fn value_type() -> Type { Type::Boolean }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
 }
 
 impl Uniformable for (bool, bool, bool, bool) {
@@ -186,5 +186,13 @@ impl Uniformable for (bool, bool, bool, bool) {
 
   fn value_type() -> Type { Type::Boolean }
 
-  fn value_size() -> u32 { 1 }
+  fn value_size(_: &Self) -> usize { 1 }
+}
+
+impl<T> Uniformable for Vec<T> where T: Uniformable {
+  fn uniform_dim() -> Dim { T::uniform_dim() }
+
+  fn value_type() -> Type { T::value_type() }
+
+  fn value_size(x: &Self) -> usize { x.len() }
 }
