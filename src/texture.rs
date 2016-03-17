@@ -54,12 +54,16 @@ pub trait Dimensionable {
 
 	/// Dimension.
   fn dim() -> Dim;
-	/// Width of the associated `Size`. If it doesn’t have one, set it to 0.
+	/// Width of the associated `Size`.
 	fn width(size: &Self::Size) -> u32;
-	/// Height of the associated `Size`. If it doesn’t have one, set it to 0.
-	fn height(size: &Self::Size) -> u32 { 0 }
-	/// Depth of the associated `Size`. If it doesn’t have one, set it to 0.
-	fn depth(size: &Self::Size) -> u32 { 0 }
+	/// Height of the associated `Size`. If it doesn’t have one, set it to 1.
+	fn height(_: &Self::Size) -> u32 { 1 }
+	/// Depth of the associated `Size`. If it doesn’t have one, set it to 1.
+	fn depth(_: &Self::Size) -> u32 { 1 }
+}
+
+pub fn dim_capacity<T>(size: &T::Size) -> u32 where T: Dimensionable {
+	T::width(size) * T::height(size) * T::depth(size)
 }
 
 /// Dimension of a texture.
@@ -177,7 +181,7 @@ impl<C, L, D, P> Tex<C, L, D, P>
 			repr: tex,
 			size: size,
 			mipmaps: mipmaps,
-			texels: Vec::new(), // FIXME: with_capacity(size_something)
+			texels: Vec::with_capacity(dim_capacity::<D>(&size) as usize),
 			_c: PhantomData,
 			_l: PhantomData,
 		}
