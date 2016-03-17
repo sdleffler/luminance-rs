@@ -149,10 +149,15 @@ impl Layerable for Layered { fn layering() -> Layering { Layering::Layered } }
 pub trait HasTexture {
   type ATex;
 
+  /// Create a new texture.
   fn new<L, D, P>(size: D::Size, mipmaps: u32, sampler: &Sampler) -> Self::ATex
     where L: Layerable,
           D: Dimensionable,
           P: Pixel;
+  /// Clear the texture’s texels by setting them all to the same value.
+  fn clear<P>(tex: &Self::ATex, pixel: &P::Encoding) where P: Pixel;
+  /// Upload texels to the texture’s memory.
+  fn upload<P>(tex: &Self::ATex, texels: &Vec<P::Encoding>) where P: Pixel;
 }
 
 /// Texture.
@@ -185,6 +190,14 @@ impl<C, L, D, P> Tex<C, L, D, P>
       _c: PhantomData,
       _l: PhantomData,
     }
+  }
+
+  pub fn clear(&self, pixel: &P::Encoding) {
+    C::clear::<P>(&self.repr, pixel)
+  }
+
+  pub fn upload(&self, texels: &Vec<P::Encoding>) {
+    C::upload::<P>(&self.repr, texels)
   }
 }
 
