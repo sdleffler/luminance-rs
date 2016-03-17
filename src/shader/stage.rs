@@ -3,10 +3,10 @@ use core::marker::PhantomData;
 pub trait HasStage {
   type AStage;
 
-  fn new<'a, 'b>(shader_type: Type, src: &'a str) -> Result<StageError<'b>, Self::AStage>;
+  fn new<'a, 'b>(shader_type: Type, src: &'a str) -> Result<Self::AStage, StageError<'b>>;
 }
 
-pub trait Typeable {
+pub trait ShaderTypeable {
   fn shader_type() -> Type;
 }
 
@@ -21,39 +21,48 @@ pub enum Type {
 
 pub struct TessellationControlShader;
 
-impl Typeable for TessellationControlShader {
+impl ShaderTypeable for TessellationControlShader {
   fn shader_type() -> Type { Type::TessellationControlShader }
 }
 
 pub struct TessellationEvaluationShader;
 
-impl Typeable for TessellationEvaluationShader {
+impl ShaderTypeable for TessellationEvaluationShader {
   fn shader_type() -> Type { Type::TessellationEvaluationShader }
 }
 
 pub struct VertexShader;
 
-impl Typeable for VertexShader {
+impl ShaderTypeable for VertexShader {
   fn shader_type() -> Type { Type::VertexShader }
 }
 
 pub struct GeometryShader;
 
-impl Typeable for GeometryShader {
+impl ShaderTypeable for GeometryShader {
   fn shader_type() -> Type { Type::GeometryShader }
 }
 
 pub struct FragmentShader;
 
-impl Typeable for FragmentShader {
+impl ShaderTypeable for FragmentShader {
   fn shader_type() -> Type { Type::FragmentShader }
 }
 
 /// A shader stage. The `T` type variable gives the type of the shader.
 pub struct Stage<C, T> where C: HasStage {
   pub repr: C::AStage,
-  _c: PhantomData<C>,
   _t: PhantomData<T>
+}
+
+impl<C, T> Stage<C, T> where C: HasStage, T: ShaderTypeable {
+  pub fn new<'a, 'b>(src: &'a str) -> Result<Self, StageError<'b>> {
+    let shader = C::new(T::shader_type(), src);
+    shader.map(|shader| Stage {
+      repr: shader,
+      _t: PhantomData
+    })
+  }
 }
 
 pub enum StageError<'a> {
