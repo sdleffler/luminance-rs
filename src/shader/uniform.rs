@@ -1,9 +1,14 @@
+//! Shader uniforms and associated operations.
+//!
+//! Uniforms kick in several and useful ways. They’re used to customize shaders.
 use core::marker::PhantomData;
 
 pub trait HasUniform {
+  /// Uniform representation.
   type U;
 }
 
+/// Dimension of a `Uniform`.
 pub enum Dim {
   DIM1,
   DIM2,
@@ -14,6 +19,7 @@ pub enum Dim {
   DIM44
 }
 
+/// Type of a `Uniform`.
 pub enum Type {
   Integral,
   Unsigned,
@@ -21,6 +27,8 @@ pub enum Type {
   Boolean
 }
 
+/// A shader uniform. `Uniform<C, T>` doesn’t hold any value. It’s more like a mapping between the
+/// host code and the shader the uniform was retrieved from.
 pub struct Uniform<C, T> where C: HasUniform {
   pub repr: C::U,
   pub dim: Dim,
@@ -34,6 +42,7 @@ pub enum UniformName<'a> {
   SemanticName(u32)
 }
 
+/// Types that can behave as `Uniform`.
 pub trait Uniformable {
   /// Dimension of the uniform type.
   fn uniform_dim() -> Dim;
