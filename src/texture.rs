@@ -149,7 +149,7 @@ impl Layerable for Layered { fn layering() -> Layering { Layering::Layered } }
 pub trait HasTexture {
   type ATex;
 
-  fn new<L, D, P>(size: D::Size, mipmaps: u32, sampling: ()) -> Self::ATex
+  fn new<L, D, P>(size: D::Size, mipmaps: u32, sampler: &Sampler) -> Self::ATex
     where L: Layerable,
           D: Dimensionable,
           P: Pixel;
@@ -174,8 +174,8 @@ impl<C, L, D, P> Tex<C, L, D, P>
           D: Dimensionable,
           D::Size: Copy,
           P: Pixel {
-  pub fn new(size: D::Size, mipmaps: u32, sampling: ()) -> Self {
-    let tex = C::new::<L, D, P>(size, mipmaps, sampling);
+  pub fn new(size: D::Size, mipmaps: u32, sampler: &Sampler) -> Self {
+    let tex = C::new::<L, D, P>(size, mipmaps, sampler);
 
     Tex {
       repr: tex,
@@ -184,6 +184,47 @@ impl<C, L, D, P> Tex<C, L, D, P>
       texels: Vec::with_capacity(dim_capacity::<D>(&size) as usize),
       _c: PhantomData,
       _l: PhantomData,
+    }
+  }
+}
+
+/// A `Sampler` object gives hint on how a `Tex` should be sampled.
+pub struct Sampler {
+  /// How should we wrap around the *r* sampling coordinate?
+  pub wrap_r: Wrap,
+  /// How should we wrap around the *s* sampling coordinate?
+  pub wrap_s: Wrap,
+  /// How should we wrap around the *t* sampling coordinate?
+  pub wrap_t: Wrap,
+  /// Minification filter.
+  pub minification: Filter,
+  /// Magnification filter.
+  pub magnification: Filter,
+  /// For depth textures, should we perform depth comparison and if so, how?
+  pub depth_comparison: Option<DepthComparison>
+}
+
+/// Default value is as following:
+///
+/// ```
+/// Sampler {
+///   wrap_r: Wrap::ClampToEdge,
+///   wrap_s: Wrap::ClampToEdge,
+///   wrap_t: Wrap::ClampToEdge,
+///   minification: Filter::Linear,
+///   magnification: Filter::Linear,
+///   depth_comparison: None
+/// }
+/// ```
+impl Default for Sampler {
+  fn default() -> Self {
+    Sampler {
+      wrap_r: Wrap::ClampToEdge,
+      wrap_s: Wrap::ClampToEdge,
+      wrap_t: Wrap::ClampToEdge,
+      minification: Filter::Linear,
+      magnification: Filter::Linear,
+      depth_comparison: None
     }
   }
 }
