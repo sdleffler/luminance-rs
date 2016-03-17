@@ -52,18 +52,18 @@ pub enum DepthComparison {
 pub trait Dimensionable {
   type Size;
 
-	/// Dimension.
+  /// Dimension.
   fn dim() -> Dim;
-	/// Width of the associated `Size`.
-	fn width(size: &Self::Size) -> u32;
-	/// Height of the associated `Size`. If it doesn’t have one, set it to 1.
-	fn height(_: &Self::Size) -> u32 { 1 }
-	/// Depth of the associated `Size`. If it doesn’t have one, set it to 1.
-	fn depth(_: &Self::Size) -> u32 { 1 }
+  /// Width of the associated `Size`.
+  fn width(size: &Self::Size) -> u32;
+  /// Height of the associated `Size`. If it doesn’t have one, set it to 1.
+  fn height(_: &Self::Size) -> u32 { 1 }
+  /// Depth of the associated `Size`. If it doesn’t have one, set it to 1.
+  fn depth(_: &Self::Size) -> u32 { 1 }
 }
 
 pub fn dim_capacity<T>(size: &T::Size) -> u32 where T: Dimensionable {
-	T::width(size) * T::height(size) * T::depth(size)
+  T::width(size) * T::height(size) * T::depth(size)
 }
 
 /// Dimension of a texture.
@@ -80,8 +80,8 @@ impl Dimensionable for DIM1 {
   type Size = u32;
 
   fn dim() -> Dim { Dim::DIM1 }
-	
-	fn width(w: &u32) -> u32 { *w }
+
+  fn width(w: &u32) -> u32 { *w }
 }
 
 pub struct DIM2;
@@ -91,9 +91,9 @@ impl Dimensionable for DIM2 {
 
   fn dim() -> Dim { Dim::DIM2 }
 
-	fn width(&(w, _): &(u32, u32)) -> u32 { w }
+  fn width(&(w, _): &(u32, u32)) -> u32 { w }
 
-	fn height(&(_, h): &(u32, u32)) -> u32 { h }
+  fn height(&(_, h): &(u32, u32)) -> u32 { h }
 }
 
 pub struct DIM3;
@@ -103,11 +103,11 @@ impl Dimensionable for DIM3 {
 
   fn dim() -> Dim { Dim::DIM3 }
 
-	fn width(&(w, _, _): &(u32, u32, u32)) -> u32 { w }
+  fn width(&(w, _, _): &(u32, u32, u32)) -> u32 { w }
 
-	fn height(&(_, h, _): &(u32, u32, u32)) -> u32 { h }
+  fn height(&(_, h, _): &(u32, u32, u32)) -> u32 { h }
 
-	fn depth(&(_, _, d): &(u32, u32, u32)) -> u32 { d }
+  fn depth(&(_, _, d): &(u32, u32, u32)) -> u32 { d }
 }
 
 pub struct Cubemap;
@@ -117,11 +117,11 @@ impl Dimensionable for Cubemap {
 
   fn dim() -> Dim { Dim::Cubemap }
 
-	fn width(s: &u32) -> u32 { *s }
+  fn width(s: &u32) -> u32 { *s }
 
-	fn height(s: &u32) -> u32 { *s }
+  fn height(s: &u32) -> u32 { *s }
 
-	fn depth(s: &u32) -> u32 { *s }
+  fn depth(s: &u32) -> u32 { *s }
 }
 
 /// Reify a type into a `Layering`.
@@ -163,7 +163,7 @@ pub struct Tex<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, 
   pub repr: C::ATex,
   pub size: D::Size,
   pub mipmaps: u32,
-	pub texels: Vec<P::Encoding>,
+  pub texels: Vec<P::Encoding>,
   _l: PhantomData<L>,
   _c: PhantomData<C>,
 }
@@ -178,12 +178,12 @@ impl<C, L, D, P> Tex<C, L, D, P>
     let tex = C::new::<L, D, P>(size, mipmaps, sampling);
 
     Tex {
-			repr: tex,
-			size: size,
-			mipmaps: mipmaps,
-			texels: Vec::with_capacity(dim_capacity::<D>(&size) as usize),
-			_c: PhantomData,
-			_l: PhantomData,
-		}
+      repr: tex,
+      size: size,
+      mipmaps: mipmaps,
+      texels: Vec::with_capacity(dim_capacity::<D>(&size) as usize),
+      _c: PhantomData,
+      _l: PhantomData,
+    }
   }
 }
