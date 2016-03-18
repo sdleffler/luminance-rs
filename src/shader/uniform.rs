@@ -41,8 +41,8 @@ pub struct Uniform<C, T> where C: HasUniform, T: Uniformable {
 }
 
 impl<C, T> Uniform<C, T> where C: HasUniform, T: Uniformable {
-	pub fn update(&self, x: &T) {
-		C::update(&self.repr, self.dim, self.value_type, x)
+	pub fn update(&self, value: &T) {
+		C::update(&self.repr, self.dim, self.value_type, value)
 	}
 }
 
