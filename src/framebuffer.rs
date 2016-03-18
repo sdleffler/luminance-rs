@@ -20,8 +20,8 @@ pub struct Framebuffer<C, L, D, A, Color, Depth>
           D: Dimensionable,
           Color: ColorPixel,
           Depth: DepthPixel {
-  color_tex: Option<Tex<C, L, D, Color>>,
-  depth_tex: Option<Tex<C, L, D, Depth>>,
+  pub color_tex: Option<Tex<C, L, D, Color>>,
+  pub depth_tex: Option<Tex<C, L, D, Depth>>,
   _c: PhantomData<C>,
   _a: PhantomData<A>,
 }
