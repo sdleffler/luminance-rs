@@ -6,9 +6,12 @@ use core::marker::PhantomData;
 pub trait HasUniform {
   /// Uniform representation.
   type U;
+
+	fn update<T>(uniform: &Self::U, dim: Dim, value_type: Type, value: &T);
 }
 
 /// Dimension of a `Uniform`.
+#[derive(Clone, Copy)]
 pub enum Dim {
   DIM1,
   DIM2,
@@ -20,6 +23,7 @@ pub enum Dim {
 }
 
 /// Type of a `Uniform`.
+#[derive(Clone, Copy)]
 pub enum Type {
   Integral,
   Unsigned,
@@ -34,6 +38,12 @@ pub struct Uniform<C, T> where C: HasUniform {
   pub dim: Dim,
   pub value_type: Type,
   _t: PhantomData<T>
+}
+
+impl<C, T> Uniform<C, T> where C: HasUniform, T: Uniformable {
+	pub fn update(&self, x: &T) {
+		C::update(&self.repr, self.dim, self.value_type, x)
+	}
 }
 
 /// Name of a `Uniform`.
