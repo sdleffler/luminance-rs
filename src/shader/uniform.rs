@@ -33,7 +33,7 @@ pub enum Type {
 
 /// A shader uniform. `Uniform<C, T>` doesn’t hold any value. It’s more like a mapping between the
 /// host code and the shader the uniform was retrieved from.
-pub struct Uniform<C, T> where C: HasUniform {
+pub struct Uniform<C, T> where C: HasUniform, T: Uniformable {
   pub repr: C::U,
   pub dim: Dim,
   pub value_type: Type,
