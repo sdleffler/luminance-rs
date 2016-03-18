@@ -12,12 +12,14 @@ pub enum FramebufferError<'a> {
   Incomplete(&'a str)
 }
 
+/// A framebuffer with `L` being the layering, `D` the dimension, `A` the access, `Color` the color
+/// format and `Depth` the depth format.
 pub struct Framebuffer<C, L, D, A, Color, Depth>
     where C: HasTexture,
           L: Layerable,
           D: Dimensionable,
-          Color: Pixel,
-          Depth: Pixel {
+          Color: ColorPixel,
+          Depth: DepthPixel {
   color_tex: Option<Tex<C, L, D, Color>>,
   depth_tex: Option<Tex<C, L, D, Depth>>,
   _c: PhantomData<C>,
