@@ -10,6 +10,12 @@ pub trait Pixel {
   fn pixel_format() -> PixelFormat;
 }
 
+/// Constraint on `Pixel` for color ones.
+pub trait ColorPixel: Pixel {}
+
+/// Constraint on `Pixel` for depth ones.
+pub trait DepthPixel: Pixel {}
+
 /// A `PixelFormat` gathers a `Type` along with a `Format`.
 pub struct PixelFormat {
     pub encoding_type: Type
@@ -67,6 +73,8 @@ impl Pixel for RGB8UI {
   }
 }
 
+impl ColorPixel for RGB8UI {}
+
 /// A red, green, blue and alpha 8-bit unsigned pixel format.
 pub struct RGBA8UI;
 
@@ -80,6 +88,8 @@ impl Pixel for RGBA8UI {
     }
   }
 }
+
+impl ColorPixel for RGBA8UI {}
 
 /// A red, green and blue 32-bit floating pixel format.
 pub struct RGB32F;
@@ -95,6 +105,8 @@ impl Pixel for RGB32F {
   }
 }
 
+impl ColorPixel for RGB32F {}
+
 /// A red, green, blue and alpha 32-bit floating pixel format.
 pub struct RGBA32F;
 
@@ -109,6 +121,8 @@ impl Pixel for RGBA32F {
   }
 }
 
+impl ColorPixel for RGBA32F {}
+
 /// A depth 32-bit floating pixel format.
 pub struct Depth32F;
 
@@ -122,3 +136,5 @@ impl Pixel for Depth32F {
     }
   }
 }
+
+impl DepthPixel for RGBA32F {}
