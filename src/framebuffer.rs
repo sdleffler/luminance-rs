@@ -1,5 +1,5 @@
 use core::marker::PhantomData;
-use pixel::Pixel;
+use pixel::{ColorPixel, DepthPixel};
 use texture::*;
 
 pub trait HasFramebuffer {
