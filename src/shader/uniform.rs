@@ -7,7 +7,7 @@ pub trait HasUniform {
   /// Uniform representation.
   type U;
 
-	fn update<T>(uniform: &Self::U, dim: Dim, value_type: Type, value: &T);
+  fn update<T>(uniform: &Self::U, dim: Dim, value_type: Type, value: &T);
 }
 
 /// Dimension of a `Uniform`.
@@ -41,9 +41,9 @@ pub struct Uniform<C, T> where C: HasUniform, T: Uniformable {
 }
 
 impl<C, T> Uniform<C, T> where C: HasUniform, T: Uniformable {
-	pub fn update(&self, value: &T) {
-		C::update(&self.repr, self.dim, self.value_type, value)
-	}
+  pub fn update(&self, value: &T) {
+    C::update(&self.repr, self.dim, self.value_type, value)
+  }
 }
 
 /// Name of a `Uniform`.
