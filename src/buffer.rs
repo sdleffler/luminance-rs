@@ -3,7 +3,6 @@
 use core::marker::PhantomData;
 use core::mem;
 use std::vec::Vec;
-use std::ops::Index;
 
 /// Implement this trait to provide buffers.
 pub trait HasBuffer {
@@ -41,7 +40,7 @@ pub trait HasBuffer {
   /// # Failures
   ///
   /// `None` if you provide an offset that doesn’t lie in the allocated GPU region.
-  fn read<T>(buffer: &Self::ABuffer, offset: usize) -> Option<&T>;
+  fn read<T>(buffer: &Self::ABuffer, offset: usize) -> Option<T> where T: Clone;
 }
 
 /// Buffer errors.
@@ -70,10 +69,10 @@ impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
     Buffer { repr: buffer, size: size, _a: PhantomData, _t: PhantomData }
   }
 
-  /// Retrieve a reference to an element in the `Buffer`.
+  /// Retrieve an element from the `Buffer`.
   ///
   /// Checks boundaries.
-  pub fn get(&self, i: u32) -> Option<&T> {
+  pub fn get(&self, i: u32) -> Option<T> where T: Clone {
     C::read(&self.repr, i as usize * mem::size_of::<T>())
   }
 
@@ -92,13 +91,5 @@ impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
   /// Fill the `Buffer` with a single value.
   pub fn clear(&self, x: &T) {
     let _ = C::write_whole(&self.repr, &vec![x; self.size]);
-  }
-}
-
-impl<C, A, T> Index<u32> for Buffer<C, A, T> where C: HasBuffer {
-  type Output = T;
-
-  fn index(&self, i: u32) -> &T {
-    self.get(i).unwrap()
   }
 }
