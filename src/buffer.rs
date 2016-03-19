@@ -32,7 +32,7 @@ pub trait HasBuffer {
   ///
   /// `Err(BufferError::Overflow)` if you provide an offset that doesn’t lie in the allocated GPU
   /// region.
-  fn write<T>(buffer: &Self::ABuffer, offset: usize, x: &T) -> Result<(), BufferError>;
+  fn write<T>(buffer: &Self::ABuffer, offset: usize, x: &T) -> Result<(), BufferError> where T: Clone;
   /// Read all values from the buffer.
   fn read_whole<T>(buffer: &Self::ABuffer) -> Vec<T>;
   /// Read a single value from the buffer at a given offset.
@@ -84,7 +84,7 @@ impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
   /// Set a value at a given index in the `Buffer`.
   ///
   /// Checks boundaries.
-  pub fn set(&mut self, i: u32, x: &T) -> Result<(), BufferError> {
+  pub fn set(&mut self, i: u32, x: &T) -> Result<(), BufferError> where T: Clone {
     C::write(&self.repr, i as usize * mem::size_of::<T>(), x)
   }
 
