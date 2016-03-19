@@ -48,6 +48,7 @@ pub trait HasBuffer {
 #[derive(Debug)]
 pub enum BufferError {
   Overflow,
+  TooFewValues,
   TooManyValues
 }
 
