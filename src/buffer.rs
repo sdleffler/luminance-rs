@@ -34,7 +34,7 @@ pub trait HasBuffer {
   /// region.
   fn write<T>(buffer: &Self::ABuffer, offset: usize, x: &T) -> Result<(), BufferError> where T: Clone;
   /// Read all values from the buffer.
-  fn read_whole<T>(buffer: &Self::ABuffer, nb: usize) -> Vec<T>;
+  fn read_whole<T>(buffer: &Self::ABuffer, nb: usize) -> Vec<T> where T: Clone;
   /// Read a single value from the buffer at a given offset.
   ///
   /// # Failures
@@ -77,7 +77,7 @@ impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
   }
 
   /// Retrieve the whole content of the `Buffer`.
-  pub fn whole(&self) -> Vec<T> {
+  pub fn whole(&self) -> Vec<T> where T: Clone {
     C::read_whole(&self.repr, self.size)
   }
 
