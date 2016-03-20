@@ -10,21 +10,11 @@ pub trait Pixel {
   fn pixel_format() -> PixelFormat;
 }
 
-impl Pixel for () {
-  type Encoding = ();
-
-  fn pixel_format() -> PixelFormat { panic!("no pixel format for ()!") }
-}
-
 /// Constraint on `Pixel` for color ones.
 pub trait ColorPixel: Pixel {}
 
-impl ColorPixel for () {}
-
 /// Constraint on `Pixel` for depth ones.
 pub trait DepthPixel: Pixel {}
-
-impl DepthPixel for () {}
 
 /// A `PixelFormat` gathers a `Type` along with a `Format`.
 pub struct PixelFormat {
