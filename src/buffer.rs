@@ -32,15 +32,15 @@ pub trait HasBuffer {
   ///
   /// `Err(BufferError::Overflow)` if you provide an offset that doesn’t lie in the allocated GPU
   /// region.
-  fn write<T>(buffer: &Self::ABuffer, offset: usize, x: &T) -> Result<(), BufferError> where T: Clone;
+  fn write<T>(buffer: &Self::ABuffer, offset: usize, x: T) -> Result<(), BufferError> where T: Copy;
   /// Read all values from the buffer.
-  fn read_whole<T>(buffer: &Self::ABuffer, nb: usize) -> Vec<T> where T: Clone;
+  fn read_whole<T>(buffer: &Self::ABuffer, nb: usize) -> Vec<T> where T: Copy;
   /// Read a single value from the buffer at a given offset.
   ///
   /// # Failures
   ///
   /// `None` if you provide an offset that doesn’t lie in the allocated GPU region.
-  fn read<T>(buffer: &Self::ABuffer, offset: usize) -> Option<T> where T: Clone;
+  fn read<T>(buffer: &Self::ABuffer, offset: usize) -> Option<T> where T: Copy;
 }
 
 /// Buffer errors.
@@ -72,24 +72,24 @@ impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
   /// Retrieve an element from the `Buffer`.
   ///
   /// Checks boundaries.
-  pub fn get(&self, i: u32) -> Option<T> where T: Clone {
+  pub fn get(&self, i: u32) -> Option<T> where T: Copy {
     C::read(&self.repr, i as usize * mem::size_of::<T>())
   }
 
   /// Retrieve the whole content of the `Buffer`.
-  pub fn whole(&self) -> Vec<T> where T: Clone {
+  pub fn whole(&self) -> Vec<T> where T: Copy {
     C::read_whole(&self.repr, self.size)
   }
 
   /// Set a value at a given index in the `Buffer`.
   ///
   /// Checks boundaries.
-  pub fn set(&mut self, i: u32, x: &T) -> Result<(), BufferError> where T: Clone {
+  pub fn set(&mut self, i: u32, x: T) -> Result<(), BufferError> where T: Copy {
     C::write(&self.repr, i as usize * mem::size_of::<T>(), x)
   }
 
   /// Fill the `Buffer` with a single value.
-  pub fn clear(&self, x: &T) {
+  pub fn clear(&self, x: T) where T: Copy {
     let _ = C::write_whole(&self.repr, &vec![x; self.size]);
   }
 }
