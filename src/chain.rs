@@ -31,6 +31,7 @@ pub struct Chain<A, B>(A, B);
 /// type Foo = Chain<i32,Chain<bool,f32>>;
 /// type Zoo = chain![i32, bool, f32]; // exactly the same type
 /// ```
+#[macro_export]
 macro_rules! chain {
   ($t:ty) => {( $t )};
   
