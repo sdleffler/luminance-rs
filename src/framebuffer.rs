@@ -1,5 +1,36 @@
+//! Framebuffers and utilities types and functions.
+//!
+//! Framebuffers are at the core of rendering. They’re the support of rendering operation and can
+//! be used to highly enhance the visual aspect of a render. You’re always provided with at least
+//! one framebuffer, `default_framebuffer()`. That function returns a framebuffer that represents –
+//! for short – your screen’s back framebuffer. You can render to that framebuffer and when you
+//! *swap* the window’s buffers, your render appears at the screen.
+//!
+//! # Framebuffers
+//!
+//! A framebuffer is an object maintaining the required GPU state to hold images your render to.
+//! It gathers two important concepts:
+//!
+//! - *color buffers*;
+//! - *depth buffers*.
+//!
+//! The *color buffers* hold the color images you render to. A framebuffers can hold several of them
+//! with different color formats. The *depth buffers* hold the depth images you render to.
+//! Framebuffers can hold only one depth buffer.
+//!
+//! # Framebuffer slots
+//!
+//! A framebuffer slot contains either its color buffers or its depth buffer. Sometimes, you might
+//! find it handy to have no slot at all for a given type of buffer. In that case, we use `()`.
+//!
+//! The slots are a way to convert the different formats you use for your framebuffers’ buffers into
+//! their respective texture representation so that you can handle the corresponding texels.
+//!
+//! Color buffers are abstracted by `ColorSlot` and the depth buffer by `DepthSlot`.
+
 use chain::Chain;
 use core::marker::PhantomData;
+use rw::RW;
 use pixel::{ColorPixel, DepthPixel, Pixel, PixelFormat};
 use std::vec::Vec;
 use texture::{Dimensionable, HasTexture, Layerable, Tex};
@@ -38,6 +69,15 @@ impl<C, L, D, A, Color, Depth> Framebuffer<C, L, D, A, Color, Depth>
   }
 }
 */
+
+pub fn default_framebuffer<C>() -> Framebuffer<C, RW, (), ()> where C: HasTexture + HasFramebuffer {
+  Framebuffer {
+    repr: C::default_framebuffer(),
+    color_slot: (),
+    depth_slot: (),
+    _a: PhantomData
+  }
+}
 
 /// Slot type; used to create color and depth slots for framebuffers.
 pub struct Slot<C, L, D, P>
