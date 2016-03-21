@@ -1,4 +1,4 @@
-//! Framebuffers and utilities types and functions.
+//! Framebuffers and utility types and functions.
 //!
 //! Framebuffers are at the core of rendering. They’re the support of rendering operation and can
 //! be used to highly enhance the visual aspect of a render. You’re always provided with at least
