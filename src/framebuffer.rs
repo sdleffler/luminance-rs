@@ -47,7 +47,7 @@ pub struct Slot<T> {
 }
 
 /// A framebuffer has a color slot. A color slot can either be empty (the *unit* type is used,`()`)
-/// or several color formats. You can have up
+/// or several color formats.
 pub trait ColorSlot {
   fn color_slots() -> Vec<PixelFormat>;
 }
@@ -66,4 +66,18 @@ impl<A, B> ColorSlot for Chain<A,B> where A: ColorSlot, B: ColorSlot {
     a.extend(B::color_slots());
     a
   }
+}
+
+/// A framebuffer has a depth slot. A depth slot can either be empty (the *unit* type is used, `()`)
+/// or a single depth format.
+pub trait DepthSlot {
+  fn depth_slot() -> Vec<PixelFormat>;
+}
+
+impl DepthSlot for () {
+  fn depth_slot() -> Vec<PixelFormat> { Vec::new() }
+}
+
+impl<P> DepthSlot for Slot<P> where P: DepthPixel {
+  fn depth_slot() -> Vec<PixelFormat> { vec![P::pixel_format()] }
 }
