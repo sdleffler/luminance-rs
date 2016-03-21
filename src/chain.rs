@@ -9,10 +9,10 @@ struct Chain<A, B> {
   _b: PhantomData<B>
 }
 
-macro_rules! tuple {
+macro_rules! chain {
   ($t:ty) => {( $t )};
   
-  ($a:ty, $($r:tt)*) => {( Chain<$a, tuple![$($r)*]> )}
+  ($a:ty, $($r:tt)*) => {( Chain<$a, chain![$($r)*]> )}
 }
 
 type Foo = tuple![bool];
