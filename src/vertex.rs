@@ -32,12 +32,13 @@
 //! You have `Vertex` implementations for all the primary types that can be mapped to
 //! `VertexFormat`. However, as it’s not possible to automatically implement `Vertex` for your
 //! structure (yet?), a type is provided to help you design your vertex type so that you’re
-//! automatically provided with a `Vertex` implementation: `VertexComponent`.
+//! automatically provided with a `Vertex` implementation if you use `Chain`.
 //!
-//! `VertexComponent` is a special type used to represent list of types that all should be `Vertex`.
-//! With that in hand, you can easily create `Vertex` types and start using them without even
-//! implementing `Vertex`, as long as you use `Vertex` types. Feel free to dig in the
-//! `VertexComponent` documentation for further details and examples.
+//! `Chain` is a special type used to represent static list of types. With that in hand, you can
+//! easily create `Vertex` types and start using them without even implementing `Vertex`, as long as
+//! you use `Vertex` types. Feel free to dig in the `Chain` documentation for further details.
+
+use chain::Chain;
 use std::vec::Vec;
 
 /// A `VertexFormat` is a list of `VertexComponentFormat`s.
@@ -73,31 +74,11 @@ pub enum VertexComponentDim {
   DIM4
 }
 
-/// Generic type to represent list of vertex components. You should use that type or tuples to
-/// design your vertex types. You can also implement `Vertex` by mapping your internal structs’ to
-/// that type or tuples.
-///
-/// `T` refers to the type of the vertex component and `N` represents the next component.
-///
-/// The special construct `VertexComponent<T>` can be used to either indicate a single vertex
-/// component or the latest vertex component of a list.
-///
-/// # Examples
-///
-/// ```
-/// type V0 = VertexComponent<f32>; // a single floating value
-/// type V1 = VertexComponent<i32, VertexComponent<[f32; 3]>>; // a i32 and three f32
-/// ```
-pub struct VertexComponent<T, N=()> where T: Vertex, N: Vertex {
-  pub component: T,
-  pub next: N
-}
-
 /// A type that can be used as a `Vertex` has to implement that trait – it must provide a mapping
 /// to `VertexFormat`.
 ///
 /// If you’re not sure on how to implement that or if you want to use automatic types, feel free
-/// to use the primary supported types and `VertexComponent` or tuples.
+/// to use the primary supported types and `Chain` or tuples.
 pub trait Vertex {
   fn vertex_format() -> VertexFormat;
 }
@@ -228,40 +209,40 @@ impl Vertex for [bool; 4] {
   }
 }
 
-impl<T, N> Vertex for VertexComponent<T, N> where T: Vertex, N: Vertex {
+impl<A, B> Vertex for Chain<A, B> where A: Vertex, B: Vertex {
   fn vertex_format() -> VertexFormat {
-    let mut t = T::vertex_format();
-    t.extend(N::vertex_format());
+    let mut t = A::vertex_format();
+    t.extend(B::vertex_format());
     t
   }
 }
 
 impl<A, B> Vertex for (A, B) where A: Vertex, B: Vertex {
   fn vertex_format() -> VertexFormat {
-    VertexComponent::<A, B>::vertex_format()
+    Chain::<A, B>::vertex_format()
   }
 }
 
 impl<A, B, C> Vertex for (A, B, C) where A: Vertex, B: Vertex, C: Vertex {
   fn vertex_format() -> VertexFormat {
-    VertexComponent::<A, VertexComponent<B, C>>::vertex_format()
+    Chain::<A, Chain<B, C>>::vertex_format()
   }
 }
 
 impl<A, B, C, D> Vertex for (A, B, C, D) where A: Vertex, B: Vertex, C: Vertex, D: Vertex {
   fn vertex_format() -> VertexFormat {
-    VertexComponent::<A, VertexComponent<B, VertexComponent<C, D>>>::vertex_format()
+    Chain::<A, Chain<B, Chain<C, D>>>::vertex_format()
   }
 }
 
 impl<A, B, C, D, E> Vertex for (A, B, C, D, E) where A: Vertex, B: Vertex, C: Vertex, D: Vertex, E: Vertex {
   fn vertex_format() -> VertexFormat {
-    VertexComponent::<A, VertexComponent<B, VertexComponent<C, VertexComponent<D, E>>>>::vertex_format()
+    Chain::<A, Chain<B, Chain<C, Chain<D, E>>>>::vertex_format()
   }
 }
 
 impl<A, B, C, D, E, F> Vertex for (A, B, C, D, E, F) where A: Vertex, B: Vertex, C: Vertex, D: Vertex, E: Vertex, F: Vertex {
   fn vertex_format() -> VertexFormat {
-    VertexComponent::<A, VertexComponent<B, VertexComponent<C, VertexComponent<D, VertexComponent<E, F>>>>>::vertex_format()
+    Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, F>>>>>::vertex_format()
   }
 }
