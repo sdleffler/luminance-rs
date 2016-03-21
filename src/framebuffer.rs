@@ -106,7 +106,7 @@ impl<C, L, D, P> ColorSlot for Slot<C, L, D, P>
   fn color_slots() -> Vec<PixelFormat> { vec![P::pixel_format()] }
 }
 
-impl<A, B> ColorSlot for Chain<A,B> where A: ColorSlot, B: ColorSlot {
+impl<A, B> ColorSlot for Chain<A, B> where A: ColorSlot, B: ColorSlot {
   fn color_slots() -> Vec<PixelFormat> {
     let mut a = A::color_slots();
     a.extend(B::color_slots());
