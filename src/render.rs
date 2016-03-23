@@ -12,10 +12,12 @@ pub struct FrameCommand<C, A, CS, DS>
   pub shading_commands: Vec<ShadingCommand<C>>
 }
 
-impl<C, A, CS, DS FrameCommand<C, A, CS, DS>
+impl<C, A, CS, DS> FrameCommand<C, A, CS, DS>
     where C: HasFramebuffer + HasProgram + HasTessellation + HasTexture,
           CS: ColorSlot,
           DS: DepthSlot {
+  fn render(&self) {
+  }
 }
 
 pub struct ShadingCommand<C> where C: HasProgram + HasTessellation {
@@ -31,3 +33,8 @@ pub struct RenderCommand<C> where C: HasTessellation {
   pub tessellation: C::Tessellation
 }
 
+impl<C> RenderCommand<C> where C: HasTessellation {
+  f)n render(&self) {
+    (self.update)();
+  }
+}
