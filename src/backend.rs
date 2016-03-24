@@ -2,11 +2,19 @@
 
 use buffer::{Buffer, HasBuffer};
 use core::marker::PhantomData;
+use tessellation;
+use vertex::Vertex;
 
 pub struct Device<T>(PhantomData<T>);
 
 impl<C> Device<C> where C: HasBuffer {
-  pub fn new_buffer<A, T>(a: A, size: usize) -> Buffer<C, A, T> {
+  pub fn new_buffer<A, T>(a: A, size: u32) -> Buffer<C, A, T> {
     Buffer::new(a, size)
+  }
+}
+
+impl<C> Device<C> where C: tessellation::HasTessellation {
+  pub fn new_tessellation<T>(mode: tessellation::Mode, vertices: Vec<T>, indices: Option<u32>) -> C::Tessellation where T: Vertex {
+    C::new(mode, vertices, indices)
   }
 }
