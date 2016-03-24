@@ -63,7 +63,7 @@ pub struct Buffer<C, A, T> where C: HasBuffer {
 
 impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
   /// Create a new `Buffer` with a given number of elements.
-  pub fn new(_: A, size: usize) -> Buffer<C, A, T> {
+  pub fn new(_: A, size: u32) -> Buffer<C, A, T> {
     let size = size as usize;
     let buffer = C::new(size * mem::size_of::<T>());
     Buffer { repr: buffer, size: size, _a: PhantomData, _t: PhantomData }
