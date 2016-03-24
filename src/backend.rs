@@ -3,11 +3,17 @@
 use buffer::{Buffer, HasBuffer};
 use core::marker::PhantomData;
 use shader::program::{HasProgram, Program};
-use shader::stage::{HasStage, Stage, StageError, ShaderTypeable};
+use shader::stage::*;
 use tessellation;
 use vertex::Vertex;
 
 pub struct Device<T>(PhantomData<T>);
+
+impl<C> Default for Device<C> {
+	fn default() -> Device<C> {
+		Device(PhantomData)
+	}
+}
 
 impl<C> Device<C> where C: HasBuffer {
   pub fn new_buffer<A, T>(a: A, size: u32) -> Buffer<C, A, T> {
@@ -27,8 +33,8 @@ impl<C> Device<C> where C: HasStage {
   }
 }
 
-//impl<C> Device<C> where C: HasProgram {
-//  pub fn new_program(tess: Option<(&C::AStage, &C::AStage)>, vertex: &C::AStage, geometry: Option<&C::AStage>, fragment: &C::AStage) -> C::Program {
-//    C::new(tess, vertex, geometry, fragment)
-//  }
-//}
+impl<C> Device<C> where C: HasProgram {
+	pub fn new_program(tess: Option<(&Stage<C, TessellationControlShader>, &Stage<C, TessellationEvaluationShader>)>, vertex: &Stage<C, VertexShader>, geometry: Option<&Stage<C, GeometryShader>>, fragment: &Stage<C, FragmentShader>) -> C::Program {
+    Program::new(tess, vertex, geometry, fragment)
+  }
+}
