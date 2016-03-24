@@ -1,5 +1,6 @@
 //! GPU *buffers*.
 
+use backend::Device;
 use core::marker::PhantomData;
 use core::mem;
 use std::vec::Vec;
@@ -91,5 +92,11 @@ impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
   /// Fill the `Buffer` with a single value.
   pub fn clear(&self, x: T) where T: Copy {
     let _ = C::write_whole(&self.repr, &vec![x; self.size]);
+  }
+}
+
+impl<C> Device<C> where C: HasBuffer {
+  pub fn new_buffer<A, T>(a: A, size: u32) -> Buffer<C, A, T> {
+    Buffer::new(a, size)
   }
 }

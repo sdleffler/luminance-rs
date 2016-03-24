@@ -21,6 +21,7 @@
 //! You create a new `Tessellation` with the `new` function, and you can render it with `render`.
 
 // use std::collections::BTreeSet;
+use backend::Device;
 use vertex::Vertex;
 
 /// Vertices can be connected via several modes.
@@ -47,6 +48,12 @@ pub trait HasTessellation {
   /// Render the tessellation. The `instances` parameter can be set to render several instances of
   /// the tessellation.
   fn render(tessellation: &Self::Tessellation, instances: Option<u32>);
+}
+
+impl<C> Device<C> where C: HasTessellation {
+  pub fn new_tessellation<T>(mode: Mode, vertices: Vec<T>, indices: Option<u32>) -> C::Tessellation where T: Vertex {
+    C::new(mode, vertices, indices)
+  }
 }
 
 // TODO

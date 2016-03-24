@@ -1,3 +1,4 @@
+use backend::Device;
 use core::marker::PhantomData;
 
 pub trait HasStage {
@@ -62,6 +63,12 @@ impl<C, T> Stage<C, T> where C: HasStage, T: ShaderTypeable {
       repr: shader,
       _t: PhantomData
     })
+  }
+}
+
+impl<C> Device<C> where C: HasStage {
+  pub fn new_stage<'a, 'b, T>(src: &'a str) -> Result<Stage<C, T>, StageError<'b>> where T: ShaderTypeable {
+    Stage::new(src)
   }
 }
 
