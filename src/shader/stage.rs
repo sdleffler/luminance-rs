@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 pub trait HasStage {
   type AStage;
 
-  fn new_shader<'a, 'b>(shader_type: Type, src: &'a str) -> Result<Self::AStage, StageError<'b>>;
+  fn new_shader(shader_type: Type, src: &str) -> Result<Self::AStage, StageError>;
 }
 
 pub trait ShaderTypeable {
@@ -56,7 +56,7 @@ pub struct Stage<C, T> where C: HasStage {
 }
 
 impl<C, T> Stage<C, T> where C: HasStage, T: ShaderTypeable {
-  pub fn new<'a, 'b>(src: &'a str) -> Result<Self, StageError<'b>> {
+  pub fn new(src: &str) -> Result<Self, StageError> {
     let shader = C::new_shader(T::shader_type(), src);
     shader.map(|shader| Stage {
       repr: shader,
@@ -65,9 +65,9 @@ impl<C, T> Stage<C, T> where C: HasStage, T: ShaderTypeable {
   }
 }
 
-pub enum StageError<'a> {
+pub enum StageError {
   /// Occurs when a shader fails to compile.
-  CompilationFailed(&'a str),
+  CompilationFailed(String),
   /// Occurs when you try to create a shader which type is not supported on the current hardware.
   UnsupportedType(Type)
 }
