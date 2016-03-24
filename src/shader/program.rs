@@ -1,4 +1,3 @@
-use backend::Device;
 use shader::stage::*;
 use shader::uniform::{HasUniform, UniformName};
 
@@ -19,10 +18,4 @@ impl<C> Program<C> where C: HasProgram {
 	pub fn new(tess: Option<(&Stage<C, TessellationControlShader>, &Stage<C, TessellationEvaluationShader>)>, vertex: &Stage<C, VertexShader>, geometry: Option<&Stage<C, GeometryShader>>, fragment: &Stage<C, FragmentShader>) -> C::Program {
 		C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr)
 	}
-}
-
-impl<C> Device<C> where C: HasProgram {
-	pub fn new_program(tess: Option<(&Stage<C, TessellationControlShader>, &Stage<C, TessellationEvaluationShader>)>, vertex: &Stage<C, VertexShader>, geometry: Option<&Stage<C, GeometryShader>>, fragment: &Stage<C, FragmentShader>) -> C::Program {
-    Program::new(tess, vertex, geometry, fragment)
-  }
 }
