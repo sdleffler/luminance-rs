@@ -1,4 +1,6 @@
-//! GPU *buffers*.
+//! Static GPU typed arrays.
+//!
+//! A GPU buffer is a typed continuous region of data. It has a size and can hold several elements.
 
 use core::marker::PhantomData;
 use core::mem;
