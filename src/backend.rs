@@ -2,6 +2,7 @@
 
 use buffer::{Buffer, HasBuffer};
 use core::marker::PhantomData;
+use shader::stage::{HasStage, Stage, StageError, ShaderTypeable};
 use tessellation;
 use vertex::Vertex;
 
@@ -16,5 +17,11 @@ impl<C> Device<C> where C: HasBuffer {
 impl<C> Device<C> where C: tessellation::HasTessellation {
   pub fn new_tessellation<T>(mode: tessellation::Mode, vertices: Vec<T>, indices: Option<u32>) -> C::Tessellation where T: Vertex {
     C::new(mode, vertices, indices)
+  }
+}
+
+impl<C> Device<C> where C: HasStage {
+  pub fn new_stage<'a, 'b, T>(src: &'a str) -> Result<Stage<C, T>, StageError<'b>> where T: ShaderTypeable {
+    Stage::new(src)
   }
 }
