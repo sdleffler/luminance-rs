@@ -3,7 +3,7 @@ use core::marker::PhantomData;
 pub trait HasStage {
   type AStage;
 
-  fn new<'a, 'b>(shader_type: Type, src: &'a str) -> Result<Self::AStage, StageError<'b>>;
+  fn new_shader<'a, 'b>(shader_type: Type, src: &'a str) -> Result<Self::AStage, StageError<'b>>;
 }
 
 pub trait ShaderTypeable {
@@ -57,7 +57,7 @@ pub struct Stage<C, T> where C: HasStage {
 
 impl<C, T> Stage<C, T> where C: HasStage, T: ShaderTypeable {
   pub fn new<'a, 'b>(src: &'a str) -> Result<Self, StageError<'b>> {
-    let shader = C::new(T::shader_type(), src);
+    let shader = C::new_shader(T::shader_type(), src);
     shader.map(|shader| Stage {
       repr: shader,
       _t: PhantomData

@@ -2,6 +2,7 @@
 
 use buffer::{Buffer, HasBuffer};
 use core::marker::PhantomData;
+use shader::program::{HasProgram, Program};
 use shader::stage::{HasStage, Stage, StageError, ShaderTypeable};
 use tessellation;
 use vertex::Vertex;
@@ -25,3 +26,9 @@ impl<C> Device<C> where C: HasStage {
     Stage::new(src)
   }
 }
+
+//impl<C> Device<C> where C: HasProgram {
+//  pub fn new_program(tess: Option<(&C::AStage, &C::AStage)>, vertex: &C::AStage, geometry: Option<&C::AStage>, fragment: &C::AStage) -> C::Program {
+//    C::new(tess, vertex, geometry, fragment)
+//  }
+//}
