@@ -1,4 +1,4 @@
-/// Convenient inference helper to export the interface without having to use explicit types.
+//! Convenient inference helper to export the interface without having to use explicit types.
 
 use core::marker::PhantomData;
 
