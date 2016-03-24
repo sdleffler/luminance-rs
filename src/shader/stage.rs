@@ -11,6 +11,7 @@ pub trait ShaderTypeable {
 }
 
 /// A shader stage type.
+#[derive(Debug)]
 pub enum Type {
   TessellationControlShader,
   TessellationEvaluationShader,
@@ -19,30 +20,35 @@ pub enum Type {
   FragmentShader
 }
 
+#[derive(Debug)]
 pub struct TessellationControlShader;
 
 impl ShaderTypeable for TessellationControlShader {
   fn shader_type() -> Type { Type::TessellationControlShader }
 }
 
+#[derive(Debug)]
 pub struct TessellationEvaluationShader;
 
 impl ShaderTypeable for TessellationEvaluationShader {
   fn shader_type() -> Type { Type::TessellationEvaluationShader }
 }
 
+#[derive(Debug)]
 pub struct VertexShader;
 
 impl ShaderTypeable for VertexShader {
   fn shader_type() -> Type { Type::VertexShader }
 }
 
+#[derive(Debug)]
 pub struct GeometryShader;
 
 impl ShaderTypeable for GeometryShader {
   fn shader_type() -> Type { Type::GeometryShader }
 }
 
+#[derive(Debug)]
 pub struct FragmentShader;
 
 impl ShaderTypeable for FragmentShader {
@@ -50,6 +56,7 @@ impl ShaderTypeable for FragmentShader {
 }
 
 /// A shader stage. The `T` type variable gives the type of the shader.
+#[derive(Debug)]
 pub struct Stage<C, T> where C: HasStage {
   pub repr: C::AStage,
   _t: PhantomData<T>
@@ -65,6 +72,7 @@ impl<C, T> Stage<C, T> where C: HasStage, T: ShaderTypeable {
   }
 }
 
+#[derive(Debug)]
 pub enum StageError {
   /// Occurs when a shader fails to compile.
   CompilationFailed(String),
