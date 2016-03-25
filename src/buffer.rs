@@ -14,6 +14,8 @@ pub trait HasBuffer {
 
   /// Create a new buffer with a given size.
   fn new(size: usize) -> Self::ABuffer;
+  /// Destroy a buffer.
+  fn free(&mut Self::ABuffer);
   /// Write values into the buffer.
   ///
   /// # Warnings
@@ -93,5 +95,11 @@ impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
   /// Fill the `Buffer` with a single value.
   pub fn clear(&self, x: T) where T: Copy {
     let _ = C::write_whole(&self.repr, &vec![x; self.size]);
+  }
+}
+
+impl<C, A, T> Drop for Buffer<C, A, T> where C: HasBuffer {
+  fn drop(&mut self) {
+    C::free(&mut self.repr)
   }
 }
