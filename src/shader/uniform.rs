@@ -272,3 +272,27 @@ impl Uniformable for (bool, bool, bool, bool) {
     C::update4_bool(&u.repr, x)
   }
 }
+
+impl<'a> Uniformable for &'a Vec<bool> {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update1_vec_bool(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a Vec<(bool, bool)> {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update2_vec_bool(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a Vec<(bool, bool, bool)> {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update3_vec_bool(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a Vec<(bool, bool, bool, bool)> {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update4_vec_bool(&u.repr, x)
+  }
+}
