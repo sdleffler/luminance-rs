@@ -207,6 +207,48 @@ impl Uniformable for ((f32, f32, f32, f32), (f32, f32, f32, f32), (f32, f32, f32
   }
 }
 
+impl<'a> Uniformable for &'a Vec<f32> {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update1_vec_f32(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a Vec<(f32, f32)> {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update2_vec_f32(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a Vec<(f32, f32, f32)> {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update3_vec_f32(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a Vec<(f32, f32, f32, f32)> {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update4_vec_f32(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a Vec<((f32, f32), (f32, f32))> {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update22_vec_f32(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a Vec<((f32, f32, f32), (f32, f32, f32), (f32, f32, f32))> {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update33_vec_f32(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a Vec<((f32, f32, f32, f32), (f32, f32, f32, f32), (f32, f32, f32, f32), (f32, f32, f32, f32))> {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update44_vec_f32(&u.repr, x)
+  }
+}
+
 impl Uniformable for bool {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
     C::update1_bool(&u.repr, x)
