@@ -4,6 +4,7 @@ pub trait HasStage {
   type AStage;
 
   fn new_shader(shader_type: Type, src: &str) -> Result<Self::AStage, StageError>;
+  fn free_shader(shader: &mut Self::AStage);
 }
 
 pub trait ShaderTypeable {
@@ -60,6 +61,12 @@ impl ShaderTypeable for FragmentShader {
 pub struct Stage<C, T> where C: HasStage {
   pub repr: C::AStage,
   _t: PhantomData<T>
+}
+
+impl<C, T> Drop for Stage<C, T> where C: HasStage {
+  fn drop(&mut self) {
+    C::free_shader(&mut self.repr)
+  }
 }
 
 impl<C, T> Stage<C, T> where C: HasStage, T: ShaderTypeable {
