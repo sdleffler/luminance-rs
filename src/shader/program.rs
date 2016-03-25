@@ -10,6 +10,7 @@ pub trait HasProgram: HasStage + HasUniform {
   fn map_uniform(program: &Self::Program, name: UniformName) -> Option<Self::U>;
 }
 
+#[derive(Debug)]
 pub struct Program<C> where C: HasProgram {
 	pub repr: C::Program
 }
@@ -20,6 +21,7 @@ impl<C> Program<C> where C: HasProgram {
 	}
 }
 
+#[derive(Debug)]
 pub enum ProgramError {
   LinkFailed(String)
 }
