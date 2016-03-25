@@ -93,6 +93,30 @@ impl Uniformable for (i32, i32, i32, i32) {
   }
 }
 
+impl<'a> Uniformable for &'a Vec<i32> {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update1_vec_i32(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a Vec<(i32, i32)> {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update2_vec_i32(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a Vec<(i32, i32, i32)> {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update3_vec_i32(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a Vec<(i32, i32, i32, i32)> {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update4_vec_i32(&u.repr, x)
+  }
+}
+
 impl Uniformable for u32 {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
     C::update1_u32(&u.repr, x)
