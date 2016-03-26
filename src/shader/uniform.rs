@@ -59,8 +59,8 @@ pub struct Uniform<C, T> where C: HasUniform, T: Uniformable {
 }
 
 /// Name of a `Uniform`.
-pub enum UniformName<'a> {
-  StringName(&'a str),
+pub enum UniformName {
+  StringName(String),
   SemanticName(u32)
 }
 
