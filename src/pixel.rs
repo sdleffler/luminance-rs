@@ -17,12 +17,14 @@ pub trait ColorPixel: Pixel {}
 pub trait DepthPixel: Pixel {}
 
 /// A `PixelFormat` gathers a `Type` along with a `Format`.
+#[derive(Debug)]
 pub struct PixelFormat {
     pub encoding: Type
   , pub format: Format
 }
 
 /// Pixel type.
+#[derive(Clone, Copy, Debug)]
 pub enum Type {
   Integral,
   Unsigned,
@@ -33,6 +35,7 @@ pub enum Type {
 ///
 /// Whichever the constructor you choose, the carried `u8`s represents how many bytes are used to
 /// represent each channel.
+#[derive(Clone, Copy, Debug)]
 pub enum Format {
     /// Holds a red-only channel.
   R(u8),
@@ -60,6 +63,7 @@ pub fn is_depth_pixel(f: PixelFormat) -> bool {
 }
 
 /// A red, green and blue 8-bit unsigned pixel format.
+#[derive(Clone, Copy, Debug)]
 pub struct RGB8UI;
 
 impl Pixel for RGB8UI {
@@ -76,6 +80,7 @@ impl Pixel for RGB8UI {
 impl ColorPixel for RGB8UI {}
 
 /// A red, green, blue and alpha 8-bit unsigned pixel format.
+#[derive(Clone, Copy, Debug)]
 pub struct RGBA8UI;
 
 impl Pixel for RGBA8UI {
@@ -92,6 +97,7 @@ impl Pixel for RGBA8UI {
 impl ColorPixel for RGBA8UI {}
 
 /// A red, green and blue 32-bit floating pixel format.
+#[derive(Clone, Copy, Debug)]
 pub struct RGB32F;
 
 impl Pixel for RGB32F {
@@ -108,6 +114,7 @@ impl Pixel for RGB32F {
 impl ColorPixel for RGB32F {}
 
 /// A red, green, blue and alpha 32-bit floating pixel format.
+#[derive(Clone, Copy, Debug)]
 pub struct RGBA32F;
 
 impl Pixel for RGBA32F {
@@ -124,6 +131,7 @@ impl Pixel for RGBA32F {
 impl ColorPixel for RGBA32F {}
 
 /// A depth 32-bit floating pixel format.
+#[derive(Clone, Copy, Debug)]
 pub struct Depth32F;
 
 impl Pixel for Depth32F {
