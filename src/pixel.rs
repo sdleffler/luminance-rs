@@ -18,7 +18,7 @@ pub trait DepthPixel: Pixel {}
 
 /// A `PixelFormat` gathers a `Type` along with a `Format`.
 pub struct PixelFormat {
-    pub encoding_type: Type
+    pub encoding: Type
   , pub format: Format
 }
 
@@ -67,7 +67,7 @@ impl Pixel for RGB8UI {
 
   fn pixel_format() -> PixelFormat {
     PixelFormat {
-        encoding_type: Type::Unsigned
+        encoding: Type::Unsigned
       , format: Format::RGB(8, 8, 8)
     }
   }
@@ -83,7 +83,7 @@ impl Pixel for RGBA8UI {
 
   fn pixel_format() -> PixelFormat {
     PixelFormat {
-        encoding_type: Type::Unsigned
+        encoding: Type::Unsigned
       , format: Format::RGBA(8, 8, 8, 8)
     }
   }
@@ -99,7 +99,7 @@ impl Pixel for RGB32F {
 
   fn pixel_format() -> PixelFormat {
     PixelFormat {
-        encoding_type: Type::Floating
+        encoding: Type::Floating
       , format: Format::RGB(32, 32, 32)
     }
   }
@@ -115,7 +115,7 @@ impl Pixel for RGBA32F {
 
   fn pixel_format() -> PixelFormat {
     PixelFormat {
-        encoding_type: Type::Floating
+        encoding: Type::Floating
       , format: Format::RGBA(32, 32, 32, 32)
     }
   }
@@ -131,7 +131,7 @@ impl Pixel for Depth32F {
 
   fn pixel_format() -> PixelFormat {
     PixelFormat {
-        encoding_type: Type::Floating
+        encoding: Type::Floating
       , format: Format::Depth(32)
     }
   }
