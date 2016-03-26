@@ -1,3 +1,4 @@
+use core::mem;
 use shader::stage::*;
 use shader::uniform::{HasUniform, Uniform, Uniformable, UniformName};
 
@@ -27,10 +28,20 @@ impl<C, U> Drop for Program<C, U> where C: HasProgram {
 }
 
 impl<C, U> Program<C, U> where C: HasProgram {
-	pub fn new<F>(tess: Option<(&Stage<C, TessellationControlShader>, &Stage<C, TessellationEvaluationShader>)>, vertex: &Stage<C, VertexShader>, geometry: Option<&Stage<C, GeometryShader>>, fragment: &Stage<C, FragmentShader>, f: F) -> Result<Program<C, U>, ProgramError> where F: Fn() -> U {
-		C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr).map(|repr| Program {
-      repr: repr,
-      uniforms: f()
+	pub fn new<F>(tess: Option<(&Stage<C, TessellationControlShader>, &Stage<C, TessellationEvaluationShader>)>, vertex: &Stage<C, VertexShader>, geometry: Option<&Stage<C, GeometryShader>>, fragment: &Stage<C, FragmentShader>, f: F) -> Result<Self, ProgramError> where F: Fn(&Self) -> U {
+		C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr).map(|repr| {
+      unsafe {
+        // we leave program.uniforms uninitialized so that we can get a reference to the program and
+        // pass it to the uniform builder function
+        let mut program = Program {
+          repr: repr,
+          uniforms: mem::uninitialized()
+        };
+
+        program.uniforms = f(&program);
+
+        program
+      }
     })
 	}
 

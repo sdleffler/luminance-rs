@@ -53,6 +53,7 @@ pub trait HasUniform {
 
 /// A shader uniform. `Uniform<C, T>` doesn’t hold any value. It’s more like a mapping between the
 /// host code and the shader the uniform was retrieved from.
+#[derive(Debug)]
 pub struct Uniform<C, T> where C: HasUniform, T: Uniformable {
   pub repr: C::U,
   _t: PhantomData<T>
@@ -68,6 +69,7 @@ impl<C, T> Uniform<C, T> where C: HasUniform, T: Uniformable {
 }
 
 /// Name of a `Uniform`.
+#[derive(Debug)]
 pub enum UniformName {
   StringName(String),
   SemanticName(u32)
