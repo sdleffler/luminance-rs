@@ -58,6 +58,15 @@ pub struct Uniform<C, T> where C: HasUniform, T: Uniformable {
   _t: PhantomData<T>
 }
 
+impl<C, T> Uniform<C, T> where C: HasUniform, T: Uniformable {
+  pub fn new(repr: C::U) -> Uniform<C, T> {
+    Uniform {
+      repr: repr,
+      _t: PhantomData
+    }
+  }
+}
+
 /// Name of a `Uniform`.
 pub enum UniformName {
   StringName(String),

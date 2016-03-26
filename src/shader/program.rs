@@ -1,5 +1,5 @@
 use shader::stage::*;
-use shader::uniform::{HasUniform, UniformName};
+use shader::uniform::{HasUniform, Uniform, Uniformable, UniformName};
 
 pub trait HasProgram: HasStage + HasUniform {
   type Program;
@@ -27,6 +27,10 @@ impl<C> Program<C> where C: HasProgram {
 	pub fn new(tess: Option<(&Stage<C, TessellationControlShader>, &Stage<C, TessellationEvaluationShader>)>, vertex: &Stage<C, VertexShader>, geometry: Option<&Stage<C, GeometryShader>>, fragment: &Stage<C, FragmentShader>) -> Result<C::Program, ProgramError> {
 		C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr)
 	}
+
+  pub fn uniform<T>(&self, name: &str) -> Option<Uniform<C, T>> where T: Uniformable {
+    C::map_uniform(&self.repr, UniformName::StringName(String::from(name))).map(|u| Uniform::new(u))
+  }
 }
 
 #[derive(Debug)]
