@@ -154,6 +154,8 @@ pub trait HasTexture {
     where L: Layerable,
           D: Dimensionable,
           P: Pixel;
+  /// Destroy a texture.
+  fn free(tex: &mut Self::ATex);
   /// Clear the texture’s texels by setting them all to the same value.
   fn clear<P>(tex: &Self::ATex, pixel: &P::Encoding) where P: Pixel;
   /// Upload texels to the texture’s memory.
@@ -171,6 +173,12 @@ pub struct Tex<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, 
   pub texels: Vec<P::Encoding>,
   _l: PhantomData<L>,
   _c: PhantomData<C>,
+}
+
+impl<C, L, D, P> Drop for Tex<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, P: Pixel {
+  fn drop(&mut self) {
+    C::free(&mut self.repr)
+  }
 }
 
 impl<C, L, D, P> Tex<C, L, D, P>
