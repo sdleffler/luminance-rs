@@ -17,7 +17,7 @@ pub trait ColorPixel: Pixel {}
 pub trait DepthPixel: Pixel {}
 
 /// A `PixelFormat` gathers a `Type` along with a `Format`.
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub struct PixelFormat {
     pub encoding: Type
   , pub format: Format
