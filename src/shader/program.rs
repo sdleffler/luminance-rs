@@ -24,8 +24,8 @@ impl<C> Drop for Program<C> where C: HasProgram {
 }
 
 impl<C> Program<C> where C: HasProgram {
-	pub fn new(tess: Option<(&Stage<C, TessellationControlShader>, &Stage<C, TessellationEvaluationShader>)>, vertex: &Stage<C, VertexShader>, geometry: Option<&Stage<C, GeometryShader>>, fragment: &Stage<C, FragmentShader>) -> Result<C::Program, ProgramError> {
-		C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr)
+	pub fn new(tess: Option<(&Stage<C, TessellationControlShader>, &Stage<C, TessellationEvaluationShader>)>, vertex: &Stage<C, VertexShader>, geometry: Option<&Stage<C, GeometryShader>>, fragment: &Stage<C, FragmentShader>) -> Result<Program<C>, ProgramError> {
+		C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr).map(|repr| Program { repr: repr })
 	}
 
   pub fn uniform<T>(&self, name: &str) -> Option<Uniform<C, T>> where T: Uniformable {
