@@ -12,7 +12,9 @@ pub trait HasProgram: HasStage + HasUniform {
   ///
   fn map_uniform(program: &Self::Program, name: UniformName) -> Option<Self::U>;
   ///
-  fn update_uniforms<F>(program: &Self::Program, f: F) where F: Fn();
+  fn start_uniform_update(program: &Self::Program);
+  ///
+  fn end_uniform_update(program: &Self::Program);
 }
 
 #[derive(Debug)]
@@ -38,7 +40,9 @@ impl<C, U> Program<C, U> where C: HasProgram {
           uniforms: mem::uninitialized()
         };
 
+        C::start_uniform_update(&program.repr);
         program.uniforms = f(&program);
+        C::end_uniform_update(&program.repr);
 
         program
       }
@@ -50,7 +54,9 @@ impl<C, U> Program<C, U> where C: HasProgram {
   }
 
   pub fn update<F>(&self, f: F) where F: Fn() {
-    C::update_uniforms(&self.repr, f)
+    C::start_uniform_update(&self.repr);
+    f();
+    C::end_uniform_update(&self.repr);
   }
 }
 
