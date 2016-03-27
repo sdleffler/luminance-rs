@@ -168,7 +168,7 @@ pub trait HasTexture {
   /// Destroy a texture.
   fn free(tex: &mut Self::ATex);
   /// Clear the texture’s texels by setting them all to the same value.
-  fn clear<P>(tex: &Self::ATex, pixel: &P::Encoding) where P: Pixel;
+  fn clear<P>(tex: &Self::ATex, gen_mimpmaps: bool, pixel: &P::Encoding) where P: Pixel;
   /// Upload texels to the texture’s memory.
   fn upload<P>(tex: &Self::ATex, texels: &Vec<P::Encoding>) where P: Pixel;
 }
@@ -212,8 +212,8 @@ impl<C, L, D, P> Tex<C, L, D, P>
     }
   }
 
-  pub fn clear(&self, pixel: &P::Encoding) {
-    C::clear::<P>(&self.repr, pixel)
+  pub fn clear(&self, gen_mipmaps: bool, pixel: &P::Encoding) {
+    C::clear::<P>(&self.repr, gen_mipmaps, pixel)
   }
 
   pub fn upload(&self, texels: &Vec<P::Encoding>) {
