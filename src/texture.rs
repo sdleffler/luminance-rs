@@ -54,6 +54,7 @@ pub enum DepthComparison {
 /// Reify a type into a `Dim`.
 pub trait Dimensionable {
   type Size;
+  type Offset;
 
   /// Dimension.
   fn dim() -> Dim;
@@ -63,6 +64,12 @@ pub trait Dimensionable {
   fn height(_: &Self::Size) -> u32 { 1 }
   /// Depth of the associated `Size`. If it doesn’t have one, set it to 1.
   fn depth(_: &Self::Size) -> u32 { 1 }
+  /// X offset.
+  fn x_offset(offset: &Self::Offset) -> u32;
+  /// Y offset. If it doesn’t have one, set it to 0.
+  fn y_offset(offset: &Self::Offset) -> u32 { 1 }
+  /// Z offset. If it doesn’t have one, set it to 0.
+  fn z_offset(offset: &Self::Offset) -> u32 { 1 }
 }
 
 pub fn dim_capacity<T>(size: &T::Size) -> u32 where T: Dimensionable {
@@ -83,10 +90,13 @@ pub struct DIM1;
 
 impl Dimensionable for DIM1 {
   type Size = u32;
+  type Offset = u32;
 
   fn dim() -> Dim { Dim::DIM1 }
 
-  fn width(w: &u32) -> u32 { *w }
+  fn width(w: &Self::Size) -> u32 { *w }
+
+  fn x_offset(off: &Self::Offset) -> u32 { *off }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -94,12 +104,17 @@ pub struct DIM2;
 
 impl Dimensionable for DIM2 {
   type Size = (u32, u32);
+  type Offset = (u32, u32);
 
   fn dim() -> Dim { Dim::DIM2 }
 
-  fn width(&(w, _): &(u32, u32)) -> u32 { w }
+  fn width(size: &(u32, u32)) -> u32 { size.0 }
 
-  fn height(&(_, h): &(u32, u32)) -> u32 { h }
+  fn height(size: &(u32, u32)) -> u32 { size.1 }
+
+  fn x_offset(off: &Self::Offset) -> u32 { off.0 }
+
+  fn y_offset(off: &Self::Offset) -> u32 { off.1 }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -107,14 +122,21 @@ pub struct DIM3;
 
 impl Dimensionable for DIM3 {
   type Size = (u32, u32, u32);
+  type Offset = (u32, u32, u32);
 
   fn dim() -> Dim { Dim::DIM3 }
 
-  fn width(&(w, _, _): &(u32, u32, u32)) -> u32 { w }
+  fn width(size: &(u32, u32, u32)) -> u32 { size.0 }
 
-  fn height(&(_, h, _): &(u32, u32, u32)) -> u32 { h }
+  fn height(size: &(u32, u32, u32)) -> u32 { size.1 }
 
-  fn depth(&(_, _, d): &(u32, u32, u32)) -> u32 { d }
+  fn depth(size: &(u32, u32, u32)) -> u32 { size.2 }
+
+  fn x_offset(off: &Self::Offset) -> u32 { off.0 }
+
+  fn y_offset(off: &Self::Offset) -> u32 { off.1 }
+
+  fn z_offset(off: &Self::Offset) -> u32 { off.2 }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -122,6 +144,7 @@ pub struct Cubemap;
 
 impl Dimensionable for Cubemap {
   type Size = u32;
+  type Offset = (u32, u32, CubeFace);
 
   fn dim() -> Dim { Dim::Cubemap }
 
@@ -130,6 +153,32 @@ impl Dimensionable for Cubemap {
   fn height(s: &u32) -> u32 { *s }
 
   fn depth(s: &u32) -> u32 { *s }
+
+  fn x_offset(off: &Self::Offset) -> u32 { off.0 }
+
+  fn y_offset(off: &Self::Offset) -> u32 { off.1 }
+
+  fn z_offset(off: &Self::Offset) -> u32 {
+    match off.2 {
+      CubeFace::PositiveX => 0,
+      CubeFace::NegativeX => 1,
+      CubeFace::PositiveY => 2,
+      CubeFace::NegativeY => 3,
+      CubeFace::PositiveZ => 4,
+      CubeFace::NegativeZ => 5
+    }
+  }
+}
+
+/// Faces of a cubemap.
+#[derive(Clone, Copy, Debug)]
+pub enum CubeFace {
+  PositiveX,
+  NegativeX,
+  PositiveY,
+  NegativeY,
+  PositiveZ,
+  NegativeZ
 }
 
 /// Reify a type into a `Layering`.
