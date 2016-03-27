@@ -223,6 +223,7 @@ pub trait HasTexture {
   fn new<L, D, P>(size: D::Size, mipmaps: u32, sampler: &Sampler) -> Self::ATex
     where L: Layerable,
           D: Dimensionable,
+          D::Size: Copy,
           P: Pixel;
   /// Destroy a texture.
   fn free(tex: &mut Self::ATex);
