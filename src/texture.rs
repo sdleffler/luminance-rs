@@ -59,17 +59,17 @@ pub trait Dimensionable {
   /// Dimension.
   fn dim() -> Dim;
   /// Width of the associated `Size`.
-  fn width(size: Self::Size) -> u32;
+  fn width(size: Self::Size) -> u32 where Self::Size: Copy;
   /// Height of the associated `Size`. If it doesn’t have one, set it to 1.
-  fn height(_: Self::Size) -> u32 { 1 }
+  fn height(_: Self::Size) -> u32 where Self::Size: Copy { 1 }
   /// Depth of the associated `Size`. If it doesn’t have one, set it to 1.
-  fn depth(_: Self::Size) -> u32 { 1 }
+  fn depth(_: Self::Size) -> u32 where Self::Size: Copy { 1 }
   /// X offset.
-  fn x_offset(offset: Self::Offset) -> u32;
+  fn x_offset(offset: Self::Offset) -> u32 where Self::Offset: Copy;
   /// Y offset. If it doesn’t have one, set it to 0.
-  fn y_offset(_: Self::Offset) -> u32 { 1 }
+  fn y_offset(_: Self::Offset) -> u32 where Self::Offset: Copy { 1 }
   /// Z offset. If it doesn’t have one, set it to 0.
-  fn z_offset(_: Self::Offset) -> u32 { 1 }
+  fn z_offset(_: Self::Offset) -> u32 where Self::Offset: Copy { 1 }
   /// Zero offset.
   fn zero_offset() -> Self::Offset;
 }
