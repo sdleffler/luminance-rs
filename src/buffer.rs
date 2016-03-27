@@ -27,7 +27,7 @@ pub trait HasBuffer {
   /// case, the extra items are just ignored and all others are written; that is, the `values`
   /// argument is considered having the same size as `buffer`.
   ///
-  /// `Err(BufferError::TooFewValues)` if you provide less avlues than the buffer’s size. In that
+  /// `Err(BufferError::TooFewValues)` if you provide less values than the buffer’s size. In that
   /// case, all `values` are written and the missing ones remain the same in `buffer`.
   fn write_whole<T>(buffer: &Self::ABuffer, values: &Vec<T>) -> Result<(),BufferError>;
   /// Write a single value in the buffer at a given offset.
