@@ -4,6 +4,7 @@ use core::marker::PhantomData;
 use pixel::Pixel;
 
 /// How to wrap texture coordinates while sampling textures?
+#[derive(Clone, Copy, Debug)]
 pub enum Wrap {
   /// If textures coordinates lay outside of *[0;1]*, they will be clamped to either *0* or *1* for
   /// every components.
@@ -20,6 +21,7 @@ pub enum Wrap {
 }
 
 /// Minification and magnification filter.
+#[derive(Clone, Copy, Debug)]
 pub enum Filter {
   /// Clamp to nearest pixel.
   Nearest,
@@ -29,6 +31,7 @@ pub enum Filter {
 
 /// Depth comparison to perform while depth test. `a` is the incoming fragment’s depth and b is the
 /// fragment’s depth that is already stored.
+#[derive(Clone, Copy, Debug)]
 pub enum DepthComparison {
   /// Depth test never succeeds.
   Never,
@@ -67,6 +70,7 @@ pub fn dim_capacity<T>(size: &T::Size) -> u32 where T: Dimensionable {
 }
 
 /// Dimension of a texture.
+#[derive(Clone, Copy, Debug)]
 pub enum Dim {
   DIM1,
   DIM2,
@@ -74,6 +78,7 @@ pub enum Dim {
   Cubemap
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct DIM1;
 
 impl Dimensionable for DIM1 {
@@ -84,6 +89,7 @@ impl Dimensionable for DIM1 {
   fn width(w: &u32) -> u32 { *w }
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct DIM2;
 
 impl Dimensionable for DIM2 {
@@ -96,6 +102,7 @@ impl Dimensionable for DIM2 {
   fn height(&(_, h): &(u32, u32)) -> u32 { h }
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct DIM3;
 
 impl Dimensionable for DIM3 {
@@ -110,6 +117,7 @@ impl Dimensionable for DIM3 {
   fn depth(&(_, _, d): &(u32, u32, u32)) -> u32 { d }
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct Cubemap;
 
 impl Dimensionable for Cubemap {
@@ -130,6 +138,7 @@ pub trait Layerable {
 }
 
 /// Texture layering. If a texture is layered, it has an extra coordinates to access the layer.
+#[derive(Clone, Copy, Debug)]
 pub enum Layering {
   /// Non-layered.
   Flat,
@@ -137,10 +146,12 @@ pub enum Layering {
   Layered
 }
 
+#[derive(Clone, Copy, Debug)]
 pub struct Flat;
 
 impl Layerable for Flat { fn layering() -> Layering { Layering::Flat } }
 
+#[derive(Clone, Copy, Debug)]
 pub struct Layered;
 
 impl Layerable for Layered { fn layering() -> Layering { Layering::Layered } }
@@ -166,6 +177,7 @@ pub trait HasTexture {
 ///
 /// `L` refers to the layering type; `D` refers to the dimension; `P` is the pixel format for the
 /// texels.
+#[derive(Debug)]
 pub struct Tex<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, P: Pixel {
   pub repr: C::ATex,
   pub size: D::Size,
@@ -210,6 +222,7 @@ impl<C, L, D, P> Tex<C, L, D, P>
 }
 
 /// A `Sampler` object gives hint on how a `Tex` should be sampled.
+#[derive(Clone, Copy, Debug)]
 pub struct Sampler {
   /// How should we wrap around the *r* sampling coordinate?
   pub wrap_r: Wrap,
