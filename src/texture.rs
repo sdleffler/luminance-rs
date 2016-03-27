@@ -231,7 +231,7 @@ pub trait HasTexture {
     where L: Layerable, D: Dimensionable, D::Size: Copy, P: Pixel, P::Encoding: Copy;
   /// Upload texels to the texture’s memory.
   fn upload_part<L, D, P>(tex: &Self::ATex, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &Vec<P::Encoding>)
-    where L: Layerable, D: Dimensionable, P: Pixel;
+    where L: Layerable, D::Offset: Copy, D::Size: Copy, D: Dimensionable, P: Pixel;
 }
 
 /// Texture.
@@ -283,11 +283,15 @@ impl<C, L, D, P> Tex<C, L, D, P>
     self.clear_part(gen_mipmaps, D::zero_offset(), self.size, pixel)
   }
 
-  pub fn upload_part(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &Vec<P::Encoding>) {
+  pub fn upload_part(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &Vec<P::Encoding>) 
+      where D::Offset: Copy,
+            D::Size: Copy {
     C::upload_part::<L, D, P>(&self.repr, gen_mipmaps, offset, size, texels)
   }
 
-  pub fn upload(&self, gen_mipmaps: bool, texels: &Vec<P::Encoding>) {
+  pub fn upload(&self, gen_mipmaps: bool, texels: &Vec<P::Encoding>)
+      where D::Offset: Copy,
+            D::Size: Copy {
     self.upload_part(gen_mipmaps, D::zero_offset(), self.size, texels)
   }
 }
