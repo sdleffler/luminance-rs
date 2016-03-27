@@ -227,11 +227,11 @@ pub trait HasTexture {
   /// Destroy a texture.
   fn free(tex: &mut Self::ATex);
   /// Clear the texture’s texels by setting them all to the same value.
-  fn clear_part<D, P>(tex: &Self::ATex, gen_mimpmaps: bool, offset: D::Offset, size: D::Size, pixel: &P::Encoding)
-    where D: Dimensionable, P: Pixel;
+  fn clear_part<L, D, P>(tex: &Self::ATex, gen_mimpmaps: bool, offset: D::Offset, size: D::Size, pixel: &P::Encoding)
+    where L: Layerable, D: Dimensionable, P: Pixel;
   /// Upload texels to the texture’s memory.
-  fn upload_part<D, P>(tex: &Self::ATex, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &Vec<P::Encoding>)
-    where D: Dimensionable, P: Pixel;
+  fn upload_part<L, D, P>(tex: &Self::ATex, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &Vec<P::Encoding>)
+    where L: Layerable, D: Dimensionable, P: Pixel;
 }
 
 /// Texture.
@@ -274,7 +274,7 @@ impl<C, L, D, P> Tex<C, L, D, P>
   }
 
   pub fn clear_part(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, pixel: &P::Encoding) {
-    C::clear_part::<D, P>(&self.repr, gen_mipmaps, offset, size, pixel)
+    C::clear_part::<L, D, P>(&self.repr, gen_mipmaps, offset, size, pixel)
   }
 
   pub fn clear(&self, gen_mipmaps: bool, pixel: &P::Encoding) {
@@ -282,7 +282,7 @@ impl<C, L, D, P> Tex<C, L, D, P>
   }
 
   pub fn upload_part(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &Vec<P::Encoding>) {
-    C::upload_part::<D, P>(&self.repr, gen_mipmaps, offset, size, texels)
+    C::upload_part::<L, D, P>(&self.repr, gen_mipmaps, offset, size, texels)
   }
 
   pub fn upload(&self, gen_mipmaps: bool, texels: &Vec<P::Encoding>) {
