@@ -70,6 +70,8 @@ pub trait Dimensionable {
   fn y_offset(_: &Self::Offset) -> u32 { 1 }
   /// Z offset. If it doesn’t have one, set it to 0.
   fn z_offset(_: &Self::Offset) -> u32 { 1 }
+  /// Zero offset.
+  fn zero_offset() -> Self::Offset;
 }
 
 pub fn dim_capacity<T>(size: &T::Size) -> u32 where T: Dimensionable {
@@ -97,6 +99,8 @@ impl Dimensionable for DIM1 {
   fn width(w: &Self::Size) -> u32 { *w }
 
   fn x_offset(off: &Self::Offset) -> u32 { *off }
+
+  fn zero_offset() -> Self::Offset { 0 }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -115,6 +119,8 @@ impl Dimensionable for DIM2 {
   fn x_offset(off: &Self::Offset) -> u32 { off.0 }
 
   fn y_offset(off: &Self::Offset) -> u32 { off.1 }
+
+  fn zero_offset() -> Self::Offset { (0, 0) }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -137,6 +143,8 @@ impl Dimensionable for DIM3 {
   fn y_offset(off: &Self::Offset) -> u32 { off.1 }
 
   fn z_offset(off: &Self::Offset) -> u32 { off.2 }
+
+  fn zero_offset() -> Self::Offset { (0, 0, 0) }
 }
 
 #[derive(Clone, Copy, Debug)]
@@ -168,6 +176,8 @@ impl Dimensionable for Cubemap {
       CubeFace::NegativeZ => 5
     }
   }
+
+  fn zero_offset() -> Self::Offset { (0, 0, CubeFace::PositiveX) }
 }
 
 /// Faces of a cubemap.
@@ -220,7 +230,7 @@ pub trait HasTexture {
   fn clear_part<D, P>(tex: &Self::ATex, gen_mimpmaps: bool, offset: D::Offset, size: D::Size, pixel: &P::Encoding)
     where D: Dimensionable, P: Pixel;
   /// Upload texels to the texture’s memory.
-  fn upload_part<D, P>(tex: &Self::ATex, offset: D::Offset, size: D::Size, texels: &Vec<P::Encoding>)
+  fn upload_part<D, P>(tex: &Self::ATex, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &Vec<P::Encoding>)
     where D: Dimensionable, P: Pixel;
 }
 
@@ -267,8 +277,16 @@ impl<C, L, D, P> Tex<C, L, D, P>
     C::clear_part::<D, P>(&self.repr, gen_mipmaps, offset, size, pixel)
   }
 
-  pub fn upload_part(&self, offset: D::Offset, size: D::Size, texels: &Vec<P::Encoding>) {
-    C::upload_part::<D, P>(&self.repr, offset, size, texels)
+  pub fn clear(&self, gen_mipmaps: bool, pixel: &P::Encoding) {
+    self.clear_part(gen_mipmaps, D::zero_offset(), self.size, pixel)
+  }
+
+  pub fn upload_part(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &Vec<P::Encoding>) {
+    C::upload_part::<D, P>(&self.repr, gen_mipmaps, offset, size, texels)
+  }
+
+  pub fn upload(&self, gen_mipmaps: bool, texels: &Vec<P::Encoding>) {
+    self.upload_part(gen_mipmaps, D::zero_offset(), self.size, texels)
   }
 }
 
