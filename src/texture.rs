@@ -59,23 +59,23 @@ pub trait Dimensionable {
   /// Dimension.
   fn dim() -> Dim;
   /// Width of the associated `Size`.
-  fn width(size: &Self::Size) -> u32;
+  fn width(size: Self::Size) -> u32;
   /// Height of the associated `Size`. If it doesn’t have one, set it to 1.
-  fn height(_: &Self::Size) -> u32 { 1 }
+  fn height(_: Self::Size) -> u32 { 1 }
   /// Depth of the associated `Size`. If it doesn’t have one, set it to 1.
-  fn depth(_: &Self::Size) -> u32 { 1 }
+  fn depth(_: Self::Size) -> u32 { 1 }
   /// X offset.
-  fn x_offset(offset: &Self::Offset) -> u32;
+  fn x_offset(offset: Self::Offset) -> u32;
   /// Y offset. If it doesn’t have one, set it to 0.
-  fn y_offset(_: &Self::Offset) -> u32 { 1 }
+  fn y_offset(_: Self::Offset) -> u32 { 1 }
   /// Z offset. If it doesn’t have one, set it to 0.
-  fn z_offset(_: &Self::Offset) -> u32 { 1 }
+  fn z_offset(_: Self::Offset) -> u32 { 1 }
   /// Zero offset.
   fn zero_offset() -> Self::Offset;
 }
 
-pub fn dim_capacity<T>(size: &T::Size) -> u32 where T: Dimensionable {
-  T::width(size) * T::height(size) * T::depth(size)
+pub fn dim_capacity<D>(size: D::Size) -> u32 where D: Dimensionable, D::Size: Copy {
+  D::width(size) * D::height(size) * D::depth(size)
 }
 
 /// Dimension of a texture.
@@ -96,9 +96,9 @@ impl Dimensionable for DIM1 {
 
   fn dim() -> Dim { Dim::DIM1 }
 
-  fn width(w: &Self::Size) -> u32 { *w }
+  fn width(w: Self::Size) -> u32 { w }
 
-  fn x_offset(off: &Self::Offset) -> u32 { *off }
+  fn x_offset(off: Self::Offset) -> u32 { off }
 
   fn zero_offset() -> Self::Offset { 0 }
 }
@@ -112,13 +112,13 @@ impl Dimensionable for DIM2 {
 
   fn dim() -> Dim { Dim::DIM2 }
 
-  fn width(size: &(u32, u32)) -> u32 { size.0 }
+  fn width(size: Self::Size) -> u32 { size.0 }
 
-  fn height(size: &(u32, u32)) -> u32 { size.1 }
+  fn height(size: Self::Size) -> u32 { size.1 }
 
-  fn x_offset(off: &Self::Offset) -> u32 { off.0 }
+  fn x_offset(off: Self::Offset) -> u32 { off.0 }
 
-  fn y_offset(off: &Self::Offset) -> u32 { off.1 }
+  fn y_offset(off: Self::Offset) -> u32 { off.1 }
 
   fn zero_offset() -> Self::Offset { (0, 0) }
 }
@@ -132,17 +132,17 @@ impl Dimensionable for DIM3 {
 
   fn dim() -> Dim { Dim::DIM3 }
 
-  fn width(size: &(u32, u32, u32)) -> u32 { size.0 }
+  fn width(size: Self::Size) -> u32 { size.0 }
 
-  fn height(size: &(u32, u32, u32)) -> u32 { size.1 }
+  fn height(size: Self::Size) -> u32 { size.1 }
 
-  fn depth(size: &(u32, u32, u32)) -> u32 { size.2 }
+  fn depth(size: Self::Size) -> u32 { size.2 }
 
-  fn x_offset(off: &Self::Offset) -> u32 { off.0 }
+  fn x_offset(off: Self::Offset) -> u32 { off.0 }
 
-  fn y_offset(off: &Self::Offset) -> u32 { off.1 }
+  fn y_offset(off: Self::Offset) -> u32 { off.1 }
 
-  fn z_offset(off: &Self::Offset) -> u32 { off.2 }
+  fn z_offset(off: Self::Offset) -> u32 { off.2 }
 
   fn zero_offset() -> Self::Offset { (0, 0, 0) }
 }
@@ -156,17 +156,17 @@ impl Dimensionable for Cubemap {
 
   fn dim() -> Dim { Dim::Cubemap }
 
-  fn width(s: &u32) -> u32 { *s }
+  fn width(s: Self::Size) -> u32 { s }
 
-  fn height(s: &u32) -> u32 { *s }
+  fn height(s: Self::Size) -> u32 { s }
 
-  fn depth(s: &u32) -> u32 { *s }
+  fn depth(_: Self::Size) -> u32 { 6 }
 
-  fn x_offset(off: &Self::Offset) -> u32 { off.0 }
+  fn x_offset(off: Self::Offset) -> u32 { off.0 }
 
-  fn y_offset(off: &Self::Offset) -> u32 { off.1 }
+  fn y_offset(off: Self::Offset) -> u32 { off.1 }
 
-  fn z_offset(off: &Self::Offset) -> u32 {
+  fn z_offset(off: Self::Offset) -> u32 {
     match off.2 {
       CubeFace::PositiveX => 0,
       CubeFace::NegativeX => 1,
@@ -267,7 +267,7 @@ impl<C, L, D, P> Tex<C, L, D, P>
       repr: tex,
       size: size,
       mipmaps: mipmaps,
-      texels: Vec::with_capacity(dim_capacity::<D>(&size) as usize),
+      texels: Vec::with_capacity(dim_capacity::<D>(size) as usize),
       _c: PhantomData,
       _l: PhantomData,
     }
