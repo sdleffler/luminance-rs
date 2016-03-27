@@ -244,9 +244,9 @@ pub struct Texture<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionab
   pub repr: C::ATexture,
   pub size: D::Size,
   pub mipmaps: u32,
-  pub texels: Vec<P::Encoding>,
   _l: PhantomData<L>,
   _c: PhantomData<C>,
+  _p: PhantomData<P>
 }
 
 impl<C, L, D, P> Drop for Texture<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, P: Pixel {
@@ -268,9 +268,9 @@ impl<C, L, D, P> Texture<C, L, D, P>
       repr: tex,
       size: size,
       mipmaps: mipmaps,
-      texels: Vec::with_capacity(dim_capacity::<D>(size) as usize),
       _c: PhantomData,
       _l: PhantomData,
+      _p: PhantomData
     }
   }
 
