@@ -68,10 +68,10 @@ pub enum Type {
 
 /// Possible dimension of vertex components.
 pub enum Dim {
-  DIM1,
-  DIM2,
-  DIM3,
-  DIM4
+  Dim1,
+  Dim2,
+  Dim3,
+  Dim4
 }
 
 /// A type that can be used as a `Vertex` has to implement that trait – it must provide a mapping
@@ -91,121 +91,121 @@ impl Vertex for () {
 
 impl Vertex for i32 {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Integral, dim: Dim::DIM1 } ]
+    vec![ VertexComponentFormat { component_type: Type::Integral, dim: Dim::Dim1 } ]
   }
 }
 
 impl Vertex for [i32; 1] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Integral, dim: Dim::DIM1 } ]
+    vec![ VertexComponentFormat { component_type: Type::Integral, dim: Dim::Dim1 } ]
   }
 }
 
 impl Vertex for [i32; 2] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Integral, dim: Dim::DIM2 } ]
+    vec![ VertexComponentFormat { component_type: Type::Integral, dim: Dim::Dim2 } ]
   }
 }
 
 impl Vertex for [i32; 3] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Integral, dim: Dim::DIM3 } ]
+    vec![ VertexComponentFormat { component_type: Type::Integral, dim: Dim::Dim3 } ]
   }
 }
 
 impl Vertex for [i32; 4] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Integral, dim: Dim::DIM4 } ]
+    vec![ VertexComponentFormat { component_type: Type::Integral, dim: Dim::Dim4 } ]
   }
 }
 
 impl Vertex for u32 {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Unsigned, dim: Dim::DIM1 } ]
+    vec![ VertexComponentFormat { component_type: Type::Unsigned, dim: Dim::Dim1 } ]
   }
 }
 
 impl Vertex for [u32; 1] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Unsigned, dim: Dim::DIM1 } ]
+    vec![ VertexComponentFormat { component_type: Type::Unsigned, dim: Dim::Dim1 } ]
   }
 }
 
 impl Vertex for [u32; 2] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Unsigned, dim: Dim::DIM2 } ]
+    vec![ VertexComponentFormat { component_type: Type::Unsigned, dim: Dim::Dim2 } ]
   }
 }
 
 impl Vertex for [u32; 3] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Unsigned, dim: Dim::DIM3 } ]
+    vec![ VertexComponentFormat { component_type: Type::Unsigned, dim: Dim::Dim3 } ]
   }
 }
 
 impl Vertex for [u32; 4] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Unsigned, dim: Dim::DIM4 } ]
+    vec![ VertexComponentFormat { component_type: Type::Unsigned, dim: Dim::Dim4 } ]
   }
 }
 
 impl Vertex for f32 {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Floating, dim: Dim::DIM1 } ]
+    vec![ VertexComponentFormat { component_type: Type::Floating, dim: Dim::Dim1 } ]
   }
 }
 
 impl Vertex for [f32; 1] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Floating, dim: Dim::DIM1 } ]
+    vec![ VertexComponentFormat { component_type: Type::Floating, dim: Dim::Dim1 } ]
   }
 }
 
 impl Vertex for [f32; 2] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Floating, dim: Dim::DIM2 } ]
+    vec![ VertexComponentFormat { component_type: Type::Floating, dim: Dim::Dim2 } ]
   }
 }
 
 impl Vertex for [f32; 3] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Floating, dim: Dim::DIM3 } ]
+    vec![ VertexComponentFormat { component_type: Type::Floating, dim: Dim::Dim3 } ]
   }
 }
 
 impl Vertex for [f32; 4] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Floating, dim: Dim::DIM4 } ]
+    vec![ VertexComponentFormat { component_type: Type::Floating, dim: Dim::Dim4 } ]
   }
 }
 
 impl Vertex for bool {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Boolean, dim: Dim::DIM1 } ]
+    vec![ VertexComponentFormat { component_type: Type::Boolean, dim: Dim::Dim1 } ]
   }
 }
 
 impl Vertex for [bool; 1] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Boolean, dim: Dim::DIM1 } ]
+    vec![ VertexComponentFormat { component_type: Type::Boolean, dim: Dim::Dim1 } ]
   }
 }
 
 impl Vertex for [bool; 2] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Boolean, dim: Dim::DIM2 } ]
+    vec![ VertexComponentFormat { component_type: Type::Boolean, dim: Dim::Dim2 } ]
   }
 }
 
 impl Vertex for [bool; 3] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Boolean, dim: Dim::DIM3 } ]
+    vec![ VertexComponentFormat { component_type: Type::Boolean, dim: Dim::Dim3 } ]
   }
 }
 
 impl Vertex for [bool; 4] {
   fn vertex_format() -> VertexFormat {
-    vec![ VertexComponentFormat { component_type: Type::Boolean, dim: Dim::DIM4 } ]
+    vec![ VertexComponentFormat { component_type: Type::Boolean, dim: Dim::Dim4 } ]
   }
 }
 
