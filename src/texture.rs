@@ -67,9 +67,9 @@ pub trait Dimensionable {
   /// X offset.
   fn x_offset(offset: &Self::Offset) -> u32;
   /// Y offset. If it doesn’t have one, set it to 0.
-  fn y_offset(offset: &Self::Offset) -> u32 { 1 }
+  fn y_offset(_: &Self::Offset) -> u32 { 1 }
   /// Z offset. If it doesn’t have one, set it to 0.
-  fn z_offset(offset: &Self::Offset) -> u32 { 1 }
+  fn z_offset(_: &Self::Offset) -> u32 { 1 }
 }
 
 pub fn dim_capacity<T>(size: &T::Size) -> u32 where T: Dimensionable {
@@ -217,9 +217,11 @@ pub trait HasTexture {
   /// Destroy a texture.
   fn free(tex: &mut Self::ATex);
   /// Clear the texture’s texels by setting them all to the same value.
-  fn clear<P>(tex: &Self::ATex, gen_mimpmaps: bool, pixel: &P::Encoding) where P: Pixel;
+  fn clear_part<D, P>(tex: &Self::ATex, gen_mimpmaps: bool, offset: D::Offset, size: D::Size, pixel: &P::Encoding)
+    where D: Dimensionable, P: Pixel;
   /// Upload texels to the texture’s memory.
-  fn upload<P>(tex: &Self::ATex, texels: &Vec<P::Encoding>) where P: Pixel;
+  fn upload_part<D, P>(tex: &Self::ATex, offset: D::Offset, size: D::Size, texels: &Vec<P::Encoding>)
+    where D: Dimensionable, P: Pixel;
 }
 
 /// Texture.
@@ -261,12 +263,12 @@ impl<C, L, D, P> Tex<C, L, D, P>
     }
   }
 
-  pub fn clear(&self, gen_mipmaps: bool, pixel: &P::Encoding) {
-    C::clear::<P>(&self.repr, gen_mipmaps, pixel)
+  pub fn clear_part(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, pixel: &P::Encoding) {
+    C::clear_part::<D, P>(&self.repr, gen_mipmaps, offset, size, pixel)
   }
 
-  pub fn upload(&self, texels: &Vec<P::Encoding>) {
-    C::upload::<P>(&self.repr, texels)
+  pub fn upload_part(&self, offset: D::Offset, size: D::Size, texels: &Vec<P::Encoding>) {
+    C::upload_part::<D, P>(&self.repr, offset, size, texels)
   }
 }
 
