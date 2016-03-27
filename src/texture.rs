@@ -81,20 +81,20 @@ pub fn dim_capacity<D>(size: D::Size) -> u32 where D: Dimensionable, D::Size: Co
 /// Dimension of a texture.
 #[derive(Clone, Copy, Debug)]
 pub enum Dim {
-  DIM1,
-  DIM2,
-  DIM3,
+  Dim1,
+  Dim2,
+  Dim3,
   Cubemap
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct DIM1;
+pub struct Dim1;
 
-impl Dimensionable for DIM1 {
+impl Dimensionable for Dim1 {
   type Size = u32;
   type Offset = u32;
 
-  fn dim() -> Dim { Dim::DIM1 }
+  fn dim() -> Dim { Dim::Dim1 }
 
   fn width(w: Self::Size) -> u32 { w }
 
@@ -104,13 +104,13 @@ impl Dimensionable for DIM1 {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct DIM2;
+pub struct Dim2;
 
-impl Dimensionable for DIM2 {
+impl Dimensionable for Dim2 {
   type Size = (u32, u32);
   type Offset = (u32, u32);
 
-  fn dim() -> Dim { Dim::DIM2 }
+  fn dim() -> Dim { Dim::Dim2 }
 
   fn width(size: Self::Size) -> u32 { size.0 }
 
@@ -124,13 +124,13 @@ impl Dimensionable for DIM2 {
 }
 
 #[derive(Clone, Copy, Debug)]
-pub struct DIM3;
+pub struct Dim3;
 
-impl Dimensionable for DIM3 {
+impl Dimensionable for Dim3 {
   type Size = (u32, u32, u32);
   type Offset = (u32, u32, u32);
 
-  fn dim() -> Dim { Dim::DIM3 }
+  fn dim() -> Dim { Dim::Dim3 }
 
   fn width(size: Self::Size) -> u32 { size.0 }
 
