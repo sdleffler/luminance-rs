@@ -96,6 +96,11 @@ impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
   pub fn clear(&self, x: T) where T: Copy {
     let _ = C::write_whole(&self.repr, &vec![x; self.size]);
   }
+
+  /// Fill the whole buffer with an array.
+  pub fn fill(&self, values: &Vec<T>) {
+    let _ = C::write_whole(&self.repr, values);
+  }
 }
 
 impl<C, A, T> Drop for Buffer<C, A, T> where C: HasBuffer {
