@@ -217,21 +217,21 @@ impl Layerable for Layered { fn layering() -> Layering { Layering::Layered } }
 
 /// Trait to implement to provide texture features.
 pub trait HasTexture {
-  type ATex;
+  type ATexture;
 
   /// Create a new texture.
-  fn new<L, D, P>(size: D::Size, mipmaps: u32, sampler: &Sampler) -> Self::ATex
+  fn new<L, D, P>(size: D::Size, mipmaps: u32, sampler: &Sampler) -> Self::ATexture
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
           P: Pixel;
   /// Destroy a texture.
-  fn free(tex: &mut Self::ATex);
+  fn free(tex: &mut Self::ATexture);
   /// Clear the texture’s texels by setting them all to the same value.
-  fn clear_part<L, D, P>(tex: &Self::ATex, gen_mimpmaps: bool, offset: D::Offset, size: D::Size, pixel: P::Encoding)
+  fn clear_part<L, D, P>(tex: &Self::ATexture, gen_mimpmaps: bool, offset: D::Offset, size: D::Size, pixel: P::Encoding)
     where L: Layerable, D: Dimensionable, D::Offset: Copy, D::Size: Copy, P: Pixel, P::Encoding: Copy;
   /// Upload texels to the texture’s memory.
-  fn upload_part<L, D, P>(tex: &Self::ATex, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &Vec<P::Encoding>)
+  fn upload_part<L, D, P>(tex: &Self::ATexture, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &Vec<P::Encoding>)
     where L: Layerable, D::Offset: Copy, D::Size: Copy, D: Dimensionable, P: Pixel;
 }
 
@@ -240,8 +240,8 @@ pub trait HasTexture {
 /// `L` refers to the layering type; `D` refers to the dimension; `P` is the pixel format for the
 /// texels.
 #[derive(Debug)]
-pub struct Tex<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, P: Pixel {
-  pub repr: C::ATex,
+pub struct Texture<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, P: Pixel {
+  pub repr: C::ATexture,
   pub size: D::Size,
   pub mipmaps: u32,
   pub texels: Vec<P::Encoding>,
@@ -249,13 +249,13 @@ pub struct Tex<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, 
   _c: PhantomData<C>,
 }
 
-impl<C, L, D, P> Drop for Tex<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, P: Pixel {
+impl<C, L, D, P> Drop for Texture<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, P: Pixel {
   fn drop(&mut self) {
     C::free(&mut self.repr)
   }
 }
 
-impl<C, L, D, P> Tex<C, L, D, P>
+impl<C, L, D, P> Texture<C, L, D, P>
     where C: HasTexture,
           L: Layerable,
           D: Dimensionable,
@@ -264,7 +264,7 @@ impl<C, L, D, P> Tex<C, L, D, P>
   pub fn new(size: D::Size, mipmaps: u32, sampler: &Sampler) -> Self {
     let tex = C::new::<L, D, P>(size, mipmaps, sampler);
 
-    Tex {
+    Texture {
       repr: tex,
       size: size,
       mipmaps: mipmaps,
@@ -301,7 +301,7 @@ impl<C, L, D, P> Tex<C, L, D, P>
   }
 }
 
-/// A `Sampler` object gives hint on how a `Tex` should be sampled.
+/// A `Sampler` object gives hint on how a `Texture` should be sampled.
 #[derive(Clone, Copy, Debug)]
 pub struct Sampler {
   /// How should we wrap around the *r* sampling coordinate?

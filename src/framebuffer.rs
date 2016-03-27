@@ -33,7 +33,7 @@ use core::marker::PhantomData;
 use rw::RW;
 use pixel::{ColorPixel, DepthPixel, Pixel, PixelFormat};
 use std::vec::Vec;
-use texture::{Dimensionable, HasTexture, Layerable, Tex};
+use texture::{Dimensionable, HasTexture, Layerable, Texture};
 
 pub trait HasFramebuffer {
   type AFramebuffer;
@@ -85,7 +85,7 @@ pub struct Slot<C, L, D, P>
           L: Layerable,
           D: Dimensionable,
           P: Pixel {
-  pub texture_slot: Tex<C, L, D, P>
+  pub texture_slot: Texture<C, L, D, P>
 }
 
 /// A framebuffer has a color slot. A color slot can either be empty (the *unit* type is used,`()`)
