@@ -10,7 +10,7 @@ pub trait HasProgram: HasStage + HasUniform {
   ///
   fn free_program(program: &mut Self::Program);
   ///
-  fn map_uniform(program: &Self::Program, name: UniformName) -> Option<Self::U>;
+  fn map_uniform(program: &Self::Program, name: UniformName) -> Result<Self::U, ProgramError>;
   ///
   fn update_uniforms<F>(program: &Self::Program, f: F) where F: Fn();
 }
@@ -45,7 +45,7 @@ impl<C, U> Program<C, U> where C: HasProgram {
     })
 	}
 
-  pub fn uniform<T>(&self, name: &str) -> Option<Uniform<C, T>> where T: Uniformable {
+  pub fn uniform<T>(&self, name: &str) -> Result<Uniform<C, T>, ProgramError> where T: Uniformable {
     C::map_uniform(&self.repr, UniformName::StringName(String::from(name))).map(|u| Uniform::new(u))
   }
 
@@ -56,5 +56,6 @@ impl<C, U> Program<C, U> where C: HasProgram {
 
 #[derive(Debug)]
 pub enum ProgramError {
-  LinkFailed(String)
+  LinkFailed(String),
+  UniformTypeMismatch(String)
 }
