@@ -117,11 +117,11 @@ impl<A, B> ColorSlot for Chain<A, B> where A: ColorSlot, B: ColorSlot {
 /// A framebuffer has a depth slot. A depth slot can either be empty (the *unit* type is used, `()`)
 /// or a single depth format.
 pub trait DepthSlot {
-  fn depth_slot() -> Vec<PixelFormat>;
+  fn depth_slot() -> Option<PixelFormat>;
 }
 
 impl DepthSlot for () {
-  fn depth_slot() -> Vec<PixelFormat> { Vec::new() }
+  fn depth_slot() -> Option<PixelFormat> { None }
 }
 
 impl<C, L, D, P> DepthSlot for Slot<C, L, D, P>
@@ -129,5 +129,5 @@ impl<C, L, D, P> DepthSlot for Slot<C, L, D, P>
           L: Layerable,
           D: Dimensionable,
           P: DepthPixel {
-  fn depth_slot() -> Vec<PixelFormat> { vec![P::pixel_format()] }
+  fn depth_slot() -> Option<PixelFormat> { Some(P::pixel_format()) }
 }
