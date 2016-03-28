@@ -24,6 +24,7 @@
 use vertex::Vertex;
 
 /// Vertices can be connected via several modes.
+#[derive(Copy, Clone, Debug)]
 pub enum Mode {
     Point
   , Line
