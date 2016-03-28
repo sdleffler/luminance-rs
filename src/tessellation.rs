@@ -45,9 +45,12 @@ pub trait HasTessellation {
   /// others in the order they appear. If you want to connect them in another way, you can index
   /// them with `Some(indices)`.
   fn new<T>(mode: Mode, vertices: &Vec<T>, indices: Option<&Vec<u32>>) -> Self::Tessellation where T: Vertex;
-  /// Render the tessellation. The `instances` parameter gives the number of instances to actually
-  /// draw.
-  fn render(tessellation: &Self::Tessellation, instances: u32);
+  /// Render the tessellation.
+  ///
+  /// The `size` argument gives, for points or lines, the size to use as thickness when rendering.
+  ///
+  /// The `instances` argument gives the number of instances to render.
+  fn render(tessellation: &Self::Tessellation, size: Option<f32>, instances: u32);
 }
 
 #[derive(Debug)]
