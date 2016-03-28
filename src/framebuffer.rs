@@ -36,23 +36,23 @@ use std::vec::Vec;
 use texture::{Dimensionable, HasTexture, Layerable, Texture};
 
 pub trait HasFramebuffer {
-  type AFramebuffer;
+  type Framebuffer;
 
   /// Create a new framebuffer.
-  fn new<'a, D>(size: D::Size, mipmaps: u32) -> Result<Self::AFramebuffer, FramebufferError<'a>> where D: Dimensionable;
+  fn new<D>(size: D::Size, mipmaps: u32, color_formats: &Vec<PixelFormat>, depth_format: Option<PixelFormat>) -> Result<Self::Framebuffer, FramebufferError> where D: Dimensionable;
   /// Default framebuffer.
-  fn default_framebuffer() -> Self::AFramebuffer;
+  fn default_framebuffer() -> Self::Framebuffer;
 }
 
-pub enum FramebufferError<'a> {
-  Incomplete(&'a str)
+pub enum FramebufferError {
+  Incomplete(String)
 }
 
 pub struct Framebuffer<C, A, CS, DS>
     where C: HasTexture + HasFramebuffer,
           CS: ColorSlot,
           DS: DepthSlot {
-  pub repr: C::AFramebuffer,
+  pub repr: C::Framebuffer,
   pub color_slot: CS,
   pub depth_slot: DS,
   _a: PhantomData<A>
