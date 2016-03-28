@@ -5,6 +5,7 @@ use shader::program::HasProgram;
 use tessellation::HasTessellation;
 use texture::HasTexture;
 
+/*
 pub trait HasFrameCommand: HasFramebuffer + HasProgram + HasTessellation + HasTexture + Sized {
   fn run_frame_command<A, CS, DS>(cmd: &FrameCommand<Self, A, CS, DS>)
     where A: Writable,
@@ -32,3 +33,4 @@ pub struct RenderCommand<C> where C: HasTessellation {
   pub update: Box<Fn()>,
   pub tessellation: C::Tessellation
 }
+*/
