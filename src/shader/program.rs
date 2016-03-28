@@ -57,5 +57,6 @@ impl<C, U> Program<C, U> where C: HasProgram {
 #[derive(Debug)]
 pub enum ProgramError {
   LinkFailed(String),
+  InactiveUniform(String),
   UniformTypeMismatch(String)
 }
