@@ -50,6 +50,7 @@ pub trait HasTessellation {
   fn render(tessellation: &Self::Tessellation, instances: u32);
 }
 
+#[derive(Debug)]
 pub struct Tessellation<C> where C: HasTessellation {
   pub repr: C::Tessellation
 }
