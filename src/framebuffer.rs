@@ -33,13 +33,13 @@ use core::marker::PhantomData;
 use rw::RW;
 use pixel::{ColorPixel, DepthPixel, Pixel, PixelFormat};
 use std::vec::Vec;
-use texture::{Dimensionable, HasTexture, Layerable, Texture};
+use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture};
 
 pub trait HasFramebuffer {
   type Framebuffer;
 
   /// Create a new framebuffer.
-  fn new<D>(size: D::Size, mipmaps: u32, color_formats: &Vec<PixelFormat>, depth_format: Option<PixelFormat>) -> Result<Self::Framebuffer, FramebufferError> where D: Dimensionable;
+  fn new_framebuffer<D>(size: D::Size, mipmaps: u32, color_formats: &Vec<PixelFormat>, depth_format: Option<PixelFormat>) -> Result<Self::Framebuffer, FramebufferError> where D: Dimensionable;
   /// Default framebuffer.
   fn default_framebuffer() -> Self::Framebuffer;
 }
@@ -48,29 +48,42 @@ pub enum FramebufferError {
   Incomplete(String)
 }
 
-pub struct Framebuffer<C, A, CS, DS>
+pub struct Framebuffer<C, L, D, A, CS, DS>
     where C: HasTexture + HasFramebuffer,
+          L: Layerable,
+          D: Dimensionable,
           CS: ColorSlot,
           DS: DepthSlot {
   pub repr: C::Framebuffer,
-  pub color_slot: CS,
-  pub depth_slot: DS,
+  pub color_slot: PhantomData<CS>,
+  pub depth_slot: PhantomData<DS>,
+  _l: PhantomData<L>,
+  _d: PhantomData<D>,
   _a: PhantomData<A>
 }
 
 /*
-impl<C, L, D, A, Color, Depth> Framebuffer<C, L, D, A, Color, Depth>
+impl<C, L, D, A, CS, DS> Framebuffer<C, L, D, A, CS, DS>
     where C: HasTexture + HasFramebuffer,
           L: Layerable,
           D: Dimensionable,
-          Color: ColorPixel,
-          Depth: DepthPixel {
-  fn new<'a>(size: D::Size, mipmaps: u32) -> Result<Framebuffer<C, L, D, A, Color, Depth>, FramebufferError<'a>> {
+          CS: ColorSlot,
+          DS: DepthSlot {
+  fn new(size: D::Size, mipmaps: u32) -> Result<Framebuffer<C, L, D, A, CS, DS>, FramebufferError> {
+    C::new_framebuffer(size, mipmaps, &CS::color_formats(), DS::depth_format()).map(|framebuffer| Framebuffer {
+      repr: framebuffer,
+      color_slot: PhantomData,
+      depth_slot: PhantomData,
+      _l: PhantomData,
+      _d: PhantomData,
+      _a: PhantomData
+    })
   }
 }
 */
 
-pub fn default_framebuffer<C>() -> Framebuffer<C, RW, (), ()> where C: HasTexture + HasFramebuffer {
+/*
+pub fn default_framebuffer<C>() -> Framebuffer<C, Flat, Dim2, RW, (), ()> where C: HasTexture + HasFramebuffer {
   Framebuffer {
     repr: C::default_framebuffer(),
     color_slot: (),
@@ -78,6 +91,7 @@ pub fn default_framebuffer<C>() -> Framebuffer<C, RW, (), ()> where C: HasTextur
     _a: PhantomData
   }
 }
+*/
 
 /// Slot type; used to create color and depth slots for framebuffers.
 pub struct Slot<C, L, D, P>
@@ -91,11 +105,11 @@ pub struct Slot<C, L, D, P>
 /// A framebuffer has a color slot. A color slot can either be empty (the *unit* type is used,`()`)
 /// or several color formats.
 pub trait ColorSlot {
-  fn color_slots() -> Vec<PixelFormat>;
+  fn color_formats() -> Vec<PixelFormat>;
 }
 
 impl ColorSlot for () {
-  fn color_slots() -> Vec<PixelFormat> { Vec::new() }
+  fn color_formats() -> Vec<PixelFormat> { Vec::new() }
 }
 
 impl<C, L, D, P> ColorSlot for Slot<C, L, D, P>
@@ -103,13 +117,13 @@ impl<C, L, D, P> ColorSlot for Slot<C, L, D, P>
           L: Layerable,
           D: Dimensionable,
           P: ColorPixel {
-  fn color_slots() -> Vec<PixelFormat> { vec![P::pixel_format()] }
+  fn color_formats() -> Vec<PixelFormat> { vec![P::pixel_format()] }
 }
 
 impl<A, B> ColorSlot for Chain<A, B> where A: ColorSlot, B: ColorSlot {
-  fn color_slots() -> Vec<PixelFormat> {
-    let mut a = A::color_slots();
-    a.extend(B::color_slots());
+  fn color_formats() -> Vec<PixelFormat> {
+    let mut a = A::color_formats();
+    a.extend(B::color_formats());
     a
   }
 }
@@ -117,11 +131,11 @@ impl<A, B> ColorSlot for Chain<A, B> where A: ColorSlot, B: ColorSlot {
 /// A framebuffer has a depth slot. A depth slot can either be empty (the *unit* type is used, `()`)
 /// or a single depth format.
 pub trait DepthSlot {
-  fn depth_slot() -> Option<PixelFormat>;
+  fn depth_format() -> Option<PixelFormat>;
 }
 
 impl DepthSlot for () {
-  fn depth_slot() -> Option<PixelFormat> { None }
+  fn depth_format() -> Option<PixelFormat> { None }
 }
 
 impl<C, L, D, P> DepthSlot for Slot<C, L, D, P>
@@ -129,5 +143,5 @@ impl<C, L, D, P> DepthSlot for Slot<C, L, D, P>
           L: Layerable,
           D: Dimensionable,
           P: DepthPixel {
-  fn depth_slot() -> Option<PixelFormat> { Some(P::pixel_format()) }
+  fn depth_format() -> Option<PixelFormat> { Some(P::pixel_format()) }
 }

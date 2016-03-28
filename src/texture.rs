@@ -220,7 +220,7 @@ pub trait HasTexture {
   type ATexture;
 
   /// Create a new texture.
-  fn new<L, D, P>(size: D::Size, mipmaps: u32, sampler: &Sampler) -> Self::ATexture
+  fn new_texture<L, D, P>(size: D::Size, mipmaps: u32, sampler: &Sampler) -> Self::ATexture
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -262,7 +262,7 @@ impl<C, L, D, P> Texture<C, L, D, P>
           D::Size: Copy,
           P: Pixel {
   pub fn new(size: D::Size, mipmaps: u32, sampler: &Sampler) -> Self {
-    let tex = C::new::<L, D, P>(size, mipmaps, sampler);
+    let tex = C::new_texture::<L, D, P>(size, mipmaps, sampler);
 
     Texture {
       repr: tex,
