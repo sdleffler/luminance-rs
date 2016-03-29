@@ -36,6 +36,9 @@ use std::vec::Vec;
 use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture};
 
 /// Trait to implement to provide framebuffer features.
+///
+/// When creating a new framebuffer with `new_framebuffer`, the color and depth formats are passed
+/// and should be used to create internal textures and/or buffers to represent the slots.
 pub trait HasFramebuffer {
 	/// Framebuffer representation.
   type Framebuffer;
