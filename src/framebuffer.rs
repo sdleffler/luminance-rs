@@ -159,6 +159,60 @@ impl<A, B> ColorSlot for Chain<A, B> where A: ColorSlot, B: ColorSlot {
   }
 }
 
+impl<A, B> ColorSlot for (A, B) where A: ColorSlot, B: ColorSlot {
+  fn color_formats() -> Vec<PixelFormat> {
+		Chain::<A, B>::color_formats()
+	}
+}
+
+impl<A, B, C> ColorSlot for (A, B, C) where A: ColorSlot, B: ColorSlot, C: ColorSlot {
+  fn color_formats() -> Vec<PixelFormat> {
+		Chain::<A, Chain<B, C>>::color_formats()
+	}
+}
+
+impl<A, B, C, D> ColorSlot for (A, B, C, D) where A: ColorSlot, B: ColorSlot, C: ColorSlot, D: ColorSlot {
+  fn color_formats() -> Vec<PixelFormat> {
+		Chain::<A, Chain<B, Chain<C, D>>>::color_formats()
+	}
+}
+
+impl<A, B, C, D, E> ColorSlot for (A, B, C, D, E) where A: ColorSlot, B: ColorSlot, C: ColorSlot, D: ColorSlot, E: ColorSlot {
+  fn color_formats() -> Vec<PixelFormat> {
+		Chain::<A, Chain<B, Chain<C, Chain<D, E>>>>::color_formats()
+	}
+}
+
+impl<A, B, C, D, E, F> ColorSlot for (A, B, C, D, E, F) where A: ColorSlot, B: ColorSlot, C: ColorSlot, D: ColorSlot, E: ColorSlot, F: ColorSlot {
+  fn color_formats() -> Vec<PixelFormat> {
+		Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, F>>>>>::color_formats()
+	}
+}
+
+impl<A, B, C, D, E, F, G> ColorSlot for (A, B, C, D, E, F, G) where A: ColorSlot, B: ColorSlot, C: ColorSlot, D: ColorSlot, E: ColorSlot, F: ColorSlot, G: ColorSlot {
+  fn color_formats() -> Vec<PixelFormat> {
+		Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, Chain<F, G>>>>>>::color_formats()
+	}
+}
+
+impl<A, B, C, D, E, F, G, H> ColorSlot for (A, B, C, D, E, F, G, H) where A: ColorSlot, B: ColorSlot, C: ColorSlot, D: ColorSlot, E: ColorSlot, F: ColorSlot, G: ColorSlot, H: ColorSlot {
+  fn color_formats() -> Vec<PixelFormat> {
+		Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, Chain<F, Chain<G, H>>>>>>>::color_formats()
+	}
+}
+
+impl<A, B, C, D, E, F, G, H, I> ColorSlot for (A, B, C, D, E, F, G, H, I) where A: ColorSlot, B: ColorSlot, C: ColorSlot, D: ColorSlot, E: ColorSlot, F: ColorSlot, G: ColorSlot, H: ColorSlot, I: ColorSlot {
+  fn color_formats() -> Vec<PixelFormat> {
+		Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, Chain<F, Chain<G, Chain<H, I>>>>>>>>::color_formats()
+	}
+}
+
+impl<A, B, C, D, E, F, G, H, I, J> ColorSlot for (A, B, C, D, E, F, G, H, I, J) where A: ColorSlot, B: ColorSlot, C: ColorSlot, D: ColorSlot, E: ColorSlot, F: ColorSlot, G: ColorSlot, H: ColorSlot, I: ColorSlot, J: ColorSlot {
+  fn color_formats() -> Vec<PixelFormat> {
+		Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, Chain<F, Chain<G, Chain<H, Chain<I, J>>>>>>>>>::color_formats()
+	}
+}
+
 /// A framebuffer has a depth slot. A depth slot can either be empty (the *unit* type is used, `()`)
 /// or a single depth format.
 pub trait DepthSlot {
