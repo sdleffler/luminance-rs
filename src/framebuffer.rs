@@ -56,8 +56,10 @@ pub trait HasFramebuffer: HasTexture {
   fn new_framebuffer<D>(size: D::Size, mipmaps: u32, color_formats: &Vec<PixelFormat>, depth_format: Option<PixelFormat>) -> Result<(Self::Framebuffer, Vec<Self::ATexture>, Option<Self::ATexture>), FramebufferError> where D: Dimensionable;
   /// Default framebuffer.
   fn default_framebuffer() -> Self::Framebuffer;
-	/// Called when no color slot is wished.
+	/// Called when no color slot is required.
 	fn disable_color_slot(framebuffer: &Self::Framebuffer);
+	/// Called when no depth slot is required.
+	fn disable_depth_slot(framebuffer: &Self::Framebuffer);
 }
 
 /// Framebuffer error.
@@ -244,3 +246,19 @@ fn create_slot<C, L, D, P>(size: D::Size, mipmaps: u32) -> Slot<C, L, D, P>
 		texture: Texture::new(size, mipmaps, &Default::default())
 	}
 }
+
+
+trait ToDepthSlot<C, L, D> where C: HasFramebuffer, L: Layerable, D: Dimensionable, D::Size: Copy {
+	type Target;
+
+	fn to_depth_slot(framebuffer: &C::Framebuffer, size: D::Size, mipmaps: u32) -> Self;
+}
+
+impl<C, L, D> ToDepthSlot<C, L, D> for () where C: HasFramebuffer, L: Layerable, D: Dimensionable, D::Size: Copy {
+	type Target = ();
+
+	fn to_depth_slot(framebuffer: &C::Framebuffer, size: D::Size, mipmaps: u32) -> Self {
+		C::disable_depth_slot(framebuffer)
+	}
+}
+
