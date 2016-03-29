@@ -30,7 +30,6 @@
 
 use chain::Chain;
 use core::marker::PhantomData;
-use rw::RW;
 use pixel::{ColorPixel, DepthPixel, Pixel, PixelFormat};
 use std::default::Default;
 use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture};
@@ -40,22 +39,24 @@ use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture};
 /// When creating a new framebuffer with `new_framebuffer`, the color and depth formats are passed
 /// and should be used to create internal textures and/or buffers to represent the slots.
 pub trait HasFramebuffer: HasTexture {
-	/// Framebuffer representation.
+  /// Framebuffer representation.
   type Framebuffer;
 
   /// Create a new framebuffer.
   fn new_framebuffer() -> Result<Self::Framebuffer, FramebufferError>;
+  /// Free a framebuffer.
+  fn free_framebuffer(framebuffer: &mut Self::Framebuffer);
   /// Default framebuffer.
   fn default_framebuffer() -> Self::Framebuffer;
   /// Called when a color slot is created. The `index` parameter gives the stream index of the color
   /// slot.
   fn accept_color_slot<D>(framebuffer: &Self::Framebuffer, size: D::Size, color_texture: &Self::ATexture, index: u8) where D: Dimensionable, D::Size: Copy;
-	/// Called when a depth slot is created.
-	fn accept_depth_slot<D>(framebuffer: &Self::Framebuffer, size: D::Size, depth_texture: &Self::ATexture) where D: Dimensionable, D::Size: Copy;
-	/// Called when no color slot is required.
-	fn disable_color_slot(framebuffer: &Self::Framebuffer);
-	/// Called when no depth slot is required.
-	fn disable_depth_slot(framebuffer: &Self::Framebuffer);
+  /// Called when a depth slot is created.
+  fn accept_depth_slot<D>(framebuffer: &Self::Framebuffer, size: D::Size, depth_texture: &Self::ATexture) where D: Dimensionable, D::Size: Copy;
+  /// Called when no color slot is required.
+  fn disable_color_slot(framebuffer: &Self::Framebuffer);
+  /// Called when no depth slot is required.
+  fn disable_depth_slot(framebuffer: &Self::Framebuffer);
 }
 
 /// Framebuffer error.
@@ -80,11 +81,11 @@ pub enum FramebufferError {
 /// A framebuffer can have zero or several color slots and it can have zero or one depth slot. If
 /// you use several color slots, you’ll be performing what’s called *MRT* (*M* ultiple *R* ender
 /// *T* argets), enabling to render to several textures at once.
-pub struct Framebuffer<C, L, D, A, CS, DS>
+pub struct Framebuffer<C, L, D, CS, DS>
     where C: HasTexture + HasFramebuffer,
           L: Layerable,
           D: Dimensionable,
-					D::Size: Copy,
+          D::Size: Copy,
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
   pub repr: C::Framebuffer,
@@ -92,17 +93,16 @@ pub struct Framebuffer<C, L, D, A, CS, DS>
   pub depth_slot: DS,
   _l: PhantomData<L>,
   _d: PhantomData<D>,
-  _a: PhantomData<A>
 }
 
-impl<C, L, D, A, CS, DS> Framebuffer<C, L, D, A, CS, DS>
+impl<C, L, D, CS, DS> Framebuffer<C, L, D, CS, DS>
     where C: HasTexture + HasFramebuffer,
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
-  pub fn new(size: D::Size, mipmaps: u32) -> Result<Framebuffer<C, L, D, A, CS, DS>, FramebufferError> {
+  pub fn new(size: D::Size, mipmaps: u32) -> Result<Framebuffer<C, L, D, CS, DS>, FramebufferError> {
     C::new_framebuffer().map(|framebuffer| {
       let color_slot = CS::new_color_slot(&framebuffer, size, mipmaps, 0);
       let depth_slot = DS::new_depth_slot(&framebuffer, size, mipmaps);
@@ -113,19 +113,18 @@ impl<C, L, D, A, CS, DS> Framebuffer<C, L, D, A, CS, DS>
         depth_slot: depth_slot,
         _l: PhantomData,
         _d: PhantomData,
-        _a: PhantomData
       }
     })
   }
 }
 
-pub fn default_framebuffer<C>() -> Framebuffer<C, Flat, Dim2, RW, (), ()> where C: HasTexture + HasFramebuffer {
+pub fn default_framebuffer<C>() -> Framebuffer<C, Flat, Dim2, (), ()> where C: HasTexture + HasFramebuffer {
   Framebuffer {
     repr: C::default_framebuffer(),
     color_slot: (),
     depth_slot: (),
-  _l: PhantomData,
-  _d: PhantomData,
+    _l: PhantomData,
+    _d: PhantomData,
     _a: PhantomData
   }
 }
@@ -142,7 +141,7 @@ pub struct Slot<C, L, D, P>
 /// A framebuffer has a color slot. A color slot can either be empty (the *unit* type is used,`()`)
 /// or several color formats.
 pub trait ColorSlot<C, L, D> where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
-	fn new_color_slot(framebuffer: &C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self;
+  fn new_color_slot(framebuffer: &C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self;
 }
 
 impl<C, L, D> ColorSlot<C, L, D> for () where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
@@ -155,12 +154,12 @@ impl<C, L, D, P> ColorSlot<C, L, D> for Slot<C, L, D, P>
     where C: HasFramebuffer + HasTexture,
           L: Layerable,
           D: Dimensionable,
-					D::Size: Copy,
+          D::Size: Copy,
           P: ColorPixel {
   fn new_color_slot(framebuffer: &C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self {
-		let color_slot = create_slot(size, mipmaps);
+    let color_slot = create_slot(size, mipmaps);
 
-		C::accept_color_slot::<D>(framebuffer, size, &color_slot.texture.repr, index);
+    C::accept_color_slot::<D>(framebuffer, size, &color_slot.texture.repr, index);
 
     color_slot
   }
@@ -337,42 +336,42 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8, P9> ColorSlot<C, L, D> for (Sl
 /// or a single depth format.
 pub trait DepthSlot<C, L, D> where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
   fn depth_format() -> Option<PixelFormat>;
-	fn new_depth_slot(framebuffer: &C::Framebuffer, size: D::Size, mipmaps: u32) -> Self;
+  fn new_depth_slot(framebuffer: &C::Framebuffer, size: D::Size, mipmaps: u32) -> Self;
 }
 
 impl<C, L, D> DepthSlot<C, L, D> for () where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
   fn depth_format() -> Option<PixelFormat> { None }
 
-	fn new_depth_slot(framebuffer: &C::Framebuffer, _: D::Size, _: u32) -> Self {
-		C::disable_depth_slot(framebuffer)
-	}
+  fn new_depth_slot(framebuffer: &C::Framebuffer, _: D::Size, _: u32) -> Self {
+    C::disable_depth_slot(framebuffer)
+  }
 }
 
 impl<C, L, D, P> DepthSlot<C, L, D> for Slot<C, L, D, P>
     where C: HasFramebuffer + HasTexture,
           L: Layerable,
           D: Dimensionable,
-					D::Size: Copy,
+          D::Size: Copy,
           P: DepthPixel {
   fn depth_format() -> Option<PixelFormat> { Some(P::pixel_format()) }
 
-	fn new_depth_slot(framebuffer: &C::Framebuffer, size: D::Size, mipmaps: u32) -> Self {
-		let depth_slot = create_slot(size, mipmaps);
+  fn new_depth_slot(framebuffer: &C::Framebuffer, size: D::Size, mipmaps: u32) -> Self {
+    let depth_slot = create_slot(size, mipmaps);
 
-		C::accept_depth_slot::<D>(framebuffer, size, &depth_slot.texture.repr);
+    C::accept_depth_slot::<D>(framebuffer, size, &depth_slot.texture.repr);
 
-		depth_slot
-	}
+    depth_slot
+  }
 }
 
 /// Create a new slot from a size, mipmaps and static properties of the target texture.
 fn create_slot<C, L, D, P>(size: D::Size, mipmaps: u32) -> Slot<C, L, D, P>
-		where C: HasTexture,
-					L: Layerable,
-					D: Dimensionable,
-					D::Size: Copy,
-					P: Pixel {
-	Slot {
-		texture: Texture::new(size, mipmaps, &Default::default())
-	}
+    where C: HasTexture,
+          L: Layerable,
+          D: Dimensionable,
+          D::Size: Copy,
+          P: Pixel {
+  Slot {
+    texture: Texture::new(size, mipmaps, &Default::default())
+  }
 }
