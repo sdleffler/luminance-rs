@@ -97,8 +97,8 @@ pub struct Framebuffer<C, L, D, A, CS, DS>
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
   pub repr: C::Framebuffer,
-  pub color_slot: PhantomData<CS>,
-  pub depth_slot: PhantomData<DS>,
+  pub color_slot: CS,
+  pub depth_slot: DS,
   _l: PhantomData<L>,
   _d: PhantomData<D>,
   _a: PhantomData<A>
@@ -124,16 +124,16 @@ impl<C, L, D, A, CS, DS> Framebuffer<C, L, D, A, CS, DS>
 }
 */
 
-/*
 pub fn default_framebuffer<C>() -> Framebuffer<C, Flat, Dim2, RW, (), ()> where C: HasTexture + HasFramebuffer {
   Framebuffer {
     repr: C::default_framebuffer(),
     color_slot: (),
     depth_slot: (),
+  _l: PhantomData,
+  _d: PhantomData,
     _a: PhantomData
   }
 }
-*/
 
 /// Slot type; used to create color and depth slots for framebuffers.
 pub struct Slot<C, L, D, P>
