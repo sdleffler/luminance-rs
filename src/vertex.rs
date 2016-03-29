@@ -246,3 +246,27 @@ impl<A, B, C, D, E, F> Vertex for (A, B, C, D, E, F) where A: Vertex, B: Vertex,
     Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, F>>>>>::vertex_format()
   }
 }
+
+impl<A, B, C, D, E, F, G> Vertex for (A, B, C, D, E, F, G) where A: Vertex, B: Vertex, C: Vertex, D: Vertex, E: Vertex, F: Vertex, G: Vertex {
+  fn vertex_format() -> VertexFormat {
+    Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, Chain<F, G>>>>>>::vertex_format()
+  }
+}
+
+impl<A, B, C, D, E, F, G, H> Vertex for (A, B, C, D, E, F, G, H) where A: Vertex, B: Vertex, C: Vertex, D: Vertex, E: Vertex, F: Vertex, G: Vertex, H: Vertex {
+  fn vertex_format() -> VertexFormat {
+    Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, Chain<F, Chain<G, H>>>>>>>::vertex_format()
+  }
+}
+
+impl<A, B, C, D, E, F, G, H, I> Vertex for (A, B, C, D, E, F, G, H, I) where A: Vertex, B: Vertex, C: Vertex, D: Vertex, E: Vertex, F: Vertex, G: Vertex, H: Vertex, I: Vertex {
+  fn vertex_format() -> VertexFormat {
+    Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, Chain<F, Chain<G, Chain<H, I>>>>>>>>::vertex_format()
+  }
+}
+
+impl<A, B, C, D, E, F, G, H, I, J> Vertex for (A, B, C, D, E, F, G, H, I, J) where A: Vertex, B: Vertex, C: Vertex, D: Vertex, E: Vertex, F: Vertex, G: Vertex, H: Vertex, I: Vertex, J: Vertex {
+  fn vertex_format() -> VertexFormat {
+    Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, Chain<F, Chain<G, Chain<H, Chain<I, J>>>>>>>>>::vertex_format()
+  }
+}
