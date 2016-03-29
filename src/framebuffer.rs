@@ -35,7 +35,9 @@ use pixel::{ColorPixel, DepthPixel, Pixel, PixelFormat};
 use std::vec::Vec;
 use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture};
 
+/// Trait to implement to provide framebuffer features.
 pub trait HasFramebuffer {
+	/// Framebuffer representation.
   type Framebuffer;
 
   /// Create a new framebuffer.
@@ -44,10 +46,28 @@ pub trait HasFramebuffer {
   fn default_framebuffer() -> Self::Framebuffer;
 }
 
+/// Framebuffer error.
+///
+/// `Incomplete(reason)` occurs at framebuffer creation and `reason` gives a `String` explaination
+/// of the failure.
 pub enum FramebufferError {
   Incomplete(String)
 }
 
+/// Framebuffer with static layering, dimension, access and slots formats.
+///
+/// A `Framebuffer` is a *GPU* special object used to render to. Because framebuffers have a
+/// *layering* property, it’s possible to have regular render and *layered rendering*. The dimension
+/// of a framebuffer makes it possible to render to 1D, 2D, 3D and cubemaps.
+///
+/// A framebuffer has two kind of slots:
+///
+/// - **color slot** ;
+/// - **depth slot**.
+///
+/// A framebuffer can have zero or several color slots and it can have zero or one depth slot. If
+/// you use several color slots, you’ll be performing what’s called *MRT* (*M*ultiple *R*ender
+/// *T*argets), enabling to render to several textures at once.
 pub struct Framebuffer<C, L, D, A, CS, DS>
     where C: HasTexture + HasFramebuffer,
           L: Layerable,
