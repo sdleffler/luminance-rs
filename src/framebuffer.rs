@@ -39,12 +39,20 @@ use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture};
 ///
 /// When creating a new framebuffer with `new_framebuffer`, the color and depth formats are passed
 /// and should be used to create internal textures and/or buffers to represent the slots.
-pub trait HasFramebuffer {
+pub trait HasFramebuffer: HasTexture {
 	/// Framebuffer representation.
   type Framebuffer;
 
   /// Create a new framebuffer.
-  fn new_framebuffer<D>(size: D::Size, mipmaps: u32, color_formats: &Vec<PixelFormat>, depth_format: Option<PixelFormat>) -> Result<Self::Framebuffer, FramebufferError> where D: Dimensionable;
+	///
+	/// `size` represents the size of the color and depth slots. `mipmaps` is the number of levels
+	/// required for those slots. `color_formats` and `depth_format` represent the color buffers and
+	/// depth buffer, respectively.
+	///
+	/// This function should return a tuple containing the framebuffer, a list of textures to use in
+	/// place of color buffers and zero or one texture for the depth buffer. On error, it should
+	/// return the appropriate error.
+  fn new_framebuffer<D>(size: D::Size, mipmaps: u32, color_formats: &Vec<PixelFormat>, depth_format: Option<PixelFormat>) -> Result<(Self::Framebuffer, Vec<Self::ATexture>, Option<Self::ATexture>), FramebufferError> where D: Dimensionable;
   /// Default framebuffer.
   fn default_framebuffer() -> Self::Framebuffer;
 }
