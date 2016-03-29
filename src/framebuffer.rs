@@ -125,7 +125,6 @@ pub fn default_framebuffer<C>() -> Framebuffer<C, Flat, Dim2, (), ()> where C: H
     depth_slot: (),
     _l: PhantomData,
     _d: PhantomData,
-    _a: PhantomData
   }
 }
 
