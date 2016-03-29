@@ -91,7 +91,7 @@ pub struct Framebuffer<C, L, D, A, CS, DS>
           L: Layerable,
           D: Dimensionable,
 					D::Size: Copy,
-          CS: ColorSlot,
+          CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
   pub repr: C::Framebuffer,
   pub color_slot: PhantomData<CS>,
@@ -143,22 +143,24 @@ pub struct Slot<C, L, D, P>
 
 /// A framebuffer has a color slot. A color slot can either be empty (the *unit* type is used,`()`)
 /// or several color formats.
-pub trait ColorSlot {
+pub trait ColorSlot<C, L, D> where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
   fn color_formats() -> Vec<PixelFormat>;
 }
 
-impl ColorSlot for () {
+impl<C, L, D> ColorSlot<C, L, D> for () where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
   fn color_formats() -> Vec<PixelFormat> { Vec::new() }
 }
 
-impl<C, L, D, P> ColorSlot for Slot<C, L, D, P>
-    where C: HasTexture,
+impl<C, L, D, P> ColorSlot<C, L, D> for Slot<C, L, D, P>
+    where C: HasFramebuffer + HasTexture,
           L: Layerable,
           D: Dimensionable,
+					D::Size: Copy,
           P: ColorPixel {
   fn color_formats() -> Vec<PixelFormat> { vec![P::pixel_format()] }
 }
 
+/*
 impl<A, B> ColorSlot for Chain<A, B> where A: ColorSlot, B: ColorSlot {
   fn color_formats() -> Vec<PixelFormat> {
     let mut a = A::color_formats();
@@ -220,6 +222,7 @@ impl<A, B, C, D, E, F, G, H, I, J> ColorSlot for (A, B, C, D, E, F, G, H, I, J) 
 		Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, Chain<F, Chain<G, Chain<H, Chain<I, J>>>>>>>>>::color_formats()
 	}
 }
+*/
 
 /// A framebuffer has a depth slot. A depth slot can either be empty (the *unit* type is used, `()`)
 /// or a single depth format.
