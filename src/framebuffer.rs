@@ -14,7 +14,7 @@
 //! - *color buffers*;
 //! - *depth buffers*.
 //!
-//! The *color buffers* hold the color images you render to. A framebuffers can hold several of them
+//! The *color buffers* hold the color images you render to. A framebuffer can hold several of them
 //! with different color formats. The *depth buffers* hold the depth images you render to.
 //! Framebuffers can hold only one depth buffer.
 //!
@@ -77,8 +77,8 @@ pub enum FramebufferError {
 /// - **depth slot**.
 ///
 /// A framebuffer can have zero or several color slots and it can have zero or one depth slot. If
-/// you use several color slots, you’ll be performing what’s called *MRT* (*M*ultiple *R*ender
-/// *T*argets), enabling to render to several textures at once.
+/// you use several color slots, you’ll be performing what’s called *MRT* (*M* ultiple *R* ender
+/// *T* argets), enabling to render to several textures at once.
 pub struct Framebuffer<C, L, D, A, CS, DS>
     where C: HasTexture + HasFramebuffer,
           L: Layerable,
