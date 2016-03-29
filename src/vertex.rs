@@ -17,7 +17,7 @@
 //! The rule is that your type should have a static size greater than 0 and less than or equal to 4.
 //! It should also be either integral, unsigned, floating or boolean. If your type is a complex one
 //! – for instance a `struct` – you have to recursively apply that rule to all its fields.
-//! For instance, the tuple `(i32,bool)` implements `Vertex` by providing an implementation using
+//! For instance, the tuple `(i32, bool)` implements `Vertex` by providing an implementation using
 //! the ones of `i32` and `bool`.
 //!
 //! ## Components list
