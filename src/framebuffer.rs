@@ -33,7 +33,6 @@ use core::marker::PhantomData;
 use rw::RW;
 use pixel::{ColorPixel, DepthPixel, Pixel, PixelFormat};
 use std::default::Default;
-use std::vec::Vec;
 use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture};
 
 /// Trait to implement to provide framebuffer features.
@@ -45,15 +44,7 @@ pub trait HasFramebuffer: HasTexture {
   type Framebuffer;
 
   /// Create a new framebuffer.
-	///
-	/// `size` represents the size of the color and depth slots. `mipmaps` is the number of levels
-	/// required for those slots. `color_formats` and `depth_format` represent the color buffers and
-	/// depth buffer, respectively.
-	///
-	/// This function should return a tuple containing the framebuffer, a list of textures to use in
-	/// place of color buffers and zero or one texture for the depth buffer. On error, it should
-	/// return the appropriate error.
-  fn new_framebuffer<D>(size: D::Size, mipmaps: u32, color_formats: &Vec<PixelFormat>, depth_format: Option<PixelFormat>) -> Result<(Self::Framebuffer, Vec<Self::ATexture>, Option<Self::ATexture>), FramebufferError> where D: Dimensionable;
+  fn new_framebuffer() -> Result<Self::Framebuffer, FramebufferError>;
   /// Default framebuffer.
   fn default_framebuffer() -> Self::Framebuffer;
   /// Called when a color slot is created. The `index` parameter gives the stream index of the color
@@ -104,25 +95,29 @@ pub struct Framebuffer<C, L, D, A, CS, DS>
   _a: PhantomData<A>
 }
 
-/*
 impl<C, L, D, A, CS, DS> Framebuffer<C, L, D, A, CS, DS>
     where C: HasTexture + HasFramebuffer,
           L: Layerable,
           D: Dimensionable,
-          CS: ColorSlot,
-          DS: DepthSlot {
-  fn new(size: D::Size, mipmaps: u32) -> Result<Framebuffer<C, L, D, A, CS, DS>, FramebufferError> {
-    C::new_framebuffer(size, mipmaps, &CS::color_formats(), DS::depth_format()).map(|framebuffer| Framebuffer {
-      repr: framebuffer,
-      color_slot: PhantomData,
-      depth_slot: PhantomData,
-      _l: PhantomData,
-      _d: PhantomData,
-      _a: PhantomData
+          D::Size: Copy,
+          CS: ColorSlot<C, L, D>,
+          DS: DepthSlot<C, L, D> {
+  pub fn new(size: D::Size, mipmaps: u32) -> Result<Framebuffer<C, L, D, A, CS, DS>, FramebufferError> {
+    C::new_framebuffer().map(|framebuffer| {
+      let color_slot = CS::new_color_slot(&framebuffer, size, mipmaps, 0);
+      let depth_slot = DS::new_depth_slot(&framebuffer, size, mipmaps);
+
+      Framebuffer {
+        repr: framebuffer,
+        color_slot: color_slot,
+        depth_slot: depth_slot,
+        _l: PhantomData,
+        _d: PhantomData,
+        _a: PhantomData
+      }
     })
   }
 }
-*/
 
 pub fn default_framebuffer<C>() -> Framebuffer<C, Flat, Dim2, RW, (), ()> where C: HasTexture + HasFramebuffer {
   Framebuffer {
