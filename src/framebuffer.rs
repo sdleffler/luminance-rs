@@ -177,15 +177,28 @@ impl<C, L, D, P> ColorSlot<C, L, D> for Slot<C, L, D, P>
   }
 }
 
-/*
-impl<A, B> ColorSlot for Chain<A, B> where A: ColorSlot, B: ColorSlot {
+impl<C, L, D, A, B> ColorSlot<C, L, D> for Chain<A, B>
+    where C: HasFramebuffer + HasTexture,
+          L: Layerable,
+          D: Dimensionable,
+          D::Size: Copy,
+          A: ColorSlot<C, L, D>,
+          B: ColorSlot<C, L, D> {
   fn color_formats() -> Vec<PixelFormat> {
     let mut a = A::color_formats();
     a.extend(B::color_formats());
     a
   }
+
+  fn new_color_slot(framebuffer: &C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self {
+    let a = A::new_color_slot(framebuffer, size, mipmaps, index);
+    let b = B::new_color_slot(framebuffer, size, mipmaps, index + 1);
+
+    Chain(a, b)
+  }
 }
 
+/*
 impl<A, B> ColorSlot for (A, B) where A: ColorSlot, B: ColorSlot {
   fn color_formats() -> Vec<PixelFormat> {
 		Chain::<A, B>::color_formats()
