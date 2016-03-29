@@ -95,6 +95,18 @@ pub struct Framebuffer<C, L, D, CS, DS>
   _d: PhantomData<D>,
 }
 
+impl<C, L, D, CS, DS> Drop for Framebuffer<C, L, D, CS, DS>
+    where C: HasTexture + HasFramebuffer,
+          L: Layerable,
+          D: Dimensionable,
+          D::Size: Copy,
+          CS: ColorSlot<C, L, D>,
+          DS: DepthSlot<C, L, D> {
+  fn drop(&mut self) {
+    C::free_framebuffer(&mut self.repr)
+  }
+}
+
 impl<C, L, D, CS, DS> Framebuffer<C, L, D, CS, DS>
     where C: HasTexture + HasFramebuffer,
           L: Layerable,
