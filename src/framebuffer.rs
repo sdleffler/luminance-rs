@@ -56,8 +56,11 @@ pub trait HasFramebuffer: HasTexture {
   fn new_framebuffer<D>(size: D::Size, mipmaps: u32, color_formats: &Vec<PixelFormat>, depth_format: Option<PixelFormat>) -> Result<(Self::Framebuffer, Vec<Self::ATexture>, Option<Self::ATexture>), FramebufferError> where D: Dimensionable;
   /// Default framebuffer.
   fn default_framebuffer() -> Self::Framebuffer;
+  /// Called when a color slot is created. The `index` parameter gives the stream index of the color
+  /// slot.
+  fn accept_color_slot<D>(framebuffer: &Self::Framebuffer, size: D::Size, color_texture: &Self::ATexture, index: u8) where D: Dimensionable, D::Size: Copy;
 	/// Called when a depth slot is created.
-	fn accept_depth_slot<D>(framebuffer: &Self::Framebuffer, size: D::Size, color_texture: &Self::ATexture) where D: Dimensionable, D::Size: Copy;
+	fn accept_depth_slot<D>(framebuffer: &Self::Framebuffer, size: D::Size, depth_texture: &Self::ATexture) where D: Dimensionable, D::Size: Copy;
 	/// Called when no color slot is required.
 	fn disable_color_slot(framebuffer: &Self::Framebuffer);
 	/// Called when no depth slot is required.
@@ -145,10 +148,16 @@ pub struct Slot<C, L, D, P>
 /// or several color formats.
 pub trait ColorSlot<C, L, D> where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
   fn color_formats() -> Vec<PixelFormat>;
+
+	fn new_color_slot(framebuffer: &C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self;
 }
 
 impl<C, L, D> ColorSlot<C, L, D> for () where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
   fn color_formats() -> Vec<PixelFormat> { Vec::new() }
+
+  fn new_color_slot(framebuffer: &C::Framebuffer, _: D::Size, _: u32, _: u8) -> Self {
+    C::disable_color_slot(framebuffer)
+  }
 }
 
 impl<C, L, D, P> ColorSlot<C, L, D> for Slot<C, L, D, P>
@@ -158,6 +167,14 @@ impl<C, L, D, P> ColorSlot<C, L, D> for Slot<C, L, D, P>
 					D::Size: Copy,
           P: ColorPixel {
   fn color_formats() -> Vec<PixelFormat> { vec![P::pixel_format()] }
+
+  fn new_color_slot(framebuffer: &C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self {
+		let color_slot = create_slot(size, mipmaps);
+
+		C::accept_color_slot::<D>(framebuffer, size, &color_slot.texture.repr, index);
+
+    color_slot
+  }
 }
 
 /*
@@ -234,7 +251,7 @@ pub trait DepthSlot<C, L, D> where C: HasFramebuffer + HasTexture, L: Layerable,
 impl<C, L, D> DepthSlot<C, L, D> for () where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
   fn depth_format() -> Option<PixelFormat> { None }
 
-	fn new_depth_slot(framebuffer: &C::Framebuffer, size: D::Size, mipmaps: u32) -> Self {
+	fn new_depth_slot(framebuffer: &C::Framebuffer, _: D::Size, _: u32) -> Self {
 		C::disable_depth_slot(framebuffer)
 	}
 }
