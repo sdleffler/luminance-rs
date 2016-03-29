@@ -20,7 +20,7 @@
 /// type Bar = Chain<Chain<i32, bool>, f32>;
 /// type Zoo = chain![i32, bool, f32]; // Zoo == Foo
 /// ```
-pub struct Chain<A, B>(A, B);
+pub struct Chain<A, B>(pub A, pub B);
 
 /// If your compiler supports the `type_macros`*feature*, you can use this macro to create chains
 /// without the syntactic nesting boilerplate.
