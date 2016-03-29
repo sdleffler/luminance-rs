@@ -238,17 +238,7 @@ impl<C, L, D, P> DepthSlot for Slot<C, L, D, P>
   fn depth_format() -> Option<PixelFormat> { Some(P::pixel_format()) }
 }
 
-fn create_slot<C, L, D, P>(size: D::Size, mipmaps: u32) -> Slot<C, L, D, P>
-		where C: HasTexture,
-					L: Layerable,
-					D: Dimensionable,
-					D::Size: Copy,
-					P: Pixel {
-	Slot {
-		texture: Texture::new(size, mipmaps, &Default::default())
-	}
-}
-
+/// Trait to create depth slots.
 trait ToDepthSlot<C, L, D> where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
 	type Target;
 
@@ -272,5 +262,17 @@ impl<C, L, D, P> ToDepthSlot<C, L, D> for Slot<C, L, D, P> where C: HasFramebuff
 		C::accept_depth_slot::<D>(framebuffer, size, &depth_slot.texture.repr);
 
 		depth_slot
+	}
+}
+
+/// Create a new slot from a size, mipmaps and static properties of the target texture.
+fn create_slot<C, L, D, P>(size: D::Size, mipmaps: u32) -> Slot<C, L, D, P>
+		where C: HasTexture,
+					L: Layerable,
+					D: Dimensionable,
+					D::Size: Copy,
+					P: Pixel {
+	Slot {
+		texture: Texture::new(size, mipmaps, &Default::default())
 	}
 }
