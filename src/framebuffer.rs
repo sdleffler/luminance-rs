@@ -32,6 +32,7 @@ use chain::Chain;
 use core::marker::PhantomData;
 use rw::RW;
 use pixel::{ColorPixel, DepthPixel, Pixel, PixelFormat};
+use std::default::Default;
 use std::vec::Vec;
 use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture};
 
@@ -55,6 +56,8 @@ pub trait HasFramebuffer: HasTexture {
   fn new_framebuffer<D>(size: D::Size, mipmaps: u32, color_formats: &Vec<PixelFormat>, depth_format: Option<PixelFormat>) -> Result<(Self::Framebuffer, Vec<Self::ATexture>, Option<Self::ATexture>), FramebufferError> where D: Dimensionable;
   /// Default framebuffer.
   fn default_framebuffer() -> Self::Framebuffer;
+	/// Called when no color slot is wished.
+	fn disable_color_slot(framebuffer: &Self::Framebuffer);
 }
 
 /// Framebuffer error.
@@ -130,7 +133,7 @@ pub struct Slot<C, L, D, P>
           L: Layerable,
           D: Dimensionable,
           P: Pixel {
-  pub texture_slot: Texture<C, L, D, P>
+  pub texture: Texture<C, L, D, P>
 }
 
 /// A framebuffer has a color slot. A color slot can either be empty (the *unit* type is used,`()`)
@@ -229,4 +232,15 @@ impl<C, L, D, P> DepthSlot for Slot<C, L, D, P>
           D: Dimensionable,
           P: DepthPixel {
   fn depth_format() -> Option<PixelFormat> { Some(P::pixel_format()) }
+}
+
+fn create_slot<C, L, D, P>(size: D::Size, mipmaps: u32) -> Slot<C, L, D, P>
+		where C: HasTexture,
+					L: Layerable,
+					D: Dimensionable,
+					D::Size: Copy,
+					P: Pixel {
+	Slot {
+		texture: Texture::new(size, mipmaps, &Default::default())
+	}
 }
