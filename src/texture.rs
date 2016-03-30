@@ -274,7 +274,7 @@ impl<C, L, D, P> Texture<C, L, D, P>
     }
   }
 
-  fn from_raw(texture: C::ATexture, size: D::Size, mipmaps: u32) -> Self {
+  pub fn from_raw(texture: C::ATexture, size: D::Size, mipmaps: u32) -> Self {
     Texture {
       repr: texture,
       size: size,

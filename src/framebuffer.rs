@@ -44,24 +44,15 @@ pub trait HasFramebuffer: HasTexture + Sized {
 
   /// Create a new framebuffer.
   fn new_framebuffer<L, D, CS, DS>() -> Result<(Self::Framebuffer, CS, DS), FramebufferError>
-		where L: Layerable,
-					D: Dimensionable,
-					D::Size: Copy,
-					CS: ColorSlot<Self, L, D>,
-					DS: DepthSlot<Self, L, D>;
+    where L: Layerable,
+          D: Dimensionable,
+          D::Size: Copy,
+          CS: ColorSlot<Self, L, D>,
+          DS: DepthSlot<Self, L, D>;
   /// Free a framebuffer.
   fn free_framebuffer(framebuffer: &mut Self::Framebuffer);
   /// Default framebuffer.
   fn default_framebuffer() -> Self::Framebuffer;
-  /// Called when a color slot is created. The `index` parameter gives the stream index of the color
-  /// slot.
-  fn accept_color_slot<D>(framebuffer: &mut Self::Framebuffer, size: D::Size, color_texture: &Self::ATexture, index: u8) where D: Dimensionable, D::Size: Copy;
-  /// Called when a depth slot is created.
-  fn accept_depth_slot<D>(framebuffer: &mut Self::Framebuffer, size: D::Size, depth_texture: &Self::ATexture) where D: Dimensionable, D::Size: Copy;
-  /// Called when no color slot is required.
-  fn disable_color_slot(framebuffer: &mut Self::Framebuffer);
-  /// Called when no depth slot is required.
-  fn disable_depth_slot(framebuffer: &mut Self::Framebuffer);
 }
 
 /// Framebuffer error.
@@ -154,13 +145,16 @@ pub struct Slot<C, L, D, P>
 /// A framebuffer has a color slot. A color slot can either be empty (the *unit* type is used,`()`)
 /// or several color formats.
 pub trait ColorSlot<C, L, D> where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
-  fn new_color_slot(framebuffer: &mut C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self;
+  /// Turn a color slot into a list of pixel formats.
+  fn color_formats() -> Vec<PixelFormat>;
+  /// Reify a list of raw textures into a color slot.
+  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self;
 }
 
 impl<C, L, D> ColorSlot<C, L, D> for () where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
-  fn new_color_slot(framebuffer: &mut C::Framebuffer, _: D::Size, _: u32, _: u8) -> Self {
-    C::disable_color_slot(framebuffer)
-  }
+  fn color_formats() -> Vec<PixelFormat> { Vec::new() }
+
+  fn reify_textures(_: D::Size, _: u32, _: &mut Vec<C::ATexture>) -> Self { () }
 }
 
 impl<C, L, D, P> ColorSlot<C, L, D> for Slot<C, L, D, P>
@@ -169,12 +163,14 @@ impl<C, L, D, P> ColorSlot<C, L, D> for Slot<C, L, D, P>
           D: Dimensionable,
           D::Size: Copy,
           P: ColorPixel {
-  fn new_color_slot(framebuffer: &mut C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self {
-    let color_slot = create_slot(size, mipmaps);
+  fn color_formats() -> Vec<PixelFormat> { vec![P::pixel_format()] }
 
-    C::accept_color_slot::<D>(framebuffer, size, &color_slot.texture.repr, index);
+  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+    let color_texture = textures.swap_remove(0);
 
-    color_slot
+    Slot {
+      texture: Texture::from_raw(color_texture, size, mipmaps)
+    }
   }
 }
 
@@ -185,9 +181,16 @@ impl<C, L, D, P, B> ColorSlot<C, L, D> for Chain<Slot<C, L, D, P>, B>
           D::Size: Copy,
           P: ColorPixel,
           B: ColorSlot<C, L, D> {
-  fn new_color_slot(framebuffer: &mut C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self {
-    let a = Slot::<C, L, D, P>::new_color_slot(framebuffer, size, mipmaps, index);
-    let b = B::new_color_slot(framebuffer, size, mipmaps, index + 1);
+  fn color_formats() -> Vec<PixelFormat> {
+    let mut a = Slot::<C, L, D, P>::color_formats();
+    a.extend(B::color_formats());
+    a
+  }
+
+  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+    let a = Slot::<C, L, D, P>::reify_textures(size, mipmaps, textures);
+    let b = B::reify_textures(size, mipmaps, textures);
+
     Chain(a, b)
   }
 }
@@ -199,8 +202,12 @@ impl<C, L, D, P0, P1> ColorSlot<C, L, D> for (Slot<C, L, D, P0>, Slot<C, L, D, P
           D::Size: Copy,
           P0: ColorPixel,
           P1: ColorPixel {
-  fn new_color_slot(framebuffer: &mut C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self {
-    let Chain(a, b) = Chain::<Slot<C, L, D, P0>, Slot<C, L, D, P1>>::new_color_slot(framebuffer, size, mipmaps, index);
+  fn color_formats() -> Vec<PixelFormat> {
+    Chain::<Slot<C, L, D, P0>, Slot<C, L, D, P1>>::color_formats()
+  }
+
+  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+    let Chain(a, b) = Chain::<Slot<C, L, D, P0>, Slot<C, L, D, P1>>::reify_textures(size, mipmaps, textures);
     (a, b)
   }
 }
@@ -213,8 +220,12 @@ impl<C, L, D, P0, P1, P2> ColorSlot<C, L, D> for (Slot<C, L, D, P0>, Slot<C, L, 
           P0: ColorPixel,
           P1: ColorPixel,
           P2: ColorPixel {
-  fn new_color_slot(framebuffer: &mut C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self {
-    let Chain(a, Chain(b, c)) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Slot<C, L, D, P2>>>::new_color_slot(framebuffer, size, mipmaps, index);
+  fn color_formats() -> Vec<PixelFormat> {
+    Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Slot<C, L, D, P2>>>::color_formats()
+  }
+
+  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+    let Chain(a, Chain(b, c)) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Slot<C, L, D, P2>>>::reify_textures(size, mipmaps, textures);
     (a, b, c)
   }
 }
@@ -228,8 +239,12 @@ impl<C, L, D, P0, P1, P2, P3> ColorSlot<C, L, D> for (Slot<C, L, D, P0>, Slot<C,
           P1: ColorPixel,
           P2: ColorPixel,
           P3: ColorPixel {
-  fn new_color_slot(framebuffer: &mut C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self {
-    let Chain(a, Chain(b, Chain(c, d))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Slot<C, L, D, P3>>>>::new_color_slot(framebuffer, size, mipmaps, index);
+  fn color_formats() -> Vec<PixelFormat> {
+    Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Slot<C, L, D, P3>>>>::color_formats()
+  }
+
+  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+    let Chain(a, Chain(b, Chain(c, d))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Slot<C, L, D, P3>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d)
   }
 }
@@ -244,8 +259,12 @@ impl<C, L, D, P0, P1, P2, P3, P4> ColorSlot<C, L, D> for (Slot<C, L, D, P0>, Slo
           P2: ColorPixel,
           P3: ColorPixel,
           P4: ColorPixel {
-  fn new_color_slot(framebuffer: &mut C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self {
-    let Chain(a, Chain(b, Chain(c, Chain(d, e)))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Slot<C, L, D, P4>>>>>::new_color_slot(framebuffer, size, mipmaps, index);
+  fn color_formats() -> Vec<PixelFormat> {
+    Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Slot<C, L, D, P4>>>>>::color_formats()
+  }
+
+  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+    let Chain(a, Chain(b, Chain(c, Chain(d, e)))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Slot<C, L, D, P4>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e)
   }
 }
@@ -261,8 +280,12 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5> ColorSlot<C, L, D> for (Slot<C, L, D, P0>,
           P3: ColorPixel,
           P4: ColorPixel,
           P5: ColorPixel {
-  fn new_color_slot(framebuffer: &mut C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self {
-    let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, f))))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Slot<C, L, D, P5>>>>>>::new_color_slot(framebuffer, size, mipmaps, index);
+  fn color_formats() -> Vec<PixelFormat> {
+    Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Slot<C, L, D, P5>>>>>>::color_formats()
+  }
+
+  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+    let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, f))))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Slot<C, L, D, P5>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f)
   }
 }
@@ -279,8 +302,12 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5, P6> ColorSlot<C, L, D> for (Slot<C, L, D, 
           P4: ColorPixel,
           P5: ColorPixel,
           P6: ColorPixel {
-  fn new_color_slot(framebuffer: &mut C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self {
-    let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, g)))))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Slot<C, L, D, P6>>>>>>>::new_color_slot(framebuffer, size, mipmaps, index);
+  fn color_formats() -> Vec<PixelFormat> {
+    Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Slot<C, L, D, P6>>>>>>>::color_formats()
+  }
+
+  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+    let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, g)))))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Slot<C, L, D, P6>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g)
   }
 }
@@ -298,8 +325,12 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5, P6, P7> ColorSlot<C, L, D> for (Slot<C, L,
           P5: ColorPixel,
           P6: ColorPixel,
           P7: ColorPixel {
-  fn new_color_slot(framebuffer: &mut C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self {
-    let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, Chain(g, h))))))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Slot<C, L, D, P7>>>>>>>>::new_color_slot(framebuffer, size, mipmaps, index);
+  fn color_formats() -> Vec<PixelFormat> {
+    Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Slot<C, L, D, P7>>>>>>>>::color_formats()
+  }
+
+  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+    let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, Chain(g, h))))))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Slot<C, L, D, P7>>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g, h)
   }
 }
@@ -318,8 +349,12 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8> ColorSlot<C, L, D> for (Slot<C
           P6: ColorPixel,
           P7: ColorPixel,
           P8: ColorPixel {
-  fn new_color_slot(framebuffer: &mut C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self {
-    let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, Chain(g, Chain(h, i)))))))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Chain<Slot<C, L, D, P7>, Slot<C, L, D, P8>>>>>>>>>::new_color_slot(framebuffer, size, mipmaps, index);
+  fn color_formats() -> Vec<PixelFormat> {
+    Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Chain<Slot<C, L, D, P7>, Slot<C, L, D, P8>>>>>>>>>::color_formats()
+  }
+
+  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+    let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, Chain(g, Chain(h, i)))))))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Chain<Slot<C, L, D, P7>, Slot<C, L, D, P8>>>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g, h, i)
   }
 }
@@ -339,8 +374,12 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8, P9> ColorSlot<C, L, D> for (Sl
           P7: ColorPixel,
           P8: ColorPixel,
           P9: ColorPixel {
-  fn new_color_slot(framebuffer: &mut C::Framebuffer, size: D::Size, mipmaps: u32, index: u8) -> Self {
-    let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, Chain(g, Chain(h, Chain(i, j))))))))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Chain<Slot<C, L, D, P7>, Chain<Slot<C, L, D, P8>, Slot<C, L, D, P9>>>>>>>>>>::new_color_slot(framebuffer, size, mipmaps, index);
+  fn color_formats() -> Vec<PixelFormat> {
+    Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Chain<Slot<C, L, D, P7>, Chain<Slot<C, L, D, P8>, Slot<C, L, D, P9>>>>>>>>>>::color_formats()
+  }
+
+  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+    let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, Chain(g, Chain(h, Chain(i, j))))))))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Chain<Slot<C, L, D, P7>, Chain<Slot<C, L, D, P8>, Slot<C, L, D, P9>>>>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g, h, i, j)
   }
 }
@@ -349,17 +388,13 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8, P9> ColorSlot<C, L, D> for (Sl
 /// or a single depth format.
 pub trait DepthSlot<C, L, D> where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
   fn depth_format() -> Option<PixelFormat>;
-  fn new_depth_slot(framebuffer: &mut C::Framebuffer, size: D::Size, mipmaps: u32) -> Self;
 }
 
 impl<C, L, D> DepthSlot<C, L, D> for () where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
   fn depth_format() -> Option<PixelFormat> { None }
-
-  fn new_depth_slot(framebuffer: &mut C::Framebuffer, _: D::Size, _: u32) -> Self {
-    C::disable_depth_slot(framebuffer)
-  }
 }
 
+/*
 impl<C, L, D, P> DepthSlot<C, L, D> for Slot<C, L, D, P>
     where C: HasFramebuffer + HasTexture,
           L: Layerable,
@@ -376,15 +411,4 @@ impl<C, L, D, P> DepthSlot<C, L, D> for Slot<C, L, D, P>
     depth_slot
   }
 }
-
-/// Create a new slot from a size, mipmaps and static properties of the target texture.
-fn create_slot<C, L, D, P>(size: D::Size, mipmaps: u32) -> Slot<C, L, D, P>
-    where C: HasTexture,
-          L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          P: Pixel {
-  Slot {
-    texture: Texture::new(size, mipmaps, &Default::default())
-  }
-}
+*/
