@@ -38,12 +38,17 @@ use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture};
 ///
 /// When creating a new framebuffer with `new_framebuffer`, the color and depth formats are passed
 /// and should be used to create internal textures and/or buffers to represent the slots.
-pub trait HasFramebuffer: HasTexture {
+pub trait HasFramebuffer: HasTexture + Sized {
   /// Framebuffer representation.
   type Framebuffer;
 
   /// Create a new framebuffer.
-  fn new_framebuffer() -> Result<Self::Framebuffer, FramebufferError>;
+  fn new_framebuffer<L, D, CS, DS>() -> Result<(Self::Framebuffer, CS, DS), FramebufferError>
+		where L: Layerable,
+					D: Dimensionable,
+					D::Size: Copy,
+					CS: ColorSlot<Self, L, D>,
+					DS: DepthSlot<Self, L, D>;
   /// Free a framebuffer.
   fn free_framebuffer(framebuffer: &mut Self::Framebuffer);
   /// Default framebuffer.
@@ -115,10 +120,7 @@ impl<C, L, D, CS, DS> Framebuffer<C, L, D, CS, DS>
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
   pub fn new(size: D::Size, mipmaps: u32) -> Result<Framebuffer<C, L, D, CS, DS>, FramebufferError> {
-    C::new_framebuffer().map(|mut framebuffer| {
-      let color_slot = CS::new_color_slot(&mut framebuffer, size, mipmaps, 0);
-      let depth_slot = DS::new_depth_slot(&mut framebuffer, size, mipmaps);
-
+    C::new_framebuffer().map(|(framebuffer, color_slot, depth_slot)| {
       Framebuffer {
         repr: framebuffer,
         color_slot: color_slot,
