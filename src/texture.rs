@@ -274,7 +274,7 @@ impl<C, L, D, P> Texture<C, L, D, P>
     }
   }
 
-	fn from_raw(texture: C::ATexture, size: D::Size, mipmaps: u32) -> Self {
+  fn from_raw(texture: C::ATexture, size: D::Size, mipmaps: u32) -> Self {
     Texture {
       repr: texture,
       size: size,
@@ -282,8 +282,8 @@ impl<C, L, D, P> Texture<C, L, D, P>
       _c: PhantomData,
       _l: PhantomData,
       _p: PhantomData
-		}
-	}
+    }
+  }
 
   pub fn clear_part(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, pixel: P::Encoding)
       where D::Offset: Copy,
