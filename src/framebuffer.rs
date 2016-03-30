@@ -31,7 +31,6 @@
 use chain::Chain;
 use core::marker::PhantomData;
 use pixel::{ColorPixel, DepthPixel, Pixel, PixelFormat};
-use std::default::Default;
 use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture};
 
 /// Trait to implement to provide framebuffer features.
@@ -43,7 +42,7 @@ pub trait HasFramebuffer: HasTexture + Sized {
   type Framebuffer;
 
   /// Create a new framebuffer.
-  fn new_framebuffer<L, D, CS, DS>() -> Result<(Self::Framebuffer, CS, DS), FramebufferError>
+  fn new_framebuffer<L, D, CS, DS>(size: D::Size, mipmaps: u32) -> Result<(Self::Framebuffer, CS, DS), FramebufferError>
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -111,7 +110,7 @@ impl<C, L, D, CS, DS> Framebuffer<C, L, D, CS, DS>
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
   pub fn new(size: D::Size, mipmaps: u32) -> Result<Framebuffer<C, L, D, CS, DS>, FramebufferError> {
-    C::new_framebuffer().map(|(framebuffer, color_slot, depth_slot)| {
+    C::new_framebuffer(size, mipmaps).map(|(framebuffer, color_slot, depth_slot)| {
       Framebuffer {
         repr: framebuffer,
         color_slot: color_slot,
@@ -387,14 +386,17 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8, P9> ColorSlot<C, L, D> for (Sl
 /// A framebuffer has a depth slot. A depth slot can either be empty (the *unit* type is used, `()`)
 /// or a single depth format.
 pub trait DepthSlot<C, L, D> where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
+  /// Turn a depth slot into a pixel format.
   fn depth_format() -> Option<PixelFormat>;
-}
+  /// Reify a raw textures into a depth slot.
+  fn reify_texture(size: D::Size, mipmaps: u32, texture: C::ATexture) -> Self; }
 
 impl<C, L, D> DepthSlot<C, L, D> for () where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
   fn depth_format() -> Option<PixelFormat> { None }
+
+  fn reify_texture(_: D::Size, _: u32, _: C::ATexture) -> Self { () }
 }
 
-/*
 impl<C, L, D, P> DepthSlot<C, L, D> for Slot<C, L, D, P>
     where C: HasFramebuffer + HasTexture,
           L: Layerable,
@@ -403,12 +405,9 @@ impl<C, L, D, P> DepthSlot<C, L, D> for Slot<C, L, D, P>
           P: DepthPixel {
   fn depth_format() -> Option<PixelFormat> { Some(P::pixel_format()) }
 
-  fn new_depth_slot(framebuffer: &mut C::Framebuffer, size: D::Size, mipmaps: u32) -> Self {
-    let depth_slot = create_slot(size, mipmaps);
-
-    C::accept_depth_slot::<D>(framebuffer, size, &depth_slot.texture.repr);
-
-    depth_slot
+  fn reify_texture(size: D::Size, mipmaps: u32, texture: C::ATexture) -> Self {
+    Slot {
+      texture: Texture::from_raw(texture, size, mipmaps)
+    }
   }
 }
-*/
