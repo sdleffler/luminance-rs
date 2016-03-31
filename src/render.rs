@@ -44,5 +44,6 @@ pub struct RenderCommand<C> where C: HasTessellation {
   pub blending: Option<(blending::Equation, blending::Factor, blending::Factor)>,
   pub depth_test: bool,
   pub update: Box<Fn()>,
-  pub tessellation: C::Tessellation
+  pub tessellation: C::Tessellation,
+  pub instances: u32
 }
