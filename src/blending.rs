@@ -10,6 +10,7 @@
 //! The factors are encoded with `Factor`.
 
 /// Blending equation.
+#[derive(Copy, Clone, Debug)]
 pub enum Equation {
   /// `Additive` represents the following blending equation:
   ///
@@ -34,6 +35,7 @@ pub enum Equation {
   Max
 }
 
+#[derive(Copy, Clone, Debug)]
 pub enum Factor {
   /// 1 * color = factor
   One,
