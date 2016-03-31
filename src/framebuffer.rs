@@ -58,6 +58,7 @@ pub trait HasFramebuffer: HasTexture + Sized {
 ///
 /// `Incomplete(reason)` occurs at framebuffer creation and `reason` gives a `String` explaination
 /// of the failure.
+#[derive(Debug)]
 pub enum FramebufferError {
   Incomplete(String)
 }
@@ -76,6 +77,7 @@ pub enum FramebufferError {
 /// A framebuffer can have zero or several color slots and it can have zero or one depth slot. If
 /// you use several color slots, you’ll be performing what’s called *MRT* (*M* ultiple *R* ender
 /// *T* argets), enabling to render to several textures at once.
+#[derive(Debug)]
 pub struct Framebuffer<C, L, D, CS, DS>
     where C: HasTexture + HasFramebuffer,
           L: Layerable,
