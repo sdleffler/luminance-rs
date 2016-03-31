@@ -23,7 +23,6 @@ pub fn run_frame_command<C, L, D, CS, DS>(cmd: FrameCommand<C, L, D, CS, DS>)
   C::run_frame_command(cmd);
 }
 
-
 pub struct FrameCommand<'a, C, L, D, CS, DS> 
     where C: 'a + HasFramebuffer + HasProgram + HasTessellation + HasTexture,
           L: Layerable,
