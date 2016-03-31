@@ -46,5 +46,5 @@ pub struct RenderCommand<C> where C: HasTessellation {
   pub update: Box<Fn()>,
   pub tessellation: C::Tessellation,
   pub instances: u32,
-  pub rasterization_size: f32
+  pub rasterization_size: Option<f32>
 }
