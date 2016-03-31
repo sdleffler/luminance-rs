@@ -51,15 +51,15 @@ impl<'a, C, L, D, CS, DS> FrameCommand<'a, C, L, D, CS, DS>
 
 pub struct ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
   pub program: &'a C::Program,
-  pub update: Box<Fn()>,
+  pub update: Box<Fn() + 'a>,
   pub render_commands: &'a [RenderCommand<'a, C>]
 }
 
 impl<'a, C> ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
-	pub fn new<U>(program: &'a Program<C, U>, update: Box<Fn()>, render_commands: &'a [RenderCommand<'a, C>]) -> Self {
+	pub fn new<U, F: 'a + Fn()>(program: &'a Program<C, U>, update: F, render_commands: &'a [RenderCommand<'a, C>]) -> Self {
 		ShadingCommand {
 			program: &program.repr,
-			update: update,
+			update: Box::new(update),
 			render_commands: render_commands
 		}
 	}
@@ -68,18 +68,18 @@ impl<'a, C> ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
 pub struct RenderCommand<'a, C> where C: 'a + HasTessellation {
   pub blending: Option<(blending::Equation, blending::Factor, blending::Factor)>,
   pub depth_test: bool,
-  pub update: Box<Fn()>,
+  pub update: Box<Fn() + 'a>,
   pub tessellation: &'a Tessellation<C>,
   pub instances: u32,
   pub rasterization_size: Option<f32>
 }
 
 impl<'a, C> RenderCommand<'a, C> where C: 'a + HasTessellation {
-	pub fn new(blending: Option<(blending::Equation, blending::Factor, blending::Factor)>, depth_test: bool, update: Box<Fn()>, tessellation: &'a Tessellation<C>, instances: u32, rasterization_size: Option<f32>) -> Self {
+	pub fn new<F: 'a + Fn()>(blending: Option<(blending::Equation, blending::Factor, blending::Factor)>, depth_test: bool, update: F, tessellation: &'a Tessellation<C>, instances: u32, rasterization_size: Option<f32>) -> Self {
 		RenderCommand {
 			blending: blending,
 			depth_test: depth_test,
-			update: update,
+			update: Box::new(update),
 			tessellation: tessellation,
 			instances: instances,
 			rasterization_size: rasterization_size
