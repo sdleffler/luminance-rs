@@ -25,26 +25,38 @@ pub fn run_frame_command<C, L, D, CS, DS>(cmd: FrameCommand<C, L, D, CS, DS>)
 
 pub struct FrameCommand<'a, C, L, D, CS, DS> 
     where C: 'a + HasFramebuffer + HasProgram + HasTessellation + HasTexture,
+          L: 'a + Layerable,
+          D: 'a + Dimensionable,
+          D::Size: Copy,
+          CS: 'a + ColorSlot<C, L, D>,
+          DS: 'a + DepthSlot<C, L, D> {
+  pub framebuffer: &'a Framebuffer<C, L, D, CS, DS>,
+  pub shading_commands: &'a [ShadingCommand<'a, C>]
+}
+
+/*
+impl<'a, C, L, D, CS, DS> FrameCommand<'a, C, L, D, CS, DS>
+    where C: 'a + HasFramebuffer + HasProgram + HasTessellation + HasTexture,
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
-  pub framebuffer: Framebuffer<C, L, D, CS, DS>,
-  pub shading_commands: &'a [ShadingCommand<'a, C>]
+	fn new(framebuffer: Framebuffer<C, L, D, CS, DS>
 }
+*/
 
 pub struct ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
-  pub program: C::Program,
+  pub program: &'a C::Program,
   pub update: Box<Fn()>,
-  pub render_commands: &'a [RenderCommand<C>]
+  pub render_commands: &'a [RenderCommand<'a, C>]
 }
 
-pub struct RenderCommand<C> where C: HasTessellation {
+pub struct RenderCommand<'a, C> where C: 'a + HasTessellation {
   pub blending: Option<(blending::Equation, blending::Factor, blending::Factor)>,
   pub depth_test: bool,
   pub update: Box<Fn()>,
-  pub tessellation: C::Tessellation,
+  pub tessellation: &'a C::Tessellation,
   pub instances: u32,
   pub rasterization_size: Option<f32>
 }
