@@ -4,14 +4,14 @@ use shader::program::HasProgram;
 use tessellation::HasTessellation;
 use texture::{Dimensionable, HasTexture, Layerable};
 
-/*
 pub trait HasFrameCommand: HasFramebuffer + HasProgram + HasTessellation + HasTexture + Sized {
-  fn run_frame_command<A, CS, DS>(cmd: &FrameCommand<Self, A, CS, DS>)
-    where A: Writable,
-          CS: ColorSlot,
-          DS: DepthSlot;
+  fn run_frame_command<L, D, CS, DS>(cmd: FrameCommand<Self, L, D, CS, DS>)
+    where L: Layerable,
+          D: Dimensionable,
+          D::Size: Copy,
+          CS: ColorSlot<Self, L, D>,
+          DS: DepthSlot<Self, L, D>;
 }
-*/
 
 pub struct FrameCommand<'a, C, L, D, CS, DS> 
     where C: 'a + HasFramebuffer + HasProgram + HasTessellation + HasTexture,
