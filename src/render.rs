@@ -13,6 +13,17 @@ pub trait HasFrameCommand: HasFramebuffer + HasProgram + HasTessellation + HasTe
           DS: DepthSlot<Self, L, D>;
 }
 
+pub fn run_frame_command<C, L, D, CS, DS>(cmd: FrameCommand<C, L, D, CS, DS>)
+    where C: HasFrameCommand,
+          L: Layerable,
+          D: Dimensionable,
+          D::Size: Copy,
+          CS: ColorSlot<C, L, D>,
+          DS: DepthSlot<C, L, D> {
+  C::run_frame_command(cmd);
+}
+
+
 pub struct FrameCommand<'a, C, L, D, CS, DS> 
     where C: 'a + HasFramebuffer + HasProgram + HasTessellation + HasTexture,
           L: Layerable,
