@@ -41,12 +41,12 @@ impl<'a, C, L, D, CS, DS> FrameCommand<'a, C, L, D, CS, DS>
           D::Size: Copy,
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
-	pub fn new(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, shading_commands: Vec<ShadingCommand<'a, C>>) -> Self {
-		FrameCommand {
-			framebuffer: framebuffer,
-			shading_commands: shading_commands
-		}
-	}
+  pub fn new(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, shading_commands: Vec<ShadingCommand<'a, C>>) -> Self {
+    FrameCommand {
+      framebuffer: framebuffer,
+      shading_commands: shading_commands
+    }
+  }
 }
 
 pub struct ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
@@ -56,13 +56,13 @@ pub struct ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
 }
 
 impl<'a, C> ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
-	pub fn new<U, F: Fn() + 'a>(program: &'a Program<C, U>, update: F, render_commands: Vec<RenderCommand<'a, C>>) -> Self {
-		ShadingCommand {
-			program: &program.repr,
-			update: Box::new(update),
-			render_commands: render_commands
-		}
-	}
+  pub fn new<U, F: Fn() + 'a>(program: &'a Program<C, U>, update: F, render_commands: Vec<RenderCommand<'a, C>>) -> Self {
+    ShadingCommand {
+      program: &program.repr,
+      update: Box::new(update),
+      render_commands: render_commands
+    }
+  }
 }
 
 pub struct RenderCommand<'a, C> where C: 'a + HasTessellation {
@@ -75,14 +75,14 @@ pub struct RenderCommand<'a, C> where C: 'a + HasTessellation {
 }
 
 impl<'a, C> RenderCommand<'a, C> where C: 'a + HasTessellation {
-	pub fn new<F: Fn() + 'a>(blending: Option<(blending::Equation, blending::Factor, blending::Factor)>, depth_test: bool, update: F, tessellation: &'a Tessellation<C>, instances: u32, rasterization_size: Option<f32>) -> Self {
-		RenderCommand {
-			blending: blending,
-			depth_test: depth_test,
-			update: Box::new(update),
-			tessellation: tessellation,
-			instances: instances,
-			rasterization_size: rasterization_size
-		}
-	}
+  pub fn new<F: Fn() + 'a>(blending: Option<(blending::Equation, blending::Factor, blending::Factor)>, depth_test: bool, update: F, tessellation: &'a Tessellation<C>, instances: u32, rasterization_size: Option<f32>) -> Self {
+    RenderCommand {
+      blending: blending,
+      depth_test: depth_test,
+      update: Box::new(update),
+      tessellation: tessellation,
+      instances: instances,
+      rasterization_size: rasterization_size
+    }
+  }
 }
