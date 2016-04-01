@@ -5,7 +5,7 @@ use tessellation::{HasTessellation, Tessellation};
 use texture::{Dimensionable, HasTexture, Layerable};
 
 pub trait HasFrameCommand: HasFramebuffer + HasProgram + HasTessellation + HasTexture + Sized {
-  fn run_frame_command<L, D, CS, DS>(cmd: FrameCommand<Self, L, D, CS, DS>)
+  fn run_frame_command<L, D, CS, DS>(cmd: &FrameCommand<Self, L, D, CS, DS>)
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -13,7 +13,7 @@ pub trait HasFrameCommand: HasFramebuffer + HasProgram + HasTessellation + HasTe
           DS: DepthSlot<Self, L, D>;
 }
 
-pub fn run_frame_command<C, L, D, CS, DS>(cmd: FrameCommand<C, L, D, CS, DS>)
+pub fn run_frame_command<C, L, D, CS, DS>(cmd: &FrameCommand<C, L, D, CS, DS>)
     where C: HasFrameCommand,
           L: Layerable,
           D: Dimensionable,
