@@ -21,8 +21,10 @@ pub use pixel::{ColorPixel, DepthPixel, Format, Pixel, PixelFormat, is_color_pix
                 RGB8UI, RGBA8UI, RGB32F, RGBA32F, Depth32F};
 pub use render::run_frame_command;
 pub use rw::*;
+pub use shader::program::ProgramError;
 pub use shader::stage::{FragmentShader, GeometryShader, StageError, TessellationControlShader,
                         TessellationEvaluationShader, VertexShader};
+pub use shader::uniform::UniformName;
 pub use tessellation::Mode;
 pub use texture::{CubeFace, Cubemap, DepthComparison, Flat, Filter, Layered, Layering, Sampler,
                   Wrap};
