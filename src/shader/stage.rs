@@ -70,7 +70,7 @@ impl<C, T> Drop for Stage<C, T> where C: HasStage {
 }
 
 impl<C, T> Stage<C, T> where C: HasStage, T: ShaderTypeable {
-  pub fn new(_: T, src: &str) -> Result<Self, StageError> {
+  pub fn new(src: &str) -> Result<Self, StageError> {
     let shader = C::new_shader(T::shader_type(), src);
     shader.map(|shader| Stage {
       repr: shader,
