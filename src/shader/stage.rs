@@ -12,7 +12,7 @@ pub trait ShaderTypeable {
 }
 
 /// A shader stage type.
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Type {
   TessellationControlShader,
   TessellationEvaluationShader,
@@ -79,10 +79,10 @@ impl<C, T> Stage<C, T> where C: HasStage, T: ShaderTypeable {
   }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum StageError {
   /// Occurs when a shader fails to compile.
-  CompilationFailed(String),
+  CompilationFailed(Type, String),
   /// Occurs when you try to create a shader which type is not supported on the current hardware.
   UnsupportedType(Type)
 }
