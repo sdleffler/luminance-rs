@@ -44,7 +44,7 @@ pub trait HasTessellation {
   /// If `indices == None`, the `vertices` represent an array of vertices that are connected to each
   /// others in the order they appear. If you want to connect them in another way, you can index
   /// them with `Some(indices)`.
-  fn new<T>(mode: Mode, vertices: &Vec<T>, indices: Option<&Vec<u32>>) -> Self::Tessellation where T: Vertex;
+  fn new<T>(mode: Mode, vertices: &[T], indices: Option<&Vec<u32>>) -> Self::Tessellation where T: Vertex;
 }
 
 #[derive(Debug)]
@@ -53,7 +53,7 @@ pub struct Tessellation<C> where C: HasTessellation {
 }
 
 impl<C> Tessellation<C> where C: HasTessellation {
-  pub fn new<T>(mode: Mode, vertices: &Vec<T>, indices: Option<&Vec<u32>>) -> Tessellation<C> where T: Vertex {
+  pub fn new<T>(mode: Mode, vertices: &[T], indices: Option<&Vec<u32>>) -> Tessellation<C> where T: Vertex {
     Tessellation {
       repr: C::new(mode, vertices, indices)
     }
