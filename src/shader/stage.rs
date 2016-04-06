@@ -12,7 +12,7 @@ pub trait ShaderTypeable {
 }
 
 /// A shader stage type.
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Type {
   TessellationControlShader,
   TessellationEvaluationShader,
@@ -70,7 +70,7 @@ impl<C, T> Drop for Stage<C, T> where C: HasStage {
 }
 
 impl<C, T> Stage<C, T> where C: HasStage, T: ShaderTypeable {
-  pub fn new(_: T, src: &str) -> Result<Self, StageError> {
+  pub fn new(src: &str) -> Result<Self, StageError> {
     let shader = C::new_shader(T::shader_type(), src);
     shader.map(|shader| Stage {
       repr: shader,
@@ -79,10 +79,10 @@ impl<C, T> Stage<C, T> where C: HasStage, T: ShaderTypeable {
   }
 }
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum StageError {
   /// Occurs when a shader fails to compile.
-  CompilationFailed(String),
+  CompilationFailed(Type, String),
   /// Occurs when you try to create a shader which type is not supported on the current hardware.
   UnsupportedType(Type)
 }

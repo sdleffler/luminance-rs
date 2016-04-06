@@ -29,7 +29,7 @@ pub trait HasBuffer {
   ///
   /// `Err(BufferError::TooFewValues)` if you provide less values than the buffer’s size. In that
   /// case, all `values` are written and the missing ones remain the same in `buffer`.
-  fn write_whole<T>(buffer: &Self::ABuffer, values: &Vec<T>) -> Result<(),BufferError>;
+  fn write_whole<T>(buffer: &Self::ABuffer, values: &[T]) -> Result<(),BufferError>;
   /// Write a single value in the buffer at a given offset.
   ///
   /// # Failures
@@ -97,7 +97,7 @@ impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
   }
 
   /// Fill the whole buffer with an array.
-  pub fn fill(&self, values: &Vec<T>) {
+  pub fn fill(&self, values: &[T]) {
     let _ = C::write_whole(&self.repr, values);
   }
 }
