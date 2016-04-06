@@ -66,6 +66,10 @@ impl<C, T> Uniform<C, T> where C: HasUniform, T: Uniformable {
       _t: PhantomData
     }
   }
+
+  pub fn update(&self, x: T) {
+    T::update(self, x);
+  }
 }
 
 /// Name of a `Uniform`.
