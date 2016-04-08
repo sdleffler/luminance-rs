@@ -46,7 +46,7 @@ pub trait HasTessellation {
   /// them with `Some(indices)`.
   fn new<T>(mode: Mode, vertices: &[T], indices: Option<&[u32]>) -> Self::Tessellation where T: Vertex;
 	/// Destroy a `Tessellation`.
-	fn destroy(&mut Self::Tessellation);
+	fn destroy(tessellation: &mut Self::Tessellation);
 }
 
 #[derive(Debug)]
