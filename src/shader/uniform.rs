@@ -1,7 +1,9 @@
 //! Shader uniforms and associated operations.
 //!
 //! Uniforms kick in several and useful ways. They’re used to customize shaders.
+
 use core::marker::PhantomData;
+use linear::*;
 
 pub trait HasUniform {
   /// Uniform representation.
@@ -34,12 +36,12 @@ pub trait HasUniform {
   fn update2_vec_f32(uniform: &Self::U, xy: &Vec<(f32, f32)>);
   fn update3_vec_f32(uniform: &Self::U, xyz: &Vec<(f32, f32, f32)>);
   fn update4_vec_f32(uniform: &Self::U, xyzw: &Vec<(f32, f32, f32, f32)>);
-  fn update22_f32(uniform: &Self::U, x: ((f32, f32), (f32, f32)));
-  fn update33_f32(uniform: &Self::U, x: ((f32, f32, f32), (f32, f32, f32), (f32, f32, f32)));
-  fn update44_f32(uniform: &Self::U, x: ((f32, f32, f32, f32), (f32, f32, f32, f32), (f32, f32, f32, f32), (f32, f32, f32, f32)));
-  fn update22_vec_f32(uniform: &Self::U, x: &Vec<((f32, f32), (f32, f32))>);
-  fn update33_vec_f32(uniform: &Self::U, x: &Vec<((f32, f32, f32), (f32, f32, f32), (f32, f32, f32))>);
-  fn update44_vec_f32(uniform: &Self::U, x: &Vec<((f32, f32, f32, f32), (f32, f32, f32, f32), (f32, f32, f32, f32), (f32, f32, f32, f32))>);
+  fn update22_f32(uniform: &Self::U, x: M22);
+  fn update33_f32(uniform: &Self::U, x: M33);
+  fn update44_f32(uniform: &Self::U, x: M44);
+  fn update22_vec_f32(uniform: &Self::U, x: &Vec<M22>);
+  fn update33_vec_f32(uniform: &Self::U, x: &Vec<M33>);
+  fn update44_vec_f32(uniform: &Self::U, x: &Vec<M44>);
   // boolean
   fn update1_bool(uniform: &Self::U, x: bool);
   fn update2_bool(uniform: &Self::U, xy: (bool, bool));
