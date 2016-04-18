@@ -4,6 +4,7 @@ pub mod blending;
 pub mod buffer;
 pub mod chain;
 pub mod framebuffer;
+pub mod linear;
 pub mod pixel;
 pub mod render;
 pub mod rw;
@@ -17,6 +18,7 @@ pub use blending::*;
 pub use buffer::BufferError;
 pub use chain::*;
 pub use framebuffer::{FramebufferError, default_framebuffer};
+pub use linear::*;
 pub use pixel::{ColorPixel, DepthPixel, Format, Pixel, PixelFormat, is_color_pixel, is_depth_pixel,
                 RGB8UI, RGBA8UI, RGB32F, RGBA32F, Depth32F};
 pub use render::run_frame_command;
