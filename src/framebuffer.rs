@@ -31,6 +31,7 @@
 use chain::Chain;
 use core::marker::PhantomData;
 use pixel::{ColorPixel, DepthPixel, Pixel, PixelFormat};
+use std::default::Default;
 use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture};
 
 /// Trait to implement to provide framebuffer features.
@@ -92,6 +93,18 @@ pub struct Framebuffer<C, L, D, CS, DS>
   _d: PhantomData<D>,
 }
 
+impl<C> Default for Framebuffer<C, Flat, Dim2, (), ()> where C: HasTexture + HasFramebuffer {
+  fn default() -> Self {
+    Framebuffer {
+      repr: C::default_framebuffer(),
+      color_slot: (),
+      depth_slot: (),
+      _l: PhantomData,
+      _d: PhantomData,
+    }
+  }
+}
+
 impl<C, L, D, CS, DS> Drop for Framebuffer<C, L, D, CS, DS>
     where C: HasTexture + HasFramebuffer,
           L: Layerable,
@@ -121,16 +134,6 @@ impl<C, L, D, CS, DS> Framebuffer<C, L, D, CS, DS>
         _d: PhantomData,
       }
     })
-  }
-}
-
-pub fn default_framebuffer<C>() -> Framebuffer<C, Flat, Dim2, (), ()> where C: HasTexture + HasFramebuffer {
-  Framebuffer {
-    repr: C::default_framebuffer(),
-    color_slot: (),
-    depth_slot: (),
-    _l: PhantomData,
-    _d: PhantomData,
   }
 }
 
