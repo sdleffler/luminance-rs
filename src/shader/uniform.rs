@@ -11,46 +11,46 @@ pub trait HasUniform {
 
   // integral
   fn update1_i32(uniform: &Self::U, x: i32);
-  fn update2_i32(uniform: &Self::U, xy: (i32, i32));
-  fn update3_i32(uniform: &Self::U, xyz: (i32, i32, i32));
-  fn update4_i32(uniform: &Self::U, xyzw: (i32, i32, i32, i32));
-  fn update1_vec_i32(uniform: &Self::U, x: &Vec<i32>);
-  fn update2_vec_i32(uniform: &Self::U, xy: &Vec<(i32, i32)>);
-  fn update3_vec_i32(uniform: &Self::U, xyz: &Vec<(i32, i32, i32)>);
-  fn update4_vec_i32(uniform: &Self::U, xyzw: &Vec<(i32, i32, i32, i32)>);
+  fn update2_i32(uniform: &Self::U, xy: [i32; 2]);
+  fn update3_i32(uniform: &Self::U, xyz: [i32; 3]);
+  fn update4_i32(uniform: &Self::U, xyzw: [i32; 4]);
+  fn update1_slice_i32(uniform: &Self::U, x: &[i32]);
+  fn update2_slice_i32(uniform: &Self::U, xy: &[[i32; 2]]);
+  fn update3_slice_i32(uniform: &Self::U, xyz: &[[i32; 3]]);
+  fn update4_slice_i32(uniform: &Self::U, xyzw: &[[i32; 4]]);
   // unsigned
   fn update1_u32(uniform: &Self::U, x: u32);
-  fn update2_u32(uniform: &Self::U, xy: (u32, u32));
-  fn update3_u32(uniform: &Self::U, xyz: (u32, u32, u32));
-  fn update4_u32(uniform: &Self::U, xyzw: (u32, u32, u32, u32));
-  fn update1_vec_u32(uniform: &Self::U, x: &Vec<u32>);
-  fn update2_vec_u32(uniform: &Self::U, xy: &Vec<(u32, u32)>);
-  fn update3_vec_u32(uniform: &Self::U, xyz: &Vec<(u32, u32, u32)>);
-  fn update4_vec_u32(uniform: &Self::U, xyzw: &Vec<(u32, u32, u32, u32)>);
+  fn update2_u32(uniform: &Self::U, xy: [u32; 2]);
+  fn update3_u32(uniform: &Self::U, xyz: [u32; 3]);
+  fn update4_u32(uniform: &Self::U, xyzw: [u32; 4]);
+  fn update1_slice_u32(uniform: &Self::U, x: &[u32]);
+  fn update2_slice_u32(uniform: &Self::U, xy: &[[u32; 2]]);
+  fn update3_slice_u32(uniform: &Self::U, xyz: &[[u32; 3]]);
+  fn update4_slice_u32(uniform: &Self::U, xyzw: &[[u32; 4]]);
   // floating
   fn update1_f32(uniform: &Self::U, x: f32);
-  fn update2_f32(uniform: &Self::U, xy: (f32, f32));
-  fn update3_f32(uniform: &Self::U, xyz: (f32, f32, f32));
-  fn update4_f32(uniform: &Self::U, xyzw: (f32, f32, f32, f32));
-  fn update1_vec_f32(uniform: &Self::U, x: &Vec<f32>);
-  fn update2_vec_f32(uniform: &Self::U, xy: &Vec<(f32, f32)>);
-  fn update3_vec_f32(uniform: &Self::U, xyz: &Vec<(f32, f32, f32)>);
-  fn update4_vec_f32(uniform: &Self::U, xyzw: &Vec<(f32, f32, f32, f32)>);
+  fn update2_f32(uniform: &Self::U, xy: [f32; 2]);
+  fn update3_f32(uniform: &Self::U, xyz: [f32; 3]);
+  fn update4_f32(uniform: &Self::U, xyzw: [f32; 4]);
+  fn update1_slice_f32(uniform: &Self::U, x: &[f32]);
+  fn update2_slice_f32(uniform: &Self::U, xy: &[[f32; 2]]);
+  fn update3_slice_f32(uniform: &Self::U, xyz: &[[f32; 3]]);
+  fn update4_slice_f32(uniform: &Self::U, xyzw: &[[f32; 4]]);
   fn update22_f32(uniform: &Self::U, x: M22);
   fn update33_f32(uniform: &Self::U, x: M33);
   fn update44_f32(uniform: &Self::U, x: M44);
-  fn update22_vec_f32(uniform: &Self::U, x: &Vec<M22>);
-  fn update33_vec_f32(uniform: &Self::U, x: &Vec<M33>);
-  fn update44_vec_f32(uniform: &Self::U, x: &Vec<M44>);
+  fn update22_slice_f32(uniform: &Self::U, x: &[M22]);
+  fn update33_slice_f32(uniform: &Self::U, x: &[M33]);
+  fn update44_slice_f32(uniform: &Self::U, x: &[M44]);
   // boolean
   fn update1_bool(uniform: &Self::U, x: bool);
-  fn update2_bool(uniform: &Self::U, xy: (bool, bool));
-  fn update3_bool(uniform: &Self::U, xyz: (bool, bool, bool));
-  fn update4_bool(uniform: &Self::U, xyzw: (bool, bool, bool, bool));
-  fn update1_vec_bool(uniform: &Self::U, x: &Vec<bool>);
-  fn update2_vec_bool(uniform: &Self::U, xy: &Vec<(bool, bool)>);
-  fn update3_vec_bool(uniform: &Self::U, xyz: &Vec<(bool, bool, bool)>);
-  fn update4_vec_bool(uniform: &Self::U, xyzw: &Vec<(bool, bool, bool, bool)>);
+  fn update2_bool(uniform: &Self::U, xy: [bool; 2]);
+  fn update3_bool(uniform: &Self::U, xyz: [bool; 3]);
+  fn update4_bool(uniform: &Self::U, xyzw: [bool; 4]);
+  fn update1_slice_bool(uniform: &Self::U, x: &[bool]);
+  fn update2_slice_bool(uniform: &Self::U, xy: &[[bool; 2]]);
+  fn update3_slice_bool(uniform: &Self::U, xyz: &[[bool; 3]]);
+  fn update4_slice_bool(uniform: &Self::U, xyzw: &[[bool; 4]]);
 }
 
 /// A shader uniform. `Uniform<C, T>` doesn’t hold any value. It’s more like a mapping between the
@@ -92,45 +92,45 @@ impl Uniformable for i32 {
   }
 }
 
-impl Uniformable for (i32, i32) {
+impl Uniformable for [i32; 2] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
     C::update2_i32(&u.repr, x)
   }
 }
 
-impl Uniformable for (i32, i32, i32) {
+impl Uniformable for [i32; 3] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
     C::update3_i32(&u.repr, x)
   }
 }
 
-impl Uniformable for (i32, i32, i32, i32) {
+impl Uniformable for [i32; 4] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
     C::update4_i32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a Vec<i32> {
+impl<'a> Uniformable for &'a [i32] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update1_vec_i32(&u.repr, x)
+    C::update1_slice_i32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a Vec<(i32, i32)> {
+impl<'a> Uniformable for &'a [[i32; 2]] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update2_vec_i32(&u.repr, x)
+    C::update2_slice_i32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a Vec<(i32, i32, i32)> {
+impl<'a> Uniformable for &'a [[i32; 3]] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update3_vec_i32(&u.repr, x)
+    C::update3_slice_i32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a Vec<(i32, i32, i32, i32)> {
+impl<'a> Uniformable for &'a [[i32; 4]] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update4_vec_i32(&u.repr, x)
+    C::update4_slice_i32(&u.repr, x)
   }
 }
 
@@ -140,45 +140,45 @@ impl Uniformable for u32 {
   }
 }
 
-impl Uniformable for (u32, u32) {
+impl Uniformable for [u32; 2] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
     C::update2_u32(&u.repr, x)
   }
 }
 
-impl Uniformable for (u32, u32, u32) {
+impl Uniformable for [u32; 3] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
     C::update3_u32(&u.repr, x)
   }
 }
 
-impl Uniformable for (u32, u32, u32, u32) {
+impl Uniformable for [u32; 4] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
     C::update4_u32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a Vec<u32> {
+impl<'a> Uniformable for &'a [u32] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update1_vec_u32(&u.repr, x)
+    C::update1_slice_u32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a Vec<(u32, u32)> {
+impl<'a> Uniformable for &'a [[u32; 2]] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update2_vec_u32(&u.repr, x)
+    C::update2_slice_u32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a Vec<(u32, u32, u32)> {
+impl<'a> Uniformable for &'a [[u32; 3]] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update3_vec_u32(&u.repr, x)
+    C::update3_slice_u32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a Vec<(u32, u32, u32, u32)> {
+impl<'a> Uniformable for &'a [[u32; 4]] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update4_vec_u32(&u.repr, x)
+    C::update4_slice_u32(&u.repr, x)
   }
 }
 
@@ -188,21 +188,45 @@ impl Uniformable for f32 {
   }
 }
 
-impl Uniformable for (f32, f32) {
+impl Uniformable for [f32; 2] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
     C::update2_f32(&u.repr, x)
   }
 }
 
-impl Uniformable for (f32, f32, f32) {
+impl Uniformable for [f32; 3] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
     C::update3_f32(&u.repr, x)
   }
 }
 
-impl Uniformable for (f32, f32, f32, f32) {
+impl Uniformable for [f32; 4] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
     C::update4_f32(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a [f32] {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update1_slice_f32(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a [[f32; 2]] {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update2_slice_f32(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a [[f32; 3]] {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update3_slice_f32(&u.repr, x)
+  }
+}
+
+impl<'a> Uniformable for &'a [[f32; 4]] {
+  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+    C::update4_slice_f32(&u.repr, x)
   }
 }
 
@@ -224,45 +248,21 @@ impl Uniformable for M44 {
   }
 }
 
-impl<'a> Uniformable for &'a Vec<f32> {
+impl<'a> Uniformable for &'a [M22] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update1_vec_f32(&u.repr, x)
+    C::update22_slice_f32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a Vec<(f32, f32)> {
+impl<'a> Uniformable for &'a [M33] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update2_vec_f32(&u.repr, x)
+    C::update33_slice_f32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a Vec<(f32, f32, f32)> {
+impl<'a> Uniformable for &'a [M44] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update3_vec_f32(&u.repr, x)
-  }
-}
-
-impl<'a> Uniformable for &'a Vec<(f32, f32, f32, f32)> {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update4_vec_f32(&u.repr, x)
-  }
-}
-
-impl<'a> Uniformable for &'a Vec<M22> {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update22_vec_f32(&u.repr, x)
-  }
-}
-
-impl<'a> Uniformable for &'a Vec<M33> {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update33_vec_f32(&u.repr, x)
-  }
-}
-
-impl<'a> Uniformable for &'a Vec<M44> {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update44_vec_f32(&u.repr, x)
+    C::update44_slice_f32(&u.repr, x)
   }
 }
 
@@ -272,44 +272,44 @@ impl Uniformable for bool {
   }
 }
 
-impl Uniformable for (bool, bool) {
+impl Uniformable for [bool; 2] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
     C::update2_bool(&u.repr, x)
   }
 }
 
-impl Uniformable for (bool, bool, bool) {
+impl Uniformable for [bool; 3] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
     C::update3_bool(&u.repr, x)
   }
 }
 
-impl Uniformable for (bool, bool, bool, bool) {
+impl Uniformable for [bool; 4] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
     C::update4_bool(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a Vec<bool> {
+impl<'a> Uniformable for &'a [bool] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update1_vec_bool(&u.repr, x)
+    C::update1_slice_bool(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a Vec<(bool, bool)> {
+impl<'a> Uniformable for &'a [[bool; 2]] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update2_vec_bool(&u.repr, x)
+    C::update2_slice_bool(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a Vec<(bool, bool, bool)> {
+impl<'a> Uniformable for &'a [[bool; 3]] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update3_vec_bool(&u.repr, x)
+    C::update3_slice_bool(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a Vec<(bool, bool, bool, bool)> {
+impl<'a> Uniformable for &'a [[bool; 4]] {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
-    C::update4_vec_bool(&u.repr, x)
+    C::update4_slice_bool(&u.repr, x)
   }
 }
