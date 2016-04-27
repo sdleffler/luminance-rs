@@ -31,6 +31,7 @@ pub struct FrameCommand<'a, C, L, D, CS, DS>
           CS: 'a + ColorSlot<C, L, D>,
           DS: 'a + DepthSlot<C, L, D> {
   pub framebuffer: &'a Framebuffer<C, L, D, CS, DS>,
+  pub clear_color: [f32; 4],
   pub shading_commands: Vec<ShadingCommand<'a, C>>
 }
 
@@ -41,9 +42,10 @@ impl<'a, C, L, D, CS, DS> FrameCommand<'a, C, L, D, CS, DS>
           D::Size: Copy,
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
-  pub fn new(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, shading_commands: Vec<ShadingCommand<'a, C>>) -> Self {
+  pub fn new(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, clear_color: [f32; 4], shading_commands: Vec<ShadingCommand<'a, C>>) -> Self {
     FrameCommand {
       framebuffer: framebuffer,
+      clear_color: clear_color,
       shading_commands: shading_commands
     }
   }
