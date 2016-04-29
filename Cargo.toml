@@ -1,8 +1,12 @@
 [package]
 name = "luminance"
 version = "0.1.0"
+license = "BSD-3-Clause"
 authors = ["Dimitri Sabadie <dimitri.sabadie@gmail.com>"]
 description = "Stateless and type-safe graphics framework"
-readme = "README.md"
 keywords = ["stateless", "type-safe", "graphics", "luminance"]
-license = "BSD-3-Clause"
+
+homepage = "https://github.com/phaazon/luminance-rs"
+repository = "https://github.com/phaazon/luminance-rs"
+
+readme = "README.md"
