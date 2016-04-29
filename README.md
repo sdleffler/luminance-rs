@@ -1,6 +1,6 @@
 # What is this?
 
-![crates.io](https://img.shields.io/badge/crates.io-0.1.0-orange.svg?style=flat)
+![crates.io](https://img.shields.io/badge/crates.io-0.1.0-green.svg?style=flat)
 ![License](https://img.shields.io/badge/license-BSD3-blue.svg?style=flat)
 
 `luminance` is an effort to make graphics rendering simple and elegant. The aims of `luminance` are:
