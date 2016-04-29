@@ -6,5 +6,3 @@ description = "Stateless and type-safe graphics framework"
 readme = "README.md"
 keywords = ["stateless", "type-safe", "graphics", "luminance"]
 license = "BSD-3-Clause"
-
-[dependencies]
