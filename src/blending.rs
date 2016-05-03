@@ -44,18 +44,18 @@ pub enum Factor {
   /// src * color
   SrcColor,
   /// (1 - src) * color
-  NegativeSrcColor,
+  SrcColorComplement,
   /// dst * color
   DestColor,
   /// (1 - dst) * color
-  NegativeDestColor,
+  DestColorComplement,
   /// srcA * color
   SrcAlpha,
   /// (1 - src) * color
-  NegativeSrcAlpha,
+  SrcAlphaComplement,
   /// dstA * color
   DstAlpha,
   /// (1 - dstA) * color
-  NegativeDstAlpha,
+  DstAlphaComplement,
   SrcAlphaSaturate
 }
