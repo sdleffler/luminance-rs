@@ -30,4 +30,4 @@ pub use shader::uniform::UniformName;
 pub use tessellation::Mode;
 pub use texture::{CubeFace, Cubemap, DepthComparison, Flat, Filter, Layered, Layering, Sampler,
                   Wrap};
-pub use vertex::{VertexComponentFormat, VertexFormat};
+pub use vertex::{Vertex, VertexComponentFormat, VertexFormat};
