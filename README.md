@@ -6,8 +6,8 @@
 `luminance` is an effort to make graphics rendering simple and elegant. The aims of `luminance` are:
 
   - making **unsafe** and **stateful** *APIs* (e.g. **OpenGL**) **safe** and **stateless** ;
-  - providing a simple API, that is, exposing core concepts without anything extra – just the bare
-    stuff;
+  - providing a simple API; that is, exposing core concepts without anything extra – just the bare
+    stuff ;
   - abstract over the trending hardware interfaces (i.e. **OpenGL** up to now) and provide several
     backends to pick through different packages ;
   - easy to read with a good documentation and set of tutorials, so that new comers don’t have to
