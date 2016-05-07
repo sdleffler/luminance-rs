@@ -1,6 +1,55 @@
 //! Static GPU typed arrays.
 //!
 //! A GPU buffer is a typed continuous region of data. It has a size and can hold several elements.
+//!
+//! Buffers are created with the `new` associated function. You pass in the number of elements you
+//! want in the buffer.
+//!
+//! ```
+//! let buffer: Buffer<f32> = Buffer::new(5);
+//! ```
+//! Once the buffer is created, you can perform several operations on them:
+//!
+//! - writing to them ;
+//! - reading from them ;
+//! - passing them around as uniforms ;
+//! - etc.
+//!
+//! # Writing to a buffer
+//!
+//! `Buffer`s support several write methods. The simple one is *clearing*. That is, replacing the
+//! whole content of the buffer with a single value. Use the `fill` function to do so.
+//!
+//! ```
+//! buffer.clear(0.);
+//! ```
+//!
+//! If you want to clear the buffer by providing a value for each elements, you want *filling*. Use
+//! the `fill` function:
+//!
+//! ```
+//! buffer.fill([1, 2, 3, 4, 5]);
+//! ```
+//!
+//! If you want to change a value at a given index, you can use the `set` function.
+//!
+//! ```
+//! buffer.set(3, 3.14);
+//! ```
+//!
+//! # Reading from the buffer
+//!
+//! You can either retrieve the `whole` content of the `Buffer` or `get` a value with an index.
+//!
+//! ```
+//! // get the whole content
+//! let all_elems = buffer.whole();
+//! assert_eq!(all_elems.len(), 5);
+//! assert_eq!(all_elemns, vec![1, 2, 3, 3.14, 5]); // admit floating equalities
+//!
+//! // get the element at index 3
+//! assert_eq!(buffer.get(3), Some(3.14));
+//! ```
 
 use core::marker::PhantomData;
 use core::mem;
