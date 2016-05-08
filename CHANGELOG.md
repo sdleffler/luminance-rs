@@ -1,4 +1,8 @@
-### 0.3.0
+### 0.3.1
+
+- Removed `rw`.
+
+## 0.3.0
 
 - Removed A type parameter form `Buffer`. It was unnecessary safety that was never actually used.
 - Added documentation around.
