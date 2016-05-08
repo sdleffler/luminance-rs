@@ -107,18 +107,21 @@ pub enum BufferError {
 /// A `Buffer` is a GPU region you can picture as an array. It has a static size and cannot be
 /// resized. The size is expressed in number of elements lying in the buffer, not in bytes.
 #[derive(Debug)]
-pub struct Buffer<C, A, T> where C: HasBuffer {
+pub struct Buffer<C, T> where C: HasBuffer {
   pub repr: C::ABuffer,
   pub size: usize, // FIXME: should be compile-time, not runtime
-  _a: PhantomData<A>,
   _t: PhantomData<T>
 }
 
-impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
+impl<C, T> Buffer<C, T> where C: HasBuffer {
   /// Create a new `Buffer` with a given number of elements.
-  pub fn new(_: A, size: usize) -> Buffer<C, A, T> {
+  pub fn new(size: usize) -> Buffer<C, T> {
     let buffer = C::new(size * mem::size_of::<T>());
-    Buffer { repr: buffer, size: size, _a: PhantomData, _t: PhantomData }
+    Buffer {
+      repr: buffer,
+      size: size,
+      _t: PhantomData
+    }
   }
 
   /// Retrieve an element from the `Buffer`.
@@ -151,7 +154,7 @@ impl<C, A, T> Buffer<C, A, T> where C: HasBuffer {
   }
 }
 
-impl<C, A, T> Drop for Buffer<C, A, T> where C: HasBuffer {
+impl<C, T> Drop for Buffer<C, T> where C: HasBuffer {
   fn drop(&mut self) {
     C::free(&mut self.repr)
   }
