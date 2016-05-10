@@ -1,5 +1,6 @@
 # What is this?
 
+[![Build Status](https://travis-ci.org/phaazon/luminance-rs.svg?branch=master)](https://travis-ci.org/phaazon/luminance-rs)
 [![crates.io](https://img.shields.io/crates/v/luminance.svg)](https://crates.io/crates/luminance)
 ![License](https://img.shields.io/badge/license-BSD3-blue.svg?style=flat)
 
