@@ -37,18 +37,8 @@
 //! ```
 //! // assume we have a vertex shader `vs` and fragment shader `fs`
 //! let program = Program::new(None, &vs, None, &fs, |get_uni| {
-//!   let resolution: Result<Uniform<[f32; 2]>, _> = get_uni("resolution");
-//!   let time: Result<Uniform<f32>, _> = get_uni("time");
-//!
-//!   if let Err(err) = resolution {
-//!     return Err(err);
-//!   }
-//!   let resolution = resolution.unwrap();
-//!
-//!   if let Err(err) = time {
-//!     return Err(err);
-//!   }
-//!   let time = time.unwrap();
+//!   let resolution: Uniform<[f32; 2]> = try!(get_uni("resolution"));
+//!   let time: Uniform<f32> = try!(get_uni("time"));
 //!
 //!   Ok(resolution, time)
 //! });
