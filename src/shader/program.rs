@@ -65,12 +65,14 @@ pub trait HasProgram: HasStage + HasUniform {
   fn new_program(tess: Option<(&Self::AStage, &Self::AStage)>, vertex: &Self::AStage, geometry: Option<&Self::AStage>, fragment: &Self::AStage) -> Result<Self::Program, ProgramError>;
   /// Free a program.
   fn free_program(program: &mut Self::Program);
-  ///
+  /// Map a `UniformName` to its uniform representation. Can fail with `ProgramError`.
   fn map_uniform(program: &Self::Program, name: UniformName) -> Result<Self::U, ProgramError>;
-  ///
+  /// Bulk update of uniforms. The update closure shoul contain the code used to update as many
+  /// uniforms as wished.
   fn update_uniforms<F>(program: &Self::Program, f: F) where F: Fn();
 }
 
+/// A shader program with *uniform interface*.
 #[derive(Debug)]
 pub struct Program<C, T> where C: HasProgram {
   pub repr: C::Program,
@@ -84,6 +86,15 @@ impl<C, T> Drop for Program<C, T> where C: HasProgram {
 }
 
 impl<C, T> Program<C, T> where C: HasProgram {
+  /// Create a new `Program` by linking it with shader stages and by providing a function to build
+  /// its *uniform interface*, which the `Program` will hold for you.
+  ///
+  /// The *uniform interface* is any type you want. The idea is to bake `Uniform<_>` in your type so
+  /// that you can access them later. To do so, you’re given an object of type `ProgramProxy`, which
+  /// has a function `uniform`. That function can be used to lookup uniforms so that you can build
+  /// your *uniform interface*.
+  ///
+  /// Use the `update` function to access the *uniform interface* back.
   pub fn new<GetUni>(tess: Option<(&Stage<C, TessellationControlShader>, &Stage<C, TessellationEvaluationShader>)>, vertex: &Stage<C, VertexShader>, geometry: Option<&Stage<C, GeometryShader>>, fragment: &Stage<C, FragmentShader>, get_uni: GetUni) -> Result<Self, ProgramError>
       where GetUni: Fn(ProgramProxy<C>) -> Result<T, ProgramError> {
     let program = C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr);
