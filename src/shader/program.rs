@@ -40,7 +40,7 @@
 //!   let resolution: Uniform<[f32; 2]> = try!(get_uni("resolution"));
 //!   let time: Uniform<f32> = try!(get_uni("time"));
 //!
-//!   Ok(resolution, time)
+//!   Ok((resolution, time))
 //! });
 //! ```
 
