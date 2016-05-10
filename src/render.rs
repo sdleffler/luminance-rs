@@ -58,7 +58,7 @@ pub struct ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
 }
 
 impl<'a, C> ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
-  pub fn new<F: Fn() + 'a>(program: &'a Program<C>, update: F, render_commands: Vec<RenderCommand<'a, C>>) -> Self {
+  pub fn new<F: Fn() + 'a, T>(program: &'a Program<C, T>, update: F, render_commands: Vec<RenderCommand<'a, C>>) -> Self {
     ShadingCommand {
       program: &program.repr,
       update: Box::new(update),

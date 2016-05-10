@@ -25,10 +25,10 @@
 //! creating a new shader program, you have to provide code to declare its *uniform interface*. The
 //! *uniform interface* refers to a type of your own that will be kept by the shader program and
 //! exposed to you when you’ll express the need to update its uniforms. That *uniform interface* is
-//! created via a closure you pass. That closure takes as arguments a function used to retrieve
-//! `Uniform`s from the program being constructed. That pattern, that can be a bit overwhelming at
-//! first, is important to keep things safe and functional. Keep in mind that you can make the
-//! closure fail, so that you can notify a `Uniform` lookup failure, for instance.
+//! created via a closure you pass. That closure takes as arguments a `ProgramProxy` used to
+//! retrieve `Uniform`s from the program being constructed. That pattern, that can be a bit
+//! overwhelming at first, is important to keep things safe and functional. Keep in mind that you
+//! can make the closure fail, so that you can notify a `Uniform` lookup failure, for instance.
 //!
 //! You can create a `Program` with its `new` associated function.
 //!
@@ -72,31 +72,63 @@ pub trait HasProgram: HasStage + HasUniform {
 }
 
 #[derive(Debug)]
-pub struct Program<C> where C: HasProgram {
+pub struct Program<C, T> where C: HasProgram {
   pub repr: C::Program,
+  uniform_interface: T
 }
 
-impl<C> Drop for Program<C> where C: HasProgram {
+impl<C, T> Drop for Program<C, T> where C: HasProgram {
   fn drop(&mut self) {
     C::free_program(&mut self.repr)
   }
 }
 
-impl<C> Program<C> where C: HasProgram {
-  pub fn new(tess: Option<(&Stage<C, TessellationControlShader>, &Stage<C, TessellationEvaluationShader>)>, vertex: &Stage<C, VertexShader>, geometry: Option<&Stage<C, GeometryShader>>, fragment: &Stage<C, FragmentShader>) -> Result<Self, ProgramError> {
-    C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr).map(|repr| {
-      Program {
-        repr: repr,
-      }
-    })
+impl<C, T> Program<C, T> where C: HasProgram {
+  pub fn new<GetUni>(tess: Option<(&Stage<C, TessellationControlShader>, &Stage<C, TessellationEvaluationShader>)>, vertex: &Stage<C, VertexShader>, geometry: Option<&Stage<C, GeometryShader>>, fragment: &Stage<C, FragmentShader>, get_uni: GetUni) -> Result<Self, ProgramError>
+      where GetUni: Fn(ProgramProxy<C>) -> Result<T, ProgramError> {
+    let program = C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr);
+
+    match program {
+      Ok(repr) => {
+        let uniform_interface = get_uni(ProgramProxy::new(&repr));
+
+        match uniform_interface {
+          Ok(uniform_interface) => {
+            Ok(Program {
+              repr: repr,
+              uniform_interface: uniform_interface
+            })
+          },
+          Err(e) => Err(e)
+        }
+      },
+      Err(e) => Err(e)
+    }
+  }
+
+  pub fn update<F>(&self, f: F) where F: Fn(&T) {
+    C::update_uniforms(&self.repr, || { f(&self.uniform_interface) })
+  }
+}
+
+/// `Program` proxy used to map uniforms. When building a `Program`, as the `Program` doesn’t exist
+/// yet, a `ProgramProxy` is passed to act as it was the `Program`.
+///
+/// Because `ProgramProxy` uses a ref to `Program`, it doesn’t own it and *must die before*.
+#[derive(Debug)]
+pub struct ProgramProxy<'a, C> where C: 'a + HasProgram {
+  repr: &'a C::Program
+}
+
+impl<'a, C> ProgramProxy<'a, C> where C: HasProgram {
+  fn new(program: &'a C::Program) -> Self {
+    ProgramProxy {
+      repr: program
+    }
   }
 
   pub fn uniform<T>(&self, name: &str) -> Result<Uniform<C, T>, ProgramError> where T: Uniformable {
     C::map_uniform(&self.repr, UniformName::StringName(String::from(name))).map(|u| Uniform::new(u))
-  }
-
-  pub fn update<F>(&self, f: F) where F: Fn() {
-    C::update_uniforms(&self.repr, f)
   }
 }
 
