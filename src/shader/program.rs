@@ -87,24 +87,13 @@ impl<C, T> Program<C, T> where C: HasProgram {
   /// Use the `update` function to access the *uniform interface* back.
   pub fn new<GetUni>(tess: Option<(&Stage<C, TessellationControlShader>, &Stage<C, TessellationEvaluationShader>)>, vertex: &Stage<C, VertexShader>, geometry: Option<&Stage<C, GeometryShader>>, fragment: &Stage<C, FragmentShader>, get_uni: GetUni) -> Result<Self, ProgramError>
       where GetUni: Fn(ProgramProxy<C>) -> Result<T, ProgramError> {
-    let program = C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr);
+    let repr = try!(C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr));
+    let uniform_interface = try!(get_uni(ProgramProxy::new(&repr)));
 
-    match program {
-      Ok(repr) => {
-        let uniform_interface = get_uni(ProgramProxy::new(&repr));
-
-        match uniform_interface {
-          Ok(uniform_interface) => {
-            Ok(Program {
-              repr: repr,
-              uniform_interface: uniform_interface
-            })
-          },
-          Err(e) => Err(e)
-        }
-      },
-      Err(e) => Err(e)
-    }
+    Ok(Program {
+      repr: repr,
+      uniform_interface: uniform_interface
+    })
   }
 
   pub fn update<F>(&self, f: F) where F: Fn(&T) {
