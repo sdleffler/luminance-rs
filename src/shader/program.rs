@@ -66,7 +66,7 @@ pub trait HasProgram: HasStage + HasUniform {
 #[derive(Debug)]
 pub struct Program<C, T> where C: HasProgram {
   pub repr: C::Program,
-  uniform_interface: T
+  pub uniform_interface: T
 }
 
 impl<C, T> Drop for Program<C, T> where C: HasProgram {
