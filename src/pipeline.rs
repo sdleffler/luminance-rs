@@ -10,14 +10,14 @@ use tessellation::{HasTessellation, Tessellation};
 use texture::{Dimensionable, HasTexture, Layerable};
 
 /// Trait to implement to add `Pipeline` support.
-//pub trait HasPipeline: HasFramebuffer + HasProgram + HasTessellation + HasTexture + Sized {
-//  fn run_pipeline<L, D, CS, DS>(cmd: &Pipeline<Self, L, D, CS, DS>)
-//    where L: Layerable,
-//          D: Dimensionable,
-//          D::Size: Copy,
-//          CS: ColorSlot<Self, L, D>,
-//          DS: DepthSlot<Self, L, D>;
-//}
+pub trait HasPipeline: HasFramebuffer + HasProgram + HasTessellation + HasTexture + Sized {
+  fn run_pipeline<L, D, CS, DS>(cmd: &Pipeline<Self, L, D, CS, DS>)
+    where L: Layerable,
+          D: Dimensionable,
+          D::Size: Copy,
+          CS: ColorSlot<Self, L, D>,
+          DS: DepthSlot<Self, L, D>;
+}
 
 /// Run a `Pipeline`.
 ///
@@ -27,17 +27,15 @@ use texture::{Dimensionable, HasTexture, Layerable};
 ///
 /// `CS` and `DS` are – respectively – the *color* and *depth* `Slot` of the underlying
 /// `Framebuffer`.
-//pub fn run_pipeline<C, L, D, CS, DS>(cmd: &Pipeline<C, L, D, CS, DS>)
-//    where C: HasPipeline,
-//          L: Layerable,
-//          D: Dimensionable,
-//          D::Size: Copy,
-//          CS: ColorSlot<C, L, D>,
-//          DS: DepthSlot<C, L, D> {
-//  C::run_pipeline(cmd);
-//}
-
-pub fn run_pipeline() { }
+pub fn run_pipeline<C, L, D, CS, DS>(cmd: &Pipeline<C, L, D, CS, DS>)
+    where C: HasPipeline,
+          L: Layerable,
+          D: Dimensionable,
+          D::Size: Copy,
+          CS: ColorSlot<C, L, D>,
+          DS: DepthSlot<C, L, D> {
+  C::run_pipeline(cmd);
+}
 
 /// A dynamic rendering pipeline. A *pipeline* is responsible of rendering into a `Framebuffer`.
 ///
@@ -48,7 +46,7 @@ pub fn run_pipeline() { }
 /// `CS` and `DS` are – respectively – the *color* and *depth* `Slot` of the underlying
 /// `Framebuffer`.
 pub struct Pipeline<'a, C, L, D, CS, DS> 
-    where C: 'a + HasFramebuffer + HasProgram + HasTessellation + HasTexture + ErasedShadingCommand,
+    where C: 'a + HasFramebuffer + HasProgram + HasTessellation + HasTexture,
           L: 'a + Layerable,
           D: 'a + Dimensionable,
           D::Size: Copy,
@@ -56,28 +54,28 @@ pub struct Pipeline<'a, C, L, D, CS, DS>
           DS: 'a + DepthSlot<C, L, D> {
   pub framebuffer: &'a Framebuffer<C, L, D, CS, DS>,
   pub clear_color: [f32; 4],
-  pub shading_commands: Vec<&'a ErasedShadingCommand>
+  pub shading_commands: Vec<&'a SomeShadingCommand>
 }
 
-//impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
-//    where C: HasFramebuffer + HasProgram + HasTessellation + HasTexture,
-//          L: Layerable,
-//          D: Dimensionable,
-//          D::Size: Copy,
-//          CS: ColorSlot<C, L, D>,
-//          DS: DepthSlot<C, L, D> {
-//  pub fn new(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, clear_color: [f32; 4], shading_commands: Vec<ShadingCommand<'a, C>>) -> Self {
-//    Pipeline {
-//      framebuffer: framebuffer,
-//      clear_color: clear_color,
-//      shading_commands: shading_commands
-//    }
-//  }
-//}
+impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
+    where C: HasFramebuffer + HasProgram + HasTessellation + HasTexture,
+          L: Layerable,
+          D: Dimensionable,
+          D::Size: Copy,
+          CS: ColorSlot<C, L, D>,
+          DS: DepthSlot<C, L, D> {
+  pub fn new<T>(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, clear_color: [f32; 4], shading_commands: Vec<&'a SomeShadingCommand>) -> Self {
+    Pipeline {
+      framebuffer: framebuffer,
+      clear_color: clear_color,
+      shading_commands: shading_commands
+    }
+  }
+}
 
 /// Type erasure over `ShadingCommand`.
-trait ErasedShadingCommand {
-  fn run_shading_command(shading_cmd: &Self);
+pub trait SomeShadingCommand {
+  fn run_shading_command(&self);
 }
 
 /// A dynamic *shading command*. A shading command gathers *render commands* under a shader
