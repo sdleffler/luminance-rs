@@ -10,14 +10,14 @@ use tessellation::{HasTessellation, Tessellation};
 use texture::{Dimensionable, HasTexture, Layerable};
 
 /// Trait to implement to add `Pipeline` support.
-pub trait HasPipeline: HasFramebuffer + HasProgram + HasTessellation + HasTexture + Sized {
-  fn run_pipeline<L, D, CS, DS>(cmd: &Pipeline<Self, L, D, CS, DS>)
-    where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          CS: ColorSlot<Self, L, D>,
-          DS: DepthSlot<Self, L, D>;
-}
+//pub trait HasPipeline: HasFramebuffer + HasProgram + HasTessellation + HasTexture + Sized {
+//  fn run_pipeline<L, D, CS, DS>(cmd: &Pipeline<Self, L, D, CS, DS>)
+//    where L: Layerable,
+//          D: Dimensionable,
+//          D::Size: Copy,
+//          CS: ColorSlot<Self, L, D>,
+//          DS: DepthSlot<Self, L, D>;
+//}
 
 /// Run a `Pipeline`.
 ///
@@ -27,15 +27,17 @@ pub trait HasPipeline: HasFramebuffer + HasProgram + HasTessellation + HasTextur
 ///
 /// `CS` and `DS` are – respectively – the *color* and *depth* `Slot` of the underlying
 /// `Framebuffer`.
-pub fn run_pipeline<C, L, D, CS, DS>(cmd: &Pipeline<C, L, D, CS, DS>)
-    where C: HasPipeline,
-          L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          CS: ColorSlot<C, L, D>,
-          DS: DepthSlot<C, L, D> {
-  C::run_pipeline(cmd);
-}
+//pub fn run_pipeline<C, L, D, CS, DS>(cmd: &Pipeline<C, L, D, CS, DS>)
+//    where C: HasPipeline,
+//          L: Layerable,
+//          D: Dimensionable,
+//          D::Size: Copy,
+//          CS: ColorSlot<C, L, D>,
+//          DS: DepthSlot<C, L, D> {
+//  C::run_pipeline(cmd);
+//}
+
+pub fn run_pipeline() { }
 
 /// A dynamic rendering pipeline. A *pipeline* is responsible of rendering into a `Framebuffer`.
 ///
@@ -46,7 +48,7 @@ pub fn run_pipeline<C, L, D, CS, DS>(cmd: &Pipeline<C, L, D, CS, DS>)
 /// `CS` and `DS` are – respectively – the *color* and *depth* `Slot` of the underlying
 /// `Framebuffer`.
 pub struct Pipeline<'a, C, L, D, CS, DS> 
-    where C: 'a + HasFramebuffer + HasProgram + HasTessellation + HasTexture,
+    where C: 'a + HasFramebuffer + HasProgram + HasTessellation + HasTexture + ErasedShadingCommand,
           L: 'a + Layerable,
           D: 'a + Dimensionable,
           D::Size: Copy,
@@ -54,55 +56,60 @@ pub struct Pipeline<'a, C, L, D, CS, DS>
           DS: 'a + DepthSlot<C, L, D> {
   pub framebuffer: &'a Framebuffer<C, L, D, CS, DS>,
   pub clear_color: [f32; 4],
-  pub shading_commands: Vec<ShadingCommand<'a, C>>
+  pub shading_commands: Vec<&'a ErasedShadingCommand>
 }
 
-impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
-    where C: HasFramebuffer + HasProgram + HasTessellation + HasTexture,
-          L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          CS: ColorSlot<C, L, D>,
-          DS: DepthSlot<C, L, D> {
-  pub fn new(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, clear_color: [f32; 4], shading_commands: Vec<ShadingCommand<'a, C>>) -> Self {
-    Pipeline {
-      framebuffer: framebuffer,
-      clear_color: clear_color,
-      shading_commands: shading_commands
-    }
-  }
+//impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
+//    where C: HasFramebuffer + HasProgram + HasTessellation + HasTexture,
+//          L: Layerable,
+//          D: Dimensionable,
+//          D::Size: Copy,
+//          CS: ColorSlot<C, L, D>,
+//          DS: DepthSlot<C, L, D> {
+//  pub fn new(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, clear_color: [f32; 4], shading_commands: Vec<ShadingCommand<'a, C>>) -> Self {
+//    Pipeline {
+//      framebuffer: framebuffer,
+//      clear_color: clear_color,
+//      shading_commands: shading_commands
+//    }
+//  }
+//}
+
+/// Type erasure over `ShadingCommand`.
+trait ErasedShadingCommand {
+  fn run_shading_command(shading_cmd: &Self);
 }
 
 /// A dynamic *shading command*. A shading command gathers *render commands* under a shader
 /// `Program`.
-pub struct ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
-  pub program: &'a C::Program,
-  pub update: Box<Fn() + 'a>,
-  pub render_commands: Vec<RenderCommand<'a, C>>
+pub struct ShadingCommand<'a, C, T> where C: 'a + HasProgram + HasTessellation, T: 'a {
+  pub program: &'a Program<C, T>,
+  pub update: Box<Fn(&T) + 'a>,
+  pub render_commands: Vec<RenderCommand<'a, C, T>>
 }
 
-impl<'a, C> ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
-  pub fn new<F: Fn(&T) + 'a, T>(program: &'a Program<C, T>, update: F, render_commands: Vec<RenderCommand<'a, C>>) -> Self {
+impl<'a, C, T> ShadingCommand<'a, C, T> where C: 'a + HasProgram + HasTessellation {
+  pub fn new<F: Fn(&T) + 'a>(program: &'a Program<C, T>, update: F, render_commands: Vec<RenderCommand<'a, C, T>>) -> Self {
     ShadingCommand {
-      program: &program.repr,
-      update: Box::new(move || { update(&program.uniform_interface) }),
+      program: &program,
+      update: Box::new(update),
       render_commands: render_commands
     }
   }
 }
 
 /// A render command, which holds information on how to rasterize tessellation.
-pub struct RenderCommand<'a, C> where C: 'a + HasTessellation {
+pub struct RenderCommand<'a, C, T> where C: 'a + HasTessellation {
   pub blending: Option<(blending::Equation, blending::Factor, blending::Factor)>,
   pub depth_test: bool,
-  pub update: Box<Fn() + 'a>,
+  pub update: Box<Fn(&T) + 'a>,
   pub tessellation: &'a Tessellation<C>,
   pub instances: u32,
   pub rasterization_size: Option<f32>
 }
 
-impl<'a, C> RenderCommand<'a, C> where C: 'a + HasTessellation {
-  pub fn new<F: Fn() + 'a>(blending: Option<(blending::Equation, blending::Factor, blending::Factor)>, depth_test: bool, update: F, tessellation: &'a Tessellation<C>, instances: u32, rasterization_size: Option<f32>) -> Self {
+impl<'a, C, T> RenderCommand<'a, C, T> where C: 'a + HasTessellation {
+  pub fn new<F: Fn(&T) + 'a>(blending: Option<(blending::Equation, blending::Factor, blending::Factor)>, depth_test: bool, update: F, tessellation: &'a Tessellation<C>, instances: u32, rasterization_size: Option<f32>) -> Self {
     RenderCommand {
       blending: blending,
       depth_test: depth_test,
