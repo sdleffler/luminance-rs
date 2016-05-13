@@ -78,8 +78,8 @@ pub mod buffer;
 pub mod chain;
 pub mod framebuffer;
 pub mod linear;
+pub mod pipeline;
 pub mod pixel;
-pub mod render;
 pub mod shader;
 pub mod tessellation;
 pub mod texture;
@@ -91,9 +91,9 @@ pub use buffer::BufferError;
 pub use chain::*;
 pub use framebuffer::{FramebufferError};
 pub use linear::*;
+pub use pipeline::run_pipeline;
 pub use pixel::{ColorPixel, DepthPixel, Format, Pixel, PixelFormat, is_color_pixel, is_depth_pixel,
                 RGB8UI, RGBA8UI, RGB32F, RGBA32F, Depth32F};
-pub use render::run_frame_command;
 pub use shader::program::ProgramError;
 pub use shader::stage::{FragmentShader, GeometryShader, StageError, ShaderTypeable,
                         TessellationControlShader, TessellationEvaluationShader, VertexShader};
