@@ -1,11 +1,17 @@
+//! Dynamic rendering pipelines.
+//!
+//! This module gives you materials to build *dynamic* rendering **pipelines**. A `Pipeline`
+//! represents a functional stream that consumes geometric data and rasterizes them.
+
 use blending;
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer, HasFramebuffer};
 use shader::program::{HasProgram, Program};
 use tessellation::{HasTessellation, Tessellation};
 use texture::{Dimensionable, HasTexture, Layerable};
 
-pub trait HasFrameCommand: HasFramebuffer + HasProgram + HasTessellation + HasTexture + Sized {
-  fn run_frame_command<L, D, CS, DS>(cmd: &FrameCommand<Self, L, D, CS, DS>)
+/// Trait to implement to add `Pipeline` support.
+pub trait HasPipeline: HasFramebuffer + HasProgram + HasTessellation + HasTexture + Sized {
+  fn run_pipeline<L, D, CS, DS>(cmd: &Pipeline<Self, L, D, CS, DS>)
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -13,17 +19,33 @@ pub trait HasFrameCommand: HasFramebuffer + HasProgram + HasTessellation + HasTe
           DS: DepthSlot<Self, L, D>;
 }
 
-pub fn run_frame_command<C, L, D, CS, DS>(cmd: &FrameCommand<C, L, D, CS, DS>)
-    where C: HasFrameCommand,
+/// Run a `Pipeline`.
+///
+/// `L` refers to the `Layering` of the underlying `Framebuffer`.
+///
+/// `D` refers to the `Dim` of the underlying `Framebuffer`.
+///
+/// `CS` and `DS` are – respectively – the *color* and *depth* `Slot` of the underlying
+/// `Framebuffer`.
+pub fn run_pipeline<C, L, D, CS, DS>(cmd: &Pipeline<C, L, D, CS, DS>)
+    where C: HasPipeline,
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
-  C::run_frame_command(cmd);
+  C::run_pipeline(cmd);
 }
 
-pub struct FrameCommand<'a, C, L, D, CS, DS> 
+/// A dynamic rendering pipeline. A *pipeline* is responsible of rendering into a `Framebuffer`.
+///
+/// `L` refers to the `Layering` of the underlying `Framebuffer`.
+///
+/// `D` refers to the `Dim` of the underlying `Framebuffer`.
+///
+/// `CS` and `DS` are – respectively – the *color* and *depth* `Slot` of the underlying
+/// `Framebuffer`.
+pub struct Pipeline<'a, C, L, D, CS, DS> 
     where C: 'a + HasFramebuffer + HasProgram + HasTessellation + HasTexture,
           L: 'a + Layerable,
           D: 'a + Dimensionable,
@@ -35,7 +57,7 @@ pub struct FrameCommand<'a, C, L, D, CS, DS>
   pub shading_commands: Vec<ShadingCommand<'a, C>>
 }
 
-impl<'a, C, L, D, CS, DS> FrameCommand<'a, C, L, D, CS, DS>
+impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
     where C: HasFramebuffer + HasProgram + HasTessellation + HasTexture,
           L: Layerable,
           D: Dimensionable,
@@ -43,7 +65,7 @@ impl<'a, C, L, D, CS, DS> FrameCommand<'a, C, L, D, CS, DS>
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
   pub fn new(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, clear_color: [f32; 4], shading_commands: Vec<ShadingCommand<'a, C>>) -> Self {
-    FrameCommand {
+    Pipeline {
       framebuffer: framebuffer,
       clear_color: clear_color,
       shading_commands: shading_commands
@@ -51,6 +73,8 @@ impl<'a, C, L, D, CS, DS> FrameCommand<'a, C, L, D, CS, DS>
   }
 }
 
+/// A dynamic *shading command*. A shading command gathers *render commands* under a shader
+/// `Program`.
 pub struct ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
   pub program: &'a C::Program,
   pub update: Box<Fn() + 'a>,
@@ -67,6 +91,7 @@ impl<'a, C> ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
   }
 }
 
+/// A render command, which holds information on how to rasterize tessellation.
 pub struct RenderCommand<'a, C> where C: 'a + HasTessellation {
   pub blending: Option<(blending::Equation, blending::Factor, blending::Factor)>,
   pub depth_test: bool,
