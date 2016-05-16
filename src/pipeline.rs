@@ -27,17 +27,15 @@ pub trait HasPipeline: HasFramebuffer + HasProgram + HasTessellation + HasTextur
 ///
 /// `CS` and `DS` are – respectively – the *color* and *depth* `Slot` of the underlying
 /// `Framebuffer`.
-//pub fn run_pipeline<C, L, D, CS, DS>(cmd: &Pipeline<C, L, D, CS, DS>)
-//    where C: HasPipeline,
-//          L: Layerable,
-//          D: Dimensionable,
-//          D::Size: Copy,
-//          CS: ColorSlot<C, L, D>,
-//          DS: DepthSlot<C, L, D> {
-//  C::run_pipeline(cmd);
-//}
-
-pub fn run_pipeline() {}
+pub fn run_pipeline<C, L, D, CS, DS>(cmd: &Pipeline<C, L, D, CS, DS>)
+    where C: HasPipeline,
+          L: Layerable,
+          D: Dimensionable,
+          D::Size: Copy,
+          CS: ColorSlot<C, L, D>,
+          DS: DepthSlot<C, L, D> {
+  C::run_pipeline(cmd);
+}
 
 /// A dynamic rendering pipeline. A *pipeline* is responsible of rendering into a `Framebuffer`.
 ///
