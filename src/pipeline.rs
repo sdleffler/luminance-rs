@@ -55,7 +55,7 @@ pub struct Pipeline<'a, C, L, D, CS, DS>
           DS: 'a + DepthSlot<C, L, D> {
   pub framebuffer: &'a Framebuffer<C, L, D, CS, DS>,
   pub clear_color: [f32; 4],
-  pub shading_commands: Vec<&'a RunShadingCommand>
+  pub shading_commands: Vec<&'a SomeShadingCommand>
 }
 
 impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
@@ -65,7 +65,7 @@ impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
           D::Size: Copy,
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
-  pub fn new<T>(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, clear_color: [f32; 4], shading_commands: Vec<&'a RunShadingCommand>) -> Self {
+  pub fn new<T>(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, clear_color: [f32; 4], shading_commands: Vec<&'a SomeShadingCommand>) -> Self {
     Pipeline {
       framebuffer: framebuffer,
       clear_color: clear_color,
@@ -76,11 +76,11 @@ impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
 
 /// This trait is used to add existential quantification to `ShadingCommands`. It should be
 /// implemented by backends to enable their use in `Pipeline`s.
-pub trait RunShadingCommand {
+pub trait SomeShadingCommand {
   fn run_shading_command(&self);
 }
 
-impl<'a, C, T> RunShadingCommand for ShadingCommand<'a, C, T> where C: 'a + HasPipeline {
+impl<'a, C, T> SomeShadingCommand for ShadingCommand<'a, C, T> where C: 'a + HasPipeline {
   fn run_shading_command(&self) {
     C::run_shading_command(self);
   }
