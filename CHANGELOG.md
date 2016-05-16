@@ -1,3 +1,11 @@
+# 0.5
+
+- Fixed uniform interfaces in `ShadingCommand` and `RenderCommand` with existential quantification.
+- Renamed `FrameCommand` into `Pipeline`.
+- Several patch fixes.
+- Added travis CI support.
+- Added documentation for `Program`.
+
 ## 0.4.0
 
 - Changed the whole `Program` API to make it safer. Now, it closely looks like the Haskell version
