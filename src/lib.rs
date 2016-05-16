@@ -99,6 +99,6 @@ pub use shader::stage::{FragmentShader, GeometryShader, StageError, ShaderTypeab
                         TessellationControlShader, TessellationEvaluationShader, VertexShader};
 pub use shader::uniform::UniformName;
 pub use tessellation::Mode;
-pub use texture::{CubeFace, Cubemap, DepthComparison, Flat, Filter, Layered, Layering, Sampler,
-                  Wrap};
+pub use texture::{CubeFace, Cubemap, DepthComparison, Dim1, Dim2, Dim3, Flat, Filter, Layered,
+                  Layering, Sampler, Wrap};
 pub use vertex::{Vertex, VertexComponentFormat, VertexFormat};
