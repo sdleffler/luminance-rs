@@ -17,6 +17,7 @@ pub trait HasPipeline: HasFramebuffer + HasProgram + HasTessellation + HasTextur
           D::Size: Copy,
           CS: ColorSlot<Self, L, D>,
           DS: DepthSlot<Self, L, D>;
+  fn run_shading_command<T>(shading_cmd: &ShadingCommand<Self, T>);
 }
 
 /// Run a `Pipeline`.
@@ -76,7 +77,13 @@ impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
 /// This trait is used to add existential quantification to `ShadingCommands`. It should be
 /// implemented by backends to enable their use in `Pipeline`s.
 pub trait RunShadingCommand {
-	fn run_shading_command(&self);
+  fn run_shading_command(&self);
+}
+
+impl<'a, C, T> RunShadingCommand for ShadingCommand<'a, C, T> where C: 'a + HasPipeline {
+  fn run_shading_command(&self) {
+    C::run_shading_command(self);
+  }
 }
 
 /// A dynamic *shading command*. A shading command gathers *render commands* under a shader
