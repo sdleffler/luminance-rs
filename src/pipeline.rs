@@ -56,13 +56,6 @@ impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
   }
 
   /// Run a `Pipeline`.
-  ///
-  /// `L` refers to the `Layering` of the underlying `Framebuffer`.
-  ///
-  /// `D` refers to the `Dim` of the underlying `Framebuffer`.
-  ///
-  /// `CS` and `DS` are – respectively – the *color* and *depth* `Slot` of the underlying
-  /// `Framebuffer`.
   pub fn run(&self) {
     C::run_pipeline(self);
   }
