@@ -20,24 +20,6 @@ pub trait HasPipeline: HasFramebuffer + HasProgram + HasTessellation + HasTextur
   fn run_shading_command<T>(shading_cmd: &ShadingCommand<Self, T>);
 }
 
-/// Run a `Pipeline`.
-///
-/// `L` refers to the `Layering` of the underlying `Framebuffer`.
-///
-/// `D` refers to the `Dim` of the underlying `Framebuffer`.
-///
-/// `CS` and `DS` are – respectively – the *color* and *depth* `Slot` of the underlying
-/// `Framebuffer`.
-pub fn run_pipeline<C, L, D, CS, DS>(cmd: &Pipeline<C, L, D, CS, DS>)
-    where C: HasPipeline,
-          L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          CS: ColorSlot<C, L, D>,
-          DS: DepthSlot<C, L, D> {
-  C::run_pipeline(cmd);
-}
-
 /// A dynamic rendering pipeline. A *pipeline* is responsible of rendering into a `Framebuffer`.
 ///
 /// `L` refers to the `Layering` of the underlying `Framebuffer`.
@@ -59,7 +41,7 @@ pub struct Pipeline<'a, C, L, D, CS, DS>
 }
 
 impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
-    where C: HasFramebuffer + HasProgram + HasTessellation + HasTexture,
+    where C: HasPipeline,
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -71,6 +53,18 @@ impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
       clear_color: clear_color,
       shading_commands: shading_commands
     }
+  }
+
+  /// Run a `Pipeline`.
+  ///
+  /// `L` refers to the `Layering` of the underlying `Framebuffer`.
+  ///
+  /// `D` refers to the `Dim` of the underlying `Framebuffer`.
+  ///
+  /// `CS` and `DS` are – respectively – the *color* and *depth* `Slot` of the underlying
+  /// `Framebuffer`.
+  pub fn run(&self) {
+    C::run_pipeline(self);
   }
 }
 

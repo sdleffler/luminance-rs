@@ -91,7 +91,6 @@ pub use buffer::BufferError;
 pub use chain::*;
 pub use framebuffer::{FramebufferError};
 pub use linear::*;
-pub use pipeline::run_pipeline;
 pub use pixel::{ColorPixel, DepthPixel, Format, Pixel, PixelFormat, is_color_pixel, is_depth_pixel,
                 RGB8UI, RGBA8UI, RGB32F, RGBA32F, Depth32F};
 pub use shader::program::ProgramError;

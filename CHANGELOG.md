@@ -1,3 +1,7 @@
+## 0.5.1
+
+- Removed `run_pipeline` and added `Pipeline::run`.
+
 # 0.5
 
 - Fixed uniform interfaces in `ShadingCommand` and `RenderCommand` with existential quantification.
