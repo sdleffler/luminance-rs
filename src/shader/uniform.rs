@@ -81,6 +81,43 @@ pub enum UniformName {
   SemanticName(u32)
 }
 
+/// Wrapper over `Uniform`, discarding everything but update.
+///
+/// Among its features, this type enables you to `contramap` a function to build more interesting
+/// `UniformUpdate`.
+///
+/// Use `From` or `Into` to build a `UniformUpdate`.
+pub struct UniformUpdate<'a, T> {
+  update_closure: Box<Fn(T) + 'a>
+}
+
+impl<'a, C, T> From<Uniform<C, T>> for UniformUpdate<'a, T> where C: 'a + HasUniform, T: 'a + Uniformable {
+  fn from(u: Uniform<C, T>) -> Self {
+    UniformUpdate {
+      update_closure: Box::new(move |x| {
+        u.update(x);
+      })
+    }
+  }
+}
+
+impl<'a, T> UniformUpdate<'a, T> where T: 'a + Uniformable {
+  /// Update the underlying `Uniform`.
+  pub fn update(&'a self, x: T) {
+    (self.update_closure)(x)
+  }
+
+  /// Apply a contravariant functor.
+  pub fn contramap<F, Q>(self, f: F) -> UniformUpdate<'a, Q> where F: 'a + Fn(Q) -> T {
+    UniformUpdate {
+      update_closure: Box::new(move |x| {
+        (self.update_closure)(f(x))
+      })
+    }
+  }
+}
+
+
 /// Types that can behave as `Uniform`.
 pub trait Uniformable: Sized {
   fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform;

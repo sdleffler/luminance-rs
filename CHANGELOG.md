@@ -1,5 +1,6 @@
 ## 0.5.2
 
+- Added `UniformUpdate`.
 - Added `Uniformable` in the public interfarce shortcut.
 
 ## 0.5.1
