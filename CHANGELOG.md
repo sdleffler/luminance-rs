@@ -1,3 +1,7 @@
+## 0.5.2
+
+- Added `Uniformable` in the public interfarce shortcut.
+
 ## 0.5.1
 
 - Removed `run_pipeline` and added `Pipeline::run`.
