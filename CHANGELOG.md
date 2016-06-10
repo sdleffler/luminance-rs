@@ -1,3 +1,7 @@
+## 0.5.3
+
+- Fixed trait bound on `UniformUpdate::{contramap, update}`.
+
 ## 0.5.2
 
 - Added `UniformUpdate`.
