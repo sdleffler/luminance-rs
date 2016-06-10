@@ -101,7 +101,7 @@ impl<'a, C, T> From<Uniform<C, T>> for UniformUpdate<'a, T> where C: 'a + HasUni
   }
 }
 
-impl<'a, T> UniformUpdate<'a, T> where T: 'a + Uniformable {
+impl<'a, T> UniformUpdate<'a, T> where T: 'a {
   /// Update the underlying `Uniform`.
   pub fn update(&'a self, x: T) {
     (self.update_closure)(x)
@@ -116,7 +116,6 @@ impl<'a, T> UniformUpdate<'a, T> where T: 'a + Uniformable {
     }
   }
 }
-
 
 /// Types that can behave as `Uniform`.
 pub trait Uniformable: Sized {
