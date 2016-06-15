@@ -1,5 +1,7 @@
 ## 0.5.3
 
+- Added `update textures` into `HasUniform`.
+- Fixed signature of `UniformUpdate::update`.
 - Fixed trait bound on `UniformUpdate::{contramap, update}`.
 
 ## 0.5.2
