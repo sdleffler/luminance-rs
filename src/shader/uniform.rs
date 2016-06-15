@@ -4,8 +4,9 @@
 
 use core::marker::PhantomData;
 use linear::*;
+use texture::HasTexture;
 
-pub trait HasUniform {
+pub trait HasUniform: HasTexture {
   /// Uniform representation.
   type U;
 
@@ -51,6 +52,8 @@ pub trait HasUniform {
   fn update2_slice_bool(uniform: &Self::U, xy: &[[bool; 2]]);
   fn update3_slice_bool(uniform: &Self::U, xyz: &[[bool; 3]]);
   fn update4_slice_bool(uniform: &Self::U, xyzw: &[[bool; 4]]);
+  // textures
+  fn update_textures(uniform: &Self::U, textures: &[Self::ATexture]);
 }
 
 /// A shader uniform. `Uniform<C, T>` doesn’t hold any value. It’s more like a mapping between the
