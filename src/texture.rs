@@ -220,6 +220,10 @@ pub trait HasTexture {
   type ATexture;
 
   /// Create a new texture.
+  ///
+  /// `size` is a value used to specify the dimension of the texture. `mipmaps` is the number of
+  /// extra *mipmaps* you want to have. If you set this value to `0`, you end up with only one level
+  /// (the base level) of texture storage.
   fn new_texture<L, D, P>(size: D::Size, mipmaps: usize, sampler: &Sampler) -> Self::ATexture
     where L: Layerable,
           D: Dimensionable,
@@ -262,6 +266,7 @@ impl<C, L, D, P> Texture<C, L, D, P>
           D::Size: Copy,
           P: Pixel {
   pub fn new(size: D::Size, mipmaps: usize, sampler: &Sampler) -> Self {
+    let mipmaps = mipmaps + 1; // + 1 prevent having 0 mipmaps
     let tex = C::new_texture::<L, D, P>(size, mipmaps, sampler);
 
     Texture {
@@ -278,7 +283,7 @@ impl<C, L, D, P> Texture<C, L, D, P>
     Texture {
       repr: texture,
       size: size,
-      mipmaps: mipmaps,
+      mipmaps: mipmaps + 1,
       _c: PhantomData,
       _l: PhantomData,
       _p: PhantomData
