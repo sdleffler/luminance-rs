@@ -220,7 +220,7 @@ pub trait HasTexture {
   type ATexture;
 
   /// Create a new texture.
-  fn new_texture<L, D, P>(size: D::Size, mipmaps: u32, sampler: &Sampler) -> Self::ATexture
+  fn new_texture<L, D, P>(size: D::Size, mipmaps: usize, sampler: &Sampler) -> Self::ATexture
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -243,7 +243,7 @@ pub trait HasTexture {
 pub struct Texture<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, P: Pixel {
   pub repr: C::ATexture,
   pub size: D::Size,
-  pub mipmaps: u32,
+  pub mipmaps: usize,
   _l: PhantomData<L>,
   _c: PhantomData<C>,
   _p: PhantomData<P>
@@ -261,7 +261,7 @@ impl<C, L, D, P> Texture<C, L, D, P>
           D: Dimensionable,
           D::Size: Copy,
           P: Pixel {
-  pub fn new(size: D::Size, mipmaps: u32, sampler: &Sampler) -> Self {
+  pub fn new(size: D::Size, mipmaps: usize, sampler: &Sampler) -> Self {
     let tex = C::new_texture::<L, D, P>(size, mipmaps, sampler);
 
     Texture {
@@ -274,7 +274,7 @@ impl<C, L, D, P> Texture<C, L, D, P>
     }
   }
 
-  pub fn from_raw(texture: C::ATexture, size: D::Size, mipmaps: u32) -> Self {
+  pub fn from_raw(texture: C::ATexture, size: D::Size, mipmaps: usize) -> Self {
     Texture {
       repr: texture,
       size: size,
