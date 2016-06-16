@@ -43,7 +43,7 @@ pub trait HasFramebuffer: HasTexture + Sized {
   type Framebuffer;
 
   /// Create a new framebuffer.
-  fn new_framebuffer<L, D, CS, DS>(size: D::Size, mipmaps: u32) -> Result<(Self::Framebuffer, Vec<Self::ATexture>, Option<Self::ATexture>), FramebufferError>
+  fn new_framebuffer<L, D, CS, DS>(size: D::Size, mipmaps: usize) -> Result<(Self::Framebuffer, Vec<Self::ATexture>, Option<Self::ATexture>), FramebufferError>
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -124,7 +124,7 @@ impl<C, L, D, CS, DS> Framebuffer<C, L, D, CS, DS>
           D::Size: Copy,
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
-  pub fn new(size: D::Size, mipmaps: u32) -> Result<Framebuffer<C, L, D, CS, DS>, FramebufferError> {
+  pub fn new(size: D::Size, mipmaps: usize) -> Result<Framebuffer<C, L, D, CS, DS>, FramebufferError> {
     C::new_framebuffer::<L, D, CS, DS>(size, mipmaps).map(|(framebuffer, mut color_textures, depth_texture)| {
       Framebuffer {
         repr: framebuffer,
@@ -152,13 +152,13 @@ pub trait ColorSlot<C, L, D> where C: HasFramebuffer + HasTexture, L: Layerable,
   /// Turn a color slot into a list of pixel formats.
   fn color_formats() -> Vec<PixelFormat>;
   /// Reify a list of raw textures into a color slot.
-  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self;
+  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<C::ATexture>) -> Self;
 }
 
 impl<C, L, D> ColorSlot<C, L, D> for () where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
   fn color_formats() -> Vec<PixelFormat> { Vec::new() }
 
-  fn reify_textures(_: D::Size, _: u32, _: &mut Vec<C::ATexture>) -> Self { () }
+  fn reify_textures(_: D::Size, _: usize, _: &mut Vec<C::ATexture>) -> Self { () }
 }
 
 impl<C, L, D, P> ColorSlot<C, L, D> for Slot<C, L, D, P>
@@ -169,7 +169,7 @@ impl<C, L, D, P> ColorSlot<C, L, D> for Slot<C, L, D, P>
           P: ColorPixel {
   fn color_formats() -> Vec<PixelFormat> { vec![P::pixel_format()] }
 
-  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<C::ATexture>) -> Self {
     let color_texture = textures.swap_remove(0);
 
     Slot {
@@ -191,7 +191,7 @@ impl<C, L, D, P, B> ColorSlot<C, L, D> for Chain<Slot<C, L, D, P>, B>
     a
   }
 
-  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<C::ATexture>) -> Self {
     let a = Slot::<C, L, D, P>::reify_textures(size, mipmaps, textures);
     let b = B::reify_textures(size, mipmaps, textures);
 
@@ -210,7 +210,7 @@ impl<C, L, D, P0, P1> ColorSlot<C, L, D> for (Slot<C, L, D, P0>, Slot<C, L, D, P
     Chain::<Slot<C, L, D, P0>, Slot<C, L, D, P1>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<C::ATexture>) -> Self {
     let Chain(a, b) = Chain::<Slot<C, L, D, P0>, Slot<C, L, D, P1>>::reify_textures(size, mipmaps, textures);
     (a, b)
   }
@@ -228,7 +228,7 @@ impl<C, L, D, P0, P1, P2> ColorSlot<C, L, D> for (Slot<C, L, D, P0>, Slot<C, L, 
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Slot<C, L, D, P2>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<C::ATexture>) -> Self {
     let Chain(a, Chain(b, c)) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Slot<C, L, D, P2>>>::reify_textures(size, mipmaps, textures);
     (a, b, c)
   }
@@ -247,7 +247,7 @@ impl<C, L, D, P0, P1, P2, P3> ColorSlot<C, L, D> for (Slot<C, L, D, P0>, Slot<C,
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Slot<C, L, D, P3>>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<C::ATexture>) -> Self {
     let Chain(a, Chain(b, Chain(c, d))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Slot<C, L, D, P3>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d)
   }
@@ -267,7 +267,7 @@ impl<C, L, D, P0, P1, P2, P3, P4> ColorSlot<C, L, D> for (Slot<C, L, D, P0>, Slo
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Slot<C, L, D, P4>>>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<C::ATexture>) -> Self {
     let Chain(a, Chain(b, Chain(c, Chain(d, e)))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Slot<C, L, D, P4>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e)
   }
@@ -288,7 +288,7 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5> ColorSlot<C, L, D> for (Slot<C, L, D, P0>,
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Slot<C, L, D, P5>>>>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<C::ATexture>) -> Self {
     let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, f))))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Slot<C, L, D, P5>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f)
   }
@@ -310,7 +310,7 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5, P6> ColorSlot<C, L, D> for (Slot<C, L, D, 
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Slot<C, L, D, P6>>>>>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<C::ATexture>) -> Self {
     let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, g)))))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Slot<C, L, D, P6>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g)
   }
@@ -333,7 +333,7 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5, P6, P7> ColorSlot<C, L, D> for (Slot<C, L,
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Slot<C, L, D, P7>>>>>>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<C::ATexture>) -> Self {
     let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, Chain(g, h))))))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Slot<C, L, D, P7>>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g, h)
   }
@@ -357,7 +357,7 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8> ColorSlot<C, L, D> for (Slot<C
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Chain<Slot<C, L, D, P7>, Slot<C, L, D, P8>>>>>>>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<C::ATexture>) -> Self {
     let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, Chain(g, Chain(h, i)))))))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Chain<Slot<C, L, D, P7>, Slot<C, L, D, P8>>>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g, h, i)
   }
@@ -382,7 +382,7 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8, P9> ColorSlot<C, L, D> for (Sl
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Chain<Slot<C, L, D, P7>, Chain<Slot<C, L, D, P8>, Slot<C, L, D, P9>>>>>>>>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: u32, textures: &mut Vec<C::ATexture>) -> Self {
+  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<C::ATexture>) -> Self {
     let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, Chain(g, Chain(h, Chain(i, j))))))))) = Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Chain<Slot<C, L, D, P7>, Chain<Slot<C, L, D, P8>, Slot<C, L, D, P9>>>>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g, h, i, j)
   }
@@ -394,12 +394,12 @@ pub trait DepthSlot<C, L, D> where C: HasFramebuffer + HasTexture, L: Layerable,
   /// Turn a depth slot into a pixel format.
   fn depth_format() -> Option<PixelFormat>;
   /// Reify a raw textures into a depth slot.
-  fn reify_texture(size: D::Size, mipmaps: u32, texture: Option<C::ATexture>) -> Self; }
+  fn reify_texture(size: D::Size, mipmaps: usize, texture: Option<C::ATexture>) -> Self; }
 
 impl<C, L, D> DepthSlot<C, L, D> for () where C: HasFramebuffer + HasTexture, L: Layerable, D: Dimensionable, D::Size: Copy {
   fn depth_format() -> Option<PixelFormat> { None }
 
-  fn reify_texture(_: D::Size, _: u32, _: Option<C::ATexture>) -> Self { () }
+  fn reify_texture(_: D::Size, _: usize, _: Option<C::ATexture>) -> Self { () }
 }
 
 impl<C, L, D, P> DepthSlot<C, L, D> for Slot<C, L, D, P>
@@ -410,7 +410,7 @@ impl<C, L, D, P> DepthSlot<C, L, D> for Slot<C, L, D, P>
           P: DepthPixel {
   fn depth_format() -> Option<PixelFormat> { Some(P::pixel_format()) }
 
-  fn reify_texture(size: D::Size, mipmaps: u32, texture: Option<C::ATexture>) -> Self {
+  fn reify_texture(size: D::Size, mipmaps: usize, texture: Option<C::ATexture>) -> Self {
     Slot {
       texture: Texture::from_raw(texture.unwrap(), size, mipmaps)
     }
