@@ -4,7 +4,8 @@
 
 use core::marker::PhantomData;
 use linear::*;
-use texture::HasTexture;
+use pixel::Pixel;
+use texture::{Dimensionable, Layerable, HasTexture, Texture};
 
 pub trait HasUniform: HasTexture {
   /// Uniform representation.
@@ -53,7 +54,7 @@ pub trait HasUniform: HasTexture {
   fn update3_slice_bool(uniform: &Self::U, xyz: &[[bool; 3]]);
   fn update4_slice_bool(uniform: &Self::U, xyzw: &[[bool; 4]]);
   // textures
-  fn update_textures<Tex: AsRef<Self::ATexture>>(uniform: &Self::U, textures: &[Tex]);
+  fn update_textures(uniform: &Self::U, textures: &[&Self::ATexture]);
 }
 
 /// A shader uniform. `Uniform<C, T>` doesn’t hold any value. It’s more like a mapping between the
@@ -350,5 +351,16 @@ impl<'a, C> Uniformable<C> for &'a [[bool; 3]] where C: HasUniform {
 impl<'a, C> Uniformable<C> for &'a [[bool; 4]] where C: HasUniform {
   fn update(u: &Uniform<C, Self>, x: Self) {
     C::update4_slice_bool(&u.repr, x)
+  }
+}
+
+impl<'a, C, L, D, P> Uniformable<C> for &'a [&'a Texture<C, L, D, P>]
+    where C: HasUniform,
+          L: Layerable,
+          D: Dimensionable,
+          P: Pixel {
+  fn update(u: &Uniform<C, Self>, x: Self) {
+    let textures: Vec<_> = x.iter().map(|texture| &texture.repr).collect();
+    C::update_textures(&u.repr, &textures);
   }
 }
