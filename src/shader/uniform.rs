@@ -59,12 +59,12 @@ pub trait HasUniform: HasTexture {
 /// A shader uniform. `Uniform<C, T>` doesn’t hold any value. It’s more like a mapping between the
 /// host code and the shader the uniform was retrieved from.
 #[derive(Debug)]
-pub struct Uniform<C, T> where C: HasUniform, T: Uniformable {
+pub struct Uniform<C, T> where C: HasUniform, T: Uniformable<C> {
   pub repr: C::U,
   _t: PhantomData<T>
 }
 
-impl<C, T> Uniform<C, T> where C: HasUniform, T: Uniformable {
+impl<C, T> Uniform<C, T> where C: HasUniform, T: Uniformable<C> {
   pub fn new(repr: C::U) -> Uniform<C, T> {
     Uniform {
       repr: repr,
@@ -94,7 +94,7 @@ pub struct UniformUpdate<'a, T> {
   update_closure: Box<Fn(T) + 'a>
 }
 
-impl<'a, C, T> From<Uniform<C, T>> for UniformUpdate<'a, T> where C: 'a + HasUniform, T: 'a + Uniformable {
+impl<'a, C, T> From<Uniform<C, T>> for UniformUpdate<'a, T> where C: 'a + HasUniform, T: 'a + Uniformable<C> {
   fn from(u: Uniform<C, T>) -> Self {
     UniformUpdate {
       update_closure: Box::new(move |x| {
@@ -121,234 +121,234 @@ impl<'a, T> UniformUpdate<'a, T> where T: 'a {
 }
 
 /// Types that can behave as `Uniform`.
-pub trait Uniformable: Sized {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform;
+pub trait Uniformable<C>: Sized where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self);
 }
 
-impl Uniformable for i32 {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for i32 where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update1_i32(&u.repr, x)
   }
 }
 
-impl Uniformable for [i32; 2] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for [i32; 2] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update2_i32(&u.repr, x)
   }
 }
 
-impl Uniformable for [i32; 3] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for [i32; 3] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update3_i32(&u.repr, x)
   }
 }
 
-impl Uniformable for [i32; 4] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for [i32; 4] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update4_i32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [i32] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [i32] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update1_slice_i32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [[i32; 2]] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [[i32; 2]] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update2_slice_i32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [[i32; 3]] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [[i32; 3]] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update3_slice_i32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [[i32; 4]] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [[i32; 4]] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update4_slice_i32(&u.repr, x)
   }
 }
 
-impl Uniformable for u32 {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for u32 where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update1_u32(&u.repr, x)
   }
 }
 
-impl Uniformable for [u32; 2] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for [u32; 2] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update2_u32(&u.repr, x)
   }
 }
 
-impl Uniformable for [u32; 3] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for [u32; 3] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update3_u32(&u.repr, x)
   }
 }
 
-impl Uniformable for [u32; 4] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for [u32; 4] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update4_u32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [u32] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [u32] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update1_slice_u32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [[u32; 2]] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [[u32; 2]] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update2_slice_u32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [[u32; 3]] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [[u32; 3]] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update3_slice_u32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [[u32; 4]] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [[u32; 4]] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update4_slice_u32(&u.repr, x)
   }
 }
 
-impl Uniformable for f32 {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for f32 where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update1_f32(&u.repr, x)
   }
 }
 
-impl Uniformable for [f32; 2] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for [f32; 2] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update2_f32(&u.repr, x)
   }
 }
 
-impl Uniformable for [f32; 3] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for [f32; 3] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update3_f32(&u.repr, x)
   }
 }
 
-impl Uniformable for [f32; 4] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for [f32; 4] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update4_f32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [f32] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [f32] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update1_slice_f32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [[f32; 2]] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [[f32; 2]] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update2_slice_f32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [[f32; 3]] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [[f32; 3]] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update3_slice_f32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [[f32; 4]] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [[f32; 4]] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update4_slice_f32(&u.repr, x)
   }
 }
 
-impl Uniformable for M22 {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for M22 where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update22_f32(&u.repr, x)
   }
 }
 
-impl Uniformable for M33 {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for M33 where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update33_f32(&u.repr, x)
   }
 }
 
-impl Uniformable for M44 {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for M44 where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update44_f32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [M22] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [M22] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update22_slice_f32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [M33] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [M33] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update33_slice_f32(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [M44] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [M44] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update44_slice_f32(&u.repr, x)
   }
 }
 
-impl Uniformable for bool {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for bool where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update1_bool(&u.repr, x)
   }
 }
 
-impl Uniformable for [bool; 2] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for [bool; 2] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update2_bool(&u.repr, x)
   }
 }
 
-impl Uniformable for [bool; 3] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for [bool; 3] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update3_bool(&u.repr, x)
   }
 }
 
-impl Uniformable for [bool; 4] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<C> Uniformable<C> for [bool; 4] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update4_bool(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [bool] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [bool] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update1_slice_bool(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [[bool; 2]] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [[bool; 2]] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update2_slice_bool(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [[bool; 3]] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [[bool; 3]] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update3_slice_bool(&u.repr, x)
   }
 }
 
-impl<'a> Uniformable for &'a [[bool; 4]] {
-  fn update<C>(u: &Uniform<C, Self>, x: Self) where C: HasUniform {
+impl<'a, C> Uniformable<C> for &'a [[bool; 4]] where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, x: Self) {
     C::update4_slice_bool(&u.repr, x)
   }
 }
