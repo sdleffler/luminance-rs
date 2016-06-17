@@ -53,7 +53,7 @@ pub trait HasUniform: HasTexture {
   fn update3_slice_bool(uniform: &Self::U, xyz: &[[bool; 3]]);
   fn update4_slice_bool(uniform: &Self::U, xyzw: &[[bool; 4]]);
   // textures
-  fn update_textures(uniform: &Self::U, textures: &[Self::ATexture]);
+  fn update_textures<Tex: AsRef<Self::ATexture>>(uniform: &Self::U, textures: &[Tex]);
 }
 
 /// A shader uniform. `Uniform<C, T>` doesn’t hold any value. It’s more like a mapping between the
