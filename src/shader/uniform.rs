@@ -354,13 +354,12 @@ impl<'a, C> Uniformable<C> for &'a [[bool; 4]] where C: HasUniform {
   }
 }
 
-impl<'a, C, L, D, P> Uniformable<C> for &'a [&'a Texture<C, L, D, P>]
+impl<'a, C, L, D, P> Uniformable<C> for &'a Texture<C, L, D, P>
     where C: HasUniform,
           L: Layerable,
           D: Dimensionable,
           P: Pixel {
   fn update(u: &Uniform<C, Self>, x: Self) {
-    let textures: Vec<_> = x.iter().map(|texture| &texture.repr).collect();
-    C::update_textures(&u.repr, &textures);
+    C::update_textures(&u.repr, &[&x.repr]);
   }
 }
