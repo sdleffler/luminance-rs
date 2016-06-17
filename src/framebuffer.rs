@@ -125,6 +125,8 @@ impl<C, L, D, CS, DS> Framebuffer<C, L, D, CS, DS>
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
   pub fn new(size: D::Size, mipmaps: usize) -> Result<Framebuffer<C, L, D, CS, DS>, FramebufferError> {
+    let mipmaps = mipmaps + 1;
+
     C::new_framebuffer::<L, D, CS, DS>(size, mipmaps).map(|(framebuffer, mut color_textures, depth_texture)| {
       Framebuffer {
         repr: framebuffer,
