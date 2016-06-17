@@ -117,7 +117,7 @@ impl<'a, C> ProgramProxy<'a, C> where C: HasProgram {
     }
   }
 
-  pub fn uniform<T>(&self, name: &str) -> Result<Uniform<C, T>, ProgramError> where T: Uniformable {
+  pub fn uniform<T>(&self, name: &str) -> Result<Uniform<C, T>, ProgramError> where T: Uniformable<C> {
     C::map_uniform(&self.repr, UniformName::StringName(String::from(name))).map(|u| Uniform::new(u))
   }
 }
