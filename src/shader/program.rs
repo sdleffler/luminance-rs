@@ -45,7 +45,7 @@
 //! ```
 
 use shader::stage::*;
-use shader::uniform::{HasUniform, Uniform, Uniformable, UniformName};
+use shader::uniform::{HasUniform, Uniform, Uniformable};
 
 /// Trait to implement to provide shader program features.
 pub trait HasProgram: HasStage + HasUniform {
@@ -55,8 +55,8 @@ pub trait HasProgram: HasStage + HasUniform {
   fn new_program(tess: Option<(&Self::AStage, &Self::AStage)>, vertex: &Self::AStage, geometry: Option<&Self::AStage>, fragment: &Self::AStage) -> Result<Self::Program, ProgramError>;
   /// Free a program.
   fn free_program(program: &mut Self::Program);
-  /// Map a `UniformName` to its uniform representation. Can fail with `ProgramError`.
-  fn map_uniform(program: &Self::Program, name: UniformName) -> Result<Self::U, ProgramError>;
+  /// Map a uniform name to its uniform representation. Can fail with `ProgramError`.
+  fn map_uniform(program: &Self::Program, name: String) -> Result<Self::U, ProgramError>;
   /// Bulk update of uniforms. The update closure should contain the code used to update as many
   /// uniforms as wished.
   fn update_uniforms<F>(program: &Self::Program, f: F) where F: Fn();
@@ -118,7 +118,7 @@ impl<'a, C> ProgramProxy<'a, C> where C: HasProgram {
   }
 
   pub fn uniform<T>(&self, name: &str) -> Result<Uniform<C, T>, ProgramError> where T: Uniformable<C> {
-    C::map_uniform(&self.repr, UniformName::StringName(String::from(name))).map(|u| Uniform::new(u))
+    C::map_uniform(&self.repr, String::from(name)).map(|u| Uniform::new(u))
   }
 }
 

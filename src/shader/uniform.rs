@@ -78,13 +78,6 @@ impl<C, T> Uniform<C, T> where C: HasUniform, T: Uniformable<C> {
   }
 }
 
-/// Name of a `Uniform`.
-#[derive(Debug)]
-pub enum UniformName {
-  StringName(String),
-  SemanticName(u32)
-}
-
 /// Wrapper over `Uniform`, discarding everything but update.
 ///
 /// Among its features, this type enables you to `contramap` a function to build more interesting
