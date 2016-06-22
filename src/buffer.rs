@@ -51,8 +51,8 @@
 //! assert_eq!(buffer.get(3), Some(3.14));
 //! ```
 
-use core::marker::PhantomData;
-use core::mem;
+use std::marker::PhantomData;
+use std::mem;
 use std::vec::Vec;
 
 /// Implement this trait to provide buffers.
