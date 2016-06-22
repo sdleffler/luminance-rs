@@ -2,7 +2,7 @@
 //!
 //! Uniforms kick in several and useful ways. They’re used to customize shaders.
 
-use core::marker::PhantomData;
+use std::marker::PhantomData;
 use linear::*;
 use pixel::Pixel;
 use texture::{Dimensionable, Layerable, HasTexture, Texture};

@@ -1,6 +1,6 @@
 //! This module provides texture features.
 
-use core::marker::PhantomData;
+use std::marker::PhantomData;
 use pixel::Pixel;
 
 /// How to wrap texture coordinates while sampling textures?

@@ -29,7 +29,7 @@
 //! Color buffers are abstracted by `ColorSlot` and the depth buffer by `DepthSlot`.
 
 use chain::Chain;
-use core::marker::PhantomData;
+use std::marker::PhantomData;
 use pixel::{ColorPixel, DepthPixel, Pixel, PixelFormat};
 use std::default::Default;
 use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture};

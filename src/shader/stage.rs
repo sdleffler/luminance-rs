@@ -1,4 +1,4 @@
-use core::marker::PhantomData;
+use std::marker::PhantomData;
 
 pub trait HasStage {
   type AStage;
