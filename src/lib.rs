@@ -94,7 +94,7 @@ pub use pixel::{ColorPixel, DepthPixel, Format, Pixel, PixelFormat, is_color_pix
 pub use shader::program::ProgramError;
 pub use shader::stage::{FragmentShader, GeometryShader, StageError, ShaderTypeable,
                         TessellationControlShader, TessellationEvaluationShader, VertexShader};
-pub use shader::uniform::{Uniformable, UniformName, UniformUpdate};
+pub use shader::uniform::{Uniformable, UniformUpdate};
 pub use tessellation::Mode;
 pub use texture::{CubeFace, Cubemap, DepthComparison, Dimensionable, Dim1, Dim2, Dim3, Flat, Filter,
                   Layerable, Layered, Layering, Sampler, Wrap};
