@@ -30,7 +30,7 @@
 
 use chain::Chain;
 use std::marker::PhantomData;
-use pixel::{ColorPixel, DepthPixel, Pixel, PixelFormat};
+use pixel::{ColorPixel, DepthPixel, Pixel, PixelFormat, RenderablePixel};
 use std::default::Default;
 use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture};
 
@@ -168,7 +168,7 @@ impl<C, L, D, P> ColorSlot<C, L, D> for Slot<C, L, D, P>
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
-          P: ColorPixel {
+          P: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> { vec![P::pixel_format()] }
 
   fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<C::ATexture>) -> Self {
@@ -185,7 +185,7 @@ impl<C, L, D, P, B> ColorSlot<C, L, D> for Chain<Slot<C, L, D, P>, B>
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
-          P: ColorPixel,
+          P: ColorPixel + RenderablePixel,
           B: ColorSlot<C, L, D> {
   fn color_formats() -> Vec<PixelFormat> {
     let mut a = Slot::<C, L, D, P>::color_formats();
@@ -206,8 +206,8 @@ impl<C, L, D, P0, P1> ColorSlot<C, L, D> for (Slot<C, L, D, P0>, Slot<C, L, D, P
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
-          P0: ColorPixel,
-          P1: ColorPixel {
+          P0: ColorPixel + RenderablePixel,
+          P1: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
     Chain::<Slot<C, L, D, P0>, Slot<C, L, D, P1>>::color_formats()
   }
@@ -223,9 +223,9 @@ impl<C, L, D, P0, P1, P2> ColorSlot<C, L, D> for (Slot<C, L, D, P0>, Slot<C, L, 
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
-          P0: ColorPixel,
-          P1: ColorPixel,
-          P2: ColorPixel {
+          P0: ColorPixel + RenderablePixel,
+          P1: ColorPixel + RenderablePixel,
+          P2: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Slot<C, L, D, P2>>>::color_formats()
   }
@@ -241,10 +241,10 @@ impl<C, L, D, P0, P1, P2, P3> ColorSlot<C, L, D> for (Slot<C, L, D, P0>, Slot<C,
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
-          P0: ColorPixel,
-          P1: ColorPixel,
-          P2: ColorPixel,
-          P3: ColorPixel {
+          P0: ColorPixel + RenderablePixel,
+          P1: ColorPixel + RenderablePixel,
+          P2: ColorPixel + RenderablePixel,
+          P3: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Slot<C, L, D, P3>>>>::color_formats()
   }
@@ -260,11 +260,11 @@ impl<C, L, D, P0, P1, P2, P3, P4> ColorSlot<C, L, D> for (Slot<C, L, D, P0>, Slo
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
-          P0: ColorPixel,
-          P1: ColorPixel,
-          P2: ColorPixel,
-          P3: ColorPixel,
-          P4: ColorPixel {
+          P0: ColorPixel + RenderablePixel,
+          P1: ColorPixel + RenderablePixel,
+          P2: ColorPixel + RenderablePixel,
+          P3: ColorPixel + RenderablePixel,
+          P4: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Slot<C, L, D, P4>>>>>::color_formats()
   }
@@ -280,12 +280,12 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5> ColorSlot<C, L, D> for (Slot<C, L, D, P0>,
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
-          P0: ColorPixel,
-          P1: ColorPixel,
-          P2: ColorPixel,
-          P3: ColorPixel,
-          P4: ColorPixel,
-          P5: ColorPixel {
+          P0: ColorPixel + RenderablePixel,
+          P1: ColorPixel + RenderablePixel,
+          P2: ColorPixel + RenderablePixel,
+          P3: ColorPixel + RenderablePixel,
+          P4: ColorPixel + RenderablePixel,
+          P5: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Slot<C, L, D, P5>>>>>>::color_formats()
   }
@@ -301,13 +301,13 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5, P6> ColorSlot<C, L, D> for (Slot<C, L, D, 
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
-          P0: ColorPixel,
-          P1: ColorPixel,
-          P2: ColorPixel,
-          P3: ColorPixel,
-          P4: ColorPixel,
-          P5: ColorPixel,
-          P6: ColorPixel {
+          P0: ColorPixel + RenderablePixel,
+          P1: ColorPixel + RenderablePixel,
+          P2: ColorPixel + RenderablePixel,
+          P3: ColorPixel + RenderablePixel,
+          P4: ColorPixel + RenderablePixel,
+          P5: ColorPixel + RenderablePixel,
+          P6: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Slot<C, L, D, P6>>>>>>>::color_formats()
   }
@@ -323,14 +323,14 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5, P6, P7> ColorSlot<C, L, D> for (Slot<C, L,
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
-          P0: ColorPixel,
-          P1: ColorPixel,
-          P2: ColorPixel,
-          P3: ColorPixel,
-          P4: ColorPixel,
-          P5: ColorPixel,
-          P6: ColorPixel,
-          P7: ColorPixel {
+          P0: ColorPixel + RenderablePixel,
+          P1: ColorPixel + RenderablePixel,
+          P2: ColorPixel + RenderablePixel,
+          P3: ColorPixel + RenderablePixel,
+          P4: ColorPixel + RenderablePixel,
+          P5: ColorPixel + RenderablePixel,
+          P6: ColorPixel + RenderablePixel,
+          P7: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Slot<C, L, D, P7>>>>>>>>::color_formats()
   }
@@ -346,15 +346,15 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8> ColorSlot<C, L, D> for (Slot<C
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
-          P0: ColorPixel,
-          P1: ColorPixel,
-          P2: ColorPixel,
-          P3: ColorPixel,
-          P4: ColorPixel,
-          P5: ColorPixel,
-          P6: ColorPixel,
-          P7: ColorPixel,
-          P8: ColorPixel {
+          P0: ColorPixel + RenderablePixel,
+          P1: ColorPixel + RenderablePixel,
+          P2: ColorPixel + RenderablePixel,
+          P3: ColorPixel + RenderablePixel,
+          P4: ColorPixel + RenderablePixel,
+          P5: ColorPixel + RenderablePixel,
+          P6: ColorPixel + RenderablePixel,
+          P7: ColorPixel + RenderablePixel,
+          P8: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Chain<Slot<C, L, D, P7>, Slot<C, L, D, P8>>>>>>>>>::color_formats()
   }
@@ -370,16 +370,16 @@ impl<C, L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8, P9> ColorSlot<C, L, D> for (Sl
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
-          P0: ColorPixel,
-          P1: ColorPixel,
-          P2: ColorPixel,
-          P3: ColorPixel,
-          P4: ColorPixel,
-          P5: ColorPixel,
-          P6: ColorPixel,
-          P7: ColorPixel,
-          P8: ColorPixel,
-          P9: ColorPixel {
+          P0: ColorPixel + RenderablePixel,
+          P1: ColorPixel + RenderablePixel,
+          P2: ColorPixel + RenderablePixel,
+          P3: ColorPixel + RenderablePixel,
+          P4: ColorPixel + RenderablePixel,
+          P5: ColorPixel + RenderablePixel,
+          P6: ColorPixel + RenderablePixel,
+          P7: ColorPixel + RenderablePixel,
+          P8: ColorPixel + RenderablePixel,
+          P9: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
     Chain::<Slot<C, L, D, P0>, Chain<Slot<C, L, D, P1>, Chain<Slot<C, L, D, P2>, Chain<Slot<C, L, D, P3>, Chain<Slot<C, L, D, P4>, Chain<Slot<C, L, D, P5>, Chain<Slot<C, L, D, P6>, Chain<Slot<C, L, D, P7>, Chain<Slot<C, L, D, P8>, Slot<C, L, D, P9>>>>>>>>>>::color_formats()
   }
