@@ -1,4 +1,4 @@
-## 0.6.0
+# 0.6.0
 
 - Removed `Default` implementation for `Framebuffer` and added a new `default()` method, taking the
   size of the `Framebuffer`.
