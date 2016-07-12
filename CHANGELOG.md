@@ -1,6 +1,21 @@
+## 0.6.0
+
+- Removed `Default` implementation for `Framebuffer` and added a new `default()` method, taking the
+  size of the `Framebuffer`.
+- Added `RenderablePixel` trait bound on `Slot` implementations for `ColorPixel`.
+- Added `RenderablePixel`.
+- Removed the need of the **core** crate.
+- Removed `UniformName`.
+- We can now have textures as uniforms.
+- New uniform system to accept value depending on the backend.
+- Using `AsRef` instead of ATexture in `update_textures`.
+- Changed the meaning of mipmaps (now it’s the number of extra mipmaps).
+- Using `usize` instead of `u32` for mipmaps.
+- Added `Dimensionable` and `Layerable` in the interface.
+
 ## 0.5.3
 
-- Added `update textures` into `HasUniform`.
+- Added `update_textures` into `HasUniform`.
 - Fixed signature of `UniformUpdate::update`.
 - Fixed trait bound on `UniformUpdate::{contramap, update}`.
 
@@ -13,7 +28,7 @@
 
 - Removed `run_pipeline` and added `Pipeline::run`.
 
-# 0.5
+# 0.5.0
 
 - Fixed uniform interfaces in `ShadingCommand` and `RenderCommand` with existential quantification.
 - Renamed `FrameCommand` into `Pipeline`.
