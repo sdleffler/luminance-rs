@@ -57,7 +57,7 @@ Feel free to search for `luminance-*` packages and pick the one you need ;).
 Here’s a list of backends for `luminance`. If you’ve written one and like to make it appear in that
 list, feel free to contact me on github or push a PR ;).
 
-- `luminance-gl`: **OpenGL** backend; [`luminance-gl` github page](https://github.com/phaazon/luminance-gl-rs.git)
+- `luminance-gl`: **OpenGL** backend
 
 # Windowing
 
