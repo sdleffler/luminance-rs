@@ -1,3 +1,8 @@
+## 0.8.0
+
+- Documentation is now available on docs.rs.
+- Replaced references to `Vec` by slices.
+
 ## 0.7.0
 
 - Uniforms have new semantics; mapping them cannot fail anymore but it can be emitted warnings.
