@@ -17,4 +17,7 @@ matrix:
 script:
   - rustc --version
   - cargo --version
+  - cd luminance
+  - cargo build --verbose
+  - cd ../luminance-gl
   - cargo build --verbose
