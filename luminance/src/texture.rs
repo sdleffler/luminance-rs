@@ -404,10 +404,3 @@ impl<'a, C> TexturePack<'a, C> where C: HasTexture + 'a {
     self.textures.push(&tex.repr);
   }
 }
-
-#[macro_export]
-macro_rules! textures {
-  ([$( $t:ident ),*]) => {{
-    TexturePack::from_slice(&[(&$($t)*).as_ref()])
-  }}
-}
