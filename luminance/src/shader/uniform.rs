@@ -7,7 +7,7 @@ use linear::*;
 use pixel::{self, Pixel};
 use texture::{self, Dimensionable, Layerable, HasTexture, Texture};
 
-pub trait HasUniform: HasTexture {
+pub trait HasUniform {
   /// Uniform representation.
   type U;
 
@@ -54,7 +54,7 @@ pub trait HasUniform: HasTexture {
   fn update3_slice_bool(uniform: &Self::U, xyz: &[[bool; 3]]);
   fn update4_slice_bool(uniform: &Self::U, xyzw: &[[bool; 4]]);
   // textures
-  fn update_textures(uniform: &Self::U, textures: &[&Self::ATexture]);
+  fn update_texture(uniform: &Self::U, texture: &Self::ATexture, unit: u32) where Self: HasTexture;
 }
 
 /// A shader uniform. `Uniform<C, T>` doesn’t hold any value. It’s more like a mapping between the
@@ -531,13 +531,13 @@ impl<'a, C> Uniformable<C> for &'a [[bool; 4]] where C: HasUniform {
   fn dim() -> Dim { Dim::Dim4 }
 }
 
-impl<'a, C, L, D, P> Uniformable<C> for &'a Texture<C, L, D, P>
-    where C: HasUniform,
+impl<'a, C, L, D, P> Uniformable<C> for (&'a Texture<C, L, D, P>, u32)
+    where C: HasUniform + HasTexture,
           L: Layerable,
           D: Dimensionable,
           P: Pixel {
   fn update(u: &Uniform<C, Self>, x: Self) {
-    C::update_textures(&u.repr, &[&x.repr]);
+    C::update_texture(&u.repr, &x.0.repr, x.1);
   }
 
   fn reify_type() -> Type {

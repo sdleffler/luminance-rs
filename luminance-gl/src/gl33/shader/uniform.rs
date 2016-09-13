@@ -3,6 +3,7 @@ use gl::types::*;
 use gl33::token::GL33;
 use luminance::linear::*;
 use luminance::shader::uniform;
+use luminance::texture::HasTexture;
 
 pub type Uniform<T> = uniform::Uniform<GL33, T>;
 pub type Uniformable = uniform::Uniformable<GL33>;
@@ -169,13 +170,11 @@ impl uniform::HasUniform for GL33 {
     unsafe { gl::Uniform4iv(*u, v.len() as GLsizei, v.as_ptr() as *const i32) }
   }
 
-  fn update_textures(u: &Self::U, textures: &[&Self::ATexture]) {
-    for (tex_unit, texture) in textures.iter().enumerate() {
-      unsafe {
-        gl::ActiveTexture(gl::TEXTURE0 + tex_unit as GLenum);
-        gl::BindTexture(texture.target, texture.handle);
-        gl::Uniform1i(*u, tex_unit as GLint);
-      }
+  fn update_texture(u: &Self::U, texture: &<Self as HasTexture>::ATexture, unit: u32) where Self: HasTexture {
+    unsafe {
+      gl::ActiveTexture(gl::TEXTURE0 + unit as GLenum);
+      gl::BindTexture(texture.target, texture.handle);
+      gl::Uniform1i(*u, unit as GLint);
     }
   }
 }
