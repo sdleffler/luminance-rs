@@ -379,28 +379,3 @@ impl Default for Sampler {
     }
   }
 }
-
-pub struct TexturePack<'a, C> where C: HasTexture + 'a {
-  textures: Vec<&'a C::ATexture>
-}
-
-impl<'a, C> TexturePack<'a, C> where C: HasTexture + 'a {
-  pub fn new() -> Self {
-    TexturePack {
-      textures: Vec::new()
-    }
-  }
-
-  pub fn from_slice(slice: &[&'a C::ATexture]) -> Self {
-    TexturePack {
-      textures: slice.into()
-    }
-  }
-
-  pub fn push<L, D, P>(&'a mut self, tex: &'a Texture<C, L, D, P>)
-      where L: Layerable,
-            D: Dimensionable,
-            P: Pixel {
-    self.textures.push(&tex.repr);
-  }
-}
