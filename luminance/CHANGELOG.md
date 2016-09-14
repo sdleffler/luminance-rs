@@ -1,3 +1,9 @@
+## 0.9.0
+
+- Several textures can now be passed as uniforms to shaders. The interface is pretty instable as it
+  might change in the future, because for now, the user has to pass the texture units each textures
+  should be bound to.
+
 ## 0.8.0
 
 - Documentation is now available on docs.rs.
