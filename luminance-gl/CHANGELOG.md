@@ -1,4 +1,8 @@
-## 0.6.2
+## 0.7.0
+
+- Textures support in shaders.
+
+### 0.6.2
 
 - Replaced some internal references to `Vec` by slices.
 

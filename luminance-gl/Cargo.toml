@@ -1,6 +1,6 @@
 [package]
 name = "luminance-gl"
-version = "0.6.2"
+version = "0.7.0"
 license = "BSD-3-Clause"
 authors = ["Dimitri 'phaazon' Sabadie <dimitri.sabadie@gmail.com>"]
 description = "OpenGL backends for luminance"
@@ -10,12 +10,10 @@ homepage = "https://github.com/phaazon/luminance-rs"
 repository = "https://github.com/phaazon/luminance-rs"
 documentation = "https://docs.rs/luminance-gl"
 
-readme = "README.md"
-
 [features]
 default = ["gl33"]
 gl33 = []
 
 [dependencies]
 gl = "0.5.2"
-luminance = { version = "0.8.0", path = "../luminance" }
+luminance = { version = "0.9.0", path = "../luminance" }
