@@ -10,6 +10,7 @@ pub trait Pixel {
   /// texture memory. It should be match the `PixelFormat` mapping.
   type RawEncoding;
 
+  /// Reify to `PixelFormat`.
   fn pixel_format() -> PixelFormat;
 }
 
@@ -25,8 +26,10 @@ pub trait RenderablePixel: Pixel {}
 /// A `PixelFormat` gathers a `Type` along with a `Format`.
 #[derive(Clone, Copy, Debug)]
 pub struct PixelFormat {
-    pub encoding: Type
-  , pub format: Format
+  /// Encoding type of the pixel format.
+  pub encoding: Type,
+  /// Format of the pixel format.
+  pub format: Format
 }
 
 /// Pixel type.
@@ -103,7 +106,6 @@ impl Pixel for RGBA8UI {
 }
 
 impl ColorPixel for RGBA8UI {}
-
 impl RenderablePixel for RGBA8UI {}
 
 /// A red, green and blue 32-bit floating pixel format.
@@ -141,7 +143,6 @@ impl Pixel for RGBA32F {
 }
 
 impl ColorPixel for RGBA32F {}
-
 impl RenderablePixel for RGBA32F {}
 
 /// A depth 32-bit floating pixel format.
