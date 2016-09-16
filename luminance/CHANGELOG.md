@@ -1,3 +1,7 @@
+### 0.9.1
+
+- Documentation updates.
+
 ## 0.9.0
 
 - Several textures can now be passed as uniforms to shaders. The interface is pretty instable as it
