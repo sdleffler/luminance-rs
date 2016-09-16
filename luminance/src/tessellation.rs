@@ -26,18 +26,18 @@ use vertex::Vertex;
 /// Vertices can be connected via several modes.
 #[derive(Copy, Clone, Debug)]
 pub enum Mode {
-    /// A single point.
-    Point
-    /// A line, defined by two points.
-  , Line
-    /// A strip line, defined by at least two points and zero or many other ones.
-  , LineStrip
-    /// A triangle, defined by three points.
-  , Triangle
-    /// A triangle fan, defined by at least three points and zero or many other ones.
-  , TriangleFan
-    /// A triangle strip, defined by at least three points and zero or many other ones.
-  , TriangleStrip
+  /// A single point.
+  Point,
+  /// A line, defined by two points.
+  Line,
+  /// A strip line, defined by at least two points and zero or many other ones.
+  LineStrip,
+  /// A triangle, defined by three points.
+  Triangle,
+  /// A triangle fan, defined by at least three points and zero or many other ones.
+  TriangleFan,
+  /// A triangle strip, defined by at least three points and zero or many other ones.
+  TriangleStrip
 }
 
 /// Trait to implement to provide tessellation features.
