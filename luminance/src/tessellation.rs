@@ -26,11 +26,17 @@ use vertex::Vertex;
 /// Vertices can be connected via several modes.
 #[derive(Copy, Clone, Debug)]
 pub enum Mode {
+    /// A single point.
     Point
+    /// A line, defined by two points.
   , Line
+    /// A strip line, defined by at least two points and zero or many other ones.
   , LineStrip
+    /// A triangle, defined by three points.
   , Triangle
+    /// A triangle fan, defined by at least three points and zero or many other ones.
   , TriangleFan
+    /// A triangle strip, defined by at least three points and zero or many other ones.
   , TriangleStrip
 }
 
@@ -49,6 +55,7 @@ pub trait HasTessellation {
   fn destroy(tessellation: &mut Self::Tessellation);
 }
 
+/// GPU Tessellation.
 #[derive(Debug)]
 pub struct Tessellation<C> where C: HasTessellation {
   pub repr: C::Tessellation
@@ -61,22 +68,14 @@ impl<C> Drop for Tessellation<C> where C: HasTessellation {
 }
 
 impl<C> Tessellation<C> where C: HasTessellation {
+  /// Create a new tessellation.
+  ///
+  /// The `mode` argument gives the type of the primitives and how to interpret the `vertices` and
+  /// `indices` slices. If `indices` is set to `None`, the tessellation will use the `vertices`
+  /// as-is.
   pub fn new<T>(mode: Mode, vertices: &[T], indices: Option<&[u32]>) -> Tessellation<C> where T: Vertex {
     Tessellation {
       repr: C::new(mode, vertices, indices)
     }
   }
 }
-
-// TODO
-// /// Turn *direct geometry* into *indexed geometry*. This function removes duplicate elements from
-// /// the data you pass in and returns the cleaned data along with an array of indices to restore the
-// /// initial data.
-// ///
-// /// # Complexity
-// ///
-// /// **O (n log n)**
-// pub fn index_geometry<T>(vertices: &Vec<T>) -> (Vec<T>,Vec<u32>) where T: Ord {
-//   let mut uniq: Vec<T> = Vec::with_capacity(vertices.len()); // we’ll resize later on
-//   let mut seen: BTreeSet<T> = BTreeSet::new();
-// }
