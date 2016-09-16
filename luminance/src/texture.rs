@@ -74,6 +74,7 @@ pub trait Dimensionable {
   fn zero_offset() -> Self::Offset;
 }
 
+/// Capacity of the dimension, which is the product of the width, height and depth.
 pub fn dim_capacity<D>(size: D::Size) -> u32 where D: Dimensionable, D::Size: Copy {
   D::width(size) * D::height(size) * D::depth(size)
 }
@@ -87,6 +88,7 @@ pub enum Dim {
   Cubemap
 }
 
+/// 1D dimension.
 #[derive(Clone, Copy, Debug)]
 pub struct Dim1;
 
@@ -103,6 +105,7 @@ impl Dimensionable for Dim1 {
   fn zero_offset() -> Self::Offset { 0 }
 }
 
+/// 2D dimension.
 #[derive(Clone, Copy, Debug)]
 pub struct Dim2;
 
@@ -123,6 +126,7 @@ impl Dimensionable for Dim2 {
   fn zero_offset() -> Self::Offset { (0, 0) }
 }
 
+/// 3D dimension.
 #[derive(Clone, Copy, Debug)]
 pub struct Dim3;
 
@@ -147,6 +151,7 @@ impl Dimensionable for Dim3 {
   fn zero_offset() -> Self::Offset { (0, 0, 0) }
 }
 
+/// Cubemap dimension.
 #[derive(Clone, Copy, Debug)]
 pub struct Cubemap;
 
@@ -191,12 +196,13 @@ pub enum CubeFace {
   NegativeZ
 }
 
-/// Reify a type into a `Layering`.
+/// Trait used to reify a type into a `Layering`.
 pub trait Layerable {
+  /// Reify to `Layering`.
   fn layering() -> Layering;
 }
 
-/// Texture layering. If a texture is layered, it has an extra coordinates to access the layer.
+/// Texture layering. If a texture is layered, it has an extra coordinate to access the layer.
 #[derive(Clone, Copy, Debug)]
 pub enum Layering {
   /// Non-layered.
@@ -205,11 +211,18 @@ pub enum Layering {
   Layered
 }
 
+/// Flat texture hint.
+///
+/// A flat texture means it doesn’t have the concept of layers.
 #[derive(Clone, Copy, Debug)]
 pub struct Flat;
 
 impl Layerable for Flat { fn layering() -> Layering { Layering::Flat } }
 
+/// Layered texture hint.
+///
+/// A layered texture has an extra coordinate to access the layer and can be thought of as an array
+/// of textures.
 #[derive(Clone, Copy, Debug)]
 pub struct Layered;
 
@@ -284,6 +297,7 @@ impl<C, L, D, P> Texture<C, L, D, P>
     }
   }
 
+  /// Create a texture from its backend representation.
   pub fn from_raw(texture: C::ATexture, size: D::Size, mipmaps: usize) -> Self {
     Texture {
       repr: texture,
@@ -295,6 +309,11 @@ impl<C, L, D, P> Texture<C, L, D, P>
     }
   }
 
+  /// Clear a part of a texture.
+  ///
+  /// The part being cleared is defined by a rectangle in which the `offset` represents the
+  /// left-upper corner and the `size` gives the dimension of the rectangle. All the covered texels
+  /// by this rectangle will be cleared to the `pixel` value.
   pub fn clear_part(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, pixel: P::Encoding)
       where D::Offset: Copy,
             D::Size: Copy,
@@ -302,6 +321,7 @@ impl<C, L, D, P> Texture<C, L, D, P>
     C::clear_part::<L, D, P>(&self.repr, gen_mipmaps, offset, size, pixel)
   }
 
+  /// Clear a whole texture with a `pixel` value.
   pub fn clear(&self, gen_mipmaps: bool, pixel: P::Encoding)
       where D::Offset: Copy,
             D::Size: Copy,
@@ -309,30 +329,43 @@ impl<C, L, D, P> Texture<C, L, D, P>
     self.clear_part(gen_mipmaps, D::zero_offset(), self.size, pixel)
   }
 
+  /// Upload texels to a part of a texture.
+  ///
+  /// The part being updated is defined by a rectangle in which the `offset` represents the
+  /// left-upper corner and the `size` gives the dimension of the rectangle. All the covered texels
+  /// by this rectangle will be updated by the `texels` slice.
   pub fn upload_part(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &[P::Encoding])
       where D::Offset: Copy,
             D::Size: Copy {
     C::upload_part::<L, D, P>(&self.repr, gen_mipmaps, offset, size, texels)
   }
 
+  /// Upload `texels` to the whole texture.
   pub fn upload(&self, gen_mipmaps: bool, texels: &[P::Encoding])
       where D::Offset: Copy,
             D::Size: Copy {
     self.upload_part(gen_mipmaps, D::zero_offset(), self.size, texels)
   }
 
+  /// Upload raw `texels` to a part of a texture.
+  ///
+  /// This function is similar to `upload_part` but it works on `P::RawEncoding` instead of
+  /// `P::Encoding`. This useful when the texels are represented as a contiguous array of raw
+  /// components of the texels.
   pub fn upload_part_raw(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &[P::RawEncoding])
       where D::Offset: Copy,
             D::Size: Copy {
     C::upload_part_raw::<L, D, P>(&self.repr, gen_mipmaps, offset, size, texels)
   }
 
+  /// Upload raw `texels` to the whole texture.
   pub fn upload_raw(&self, gen_mipmaps: bool, texels: &[P::RawEncoding])
       where D::Offset: Copy,
             D::Size: Copy {
     self.upload_part_raw(gen_mipmaps, D::zero_offset(), self.size, texels)
   }
 
+  /// Get the raw texels associated with this texture.
   pub fn get_raw_texels(&self) -> Vec<P::RawEncoding> where P: Pixel, P::RawEncoding: Copy {
     C::get_raw_texels::<P>(&self.repr)
   }
