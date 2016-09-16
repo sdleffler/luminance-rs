@@ -45,7 +45,7 @@ pub enum Type {
 pub enum Format {
     /// Holds a red-only channel.
   R(u8),
-    /// Holds red and green channels. 
+    /// Holds red and green channels.
   RG(u8, u8),
   /// Holds red, green and blue channels.
   RGB(u8, u8, u8),
