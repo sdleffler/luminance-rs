@@ -34,7 +34,7 @@ pub struct Chain<A, B>(pub A, pub B);
 #[macro_export]
 macro_rules! chain {
   ($t:ty) => {( $t )};
-  
+
   ($a:ty, $($r:tt)*) => {( Chain<$a, chain![$($r)*]> )}
 }
 
