@@ -50,6 +50,12 @@ impl HasFramebuffer for GL33 {
           create_texture::<L, D>(target, size, mipmaps, *format, &Default::default());
           gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0 + i as GLenum, *texture, 0);
         }
+
+        // specify the list of color buffers to draw to
+        let color_buf_nb = color_formats.len() as GLsizei;
+        let color_buffers: Vec<_> = (gl::COLOR_ATTACHMENT0..gl::COLOR_ATTACHMENT0 + color_buf_nb as GLenum).collect();
+
+        gl::DrawBuffers(color_buf_nb, color_buffers.as_ptr());
       }
 
       // depth texture, if exists
