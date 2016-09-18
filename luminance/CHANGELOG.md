@@ -1,3 +1,7 @@
+## 0.10.0
+
+- Fixed the type of the uniform errors in the uniform interface builder function.
+
 ### 0.9.1
 
 - Documentation updates.
