@@ -109,7 +109,7 @@ pub enum BufferError {
 #[derive(Debug)]
 pub struct Buffer<C, T> where C: HasBuffer {
   pub repr: C::ABuffer,
-  pub size: usize, // FIXME: should be compile-time, not runtime
+  pub size: usize,
   _t: PhantomData<T>
 }
 
