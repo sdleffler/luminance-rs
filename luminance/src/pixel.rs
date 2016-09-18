@@ -161,4 +161,4 @@ impl Pixel for Depth32F {
   }
 }
 
-impl DepthPixel for RGBA32F {}
+impl DepthPixel for Depth32F {}
