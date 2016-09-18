@@ -86,9 +86,9 @@ impl<C, T> Program<C, T> where C: HasProgram {
   ///
   /// Use the `update` function to access the *uniform interface* back.
   pub fn new<GetUni>(tess: Option<(&Stage<C, TessellationControlShader>, &Stage<C, TessellationEvaluationShader>)>, vertex: &Stage<C, VertexShader>, geometry: Option<&Stage<C, GeometryShader>>, fragment: &Stage<C, FragmentShader>, get_uni: GetUni) -> Result<Self, ProgramError>
-      where GetUni: Fn(ProgramProxy<C>) -> Result<T, ProgramError> {
+      where GetUni: Fn(ProgramProxy<C>) -> Result<T, UniformWarning> {
     let repr = try!(C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr));
-    let uniform_interface = try!(get_uni(ProgramProxy::new(&repr)));
+    let uniform_interface = try!(get_uni(ProgramProxy::new(&repr)).map_err(ProgramError::UniformWarning));
 
     Ok(Program {
       repr: repr,
@@ -131,6 +131,7 @@ impl<'a, C> ProgramProxy<'a, C> where C: HasProgram {
 #[derive(Clone, Debug)]
 pub enum ProgramError {
   LinkFailed(String),
+  UniformWarning(UniformWarning)
 }
 
 #[derive(Clone, Debug)]
