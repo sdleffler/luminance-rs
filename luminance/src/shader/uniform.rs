@@ -3,6 +3,8 @@
 //! Uniforms kick in several and useful ways. They’re used to customize shaders.
 
 use std::marker::PhantomData;
+
+use buffer::HasBuffer;
 use linear::*;
 use pixel::{self, Pixel};
 use texture::{self, Dimensionable, Layerable, HasTexture, Texture};
@@ -55,6 +57,13 @@ pub trait HasUniform {
   fn update4_slice_bool(uniform: &Self::U, xyzw: &[[bool; 4]]);
   // textures
   fn update_texture(uniform: &Self::U, texture: &Self::ATexture, unit: u32) where Self: HasTexture;
+}
+
+pub trait HasUniformBlock: HasBuffer {
+  /// Uniform block representation.
+  type UB;
+
+  fn update_uniform_block(ub: &Self::UB, buffer: &Self::ABuffer, index: u32);
 }
 
 /// A shader uniform. `Uniform<C, T>` doesn’t hold any value. It’s more like a mapping between the
