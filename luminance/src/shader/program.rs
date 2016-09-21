@@ -46,6 +46,7 @@
 
 use std::marker::PhantomData;
 
+use buffer::Binding;
 use linear::{M22, M33, M44};
 use shader::stage::{FragmentShader, GeometryShader, HasStage, Stage, TessellationControlShader,
                     TessellationEvaluationShader, VertexShader};
@@ -195,7 +196,7 @@ pub trait HasUniform {
   // textures
   fn update_texture_unit(uniform: &Self::U, unit: u32);
   // uniform buffers
-  //fn update_buffer(uniform_block: &Self::UB, buffer: &Self::ABuffer, index: u32) where Self: HasBuffer;
+  fn update_buffer_binding(uniform_block: &Self::U, binding: u32);
 }
 
 /// A shader uniform. `Uniform<C, T>` doesn’t hold any value. It’s more like a mapping between the
@@ -262,7 +263,8 @@ pub enum Type {
   Unsigned,
   Floating,
   Boolean,
-  TextureUnit
+  TextureUnit,
+  BufferBinding
 }
 
 /// Dimension of the uniform.
@@ -678,21 +680,15 @@ impl<C> Uniformable<C> for Unit where C: HasUniform {
   fn dim() -> Dim { Dim::Dim1 }
 }
 
-//impl<'a, C, T> Uniformable<C> for (&'a Buffer<C, T>, u32)
-//    where C: HasUniform + HasBuffer,
-//          T: AsUniformBlock {
-//  fn update(u: &Uniform<C, Self>, x: Self) {
-//    C::update_buffer(&u.repr, &x.0.rerp, x.1);
-//  }
-//
-//  fn reify_type() -> Type {
-//    Type::Buffer(UniformBlockFormat)
-//  }
-//
-//  fn dim() -> Dim {
-//    Dim::Dim1
-//  }
-//}
+impl<C> Uniformable<C> for Binding where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, binding: Self) {
+    C::update_buffer_binding(&u.repr, *binding);
+  }
+
+  fn reify_type() -> Type { Type::BufferBinding }
+
+  fn dim() -> Dim { Dim::Dim1 }
+}
 
 /// Uniform block component format.
 #[derive(Clone, Debug)]
