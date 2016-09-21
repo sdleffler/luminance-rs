@@ -7,7 +7,7 @@ use blending;
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer, HasFramebuffer};
 use shader::program::{HasProgram, Program};
 use tessellation::{HasTessellation, Tessellation};
-use texture::{Dimensionable, HasTexture, Layerable, Unit};
+use texture::{Dimensionable, HasTexture, Layerable, TextureProxy, Unit};
 
 /// Trait to implement to add `Pipeline` support.
 pub trait HasPipeline: HasFramebuffer + HasProgram + HasTessellation + HasTexture + Sized {
@@ -41,6 +41,8 @@ pub struct Pipeline<'a, C, L, D, CS, DS>
   pub framebuffer: &'a Framebuffer<C, L, D, CS, DS>,
   /// The color used to clean the framebuffer when  executing the pipeline.
   pub clear_color: [f32; 4],
+  /// Texture set.
+  pub texture_set: &'a[TextureProxy<'a, C>],
   /// Shading commands to render into the embedded framebuffer.
   pub shading_commands: Vec<&'a SomeShadingCommand> // TODO: can we use a slice instead? &'a […]
 }
@@ -53,10 +55,11 @@ impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
   /// Create a new pipeline.
-  pub fn new(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, clear_color: [f32; 4], shading_commands: Vec<&'a SomeShadingCommand>) -> Self {
+  pub fn new(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, clear_color: [f32; 4], texture_set: &'a[TextureProxy<'a, C>], shading_commands: Vec<&'a SomeShadingCommand>) -> Self {
     Pipeline {
       framebuffer: framebuffer,
       clear_color: clear_color,
+      texture_set: texture_set,
       shading_commands: shading_commands
     }
   }
