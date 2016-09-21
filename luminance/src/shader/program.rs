@@ -117,6 +117,7 @@ impl<'a, C> ProgramProxy<'a, C> where C: HasProgram {
     }
   }
 
+  /// Map a uniform name to a uniformable value.
   pub fn uniform<T>(&self, name: &str) -> (Uniform<C, T>, Option<UniformWarning>) where T: Uniformable<C> {
     // gather information about the uniform so that backend can proceed with runtime reification and
     // validation
