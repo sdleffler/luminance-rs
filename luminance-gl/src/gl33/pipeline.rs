@@ -24,6 +24,12 @@ impl HasPipeline for GL33 {
       gl::Viewport(0, 0, cmd.framebuffer.repr.w as GLint, cmd.framebuffer.repr.h as GLint);
       gl::ClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
       gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+
+      // traverse the texture set and bind required textures
+      for (unit, tex) in cmd.texture_set.iter().enumerate() {
+        gl::ActiveTexture(gl::TEXTURE0 + unit as GLenum);
+        gl::BindTexture(tex.repr.target, tex.repr.handle);
+      }
     }
 
     for shading_cmd in &cmd.shading_commands {

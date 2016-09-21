@@ -4,7 +4,6 @@ use gl33::token::GL33;
 use luminance::linear::{M22, M33, M44};
 use luminance::shader::program::{self, Dim, HasProgram, HasUniform, ProgramError, Type,
                                  UniformWarning};
-use luminance::texture::HasTexture;
 use std::ffi::CString;
 use std::ptr::null_mut;
 
@@ -119,18 +118,6 @@ fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> Option
     (Type::Boolean, Dim::Dim2) if typ != gl::BOOL_VEC2 => Some("requested bvec2 doesn't match".to_owned()),
     (Type::Boolean, Dim::Dim3) if typ != gl::BOOL_VEC3 => Some("requested bvec3 doesn't match".to_owned()),
     (Type::Boolean, Dim::Dim4) if typ != gl::BOOL_VEC4 => Some("requested bvec4 doesn't match".to_owned()),
-    (Type::ISampler, Dim::Dim1) if typ != gl::INT_SAMPLER_1D => Some("requested isampler1D doesn't match".to_owned()),
-    (Type::ISampler, Dim::Dim2) if typ != gl::INT_SAMPLER_2D => Some("requested isampler2D doesn't match".to_owned()),
-    (Type::ISampler, Dim::Dim3) if typ != gl::INT_SAMPLER_3D => Some("requested isampler3D doesn't match".to_owned()),
-    (Type::ISampler, Dim::Cubemap) if typ != gl::INT_SAMPLER_CUBE => Some("requested isamplerCube doesn't match".to_owned()),
-    (Type::USampler, Dim::Dim1) if typ != gl::UNSIGNED_INT_SAMPLER_1D => Some("requested usampler1D doesn't match".to_owned()),
-    (Type::USampler, Dim::Dim2) if typ != gl::UNSIGNED_INT_SAMPLER_2D => Some("requested usampler2D doesn't match".to_owned()),
-    (Type::USampler, Dim::Dim3) if typ != gl::UNSIGNED_INT_SAMPLER_3D => Some("requested usampler3D doesn't match".to_owned()),
-    (Type::USampler, Dim::Cubemap) if typ != gl::UNSIGNED_INT_SAMPLER_CUBE => Some("requested usamplerCube doesn't match".to_owned()),
-    (Type::Sampler, Dim::Dim1) if typ != gl::SAMPLER_1D => Some("requested sampler1D doesn't match".to_owned()),
-    (Type::Sampler, Dim::Dim2) if typ != gl::SAMPLER_2D => Some("requested sampler2D doesn't match".to_owned()),
-    (Type::Sampler, Dim::Dim3) if typ != gl::SAMPLER_3D => Some("requested sampler3D doesn't match".to_owned()),
-    (Type::Sampler, Dim::Cubemap) if typ != gl::SAMPLER_CUBE => Some("requested samplerCube doesn't match".to_owned()),
     _ => None
   }
 }
@@ -300,10 +287,8 @@ impl HasUniform for GL33 {
     unsafe { gl::Uniform4iv(*u, v.len() as GLsizei, v.as_ptr() as *const i32) }
   }
 
-  fn update_texture(u: &Self::U, texture: &<Self as HasTexture>::ATexture, unit: u32) where Self: HasTexture {
+  fn update_texture_unit(u: &Self::U, unit: u32) {
     unsafe {
-      gl::ActiveTexture(gl::TEXTURE0 + unit as GLenum);
-      gl::BindTexture(texture.target, texture.handle);
       gl::Uniform1i(*u, unit as GLint);
     }
   }
