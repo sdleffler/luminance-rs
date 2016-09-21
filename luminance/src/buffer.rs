@@ -187,3 +187,8 @@ impl DerefMut for Binding {
     &mut self.index
   }
 }
+
+/// An opaque type representing any buffer.
+pub struct BufferProxy<'a, C> where C: HasBuffer + 'a {
+  pub repr: &'a C::ABuffer
+}
