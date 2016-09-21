@@ -46,6 +46,7 @@
 
 use std::marker::PhantomData;
 
+use buffer::{Buffer, HasBuffer};
 use linear::{M22, M33, M44};
 use pixel::{self, Pixel};
 use shader::stage::{FragmentShader, GeometryShader, HasStage, Stage, TessellationControlShader,
@@ -697,3 +698,29 @@ impl<'a, C, L, D, P> Uniformable<C> for (&'a Texture<C, L, D, P>, u32)
     }
   }
 }
+
+//impl<'a, C, T> Uniformable<C> for (&'a Buffer<C, T>, u32)
+//    where C: HasUniform + HasBuffer,
+//          T: AsUniformBlock {
+//  fn update(u: &Uniform<C, Self>, x: Self) {
+//    C::update_buffer(&u.repr, &x.0.rerp, x.1);
+//  }
+//
+//  fn reify_type() -> Type {
+//    Type::Buffer(UniformBlockFormat)
+//  }
+//
+//  fn dim() -> Dim {
+//    Dim::Dim1
+//  }
+//}
+
+/// Uniform block component format.
+#[derive(Clone, Debug)]
+pub enum UniformBlockCompFormat {
+  BuiltIn(Type, Dim, usize),
+  Struct(UniformBlockFormat)
+}
+
+/// Format of the underlying data in a uniform buffer.
+pub type UniformBlockFormat = Vec<UniformBlockCompFormat>;
