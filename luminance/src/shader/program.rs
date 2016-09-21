@@ -103,8 +103,6 @@ impl<C, T> Program<C, T> where C: HasProgram {
 
 /// `Program` proxy used to map uniforms. When building a `Program`, as the `Program` doesn’t exist
 /// yet, a `ProgramProxy` is passed to act as it was the `Program`.
-///
-/// Because `ProgramProxy` uses a ref to `Program`, it doesn’t own it and *must die before*.
 #[derive(Debug)]
 pub struct ProgramProxy<'a, C> where C: 'a + HasProgram {
   repr: &'a C::Program
