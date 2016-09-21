@@ -59,17 +59,29 @@ impl HasProgram for GL33 {
 
   fn map_uniform(program: &Self::Program, name: &str, ty: Type, dim: Dim) -> (Self::U, Option<UniformWarning>) {
     let c_name = CString::new(name.as_bytes()).unwrap();
-    let location = unsafe { gl::GetUniformLocation(*program, c_name.as_ptr() as *const GLchar) };
+    let location = if ty == Type::BufferBinding {
+      let index = unsafe { gl::GetUniformBlockIndex(*program, c_name.as_ptr() as *const GLchar) };
 
-    if location == -1 {
-      return (-1, Some(UniformWarning::Inactive(name.to_owned())));
-    }
+      if index == gl::INVALID_INDEX {
+        return ((*program, -1), Some(UniformWarning::Inactive(name.to_owned())));
+      }
+
+      index as GLint
+    } else {
+      let location = unsafe { gl::GetUniformLocation(*program, c_name.as_ptr() as *const GLchar) };
+
+      if location == -1 {
+        return ((*program, -1), Some(UniformWarning::Inactive(name.to_owned())));
+      }
+
+      location
+    };
 
     if let Some(err) = uniform_type_match(*program, name, ty, dim) {
-      return (location, Some(UniformWarning::TypeMismatch(err)));
+      return ((*program, location), Some(UniformWarning::TypeMismatch(err)));
     }
 
-    (location, None)
+    ((*program, location), None)
   }
 
   fn update_uniforms<F>(program: &Self::Program, f: F) where F: Fn() {
@@ -126,102 +138,102 @@ pub type Uniform<T> = program::Uniform<GL33, T>;
 pub type Uniformable = program::Uniformable<GL33>;
 
 impl HasUniform for GL33 {
-  type U = GLint;
+  type U = (<GL33 as HasProgram>::Program, GLint);
 
   fn update1_i32(u: &Self::U, x: i32) {
-    unsafe { gl::Uniform1i(*u, x) }
+    unsafe { gl::Uniform1i(u.1, x) }
   }
 
   fn update2_i32(u: &Self::U, v: [i32; 2]) {
-    unsafe { gl::Uniform2iv(*u, 1, &v as *const i32) }
+    unsafe { gl::Uniform2iv(u.1, 1, &v as *const i32) }
   }
 
   fn update3_i32(u: &Self::U, v: [i32; 3]) {
-    unsafe { gl::Uniform3iv(*u, 1, &v as *const i32) }
+    unsafe { gl::Uniform3iv(u.1, 1, &v as *const i32) }
   }
 
   fn update4_i32(u: &Self::U, v: [i32; 4]) {
-    unsafe { gl::Uniform4iv(*u, 1, &v as *const i32) }
+    unsafe { gl::Uniform4iv(u.1, 1, &v as *const i32) }
   }
 
   fn update1_slice_i32(u: &Self::U, v: &[i32]) {
-    unsafe { gl::Uniform1iv(*u, v.len() as GLsizei, v.as_ptr()) }
+    unsafe { gl::Uniform1iv(u.1, v.len() as GLsizei, v.as_ptr()) }
   }
 
   fn update2_slice_i32(u: &Self::U, v: &[[i32; 2]]) {
-    unsafe { gl::Uniform2iv(*u, v.len() as GLsizei, v.as_ptr() as *const i32) }
+    unsafe { gl::Uniform2iv(u.1, v.len() as GLsizei, v.as_ptr() as *const i32) }
   }
 
   fn update3_slice_i32(u: &Self::U, v: &[[i32; 3]]) {
-    unsafe { gl::Uniform3iv(*u, v.len() as GLsizei, v.as_ptr() as *const i32) }
+    unsafe { gl::Uniform3iv(u.1, v.len() as GLsizei, v.as_ptr() as *const i32) }
   }
 
   fn update4_slice_i32(u: &Self::U, v: &[[i32; 4]]) {
-    unsafe { gl::Uniform4iv(*u, v.len() as GLsizei, v.as_ptr() as *const i32) }
+    unsafe { gl::Uniform4iv(u.1, v.len() as GLsizei, v.as_ptr() as *const i32) }
   }
 
   fn update1_u32(u: &Self::U, x: u32) {
-    unsafe { gl::Uniform1ui(*u, x) }
+    unsafe { gl::Uniform1ui(u.1, x) }
   }
 
   fn update2_u32(u: &Self::U, v: [u32; 2]) {
-    unsafe { gl::Uniform2uiv(*u, 1, &v as *const u32) }
+    unsafe { gl::Uniform2uiv(u.1, 1, &v as *const u32) }
   }
 
   fn update3_u32(u: &Self::U, v: [u32; 3]) {
-    unsafe { gl::Uniform3uiv(*u, 1, &v as *const u32) }
+    unsafe { gl::Uniform3uiv(u.1, 1, &v as *const u32) }
   }
 
   fn update4_u32(u: &Self::U, v: [u32; 4]) {
-    unsafe { gl::Uniform4uiv(*u, 1, &v as *const u32) }
+    unsafe { gl::Uniform4uiv(u.1, 1, &v as *const u32) }
   }
 
   fn update1_slice_u32(u: &Self::U, v: &[u32]) {
-    unsafe { gl::Uniform1uiv(*u, v.len() as GLsizei, v.as_ptr() as *const u32) }
+    unsafe { gl::Uniform1uiv(u.1, v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
   fn update2_slice_u32(u: &Self::U, v: &[[u32; 2]]) {
-    unsafe { gl::Uniform2uiv(*u, v.len() as GLsizei, v.as_ptr() as *const u32) }
+    unsafe { gl::Uniform2uiv(u.1, v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
   fn update3_slice_u32(u: &Self::U, v: &[[u32; 3]]) {
-    unsafe { gl::Uniform3uiv(*u, v.len() as GLsizei, v.as_ptr() as *const u32) }
+    unsafe { gl::Uniform3uiv(u.1, v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
   fn update4_slice_u32(u: &Self::U, v: &[[u32; 4]]) {
-    unsafe { gl::Uniform4uiv(*u, v.len() as GLsizei, v.as_ptr() as *const u32) }
+    unsafe { gl::Uniform4uiv(u.1, v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
   fn update1_f32(u: &Self::U, x: f32) {
-    unsafe { gl::Uniform1f(*u, x) }
+    unsafe { gl::Uniform1f(u.1, x) }
   }
 
   fn update2_f32(u: &Self::U, v: [f32; 2]) {
-    unsafe { gl::Uniform2fv(*u, 1, &v as *const f32) }
+    unsafe { gl::Uniform2fv(u.1, 1, &v as *const f32) }
   }
 
   fn update3_f32(u: &Self::U, v: [f32; 3]) {
-    unsafe { gl::Uniform3fv(*u, 1, &v as *const f32) }
+    unsafe { gl::Uniform3fv(u.1, 1, &v as *const f32) }
   }
 
   fn update4_f32(u: &Self::U, v: [f32; 4]) {
-    unsafe { gl::Uniform4fv(*u, 1, &v as *const f32) }
+    unsafe { gl::Uniform4fv(u.1, 1, &v as *const f32) }
   }
 
   fn update1_slice_f32(u: &Self::U, v: &[f32]) {
-    unsafe { gl::Uniform1fv(*u, v.len() as GLsizei, v.as_ptr() as *const f32) }
+    unsafe { gl::Uniform1fv(u.1, v.len() as GLsizei, v.as_ptr() as *const f32) }
   }
 
   fn update2_slice_f32(u: &Self::U, v: &[[f32; 2]]) {
-    unsafe { gl::Uniform2fv(*u, v.len() as GLsizei, v.as_ptr() as *const f32) }
+    unsafe { gl::Uniform2fv(u.1, v.len() as GLsizei, v.as_ptr() as *const f32) }
   }
 
   fn update3_slice_f32(u: &Self::U, v: &[[f32; 3]]) {
-    unsafe { gl::Uniform3fv(*u, v.len() as GLsizei, v.as_ptr() as *const f32) }
+    unsafe { gl::Uniform3fv(u.1, v.len() as GLsizei, v.as_ptr() as *const f32) }
   }
 
   fn update4_slice_f32(u: &Self::U, v: &[[f32; 4]]) {
-    unsafe { gl::Uniform4fv(*u, v.len() as GLsizei, v.as_ptr() as *const f32) }
+    unsafe { gl::Uniform4fv(u.1, v.len() as GLsizei, v.as_ptr() as *const f32) }
   }
 
   fn update22_f32(u: &Self::U, m: M22) {
@@ -237,59 +249,65 @@ impl HasUniform for GL33 {
   }
 
   fn update22_slice_f32(u: &Self::U, v: &[M22]) {
-    unsafe { gl::UniformMatrix2fv(*u, v.len() as GLsizei, gl::FALSE, v.as_ptr() as *const f32) }
+    unsafe { gl::UniformMatrix2fv(u.1, v.len() as GLsizei, gl::FALSE, v.as_ptr() as *const f32) }
   }
 
   fn update33_slice_f32(u: &Self::U, v: &[M33]) {
-    unsafe { gl::UniformMatrix3fv(*u, v.len() as GLsizei, gl::FALSE, v.as_ptr() as *const f32) }
+    unsafe { gl::UniformMatrix3fv(u.1, v.len() as GLsizei, gl::FALSE, v.as_ptr() as *const f32) }
   }
 
   fn update44_slice_f32(u: &Self::U, v: &[M44]) {
-    unsafe { gl::UniformMatrix4fv(*u, v.len() as GLsizei, gl::FALSE, v.as_ptr() as *const f32) }
+    unsafe { gl::UniformMatrix4fv(u.1, v.len() as GLsizei, gl::FALSE, v.as_ptr() as *const f32) }
   }
 
   fn update1_bool(u: &Self::U, x: bool) {
-    unsafe { gl::Uniform1i(*u, x as GLint) }
+    unsafe { gl::Uniform1i(u.1, x as GLint) }
   }
 
   fn update2_bool(u: &Self::U, v: [bool; 2]) {
     let v = [v[0] as i32, v[1] as i32];
-    unsafe { gl::Uniform2iv(*u, 1, &v as *const i32) }
+    unsafe { gl::Uniform2iv(u.1, 1, &v as *const i32) }
   }
 
   fn update3_bool(u: &Self::U, v: [bool; 3]) {
     let v = [v[0] as i32, v[1] as i32, v[2] as i32];
-    unsafe { gl::Uniform3iv(*u, 1, &v as *const i32) }
+    unsafe { gl::Uniform3iv(u.1, 1, &v as *const i32) }
   }
 
   fn update4_bool(u: &Self::U, v: [bool; 4]) {
     let v = [v[0] as i32, v[1] as i32, v[2] as i32, v[3] as i32];
-    unsafe { gl::Uniform4iv(*u, 1,  &v as *const i32) }
+    unsafe { gl::Uniform4iv(u.1, 1,  &v as *const i32) }
   }
 
   fn update1_slice_bool(u: &Self::U, v: &[bool]) {
     let v: Vec<_> = v.iter().map(|x| *x as i32).collect();
-    unsafe { gl::Uniform1iv(*u, v.len() as GLsizei, v.as_ptr()) }
+    unsafe { gl::Uniform1iv(u.1, v.len() as GLsizei, v.as_ptr()) }
   }
 
   fn update2_slice_bool(u: &Self::U, v: &[[bool; 2]]) {
     let v: Vec<_> = v.iter().map(|x| [x[0] as i32, x[1] as i32]).collect();
-    unsafe { gl::Uniform2iv(*u, v.len() as GLsizei, v.as_ptr() as *const i32) }
+    unsafe { gl::Uniform2iv(u.1, v.len() as GLsizei, v.as_ptr() as *const i32) }
   }
 
   fn update3_slice_bool(u: &Self::U, v: &[[bool; 3]]) {
     let v: Vec<_> = v.iter().map(|x| [x[0] as i32, x[1] as i32, x[2] as i32]).collect();
-    unsafe { gl::Uniform3iv(*u, v.len() as GLsizei, v.as_ptr() as *const i32) }
+    unsafe { gl::Uniform3iv(u.1, v.len() as GLsizei, v.as_ptr() as *const i32) }
   }
 
   fn update4_slice_bool(u: &Self::U, v: &[[bool; 4]]) {
     let v: Vec<_> = v.iter().map(|x| [x[0] as i32, x[1] as i32, x[2] as i32, x[3] as i32]).collect();
-    unsafe { gl::Uniform4iv(*u, v.len() as GLsizei, v.as_ptr() as *const i32) }
+    unsafe { gl::Uniform4iv(u.1, v.len() as GLsizei, v.as_ptr() as *const i32) }
   }
 
   fn update_texture_unit(u: &Self::U, unit: u32) {
     unsafe {
-      gl::Uniform1i(*u, unit as GLint);
+      gl::Uniform1i(u.1, unit as GLint);
+    }
+  }
+
+  fn update_buffer_binding(u: &Self::U, binding: u32) {
+    unsafe {
+      gl::UniformBlockBinding(u.0, u.1 as GLuint, binding as GLuint);
     }
   }
 }

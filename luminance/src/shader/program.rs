@@ -257,7 +257,7 @@ impl<'a, T> UniformUpdate<'a, T> where T: 'a {
 }
 
 /// Type of a uniform.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Type {
   Integral,
   Unsigned,
@@ -268,7 +268,7 @@ pub enum Type {
 }
 
 /// Dimension of the uniform.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Dim {
   Dim1,
   Dim2,
