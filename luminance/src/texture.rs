@@ -444,7 +444,7 @@ impl DerefMut for Unit {
 
 /// An opaque type representing any texture.
 pub struct TextureProxy<'a, C> where C: HasTexture + 'a {
-  repr: &'a C::ATexture
+  pub repr: &'a C::ATexture
 }
 
 impl<'a, C, L, D, P> From<&'a Texture<C, L, D, P>> for TextureProxy<'a, C>

@@ -7,7 +7,7 @@ use blending;
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer, HasFramebuffer};
 use shader::program::{HasProgram, Program};
 use tessellation::{HasTessellation, Tessellation};
-use texture::{Dimensionable, HasTexture, Layerable, TextureProxy, Unit};
+use texture::{Dimensionable, HasTexture, Layerable, TextureProxy};
 
 /// Trait to implement to add `Pipeline` support.
 pub trait HasPipeline: HasFramebuffer + HasProgram + HasTessellation + HasTexture + Sized {
