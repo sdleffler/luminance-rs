@@ -1,6 +1,8 @@
 //! This module provides texture features.
 
 use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
+
 use pixel::Pixel;
 
 /// How to wrap texture coordinates while sampling textures?
@@ -410,5 +412,24 @@ impl Default for Sampler {
       magnification: Filter::Linear,
       depth_comparison: None
     }
+  }
+}
+
+/// Texture unit.
+pub struct Unit {
+  unit: u32
+}
+
+impl Deref for Unit {
+  type Target = u32;
+
+  fn deref(&self) -> &u32 {
+    &self.unit
+  }
+}
+
+impl DerefMut for Unit {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.unit
   }
 }
