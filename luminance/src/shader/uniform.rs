@@ -140,8 +140,6 @@ pub enum Dim {
   Cubemap
 }
 
-/// Layering of a uniform (flat or layered/array).
-
 /// Types that can behave as `Uniform`.
 pub trait Uniformable<C>: Sized where C: HasUniform {
   /// Update the uniform with a new value.
