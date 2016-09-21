@@ -57,12 +57,12 @@ impl HasProgram for GL33 {
     unsafe { gl::DeleteProgram(*program) }
   }
 
-  fn map_uniform(program: &Self::Program, name: String, ty: Type, dim: Dim) -> (Self::U, Option<UniformWarning>) {
+  fn map_uniform(program: &Self::Program, name: &str, ty: Type, dim: Dim) -> (Self::U, Option<UniformWarning>) {
     let c_name = CString::new(name.as_bytes()).unwrap();
     let location = unsafe { gl::GetUniformLocation(*program, c_name.as_ptr() as *const GLchar) };
 
     if location == -1 {
-      return (-1, Some(UniformWarning::Inactive(name)));
+      return (-1, Some(UniformWarning::Inactive(name.to_owned())));
     }
 
     if let Some(err) = uniform_type_match(*program, name, ty, dim) {
@@ -80,7 +80,7 @@ impl HasProgram for GL33 {
 }
 
 // Return something if no match can be established.
-fn uniform_type_match(program: GLuint, name: String, ty: Type, dim: Dim) -> Option<String> {
+fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> Option<String> {
   let mut size: GLint = 0;
   let mut typ: GLuint = 0;
 
@@ -99,37 +99,37 @@ fn uniform_type_match(program: GLuint, name: String, ty: Type, dim: Dim) -> Opti
   }
 
   match (ty, dim) {
-    (Type::Integral, Dim::Dim1) if typ != gl::INT => Some("requested int doesn't match".into()),
-    (Type::Integral, Dim::Dim2) if typ != gl::INT_VEC2 => Some("requested ivec2 doesn't match".into()),
-    (Type::Integral, Dim::Dim3) if typ != gl::INT_VEC3 => Some("requested ivec3 doesn't match".into()),
-    (Type::Integral, Dim::Dim4) if typ != gl::INT_VEC4 => Some("requested ivec4 doesn't match".into()),
-    (Type::Unsigned, Dim::Dim1) if typ != gl::UNSIGNED_INT => Some("requested uint doesn't match".into()),
-    (Type::Unsigned, Dim::Dim2) if typ != gl::UNSIGNED_INT_VEC2 => Some("requested uvec2 doesn't match".into()),
-    (Type::Unsigned, Dim::Dim3) if typ != gl::UNSIGNED_INT_VEC3 => Some("requested uvec3 doesn't match".into()),
-    (Type::Unsigned, Dim::Dim4) if typ != gl::UNSIGNED_INT_VEC4 => Some("requested uvec4 doesn't match".into()),
-    (Type::Floating, Dim::Dim1) if typ != gl::FLOAT => Some("requested float doesn't match".into()),
-    (Type::Floating, Dim::Dim2) if typ != gl::FLOAT_VEC2 => Some("requested vec2 doesn't match".into()),
-    (Type::Floating, Dim::Dim3) if typ != gl::FLOAT_VEC3 => Some("requested vec3 doesn't match".into()),
-    (Type::Floating, Dim::Dim4) if typ != gl::FLOAT_VEC4 => Some("requested vec4 doesn't match".into()),
-    (Type::Floating, Dim::Dim22) if typ != gl::FLOAT_MAT2 => Some("requested mat2 doesn't match".into()),
-    (Type::Floating, Dim::Dim33) if typ != gl::FLOAT_MAT3 => Some("requested mat3 doesn't match".into()),
-    (Type::Floating, Dim::Dim44) if typ != gl::FLOAT_MAT4 => Some("requested mat4 doesn't match".into()),
-    (Type::Boolean, Dim::Dim1) if typ != gl::BOOL => Some("requested bool doesn't match".into()),
-    (Type::Boolean, Dim::Dim2) if typ != gl::BOOL_VEC2 => Some("requested bvec2 doesn't match".into()),
-    (Type::Boolean, Dim::Dim3) if typ != gl::BOOL_VEC3 => Some("requested bvec3 doesn't match".into()),
-    (Type::Boolean, Dim::Dim4) if typ != gl::BOOL_VEC4 => Some("requested bvec4 doesn't match".into()),
-    (Type::ISampler, Dim::Dim1) if typ != gl::INT_SAMPLER_1D => Some("requested isampler1D doesn't match".into()),
-    (Type::ISampler, Dim::Dim2) if typ != gl::INT_SAMPLER_2D => Some("requested isampler2D doesn't match".into()),
-    (Type::ISampler, Dim::Dim3) if typ != gl::INT_SAMPLER_3D => Some("requested isampler3D doesn't match".into()),
-    (Type::ISampler, Dim::Cubemap) if typ != gl::INT_SAMPLER_CUBE => Some("requested isamplerCube doesn't match".into()),
-    (Type::USampler, Dim::Dim1) if typ != gl::UNSIGNED_INT_SAMPLER_1D => Some("requested usampler1D doesn't match".into()),
-    (Type::USampler, Dim::Dim2) if typ != gl::UNSIGNED_INT_SAMPLER_2D => Some("requested usampler2D doesn't match".into()),
-    (Type::USampler, Dim::Dim3) if typ != gl::UNSIGNED_INT_SAMPLER_3D => Some("requested usampler3D doesn't match".into()),
-    (Type::USampler, Dim::Cubemap) if typ != gl::UNSIGNED_INT_SAMPLER_CUBE => Some("requested usamplerCube doesn't match".into()),
-    (Type::Sampler, Dim::Dim1) if typ != gl::SAMPLER_1D => Some("requested sampler1D doesn't match".into()),
-    (Type::Sampler, Dim::Dim2) if typ != gl::SAMPLER_2D => Some("requested sampler2D doesn't match".into()),
-    (Type::Sampler, Dim::Dim3) if typ != gl::SAMPLER_3D => Some("requested sampler3D doesn't match".into()),
-    (Type::Sampler, Dim::Cubemap) if typ != gl::SAMPLER_CUBE => Some("requested samplerCube doesn't match".into()),
+    (Type::Integral, Dim::Dim1) if typ != gl::INT => Some("requested int doesn't match".to_owned()),
+    (Type::Integral, Dim::Dim2) if typ != gl::INT_VEC2 => Some("requested ivec2 doesn't match".to_owned()),
+    (Type::Integral, Dim::Dim3) if typ != gl::INT_VEC3 => Some("requested ivec3 doesn't match".to_owned()),
+    (Type::Integral, Dim::Dim4) if typ != gl::INT_VEC4 => Some("requested ivec4 doesn't match".to_owned()),
+    (Type::Unsigned, Dim::Dim1) if typ != gl::UNSIGNED_INT => Some("requested uint doesn't match".to_owned()),
+    (Type::Unsigned, Dim::Dim2) if typ != gl::UNSIGNED_INT_VEC2 => Some("requested uvec2 doesn't match".to_owned()),
+    (Type::Unsigned, Dim::Dim3) if typ != gl::UNSIGNED_INT_VEC3 => Some("requested uvec3 doesn't match".to_owned()),
+    (Type::Unsigned, Dim::Dim4) if typ != gl::UNSIGNED_INT_VEC4 => Some("requested uvec4 doesn't match".to_owned()),
+    (Type::Floating, Dim::Dim1) if typ != gl::FLOAT => Some("requested float doesn't match".to_owned()),
+    (Type::Floating, Dim::Dim2) if typ != gl::FLOAT_VEC2 => Some("requested vec2 doesn't match".to_owned()),
+    (Type::Floating, Dim::Dim3) if typ != gl::FLOAT_VEC3 => Some("requested vec3 doesn't match".to_owned()),
+    (Type::Floating, Dim::Dim4) if typ != gl::FLOAT_VEC4 => Some("requested vec4 doesn't match".to_owned()),
+    (Type::Floating, Dim::Dim22) if typ != gl::FLOAT_MAT2 => Some("requested mat2 doesn't match".to_owned()),
+    (Type::Floating, Dim::Dim33) if typ != gl::FLOAT_MAT3 => Some("requested mat3 doesn't match".to_owned()),
+    (Type::Floating, Dim::Dim44) if typ != gl::FLOAT_MAT4 => Some("requested mat4 doesn't match".to_owned()),
+    (Type::Boolean, Dim::Dim1) if typ != gl::BOOL => Some("requested bool doesn't match".to_owned()),
+    (Type::Boolean, Dim::Dim2) if typ != gl::BOOL_VEC2 => Some("requested bvec2 doesn't match".to_owned()),
+    (Type::Boolean, Dim::Dim3) if typ != gl::BOOL_VEC3 => Some("requested bvec3 doesn't match".to_owned()),
+    (Type::Boolean, Dim::Dim4) if typ != gl::BOOL_VEC4 => Some("requested bvec4 doesn't match".to_owned()),
+    (Type::ISampler, Dim::Dim1) if typ != gl::INT_SAMPLER_1D => Some("requested isampler1D doesn't match".to_owned()),
+    (Type::ISampler, Dim::Dim2) if typ != gl::INT_SAMPLER_2D => Some("requested isampler2D doesn't match".to_owned()),
+    (Type::ISampler, Dim::Dim3) if typ != gl::INT_SAMPLER_3D => Some("requested isampler3D doesn't match".to_owned()),
+    (Type::ISampler, Dim::Cubemap) if typ != gl::INT_SAMPLER_CUBE => Some("requested isamplerCube doesn't match".to_owned()),
+    (Type::USampler, Dim::Dim1) if typ != gl::UNSIGNED_INT_SAMPLER_1D => Some("requested usampler1D doesn't match".to_owned()),
+    (Type::USampler, Dim::Dim2) if typ != gl::UNSIGNED_INT_SAMPLER_2D => Some("requested usampler2D doesn't match".to_owned()),
+    (Type::USampler, Dim::Dim3) if typ != gl::UNSIGNED_INT_SAMPLER_3D => Some("requested usampler3D doesn't match".to_owned()),
+    (Type::USampler, Dim::Cubemap) if typ != gl::UNSIGNED_INT_SAMPLER_CUBE => Some("requested usamplerCube doesn't match".to_owned()),
+    (Type::Sampler, Dim::Dim1) if typ != gl::SAMPLER_1D => Some("requested sampler1D doesn't match".to_owned()),
+    (Type::Sampler, Dim::Dim2) if typ != gl::SAMPLER_2D => Some("requested sampler2D doesn't match".to_owned()),
+    (Type::Sampler, Dim::Dim3) if typ != gl::SAMPLER_3D => Some("requested sampler3D doesn't match".to_owned()),
+    (Type::Sampler, Dim::Cubemap) if typ != gl::SAMPLER_CUBE => Some("requested samplerCube doesn't match".to_owned()),
     _ => None
   }
 }

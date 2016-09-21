@@ -56,7 +56,7 @@ pub trait HasProgram: HasStage + HasUniform {
   /// Free a program.
   fn free_program(program: &mut Self::Program);
   /// Map a uniform name to its uniform representation. Can fail with `ProgramError`.
-  fn map_uniform(program: &Self::Program, name: String, ty: uniform::Type, dim: uniform::Dim) -> (Self::U, Option<UniformWarning>);
+  fn map_uniform(program: &Self::Program, name: &str, ty: uniform::Type, dim: uniform::Dim) -> (Self::U, Option<UniformWarning>);
   /// Bulk update of uniforms. The update closure should contain the code used to update as many
   /// uniforms as wished.
   fn update_uniforms<F>(program: &Self::Program, f: F) where F: Fn();
@@ -122,7 +122,7 @@ impl<'a, C> ProgramProxy<'a, C> where C: HasProgram {
     let ty = T::reify_type();
     let dim = T::dim();
 
-    let (u, w) = C::map_uniform(self.repr, String::from(name), ty, dim);
+    let (u, w) = C::map_uniform(self.repr, name, ty, dim);
     (Uniform::new(u), w)
   }
 }
