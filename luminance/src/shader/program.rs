@@ -21,9 +21,9 @@
 //! `Stage<GeometryShader>`.
 //!
 //! In order to customize the behavior of your shader programs, you have access to *uniforms*. For
-//! more details about them, see the documentation for the type `Uniform` and `Uniformable`. When
-//! creating a new shader program, you have to provide code to declare its *uniform interface*. The
-//! *uniform interface* refers to a type of your own that will be kept by the shader program and
+//! more details about them, see the documentation for the type `Uniform` and trait `Uniformable`.
+//! When creating a new shader program, you have to provide code to declare its *uniform interface*.
+//! The *uniform interface* refers to a type of your own that will be kept by the shader program and
 //! exposed to you when you’ll express the need to update its uniforms. That *uniform interface* is
 //! created via a closure you pass. That closure takes as arguments a `ProgramProxy` used to
 //! retrieve `Uniform`s from the program being constructed. That pattern, that can be a bit
@@ -46,7 +46,6 @@
 
 use std::marker::PhantomData;
 
-use buffer::{Buffer, HasBuffer};
 use linear::{M22, M33, M44};
 use pixel::{self, Pixel};
 use shader::stage::{FragmentShader, GeometryShader, HasStage, Stage, TessellationControlShader,
