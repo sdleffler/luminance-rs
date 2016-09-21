@@ -53,6 +53,7 @@
 
 use std::marker::PhantomData;
 use std::mem;
+use std::ops::{Deref, DerefMut};
 use std::vec::Vec;
 
 /// Implement this trait to provide buffers.
@@ -157,5 +158,32 @@ impl<C, T> Buffer<C, T> where C: HasBuffer {
 impl<C, T> Drop for Buffer<C, T> where C: HasBuffer {
   fn drop(&mut self) {
     C::free(&mut self.repr)
+  }
+}
+
+/// Buffer binding.
+pub struct Binding {
+  index: u32
+}
+
+impl Binding {
+  pub fn new(index: u32) -> Self {
+    Binding {
+      index: index
+    }
+  }
+}
+
+impl Deref for Binding {
+  type Target = u32;
+
+  fn deref(&self) -> &Self::Target {
+    &self.index
+  }
+}
+
+impl DerefMut for Binding {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.index
   }
 }
