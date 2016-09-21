@@ -47,10 +47,9 @@
 use std::marker::PhantomData;
 
 use linear::{M22, M33, M44};
-use pixel::{self, Pixel};
 use shader::stage::{FragmentShader, GeometryShader, HasStage, Stage, TessellationControlShader,
                     TessellationEvaluationShader, VertexShader};
-use texture::{self, Dimensionable, Layerable, HasTexture, Texture};
+use texture::Unit;
 
 /// Trait to implement to provide shader program features.
 pub trait HasProgram: HasStage + HasUniform {
@@ -194,7 +193,7 @@ pub trait HasUniform {
   fn update3_slice_bool(uniform: &Self::U, xyz: &[[bool; 3]]);
   fn update4_slice_bool(uniform: &Self::U, xyzw: &[[bool; 4]]);
   // textures
-  fn update_texture(uniform: &Self::U, texture: &Self::ATexture, unit: u32) where Self: HasTexture;
+  fn update_texture_unit(uniform: &Self::U, unit: u32);
   // uniform buffers
   //fn update_buffer(uniform_block: &Self::UB, buffer: &Self::ABuffer, index: u32) where Self: HasBuffer;
 }
@@ -263,9 +262,7 @@ pub enum Type {
   Unsigned,
   Floating,
   Boolean,
-  ISampler,
-  USampler,
-  Sampler
+  TextureUnit
 }
 
 /// Dimension of the uniform.
@@ -671,31 +668,14 @@ impl<'a, C> Uniformable<C> for &'a [[bool; 4]] where C: HasUniform {
   fn dim() -> Dim { Dim::Dim4 }
 }
 
-impl<'a, C, L, D, P> Uniformable<C> for (&'a Texture<C, L, D, P>, u32)
-    where C: HasUniform + HasTexture,
-          L: Layerable,
-          D: Dimensionable,
-          P: Pixel {
-  fn update(u: &Uniform<C, Self>, x: Self) {
-    C::update_texture(&u.repr, &x.0.repr, x.1);
+impl<C> Uniformable<C> for Unit where C: HasUniform {
+  fn update(u: &Uniform<C, Self>, unit: Self) {
+    C::update_texture_unit(&u.repr, *unit);
   }
 
-  fn reify_type() -> Type {
-    match P::pixel_format().encoding {
-      pixel::Type::Integral => Type::ISampler,
-      pixel::Type::Unsigned => Type::USampler,
-      pixel::Type::Floating => Type::Sampler
-    }
-  }
+  fn reify_type() -> Type { Type::TextureUnit }
 
-  fn dim() -> Dim {
-    match D::dim() {
-      texture::Dim::Dim1 => Dim::Dim1,
-      texture::Dim::Dim2 => Dim::Dim2,
-      texture::Dim::Dim3 => Dim::Dim3,
-      texture::Dim::Cubemap => Dim::Cubemap,
-    }
-  }
+  fn dim() -> Dim { Dim::Dim1 }
 }
 
 //impl<'a, C, T> Uniformable<C> for (&'a Buffer<C, T>, u32)
