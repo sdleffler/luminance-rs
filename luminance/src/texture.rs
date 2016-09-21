@@ -431,7 +431,7 @@ impl Unit {
 impl Deref for Unit {
   type Target = u32;
 
-  fn deref(&self) -> &u32 {
+  fn deref(&self) -> &Self::Target {
     &self.unit
   }
 }
