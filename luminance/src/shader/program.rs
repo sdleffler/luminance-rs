@@ -204,7 +204,7 @@ pub trait HasUniform {
 #[derive(Debug)]
 pub struct Uniform<C, T> where C: HasUniform, T: Uniformable<C> {
   pub repr: C::U,
-  _t: PhantomData<T>
+  _t: PhantomData<*const T>
 }
 
 impl<C, T> Uniform<C, T> where C: HasUniform, T: Uniformable<C> {
@@ -283,9 +283,6 @@ pub enum Dim {
 
 /// Types that can behave as `Uniform`.
 pub trait Uniformable<C>: Sized where C: HasUniform {
-  // /// Backend representation.
-  // type Repr;
-
   /// Update the uniform with a new value.
   fn update(u: &Uniform<C, Self>, x: Self);
   /// Retrieve the `Type` of the uniform.
