@@ -30,6 +30,11 @@ impl HasPipeline for GL33 {
         gl::ActiveTexture(gl::TEXTURE0 + unit as GLenum);
         gl::BindTexture(tex.repr.target, tex.repr.handle);
       }
+
+      // traverse the buffer set and bind required buffers
+      for (index, buf) in cmd.buffer_set.iter().enumerate() {
+        gl::BindBufferBase(gl::UNIFORM_BUFFER, index as GLuint, buf.repr.handle);
+      }
     }
 
     for shading_cmd in &cmd.shading_commands {
