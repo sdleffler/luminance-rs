@@ -441,3 +441,21 @@ impl DerefMut for Unit {
     &mut self.unit
   }
 }
+
+/// An opaque type representing any texture.
+pub struct TextureProxy<'a, C> where C: HasTexture + 'a {
+  repr: &'a C::ATexture
+}
+
+impl<'a, C, L, D, P> From<&'a Texture<C, L, D, P>> for TextureProxy<'a, C>
+    where C: HasTexture,
+          L: Layerable,
+          D: Dimensionable,
+          D::Size: Copy,
+          P: Pixel {
+  fn from(texture: &'a Texture<C, L, D, P>) -> Self {
+    TextureProxy {
+      repr: &texture.repr
+    }
+  }
+}
