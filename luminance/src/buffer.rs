@@ -56,6 +56,9 @@ use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::vec::Vec;
 
+use linear::{M22, M33, M44};
+use texture::Unit;
+
 /// Implement this trait to provide buffers.
 pub trait HasBuffer {
   /// A type representing minimal information to operate on a buffer. For instance, a size, a
@@ -188,7 +191,58 @@ impl DerefMut for Binding {
   }
 }
 
-/// An opaque type representing any buffer.
-pub struct BufferProxy<'a, C> where C: HasBuffer + 'a {
+/// An opaque type representing any uniform buffer.
+pub struct UniformBufferProxy<'a, C> where C: HasBuffer + 'a {
   pub repr: &'a C::ABuffer
 }
+
+impl<'a, C, T> From<&'a Buffer<C, T>> for UniformBufferProxy<'a, C>
+    where C: HasBuffer,
+          T: UniformBlock {
+  fn from(buffer: &'a Buffer<C, T>) -> Self {
+    UniformBufferProxy {
+      repr: &buffer.repr
+    }
+  }
+}
+
+pub trait UniformBlock {}
+
+impl UniformBlock for u32 {}
+impl UniformBlock for i32 {}
+impl UniformBlock for f32 {}
+impl UniformBlock for bool {}
+impl UniformBlock for M22 {}
+impl UniformBlock for M33 {}
+impl UniformBlock for M44 {}
+impl UniformBlock for [u32; 2] {}
+impl UniformBlock for [i32; 2] {}
+impl UniformBlock for [f32; 2] {}
+impl UniformBlock for [bool; 2] {}
+impl UniformBlock for [u32; 3] {}
+impl UniformBlock for [i32; 3] {}
+impl UniformBlock for [f32; 3] {}
+impl UniformBlock for [bool; 3] {}
+impl UniformBlock for [u32; 4] {}
+impl UniformBlock for [i32; 4] {}
+impl UniformBlock for [f32; 4] {}
+impl UniformBlock for [bool; 4] {}
+impl UniformBlock for Unit {}
+impl UniformBlock for Binding {}
+impl<T> UniformBlock for [T] where T: UniformBlock {}
+
+macro_rules! impl_uniform_block_tuple {
+  ($( $t:ident ),*) => {
+    impl<$($t),*> UniformBlock for ($($t),*) where $($t: UniformBlock),* {}
+  }
+}
+
+impl_uniform_block_tuple!(A, B);
+impl_uniform_block_tuple!(A, B, C);
+impl_uniform_block_tuple!(A, B, C, D);
+impl_uniform_block_tuple!(A, B, C, D, E);
+impl_uniform_block_tuple!(A, B, C, D, E, F);
+impl_uniform_block_tuple!(A, B, C, D, E, F, G);
+impl_uniform_block_tuple!(A, B, C, D, E, F, G, H);
+impl_uniform_block_tuple!(A, B, C, D, E, F, G, H, I);
+impl_uniform_block_tuple!(A, B, C, D, E, F, G, H, I, J);

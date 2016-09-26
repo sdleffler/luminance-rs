@@ -3,7 +3,7 @@
 //! This module gives you materials to build *dynamic* rendering **pipelines**. A `Pipeline`
 //! represents a functional stream that consumes geometric data and rasterizes them.
 
-use buffer::{HasBuffer, BufferProxy};
+use buffer::{HasBuffer, UniformBufferProxy};
 use blending;
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer, HasFramebuffer};
 use shader::program::{HasProgram, Program};
@@ -45,7 +45,7 @@ pub struct Pipeline<'a, C, L, D, CS, DS>
   /// Texture set.
   pub texture_set: &'a[TextureProxy<'a, C>],
   /// Buffer set.
-  pub buffer_set: &'a[BufferProxy<'a, C>],
+  pub buffer_set: &'a[UniformBufferProxy<'a, C>],
   /// Shading commands to render into the embedded framebuffer.
   pub shading_commands: Vec<&'a SomeShadingCommand> // TODO: can we use a slice instead? &'a […]
 }
@@ -58,7 +58,7 @@ impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
   /// Create a new pipeline.
-  pub fn new(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, clear_color: [f32; 4], texture_set: &'a[TextureProxy<'a, C>], buffer_set: &'a[BufferProxy<'a, C>], shading_commands: Vec<&'a SomeShadingCommand>) -> Self {
+  pub fn new(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, clear_color: [f32; 4], texture_set: &'a[TextureProxy<'a, C>], buffer_set: &'a[UniformBufferProxy<'a, C>], shading_commands: Vec<&'a SomeShadingCommand>) -> Self {
     Pipeline {
       framebuffer: framebuffer,
       clear_color: clear_color,
