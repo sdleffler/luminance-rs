@@ -1,3 +1,9 @@
+## 0.8.0
+
+- Support of texture / uniform buffer sets.
+
+### 0.7.1
+
 ## 0.7.0
 
 - Textures support in shaders.
