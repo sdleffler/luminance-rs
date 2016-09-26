@@ -1,3 +1,19 @@
+### 0.11.0
+
+- Added the first, constraint-only, `UniformBlock` trait. Used to restrict types that can be passed
+  around in uniform buffers.
+- Added *proxied* types – i.e. `TextureProxy` and `UniformBufferProxy`. Those are used to build sets
+  that can passed to shaders.
+- Uniform buffers can now be sent to shaders via the `buffer::Binding` type. Put your buffer in a
+  uniform buffer set and there you go.
+- Textures are not `Uniformable` anymore. You have to put the texture in a texture set and use a
+  `texture::Unit`, which is `Uniformable`.
+- Added `buffer::Binding`.
+- Added `texture::Unit`.
+- `map_uniform` now takes `&str` instead of `String`.
+- Cleaned up documentation.
+- Fixed internal bugs.
+
 ## 0.10.0
 
 - Fixed the type of the uniform errors in the uniform interface builder function.
