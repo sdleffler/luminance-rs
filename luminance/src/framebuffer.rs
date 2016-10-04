@@ -28,8 +28,10 @@
 //!
 //! Color buffers are abstracted by `ColorSlot` and the depth buffer by `DepthSlot`.
 
-use chain::Chain;
 use std::marker::PhantomData;
+use std::ops::Deref;
+
+use chain::Chain;
 use pixel::{ColorPixel, DepthPixel, Pixel, PixelFormat, RenderablePixel};
 use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture};
 
@@ -147,6 +149,18 @@ pub struct Slot<C, L, D, P>
           D: Dimensionable,
           P: Pixel {
   pub texture: Texture<C, L, D, P>
+}
+
+impl<C, L, D, P> Deref for Slot<C, L, D, P>
+    where C: HasTexture,
+          L: Layerable,
+          D: Dimensionable,
+          P: Pixel {
+  type Target = Texture<C, L, D, P>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.texture
+  }
 }
 
 /// A framebuffer has a color slot. A color slot can either be empty (the *unit* type is used,`()`)
