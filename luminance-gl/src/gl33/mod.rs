@@ -7,7 +7,7 @@ pub mod texture;
 pub mod token;
 
 pub use self::buffer::Buffer;
-pub use self::framebuffer::{Framebuffer, Slot};
+pub use self::framebuffer::Framebuffer;
 pub use self::pipeline::{Pipeline, RenderCommand, ShadingCommand};
 pub use self::shader::program::{Program, ProgramProxy, Uniform};
 pub use self::shader::stage::Stage;
