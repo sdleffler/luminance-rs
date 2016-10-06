@@ -53,6 +53,12 @@ pub trait HasTessellation {
   fn new<T>(mode: Mode, vertices: &[T], indices: Option<&[u32]>) -> Self::Tessellation where T: Vertex;
   /// Destroy a `Tessellation`.
   fn destroy(tessellation: &mut Self::Tessellation);
+  /// Create a `Tessellation` that will procedurally generate its vertices (i.e. *attribute-less*).
+  ///
+  /// You just have to give the `Mode` to use and the number of vertices the `Tessellation` must
+  /// have. You’ll be handed back a `Tessellation` object that doesn’t actually hold anything. You
+  /// will have to generate the vertices on the fly in your shaders.
+  fn attributeless(mode: Mode, vert_nb: usize) -> Self::Tessellation;
 }
 
 /// GPU Tessellation.
@@ -76,6 +82,17 @@ impl<C> Tessellation<C> where C: HasTessellation {
   pub fn new<T>(mode: Mode, vertices: &[T], indices: Option<&[u32]>) -> Tessellation<C> where T: Vertex {
     Tessellation {
       repr: C::new(mode, vertices, indices)
+    }
+  }
+
+  /// Create a `Tessellation` that will procedurally generate its vertices (i.e. *attribute-less*).
+  ///
+  /// You just have to give the `Mode` to use and the number of vertices the `Tessellation` must
+  /// have. You’ll be handed back a `Tessellation` object that doesn’t actually hold anything. You
+  /// will have to generate the vertices on the fly in your shaders.
+  pub fn attributeless(mode: Mode, vert_nb: usize) -> Tessellation<C> {
+    Tessellation {
+      repr: C::attributeless(mode, vert_nb)
     }
   }
 }
