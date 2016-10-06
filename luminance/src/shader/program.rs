@@ -101,6 +101,9 @@ impl<C, T> Program<C, T> where C: HasProgram {
     })
   }
 
+  /// Uniform bulk update.
+  ///
+  /// Access the uniform interface and update uniforms.
   pub fn update<F>(&self, f: F) where F: Fn(&T) {
     C::update_uniforms(&self.repr, || { f(&self.uniform_interface) })
   }
@@ -132,21 +135,30 @@ impl<'a, C> ProgramProxy<'a, C> where C: HasProgram {
   }
 }
 
+/// Errors that a `Program` can generate.
 #[derive(Clone, Debug)]
 pub enum ProgramError {
+  /// Program link failed. You can inspect the reason by looking at the contained `String`.
   LinkFailed(String),
+  /// Some uniform configuration is ill-formed. It can be a problem of inactive uniform, mismatch
+  /// type, etc. Check the `UniformWarning` type for more information.
   UniformWarning(UniformWarning)
 }
 
+/// Warnings related to uniform issues.
 #[derive(Clone, Debug)]
 pub enum UniformWarning {
+  /// Inactive uniform (not in use / no participation to the final output in shaders).
   Inactive(String),
+  /// Type mismatch between the static requested type (i.e. the `T` in `Uniform<T>` for instance)
+  /// and the type that got reflected from the backend in the shaders.
   TypeMismatch(String)
 }
 
 // ---------------------------------------
 // -- Uniforms ---------------------------
 
+/// Implement that trait to expose the *uniform* concept and be able to use types like `Uniform<_>`.
 pub trait HasUniform {
   /// Uniform representation.
   type U;
@@ -215,6 +227,7 @@ impl<C, T> Uniform<C, T> where C: HasUniform, T: Uniformable<C> {
     }
   }
 
+  /// Value update.
   pub fn update(&self, x: T) {
     T::update(self, x);
   }
