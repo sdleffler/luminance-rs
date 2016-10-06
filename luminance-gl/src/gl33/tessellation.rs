@@ -102,6 +102,35 @@ impl HasTessellation for GL33 {
       gl::DeleteBuffers(tessellation.buffers.len() as GLsizei, tessellation.buffers.as_ptr());
     }
   }
+
+  fn attributeless(mode: Mode, vert_nb: usize) -> Self::Tessellation {
+    let mut vao = 0;
+
+    unsafe {
+      gl::GenVertexArrays(1, &mut vao);
+
+      gl::BindVertexArray(vao);
+      gl::BindVertexArray(0);
+
+      GLTess {
+        render: Box::new(move |size, instances| {
+          gl::BindVertexArray(vao);
+
+          set_point_line_size(mode, size);
+
+          if instances == 1 {
+            gl::DrawArrays(from_mode(mode), 0, vert_nb as GLsizei);
+          } else if instances > 1 {
+            gl::DrawArraysInstanced(from_mode(mode), 0, vert_nb as GLsizei, instances as GLsizei);
+          } else {
+            panic!("cannot render 0 instance");
+          }
+        }),
+        vao: vao,
+        buffers: Vec::new(),
+      }
+    }
+  }
 }
 
 fn set_vertex_pointers(formats: &[VertexComponentFormat]) {
