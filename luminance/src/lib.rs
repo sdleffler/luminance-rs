@@ -85,7 +85,7 @@ pub mod vertex;
 
 // re-exports
 pub use blending::*;
-pub use buffer::BufferError;
+pub use buffer::{Binding, BufferError};
 pub use chain::*;
 pub use framebuffer::{FramebufferError};
 pub use linear::*;
@@ -96,5 +96,5 @@ pub use shader::stage::{FragmentShader, GeometryShader, StageError, ShaderTypeab
                         TessellationControlShader, TessellationEvaluationShader, VertexShader};
 pub use tessellation::Mode;
 pub use texture::{CubeFace, Cubemap, DepthComparison, Dimensionable, Dim1, Dim2, Dim3, Flat, Filter,
-                  Layerable, Layered, Layering, Sampler, Wrap};
+                  Layerable, Layered, Layering, Sampler, Unit, Wrap};
 pub use vertex::{Vertex, VertexComponentFormat, VertexFormat};
