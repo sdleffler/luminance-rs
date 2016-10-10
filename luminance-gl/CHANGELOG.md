@@ -1,3 +1,9 @@
+## 0.9.0
+
+- Added attribute-less tessellations.
+- Enhanced shader-related documentation.
+- Removed `Slot`.
+
 ## 0.8.0
 
 - Support of texture / uniform buffer sets.
