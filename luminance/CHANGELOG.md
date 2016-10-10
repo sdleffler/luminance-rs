@@ -1,4 +1,10 @@
-### 0.11.0
+## 0.12.0
+
+- Added attribute-less tessellations.
+- Enhanced shader-related documentation.
+- Removed `Slot`.
+
+## 0.11.0
 
 - Added the first, constraint-only, `UniformBlock` trait. Used to restrict types that can be passed
   around in uniform buffers.
