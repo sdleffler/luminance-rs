@@ -1,3 +1,7 @@
+### 0.12.1
+
+- Added `Binding` and `Unit` in the default export-list.
+
 ## 0.12.0
 
 - Added attribute-less tessellations.
