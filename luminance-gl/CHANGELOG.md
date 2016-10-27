@@ -1,3 +1,7 @@
+### 0.9.1
+
+- Fixed segfault when a Tessellation with no bound buffer gets dropped.
+
 ## 0.9.0
 
 - Added attribute-less tessellations.
@@ -48,8 +52,8 @@
 
 ### 0.5.1
 
-- *[internal]* Fixed vertex input offsets. That issue makes all prior versions fail when trying to
-  handle multi-attributes vertices. You are very advised to upgrade to this version then.
+- Fixed vertex input offsets. That issue makes all prior versions fail when trying to handle
+  multi-attributes vertices. You are very advised to upgrade to this version then.
 
 ## 0.5.0
 
