@@ -99,7 +99,10 @@ impl HasTessellation for GL33 {
     // delete vertex array and all bound buffers
     unsafe {
       gl::DeleteVertexArrays(1, &tessellation.vao);
-      gl::DeleteBuffers(tessellation.buffers.len() as GLsizei, tessellation.buffers.as_ptr());
+
+      if !tessellation.buffers.is_empty() {
+        gl::DeleteBuffers(tessellation.buffers.len() as GLsizei, tessellation.buffers.as_ptr());
+      }
     }
   }
 
