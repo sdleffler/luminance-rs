@@ -7,18 +7,11 @@
 //! vertices and fragments, for instance*.
 //!
 //! Creating a shader program is very simple. You need shader `Stage`s representing each step of the
-//! processing. Here’s the actual mapping between the shader stage types and the processing unit:
+//! processing.
 //!
-//! - `Stage<TessellationControlShader>`: ran on **tessellation parameters** ;
-//! - `Stage<TessellationEvaluationShader>`: ran on **patches** ;
-//! - `Stage<VertexShader>`: ran on **vertices** ;
-//! - `Stage<GeometryShader>`: ran on **primitives** ;
-//! - `Stage<FragmentShader>`: ran on **screen fragments**.
-//!
-//! You *have* to provide at least a `Stage<VertexShader>` and a `Stage<FragmentShader>`. If you
-//! want tessellation processing, you need to provide both a `Stage<TessellationControlShader>` and
-//! a `Stage<TessellationEvaluationShader>`. If you want primitives processing, you need to add a
-//! `Stage<GeometryShader>`.
+//! You *have* to provide at least a vertex and fragment stages. If you want tessellation
+//! processing, you need to provide a tessellation control and tessellation evaluation stages. If
+//! you want primitives processing, you need to add a geometry stage.
 //!
 //! In order to customize the behavior of your shader programs, you have access to *uniforms*. For
 //! more details about them, see the documentation for the type `Uniform` and trait `Uniformable`.
@@ -34,22 +27,13 @@
 //!
 //! # Example
 //!
-//! ```
-//! // assume we have a vertex shader `vs` and fragment shader `fs`
-//! let program = Program::new(None, &vs, None, &fs, |get_uni| {
-//!   let resolution: Uniform<[f32; 2]> = try!(get_uni("resolution"));
-//!   let time: Uniform<f32> = try!(get_uni("time"));
-//!
-//!   Ok((resolution, time))
-//! });
-//! ```
+//! TODO
 
 use std::marker::PhantomData;
 
 use buffer::Binding;
 use linear::{M22, M33, M44};
-use shader::stage::{FragmentShader, GeometryShader, HasStage, Stage, TessellationControlShader,
-                    TessellationEvaluationShader, VertexShader};
+use shader::stage::{HasStage, Stage};
 use texture::Unit;
 
 /// Trait to implement to provide shader program features.
@@ -90,7 +74,7 @@ impl<C, T> Program<C, T> where C: HasProgram {
   /// your *uniform interface*.
   ///
   /// Use the `update` function to access the *uniform interface* back.
-  pub fn new<GetUni>(tess: Option<(&Stage<C, TessellationControlShader>, &Stage<C, TessellationEvaluationShader>)>, vertex: &Stage<C, VertexShader>, geometry: Option<&Stage<C, GeometryShader>>, fragment: &Stage<C, FragmentShader>, get_uni: GetUni) -> Result<Self, ProgramError>
+  pub fn new<GetUni>(tess: Option<(&Stage<C>, &Stage<C>)>, vertex: &Stage<C>, geometry: Option<&Stage<C>>, fragment: &Stage<C>, get_uni: GetUni) -> Result<Self, ProgramError>
       where GetUni: Fn(ProgramProxy<C>) -> Result<T, UniformWarning> {
     let repr = try!(C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr));
     let uniform_interface = try!(get_uni(ProgramProxy::new(&repr)).map_err(ProgramError::UniformWarning));

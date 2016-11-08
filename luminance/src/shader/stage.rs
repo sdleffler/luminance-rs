@@ -1,4 +1,3 @@
-use std::marker::PhantomData;
 
 /// Implement this trait to expose the concept of shader stages.
 pub trait HasStage {
@@ -11,12 +10,6 @@ pub trait HasStage {
   fn free_shader(shader: &mut Self::AStage);
 }
 
-/// Class of types that are shader stage types.
-pub trait ShaderTypeable {
-  /// Reify a shader stage type to its runtime representation.
-  fn shader_type() -> Type;
-}
-
 /// A shader stage type.
 #[derive(Clone, Copy, Debug)]
 pub enum Type {
@@ -27,65 +20,24 @@ pub enum Type {
   FragmentShader
 }
 
-/// Tessellation control shader. An optional stage.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct TessellationControlShader;
-
-impl ShaderTypeable for TessellationControlShader {
-  fn shader_type() -> Type { Type::TessellationControlShader }
-}
-
-/// Tessellation evaluation shader. An optional stage
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct TessellationEvaluationShader;
-
-impl ShaderTypeable for TessellationEvaluationShader {
-  fn shader_type() -> Type { Type::TessellationEvaluationShader }
-}
-
-/// Vertex shader. A mandatory stage
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct VertexShader;
-
-impl ShaderTypeable for VertexShader {
-  fn shader_type() -> Type { Type::VertexShader }
-}
-
-/// Geometry shader. An optional stage
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct GeometryShader;
-
-impl ShaderTypeable for GeometryShader {
-  fn shader_type() -> Type { Type::GeometryShader }
-}
-
-/// Fragment shader. A mandatory stage.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct FragmentShader;
-
-impl ShaderTypeable for FragmentShader {
-  fn shader_type() -> Type { Type::FragmentShader }
-}
-
-/// A shader stage. The `T` type variable gives the type of the shader.
+/// A shader stage.
 #[derive(Debug)]
-pub struct Stage<C, T> where C: HasStage {
+pub struct Stage<C> where C: HasStage {
   pub repr: C::AStage,
-  _t: PhantomData<T>
+  ty: Type
 }
 
-impl<C, T> Drop for Stage<C, T> where C: HasStage {
+impl<C> Drop for Stage<C> where C: HasStage {
   fn drop(&mut self) {
     C::free_shader(&mut self.repr)
   }
 }
 
-impl<C, T> Stage<C, T> where C: HasStage, T: ShaderTypeable {
-  pub fn new(src: &str) -> Result<Self, StageError> {
-    let shader = C::new_shader(T::shader_type(), src);
-    shader.map(|shader| Stage {
-      repr: shader,
-      _t: PhantomData
+impl<C> Stage<C> where C: HasStage {
+  pub fn new(ty: Type, src: &str) -> Result<Self, StageError> {
+    C::new_shader(ty, src).map(|stage| Stage {
+      repr: stage,
+      ty: ty
     })
   }
 }

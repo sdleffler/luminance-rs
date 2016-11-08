@@ -92,8 +92,7 @@ pub use linear::*;
 pub use pixel::{ColorPixel, DepthPixel, Format, Pixel, PixelFormat, RenderablePixel, is_color_pixel, is_depth_pixel,
                 RGB8UI, RGBA8UI, RGB32F, RGBA32F, Depth32F};
 pub use shader::program::{ProgramError, UniformUpdate, Uniformable};
-pub use shader::stage::{FragmentShader, GeometryShader, StageError, ShaderTypeable,
-                        TessellationControlShader, TessellationEvaluationShader, VertexShader};
+pub use shader::stage::{StageError};
 pub use tessellation::Mode;
 pub use texture::{CubeFace, Cubemap, DepthComparison, Dimensionable, Dim1, Dim2, Dim3, Flat, Filter,
                   Layerable, Layered, Layering, Sampler, Unit, Wrap};
