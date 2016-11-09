@@ -20,7 +20,7 @@ pub trait HasPipeline: HasFramebuffer + HasProgram + HasTessellation + HasTextur
           CS: ColorSlot<Self, L, D>,
           DS: DepthSlot<Self, L, D>;
   /// Execute a shading command.
-  fn run_shading_command<T>(shading_cmd: &ShadingCommand<Self>);
+  fn run_shading_command(shading_cmd: &ShadingCommand<Self>);
 }
 
 /// A dynamic rendering pipeline. A *pipeline* is responsible of rendering into a `Framebuffer`.
