@@ -49,7 +49,7 @@ pub trait HasProgram: HasStage {
   /// # Examples
   ///
   /// TODO
-  fn new_program(tess: Option<(&Self::AStage, &Self::AStage)>, vertex: &Self::AStage, geometry: Option<&Self::AStage>, fragment: &Self::AStage, sem_map: &[Sem]) -> Result<Self::Program, ProgramError>;
+  fn new_program(tess: Option<(&Self::AStage, &Self::AStage)>, vertex: &Self::AStage, geometry: Option<&Self::AStage>, fragment: &Self::AStage, sem_map: &[Sem]) -> Result<(Self::Program, Vec<UniformWarning>), ProgramError>;
   /// Free a program.
   fn free_program(program: &mut Self::Program);
   /// Bulk update of uniforms. The update closure should contain the code used to update as many
@@ -59,49 +59,49 @@ pub trait HasProgram: HasStage {
   // uniform stuff
 
   // integral
-  fn update1_i32(uniform: SemIndex, x: i32);
-  fn update2_i32(uniform: SemIndex, xy: [i32; 2]);
-  fn update3_i32(uniform: SemIndex, xyz: [i32; 3]);
-  fn update4_i32(uniform: SemIndex, xyzw: [i32; 4]);
-  fn update1_slice_i32(uniform: SemIndex, x: &[i32]);
-  fn update2_slice_i32(uniform: SemIndex, xy: &[[i32; 2]]);
-  fn update3_slice_i32(uniform: SemIndex, xyz: &[[i32; 3]]);
-  fn update4_slice_i32(uniform: SemIndex, xyzw: &[[i32; 4]]);
+  fn update1_i32(program: &Self::Program, uniform: SemIndex, x: i32);
+  fn update2_i32(program: &Self::Program, uniform: SemIndex, xy: [i32; 2]);
+  fn update3_i32(program: &Self::Program, uniform: SemIndex, xyz: [i32; 3]);
+  fn update4_i32(program: &Self::Program, uniform: SemIndex, xyzw: [i32; 4]);
+  fn update1_slice_i32(program: &Self::Program, uniform: SemIndex, x: &[i32]);
+  fn update2_slice_i32(program: &Self::Program, uniform: SemIndex, xy: &[[i32; 2]]);
+  fn update3_slice_i32(program: &Self::Program, uniform: SemIndex, xyz: &[[i32; 3]]);
+  fn update4_slice_i32(program: &Self::Program, uniform: SemIndex, xyzw: &[[i32; 4]]);
   // unsigned
-  fn update1_u32(uniform: SemIndex, x: u32);
-  fn update2_u32(uniform: SemIndex, xy: [u32; 2]);
-  fn update3_u32(uniform: SemIndex, xyz: [u32; 3]);
-  fn update4_u32(uniform: SemIndex, xyzw: [u32; 4]);
-  fn update1_slice_u32(uniform: SemIndex, x: &[u32]);
-  fn update2_slice_u32(uniform: SemIndex, xy: &[[u32; 2]]);
-  fn update3_slice_u32(uniform: SemIndex, xyz: &[[u32; 3]]);
-  fn update4_slice_u32(uniform: SemIndex, xyzw: &[[u32; 4]]);
+  fn update1_u32(program: &Self::Program, uniform: SemIndex, x: u32);
+  fn update2_u32(program: &Self::Program, uniform: SemIndex, xy: [u32; 2]);
+  fn update3_u32(program: &Self::Program, uniform: SemIndex, xyz: [u32; 3]);
+  fn update4_u32(program: &Self::Program, uniform: SemIndex, xyzw: [u32; 4]);
+  fn update1_slice_u32(program: &Self::Program, uniform: SemIndex, x: &[u32]);
+  fn update2_slice_u32(program: &Self::Program, uniform: SemIndex, xy: &[[u32; 2]]);
+  fn update3_slice_u32(program: &Self::Program, uniform: SemIndex, xyz: &[[u32; 3]]);
+  fn update4_slice_u32(program: &Self::Program, uniform: SemIndex, xyzw: &[[u32; 4]]);
   // floating
-  fn update1_f32(uniform: SemIndex, x: f32);
-  fn update2_f32(uniform: SemIndex, xy: [f32; 2]);
-  fn update3_f32(uniform: SemIndex, xyz: [f32; 3]);
-  fn update4_f32(uniform: SemIndex, xyzw: [f32; 4]);
-  fn update1_slice_f32(uniform: SemIndex, x: &[f32]);
-  fn update2_slice_f32(uniform: SemIndex, xy: &[[f32; 2]]);
-  fn update3_slice_f32(uniform: SemIndex, xyz: &[[f32; 3]]);
-  fn update4_slice_f32(uniform: SemIndex, xyzw: &[[f32; 4]]);
-  fn update22_f32(uniform: SemIndex, x: M22);
-  fn update33_f32(uniform: SemIndex, x: M33);
-  fn update44_f32(uniform: SemIndex, x: M44);
-  fn update22_slice_f32(uniform: SemIndex, x: &[M22]);
-  fn update33_slice_f32(uniform: SemIndex, x: &[M33]);
-  fn update44_slice_f32(uniform: SemIndex, x: &[M44]);
+  fn update1_f32(program: &Self::Program, uniform: SemIndex, x: f32);
+  fn update2_f32(program: &Self::Program, uniform: SemIndex, xy: [f32; 2]);
+  fn update3_f32(program: &Self::Program, uniform: SemIndex, xyz: [f32; 3]);
+  fn update4_f32(program: &Self::Program, uniform: SemIndex, xyzw: [f32; 4]);
+  fn update1_slice_f32(program: &Self::Program, uniform: SemIndex, x: &[f32]);
+  fn update2_slice_f32(program: &Self::Program, uniform: SemIndex, xy: &[[f32; 2]]);
+  fn update3_slice_f32(program: &Self::Program, uniform: SemIndex, xyz: &[[f32; 3]]);
+  fn update4_slice_f32(program: &Self::Program, uniform: SemIndex, xyzw: &[[f32; 4]]);
+  fn update22_f32(program: &Self::Program, uniform: SemIndex, x: M22);
+  fn update33_f32(program: &Self::Program, uniform: SemIndex, x: M33);
+  fn update44_f32(program: &Self::Program, uniform: SemIndex, x: M44);
+  fn update22_slice_f32(program: &Self::Program, uniform: SemIndex, x: &[M22]);
+  fn update33_slice_f32(program: &Self::Program, uniform: SemIndex, x: &[M33]);
+  fn update44_slice_f32(program: &Self::Program, uniform: SemIndex, x: &[M44]);
   // boolean
-  fn update1_bool(uniform: SemIndex, x: bool);
-  fn update2_bool(uniform: SemIndex, xy: [bool; 2]);
-  fn update3_bool(uniform: SemIndex, xyz: [bool; 3]);
-  fn update4_bool(uniform: SemIndex, xyzw: [bool; 4]);
-  fn update1_slice_bool(uniform: SemIndex, x: &[bool]);
-  fn update2_slice_bool(uniform: SemIndex, xy: &[[bool; 2]]);
-  fn update3_slice_bool(uniform: SemIndex, xyz: &[[bool; 3]]);
-  fn update4_slice_bool(uniform: SemIndex, xyzw: &[[bool; 4]]);
+  fn update1_bool(program: &Self::Program, uniform: SemIndex, x: bool);
+  fn update2_bool(program: &Self::Program, uniform: SemIndex, xy: [bool; 2]);
+  fn update3_bool(program: &Self::Program, uniform: SemIndex, xyz: [bool; 3]);
+  fn update4_bool(program: &Self::Program, uniform: SemIndex, xyzw: [bool; 4]);
+  fn update1_slice_bool(program: &Self::Program, uniform: SemIndex, x: &[bool]);
+  fn update2_slice_bool(program: &Self::Program, uniform: SemIndex, xy: &[[bool; 2]]);
+  fn update3_slice_bool(program: &Self::Program, uniform: SemIndex, xyz: &[[bool; 3]]);
+  fn update4_slice_bool(program: &Self::Program, uniform: SemIndex, xyzw: &[[bool; 4]]);
   // textures
-  fn update_texture_unit(uniform: SemIndex, unit: u32);
+  fn update_texture_unit(program: &Self::Program, uniform: SemIndex, unit: u32);
   // uniform buffers
   fn update_buffer_binding(program: &Self::Program, uniform_block: SemIndex, binding: u32);
 }
@@ -118,10 +118,12 @@ impl<C> Drop for Program<C> where C: HasProgram {
 
 impl<C> Program<C> where C: HasProgram {
   /// Create a new `Program` by linking it with shader stages.
-  pub fn new<GetUni>(tess: Option<(&Stage<C>, &Stage<C>)>, vertex: &Stage<C>, geometry: Option<&Stage<C>>, fragment: &Stage<C>, sem_map: &[Sem]) -> Result<Self, ProgramError> {
-    let repr = try!(C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr, sem_map));
+  pub fn new<GetUni>(tess: Option<(&Stage<C>, &Stage<C>)>, vertex: &Stage<C>, geometry: Option<&Stage<C>>, fragment: &Stage<C>, sem_map: &[Sem]) -> Result<(Self, Vec<UniformWarning>), ProgramError> {
+    let (repr, warnings) = try!(C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr, sem_map));
 
-    Ok(Program(repr))
+    Ok(
+      (Program(repr), warnings)
+    )
   }
 
   /// Update a uniform variable in the program.
@@ -132,6 +134,7 @@ impl<C> Program<C> where C: HasProgram {
 
 /// A shader uniform semantic. It holds information on the variable it represents such as a name,
 /// its type and its dimension.
+#[derive(Clone, Debug)]
 pub struct Sem {
   name: String,
   ty: Type,
@@ -237,8 +240,8 @@ pub trait Uniformable<C>: Sized where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for i32 where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update1_i32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update1_i32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Integral }
@@ -247,8 +250,8 @@ impl<C> Uniformable<C> for i32 where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for [i32; 2] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update2_i32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update2_i32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Integral }
@@ -257,8 +260,8 @@ impl<C> Uniformable<C> for [i32; 2] where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for [i32; 3] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update3_i32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update3_i32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Integral }
@@ -267,8 +270,8 @@ impl<C> Uniformable<C> for [i32; 3] where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for [i32; 4] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update4_i32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update4_i32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Integral }
@@ -277,8 +280,8 @@ impl<C> Uniformable<C> for [i32; 4] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [i32] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update1_slice_i32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update1_slice_i32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Integral }
@@ -287,8 +290,8 @@ impl<'a, C> Uniformable<C> for &'a [i32] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [[i32; 2]] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update2_slice_i32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update2_slice_i32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Integral }
@@ -297,8 +300,8 @@ impl<'a, C> Uniformable<C> for &'a [[i32; 2]] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [[i32; 3]] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update3_slice_i32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update3_slice_i32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Integral }
@@ -307,8 +310,8 @@ impl<'a, C> Uniformable<C> for &'a [[i32; 3]] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [[i32; 4]] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update4_slice_i32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update4_slice_i32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Integral }
@@ -317,8 +320,8 @@ impl<'a, C> Uniformable<C> for &'a [[i32; 4]] where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for u32 where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update1_u32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update1_u32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Unsigned }
@@ -327,8 +330,8 @@ impl<C> Uniformable<C> for u32 where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for [u32; 2] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update2_u32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update2_u32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Unsigned }
@@ -337,8 +340,8 @@ impl<C> Uniformable<C> for [u32; 2] where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for [u32; 3] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update3_u32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update3_u32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Unsigned }
@@ -347,8 +350,8 @@ impl<C> Uniformable<C> for [u32; 3] where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for [u32; 4] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update4_u32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update4_u32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Unsigned }
@@ -357,8 +360,8 @@ impl<C> Uniformable<C> for [u32; 4] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [u32] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update1_slice_u32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update1_slice_u32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Unsigned }
@@ -367,8 +370,8 @@ impl<'a, C> Uniformable<C> for &'a [u32] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [[u32; 2]] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update2_slice_u32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update2_slice_u32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Unsigned }
@@ -377,8 +380,8 @@ impl<'a, C> Uniformable<C> for &'a [[u32; 2]] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [[u32; 3]] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update3_slice_u32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update3_slice_u32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Unsigned }
@@ -387,8 +390,8 @@ impl<'a, C> Uniformable<C> for &'a [[u32; 3]] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [[u32; 4]] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update4_slice_u32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update4_slice_u32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Unsigned }
@@ -397,8 +400,8 @@ impl<'a, C> Uniformable<C> for &'a [[u32; 4]] where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for f32 where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update1_f32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update1_f32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -407,8 +410,8 @@ impl<C> Uniformable<C> for f32 where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for [f32; 2] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update2_f32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update2_f32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -417,8 +420,8 @@ impl<C> Uniformable<C> for [f32; 2] where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for [f32; 3] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update3_f32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update3_f32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -427,8 +430,8 @@ impl<C> Uniformable<C> for [f32; 3] where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for [f32; 4] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update4_f32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update4_f32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -437,8 +440,8 @@ impl<C> Uniformable<C> for [f32; 4] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [f32] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update1_slice_f32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update1_slice_f32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -447,8 +450,8 @@ impl<'a, C> Uniformable<C> for &'a [f32] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [[f32; 2]] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update2_slice_f32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update2_slice_f32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -457,8 +460,8 @@ impl<'a, C> Uniformable<C> for &'a [[f32; 2]] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [[f32; 3]] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update3_slice_f32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update3_slice_f32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -467,8 +470,8 @@ impl<'a, C> Uniformable<C> for &'a [[f32; 3]] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [[f32; 4]] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update4_slice_f32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update4_slice_f32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -477,8 +480,8 @@ impl<'a, C> Uniformable<C> for &'a [[f32; 4]] where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for M22 where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update22_f32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update22_f32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -487,8 +490,8 @@ impl<C> Uniformable<C> for M22 where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for M33 where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update33_f32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update33_f32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -497,8 +500,8 @@ impl<C> Uniformable<C> for M33 where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for M44 where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update44_f32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update44_f32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -507,8 +510,8 @@ impl<C> Uniformable<C> for M44 where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [M22] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update22_slice_f32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update22_slice_f32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -517,8 +520,8 @@ impl<'a, C> Uniformable<C> for &'a [M22] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [M33] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update33_slice_f32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update33_slice_f32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -527,8 +530,8 @@ impl<'a, C> Uniformable<C> for &'a [M33] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [M44] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update44_slice_f32(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update44_slice_f32(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -537,8 +540,8 @@ impl<'a, C> Uniformable<C> for &'a [M44] where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for bool where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update1_bool(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update1_bool(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Boolean }
@@ -547,8 +550,8 @@ impl<C> Uniformable<C> for bool where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for [bool; 2] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update2_bool(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update2_bool(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Boolean }
@@ -557,8 +560,8 @@ impl<C> Uniformable<C> for [bool; 2] where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for [bool; 3] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update3_bool(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update3_bool(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Boolean }
@@ -567,8 +570,8 @@ impl<C> Uniformable<C> for [bool; 3] where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for [bool; 4] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update4_bool(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update4_bool(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Boolean }
@@ -577,8 +580,8 @@ impl<C> Uniformable<C> for [bool; 4] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [bool] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update1_slice_bool(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update1_slice_bool(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Boolean }
@@ -587,8 +590,8 @@ impl<'a, C> Uniformable<C> for &'a [bool] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [[bool; 2]] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update2_slice_bool(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update2_slice_bool(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Boolean }
@@ -597,8 +600,8 @@ impl<'a, C> Uniformable<C> for &'a [[bool; 2]] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [[bool; 3]] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update3_slice_bool(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update3_slice_bool(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Boolean }
@@ -607,8 +610,8 @@ impl<'a, C> Uniformable<C> for &'a [[bool; 3]] where C: HasProgram {
 }
 
 impl<'a, C> Uniformable<C> for &'a [[bool; 4]] where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update4_slice_bool(u.sem_index, self)
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update4_slice_bool(program, u.sem_index, self)
   }
 
   fn reify_type() -> Type { Type::Boolean }
@@ -617,8 +620,8 @@ impl<'a, C> Uniformable<C> for &'a [[bool; 4]] where C: HasProgram {
 }
 
 impl<C> Uniformable<C> for Unit where C: HasProgram {
-  fn update(self, _: &C::Program, u: &Uniform<C, Self>) {
-    C::update_texture_unit(u.sem_index, *self);
+  fn update(self, program: &C::Program, u: &Uniform<C, Self>) {
+    C::update_texture_unit(program, u.sem_index, *self);
   }
 
   fn reify_type() -> Type { Type::TextureUnit }
