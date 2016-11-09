@@ -3,7 +3,7 @@ use gl::types::*;
 use gl33::token::GL33;
 use luminance::blending;
 use luminance::framebuffer::{ColorSlot, DepthSlot};
-use luminance::pipeline::{self, HasPipeline};
+use luminance::pipeline::{self, HasPipeline, Pipe};
 use luminance::texture::{Dimensionable, Layerable};
 
 pub type Pipeline<'a, L, D, CS, DS> = pipeline::Pipeline<'a, GL33, L, D, CS, DS>;
@@ -11,7 +11,7 @@ pub type ShadingCommand<'a> = pipeline::ShadingCommand<'a, GL33>;
 pub type RenderCommand<'a> = pipeline::RenderCommand<'a, GL33>;
 
 impl HasPipeline for GL33 {
-  fn run_pipeline<L, D, CS, DS>(cmd: &pipeline::Pipeline<Self, L, D, CS, DS>)
+  fn run_pipeline<L, D, CS, DS>(cmd: &Pipeline<L, D, CS, DS>)
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -37,23 +37,41 @@ impl HasPipeline for GL33 {
       }
     }
 
-    for shading_cmd in &cmd.shading_commands {
-      shading_cmd.run_shading_command();
+    for piped_shading_cmd in &cmd.shading_commands {
+      Self::run_shading_command(piped_shading_cmd);
     }
   }
 
-  fn run_shading_command(shading_cmd: &pipeline::ShadingCommand<Self>) {
-    unsafe { gl::UseProgram(shading_cmd.program.repr) };
+  fn run_shading_command<'a>(piped: &Pipe<'a, ShadingCommand>) {
+    let update_program = &piped.update_program;
+    let shading_cmd = &piped.next;
 
-    let uniform_interface = &shading_cmd.program.uniform_interface;
-    (shading_cmd.update)(uniform_interface);
+    unsafe { gl::UseProgram(shading_cmd.program.0.id) };
 
-    for render_cmd in &shading_cmd.render_commands {
-      set_blending(render_cmd.blending);
-      set_depth_test(render_cmd.depth_test);
-      (render_cmd.update)(uniform_interface);
-      (render_cmd.tessellation.repr.render)(render_cmd.rasterization_size, render_cmd.instances);
+    update_program();
+
+    for piped_render_cmd in &shading_cmd.render_commands {
+      run_render_command(piped_render_cmd);
     }
+  }
+}
+
+fn run_render_command<'a>(piped: &Pipe<'a, RenderCommand<'a>>) {
+  let update_program = &piped.update_program;
+  let render_cmd = &piped.next;
+
+  update_program();
+
+  set_blending(render_cmd.blending);
+  set_depth_test(render_cmd.depth_test);
+
+  for piped_tess in &render_cmd.tessellations {
+    let tess_update_program = &piped_tess.update_program;
+    let tess = &piped_tess.next;
+
+    tess_update_program();
+
+    (tess.repr.render)(render_cmd.rasterization_size, render_cmd.instances);
   }
 }
 

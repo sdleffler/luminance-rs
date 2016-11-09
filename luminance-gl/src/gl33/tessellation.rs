@@ -19,7 +19,7 @@ pub struct GLTess {
 impl HasTessellation for GL33 {
   type Tessellation = GLTess;
 
-  fn new<T: 'static>(mode: Mode, vertices: &[T], indices: Option<&[u32]>) -> Self::Tessellation where T: Vertex {
+  fn new<T>(mode: Mode, vertices: &[T], indices: Option<&[u32]>) -> Self::Tessellation where T: Vertex {
     let mut vao: GLuint = 0;
     let vert_nb = vertices.len();
 

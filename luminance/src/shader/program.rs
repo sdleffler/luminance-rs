@@ -108,7 +108,7 @@ pub trait HasProgram: HasStage {
 
 /// A shader program.
 #[derive(Debug)]
-pub struct Program<C>(C::Program) where C: HasProgram;
+pub struct Program<C>(pub C::Program) where C: HasProgram;
 
 impl<C> Drop for Program<C> where C: HasProgram {
   fn drop(&mut self) {

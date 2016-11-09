@@ -9,8 +9,8 @@ use std::ptr::null_mut;
 
 pub type Program = program::Program<GL33>;
 
-struct GLProgram {
-  id: GLuint, // OpenGL ID
+pub struct GLProgram {
+  pub id: GLuint, // OpenGL ID
   sem_map: Vec<GLint> // mapping between user semantic (indexes) and OpenGL uniform locations
 }
 
@@ -40,8 +40,8 @@ impl HasProgram for GL33 {
       gl::GetProgramiv(program, gl::LINK_STATUS, &mut linked);
 
       if linked == (gl::TRUE as GLint) {
-        let index_map = Vec::with_capacity(sem_map.len());
-        let warnings = Vec::new();
+        let mut index_map = Vec::with_capacity(sem_map.len());
+        let mut warnings = Vec::new();
 
         for sem in sem_map {
           let (loc, warning) = get_uniform_location(program, sem.name(), sem.ty(), sem.dim());
