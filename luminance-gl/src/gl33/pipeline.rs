@@ -7,8 +7,8 @@ use luminance::pipeline::{self, HasPipeline};
 use luminance::texture::{Dimensionable, Layerable};
 
 pub type Pipeline<'a, L, D, CS, DS> = pipeline::Pipeline<'a, GL33, L, D, CS, DS>;
-pub type ShadingCommand<'a, T> = pipeline::ShadingCommand<'a, GL33, T>;
-pub type RenderCommand<'a, T> = pipeline::RenderCommand<'a, GL33, T>;
+pub type ShadingCommand<'a> = pipeline::ShadingCommand<'a, GL33>;
+pub type RenderCommand<'a> = pipeline::RenderCommand<'a, GL33>;
 
 impl HasPipeline for GL33 {
   fn run_pipeline<L, D, CS, DS>(cmd: &pipeline::Pipeline<Self, L, D, CS, DS>)
@@ -42,7 +42,7 @@ impl HasPipeline for GL33 {
     }
   }
 
-  fn run_shading_command<T>(shading_cmd: &pipeline::ShadingCommand<Self, T>) {
+  fn run_shading_command(shading_cmd: &pipeline::ShadingCommand<Self>) {
     unsafe { gl::UseProgram(shading_cmd.program.repr) };
 
     let uniform_interface = &shading_cmd.program.uniform_interface;
