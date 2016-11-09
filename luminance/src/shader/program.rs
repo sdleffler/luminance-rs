@@ -118,7 +118,7 @@ impl<C> Drop for Program<C> where C: HasProgram {
 
 impl<C> Program<C> where C: HasProgram {
   /// Create a new `Program` by linking it with shader stages.
-  pub fn new<GetUni>(tess: Option<(&Stage<C>, &Stage<C>)>, vertex: &Stage<C>, geometry: Option<&Stage<C>>, fragment: &Stage<C>, sem_map: &[Sem]) -> Result<(Self, Vec<UniformWarning>), ProgramError> {
+  pub fn new(tess: Option<(&Stage<C>, &Stage<C>)>, vertex: &Stage<C>, geometry: Option<&Stage<C>>, fragment: &Stage<C>, sem_map: &[Sem]) -> Result<(Self, Vec<UniformWarning>), ProgramError> {
     let (repr, warnings) = try!(C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr, sem_map));
 
     Ok(
