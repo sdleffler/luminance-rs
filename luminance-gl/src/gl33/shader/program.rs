@@ -40,13 +40,13 @@ impl HasProgram for GL33 {
       gl::GetProgramiv(program, gl::LINK_STATUS, &mut linked);
 
       if linked == (gl::TRUE as GLint) {
-        let sem_map = Vec::with_capacity(sem_map.len());
+        let index_map = Vec::with_capacity(sem_map.len());
         let warnings = Vec::new();
 
         for sem in sem_map {
           let (loc, warning) = get_uniform_location(program, sem.name(), sem.ty(), sem.dim());
 
-          sem_map.push(loc); // push the location for the given semantic
+          index_map.push(loc); // push the location for the given semantic
 
           // if there’s a warning, add it to the list of warnings
           if let Some(warning) = warning {
@@ -56,7 +56,7 @@ impl HasProgram for GL33 {
 
         let gl_program = GLProgram {
           id: program,
-          sem_map: sem_map
+          sem_map: index_map
         };
 
         Ok((gl_program, warnings))
