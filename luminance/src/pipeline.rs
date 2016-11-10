@@ -20,7 +20,7 @@ pub trait HasPipeline: HasFramebuffer + HasProgram + HasTessellation + HasTextur
           CS: ColorSlot<Self, L, D>,
           DS: DepthSlot<Self, L, D>;
   /// Execute a shading command.
-  fn run_shading_command<'a>(shading_cmd: &Pipe<'a, ShadingCommand<Self>>);
+  fn run_shading_command<'a>(shading_cmd: &Pipe<'a, Self, ShadingCommand<Self>>);
 }
 
 /// A dynamic rendering pipeline. A *pipeline* is responsible of rendering into a `Framebuffer`.
@@ -47,7 +47,7 @@ pub struct Pipeline<'a, C, L, D, CS, DS>
   /// Buffer set.
   pub buffer_set: &'a[UniformBufferProxy<'a, C>],
   /// Shading commands to render into the embedded framebuffer.
-  pub shading_commands: Vec<Pipe<'a, ShadingCommand<'a, C>>>
+  pub shading_commands: Vec<Pipe<'a, C, ShadingCommand<'a, C>>>
 }
 
 impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
@@ -60,7 +60,7 @@ impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
   /// Create a new pipeline.
   pub fn new(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, clear_color: [f32; 4],
              texture_set: &'a[TextureProxy<'a, C>], buffer_set: &'a[UniformBufferProxy<'a, C>],
-             shading_commands: Vec<Pipe<'a, ShadingCommand<'a, C>>>) -> Self {
+             shading_commands: Vec<Pipe<'a, C, ShadingCommand<'a, C>>>) -> Self {
     Pipeline {
       framebuffer: framebuffer,
       clear_color: clear_color,
@@ -82,12 +82,12 @@ pub struct ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
   /// Embedded program.
   pub program: &'a Program<C>,
   /// Render commands to execute for this shading command.
-  pub render_commands: Vec<Pipe<'a, RenderCommand<'a, C>>>
+  pub render_commands: Vec<Pipe<'a, C, RenderCommand<'a, C>>>
 }
 
 impl<'a, C> ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
   /// Create a new shading command.
-  pub fn new(program: &'a Program<C>, render_commands: Vec<Pipe<'a, RenderCommand<'a, C>>>) -> Self {
+  pub fn new(program: &'a Program<C>, render_commands: Vec<Pipe<'a, C, RenderCommand<'a, C>>>) -> Self {
     ShadingCommand {
       program: program,
       render_commands: render_commands
@@ -96,7 +96,7 @@ impl<'a, C> ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
 }
 
 /// A render command, which holds information on how to rasterize tessellations.
-pub struct RenderCommand<'a, C> where C: 'a + HasTessellation {
+pub struct RenderCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
   /// Color blending configuration. Set to `None` if you don’t want any color blending. Set it to
   /// `Some(equation, source, destination)` if you want to perform a color blending with the
   /// `equation` formula and with the `source` and `destination` blending factors.
@@ -104,17 +104,17 @@ pub struct RenderCommand<'a, C> where C: 'a + HasTessellation {
   /// Should a depth test be performed?
   pub depth_test: bool,
   /// The embedded tessellations.
-  pub tessellations: Vec<Pipe<'a, &'a Tessellation<C>>>,
+  pub tessellations: Vec<Pipe<'a, C, &'a Tessellation<C>>>,
   /// Number of instances of the tessellation to render.
   pub instances: u32,
   /// Rasterization size for points and lines.
   pub rasterization_size: Option<f32>
 }
 
-impl<'a, C> RenderCommand<'a, C> where C: 'a + HasTessellation {
+impl<'a, C> RenderCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
   /// Create a new render command.
   pub fn new(blending: Option<(blending::Equation, blending::Factor, blending::Factor)>,
-             depth_test: bool, tessellations: Vec<Pipe<'a, &'a Tessellation<C>>>, instances: u32,
+             depth_test: bool, tessellations: Vec<Pipe<'a, C, &'a Tessellation<C>>>, instances: u32,
              rasterization_size: Option<f32>) -> Self {
     RenderCommand {
       blending: blending,
@@ -127,13 +127,13 @@ impl<'a, C> RenderCommand<'a, C> where C: 'a + HasTessellation {
 }
 
 /// A pipe used to build up a `Pipeline` by connecting its inner layers.
-pub struct Pipe<'a, T> {
-  pub update_program: Box<Fn() + 'a>,
+pub struct Pipe<'a, C, T> where C: HasProgram {
+  pub update_program: Box<Fn(&Program<C>) + 'a>,
   pub next: T
 }
 
-impl<'a, T> Pipe<'a, T> {
-  pub fn new<F>(update_program: F, next: T) -> Self where F: Fn() + 'a {
+impl<'a, C, T> Pipe<'a, C, T> where C: HasProgram {
+  pub fn new<F>(update_program: F, next: T) -> Self where F: Fn(&Program<C>) + 'a {
     Pipe {
       update_program: Box::new(update_program),
       next: next
