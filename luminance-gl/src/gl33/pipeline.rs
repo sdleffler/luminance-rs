@@ -3,10 +3,13 @@ use gl::types::*;
 use gl33::token::GL33;
 use luminance::blending;
 use luminance::framebuffer::{ColorSlot, DepthSlot};
-use luminance::pipeline::{self, HasPipeline, Pipe};
+use luminance::pipeline::{self, HasPipeline};
 use luminance::texture::{Dimensionable, Layerable};
 
+use gl33::shader::program::Program;
+
 pub type Pipeline<'a, L, D, CS, DS> = pipeline::Pipeline<'a, GL33, L, D, CS, DS>;
+pub type Pipe<'a, T> = pipeline::Pipe<'a, GL33, T>;
 pub type ShadingCommand<'a> = pipeline::ShadingCommand<'a, GL33>;
 pub type RenderCommand<'a> = pipeline::RenderCommand<'a, GL33>;
 
@@ -48,19 +51,19 @@ impl HasPipeline for GL33 {
 
     unsafe { gl::UseProgram(shading_cmd.program.0.id) };
 
-    update_program();
+    update_program(&shading_cmd.program);
 
     for piped_render_cmd in &shading_cmd.render_commands {
-      run_render_command(piped_render_cmd);
+      run_render_command(&shading_cmd.program, piped_render_cmd);
     }
   }
 }
 
-fn run_render_command<'a>(piped: &Pipe<'a, RenderCommand<'a>>) {
+fn run_render_command<'a>(program: &Program, piped: &Pipe<'a, RenderCommand<'a>>) {
   let update_program = &piped.update_program;
   let render_cmd = &piped.next;
 
-  update_program();
+  update_program(program);
 
   set_blending(render_cmd.blending);
   set_depth_test(render_cmd.depth_test);
@@ -69,7 +72,7 @@ fn run_render_command<'a>(piped: &Pipe<'a, RenderCommand<'a>>) {
     let tess_update_program = &piped_tess.update_program;
     let tess = &piped_tess.next;
 
-    tess_update_program();
+    tess_update_program(program);
 
     (tess.repr.render)(render_cmd.rasterization_size, render_cmd.instances);
   }
