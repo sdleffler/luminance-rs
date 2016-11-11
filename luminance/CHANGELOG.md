@@ -1,3 +1,9 @@
+## 0.13.0
+
+- Changed the pipeline workflow by introducing `Pipe` objects.
+- Removed strong typing in shader programs (`Program<C, T>` is now `Program<C>`).
+- Removed strong typing in shader stages (`Stage<C, T>` is now `Stage<C>`).
+
 ### 0.12.1
 
 - Added `Binding` and `Unit` in the default export-list.
