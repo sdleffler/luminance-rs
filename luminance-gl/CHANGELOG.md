@@ -1,3 +1,9 @@
+## 0.10.0
+
+- Changed the pipeline workflow by introducing `Pipe` objects.
+- Removed strong typing in shader programs (`Program<T>` is now `Program`).
+- Removed strong typing in shader stages (`Stage<T>` is now `Stage`).
+
 ### 0.9.1
 
 - Fixed segfault when a Tessellation with no bound buffer gets dropped.
