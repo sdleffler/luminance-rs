@@ -1,3 +1,7 @@
+### 0.13.1
+
+- Added `Uniform::sem()` function to create `Sem` out of `Uniform<C, T>` in a simpler way.
+
 ## 0.13.0
 
 - Changed the pipeline workflow by introducing `Pipe` objects.

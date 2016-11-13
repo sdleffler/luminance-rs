@@ -203,6 +203,12 @@ impl<C, T> Uniform<C, T> where C: HasProgram, T: Uniformable<C> {
       _t: PhantomData
     }
   }
+
+  /// Create a `Sem` by giving a mapping name. The `Type` and `Dim` are reified using the static
+  /// type of the uniform (`T`).
+  pub fn sem(&self, name: &str) -> Sem {
+    Sem::new(name, T::reify_type(), T::dim())
+  }
 }
 
 /// Type of a uniform.
@@ -234,7 +240,7 @@ pub trait Uniformable<C>: Sized where C: HasProgram {
   /// Update the uniform with a new value.
   fn update(self, program: &C::Program, u: &Uniform<C, Self>);
   /// Retrieve the `Type` of the uniform.
-  fn reify_type() -> Type;
+  fn reify_type() -> Type; // FIXME: call that ty() instead
   /// Retrieve the `Dim` of the uniform.
   fn dim() -> Dim;
 }
