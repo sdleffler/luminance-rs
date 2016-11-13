@@ -196,7 +196,7 @@ pub struct Uniform<C, T> where C: HasProgram, T: Uniformable<C> {
 }
 
 impl<C, T> Uniform<C, T> where C: HasProgram, T: Uniformable<C> {
-  pub fn new(sem_index: SemIndex) -> Uniform<C, T> {
+  pub const fn new(sem_index: SemIndex) -> Uniform<C, T> {
     Uniform {
       sem_index: sem_index,
       _c: PhantomData,
