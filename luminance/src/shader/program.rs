@@ -206,7 +206,7 @@ impl<C, T> Uniform<C, T> where C: HasProgram, T: Uniformable<C> {
 
   /// Create a `Sem` by giving a mapping name. The `Type` and `Dim` are reified using the static
   /// type of the uniform (`T`).
-  pub fn sem(&self, name: &str) -> Sem {
+  pub fn sem(name: &str) -> Sem {
     Sem::new(name, T::reify_type(), T::dim())
   }
 }
