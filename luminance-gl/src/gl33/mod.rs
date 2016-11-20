@@ -8,7 +8,7 @@ pub mod token;
 
 pub use self::buffer::Buffer;
 pub use self::framebuffer::Framebuffer;
-pub use self::pipeline::{Pipeline, RenderCommand, ShadingCommand};
+pub use self::pipeline::{Pipe, Pipeline, RenderCommand, ShadingCommand};
 pub use self::shader::program::{Program, Uniform};
 pub use self::shader::stage::Stage;
 pub use self::tessellation::Tessellation;
