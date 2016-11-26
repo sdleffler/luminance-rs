@@ -315,7 +315,7 @@ fn get_uniform_location(program: GLuint, name: &str, ty: Type, dim: Dim) -> (GLi
   };
 
   if let Some(err) = uniform_type_match(program, name, ty, dim) {
-    return (location, Some(UniformWarning::TypeMismatch(err)));
+    return (location, Some(UniformWarning::TypeMismatch(name.to_owned(), err)));
   }
 
   (location, None)

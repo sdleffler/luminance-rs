@@ -183,7 +183,9 @@ pub enum UniformWarning {
   Inactive(String),
   /// Type mismatch between the static requested type (i.e. the `T` in `Uniform<T>` for instance)
   /// and the type that got reflected from the backend in the shaders.
-  TypeMismatch(String)
+  ///
+  /// The first `String` is the name of the uniform; the second one gives the type mismatch.
+  TypeMismatch(String, String)
 }
 
 /// A shader uniform. `Uniform<T>` doesn’t hold any value. It’s more like a mapping between the
