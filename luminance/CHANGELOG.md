@@ -1,3 +1,11 @@
+## 0.14
+
+- `UniformWarning::TypeMismatch` now includes the name of the uniform which type mismatches with the
+  requested on.
+- `Pipeline::Pipe` is now exported by the common interface.
+- `Uniform::sem` doesn’t require `&self` anymore.
+- `Uniform::new` is now a const fn.
+
 ### 0.13.1
 
 - Added `Uniform::sem()` function to create `Sem` out of `Uniform<C, T>` in a simpler way.

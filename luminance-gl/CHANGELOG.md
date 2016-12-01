@@ -1,3 +1,8 @@
+## 0.11.0
+
+- `UniformWarning::TypeMismatch` now includes the name of the uniform which type mismatches with the
+  requested on.
+
 ## 0.10.0
 
 - Changed the pipeline workflow by introducing `Pipe` objects.
