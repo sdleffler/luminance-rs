@@ -58,7 +58,7 @@ pub fn vertex_format_size(vf: &[VertexComponentFormat]) -> usize {
 pub struct VertexComponentFormat {
   pub component_type: Type,
   pub dim: Dim,
-  pub comp_size: u8
+  pub comp_size: usize
 }
 
 /// Possible type of vertex components.
