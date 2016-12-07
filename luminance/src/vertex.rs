@@ -56,7 +56,7 @@ pub fn vertex_format_size(vf: &[VertexComponentFormat]) -> usize {
 /// - the number of bytes a single component takes
 #[derive(Clone, Copy, Debug)]
 pub struct VertexComponentFormat {
-  pub component_type: Type,
+  pub comp_type: Type,
   pub dim: Dim,
   pub comp_size: usize
 }
@@ -92,7 +92,7 @@ macro_rules! impl_base {
   ($t:ty, $q:ident, $d:ident, $s:expr) => {
     impl Vertex for $t {
       fn vertex_format() -> VertexFormat {
-        vec![ VertexComponentFormat { component_type: Type::$q, dim: Dim::$d, comp_size: $s } ]
+        vec![ VertexComponentFormat { comp_type: Type::$q, dim: Dim::$d, comp_size: $s } ]
       }
     }
   }
