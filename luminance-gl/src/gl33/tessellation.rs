@@ -61,9 +61,9 @@ impl HasTessellation for GL33 {
             set_point_line_size(mode, size);
 
             if instances == 1 {
-              gl::DrawElements(from_mode(mode), ind_nb as GLsizei, gl::UNSIGNED_INT, ptr::null());
+              gl::DrawElements(opengl_mode(mode), ind_nb as GLsizei, gl::UNSIGNED_INT, ptr::null());
             } else if instances > 1 {
-              gl::DrawElementsInstanced(from_mode(mode), ind_nb as GLsizei, gl::UNSIGNED_INT, ptr::null(), instances as GLsizei);
+              gl::DrawElementsInstanced(opengl_mode(mode), ind_nb as GLsizei, gl::UNSIGNED_INT, ptr::null(), instances as GLsizei);
             } else {
               panic!("cannot index-render 0 instance");
             }
@@ -81,9 +81,9 @@ impl HasTessellation for GL33 {
             set_point_line_size(mode, size);
 
             if instances == 1 {
-              gl::DrawArrays(from_mode(mode), 0, vert_nb as GLsizei);
+              gl::DrawArrays(opengl_mode(mode), 0, vert_nb as GLsizei);
             } else if instances > 1 {
-              gl::DrawArraysInstanced(from_mode(mode), 0, vert_nb as GLsizei, instances as GLsizei);
+              gl::DrawArraysInstanced(opengl_mode(mode), 0, vert_nb as GLsizei, instances as GLsizei);
             } else {
               panic!("cannot render 0 instance");
             }
@@ -122,9 +122,9 @@ impl HasTessellation for GL33 {
           set_point_line_size(mode, size);
 
           if instances == 1 {
-            gl::DrawArrays(from_mode(mode), 0, vert_nb as GLsizei);
+            gl::DrawArrays(opengl_mode(mode), 0, vert_nb as GLsizei);
           } else if instances > 1 {
-            gl::DrawArraysInstanced(from_mode(mode), 0, vert_nb as GLsizei, instances as GLsizei);
+            gl::DrawArraysInstanced(opengl_mode(mode), 0, vert_nb as GLsizei, instances as GLsizei);
           } else {
             panic!("cannot render 0 instance");
           }
@@ -136,6 +136,7 @@ impl HasTessellation for GL33 {
   }
 }
 
+// Give OpenGL types information on the content of the VBO.
 fn set_vertex_pointers(formats: &[VertexComponentFormat]) {
   let vertex_weight = vertex_weight(formats) as GLsizei;
   let mut offset = 0;
@@ -146,14 +147,26 @@ fn set_vertex_pointers(formats: &[VertexComponentFormat]) {
   }
 }
 
-fn set_component_format(i: u32, stride: GLsizei, off: u32, cf: &VertexComponentFormat) {
+fn set_component_format(i: u32, stride: GLsizei, off: u32, f: &VertexComponentFormat) {
+  match f.comp_type {
+    Type::Floating => {
+      unsafe {
+        gl::VertexAttribPointer(i as GLuint, dim_as_size(&f.dim), from_type(&f.comp_type), gl::FALSE, stride, ptr::null().offset(off as isize));
+      }
+    },
+    Type::Integral | Type::Unsigned | Type::Boolean => {
+      unsafe {
+        gl::VertexAttribIPointer(i as GLuint, dim_as_size(&f.dim), from_type(&f.comp_type), stride, ptr::null().offset(off as isize));
+      }
+    }
+  }
+
   unsafe {
-    gl::VertexAttribPointer(i as GLuint, from_dim(&cf.dim), from_type(&cf.component_type), gl::FALSE, stride, ptr::null().offset(off as isize));
     gl::EnableVertexAttribArray(i as GLuint);
   }
 }
 
-fn from_dim(d: &Dim) -> GLint {
+fn dim_as_size(d: &Dim) -> GLint {
   match *d {
     Dim::Dim1 => 1,
     Dim::Dim2 => 2,
@@ -170,24 +183,17 @@ fn from_type(t: &Type) -> GLenum {
   }
 }
 
+// Weight in bytes of a single vertex.
 fn vertex_weight(formats: &[VertexComponentFormat]) -> usize {
   formats.iter().fold(0, |a, f| a + component_weight(f))
 }
 
+// Weight in bytes of a vertex component.
 fn component_weight(f: &VertexComponentFormat) -> usize {
-  from_dim(&f.dim) as usize * component_type_weight(&f.component_type)
+  dim_as_size(&f.dim) as usize * f.comp_size
 }
 
-fn component_type_weight(t: &Type) -> usize {
-  match *t {
-    Type::Integral => mem::size_of::<i32>(),
-    Type::Unsigned => mem::size_of::<u32>(),
-    Type::Floating => mem::size_of::<f32>(),
-    Type::Boolean => mem::size_of::<bool>()
-  }
-}
-
-fn from_mode(mode: Mode) -> GLenum {
+fn opengl_mode(mode: Mode) -> GLenum {
   match mode {
     Mode::Point => gl::POINTS,
     Mode::Line => gl::LINES,
