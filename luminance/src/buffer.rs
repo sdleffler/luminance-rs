@@ -209,6 +209,12 @@ impl<'a, C, T> BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
   }
 }
 
+impl<'a, C, T> Drop for BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  fn drop(&mut self) {
+    C::unmap(self.buf)
+  }
+}
+
 impl<'a, C, T> Deref for BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
   type Target = [T];
 
@@ -235,6 +241,12 @@ impl<'a, C, T> BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
       ptr: p,
       len: l
     }
+  }
+}
+
+impl<'a, C, T> Drop for BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  fn drop(&mut self) {
+    C::unmap(self.buf)
   }
 }
 
