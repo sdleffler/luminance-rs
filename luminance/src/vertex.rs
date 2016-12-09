@@ -114,32 +114,32 @@ impl Vertex for () {
 }
 
 // scalars
-impl_base!(i8, Integral, Dim1, 8);
-impl_base!(i16, Integral, Dim1, 16);
-impl_base!(i32, Integral, Dim1, 32);
+impl_base!(i8, Integral, Dim1, 1);
+impl_base!(i16, Integral, Dim1, 2);
+impl_base!(i32, Integral, Dim1, 4);
 
-impl_base!(u8, Unsigned, Dim1, 8);
-impl_base!(u16, Unsigned, Dim1, 16);
-impl_base!(u32, Unsigned, Dim1, 32);
+impl_base!(u8, Unsigned, Dim1, 1);
+impl_base!(u16, Unsigned, Dim1, 2);
+impl_base!(u32, Unsigned, Dim1, 4);
 
-impl_base!(f32, Floating, Dim1, 32);
-impl_base!(f64, Floating, Dim1, 64);
+impl_base!(f32, Floating, Dim1, 4);
+impl_base!(f64, Floating, Dim1, 8);
 
-impl_base!(bool, Floating, Dim1, 8);
+impl_base!(bool, Floating, Dim1, 1);
 
 // arrays
-impl_arr!(i8, Integral, 8);
-impl_arr!(i16, Integral, 16);
-impl_arr!(i32, Integral, 32);
+impl_arr!(i8, Integral, 1);
+impl_arr!(i16, Integral, 2);
+impl_arr!(i32, Integral, 4);
 
-impl_arr!(u8, Unsigned, 8);
-impl_arr!(u16, Unsigned, 16);
-impl_arr!(u32, Unsigned, 32);
+impl_arr!(u8, Unsigned, 1);
+impl_arr!(u16, Unsigned, 2);
+impl_arr!(u32, Unsigned, 4);
 
-impl_arr!(f32, Floating, 32);
-impl_arr!(f64, Floating, 64);
+impl_arr!(f32, Floating, 4);
+impl_arr!(f64, Floating, 8);
 
-impl_arr!(bool, Boolean, 8);
+impl_arr!(bool, Boolean, 1);
 
 impl<A, B> Vertex for Chain<A, B> where A: Vertex, B: Vertex {
   fn vertex_format() -> VertexFormat {

@@ -177,13 +177,13 @@ fn dim_as_size(d: &Dim) -> GLint {
 
 fn opengl_sized_type(f: &VertexComponentFormat) -> GLenum {
   match (f.comp_type, f.comp_size) {
-    (Type::Integral, 8) => gl::BYTE,
-    (Type::Integral, 16) => gl::SHORT,
-    (Type::Integral, 32) => gl::INT,
-    (Type::Unsigned, 8) | (Type::Boolean, 8) => gl::UNSIGNED_BYTE,
-    (Type::Unsigned, 16) => gl::UNSIGNED_SHORT,
-    (Type::Unsigned, 32) => gl::UNSIGNED_INT,
-    (Type::Floating, 32) => gl::FLOAT,
+    (Type::Integral, 1) => gl::BYTE,
+    (Type::Integral, 2) => gl::SHORT,
+    (Type::Integral, 4) => gl::INT,
+    (Type::Unsigned, 1) | (Type::Boolean, 1) => gl::UNSIGNED_BYTE,
+    (Type::Unsigned, 2) => gl::UNSIGNED_SHORT,
+    (Type::Unsigned, 4) => gl::UNSIGNED_INT,
+    (Type::Floating, 4) => gl::FLOAT,
     _ => panic!("unsupported vertex component format: {:?}", f)
   }
 }
