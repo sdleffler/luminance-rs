@@ -151,12 +151,12 @@ fn set_component_format(i: u32, stride: GLsizei, off: u32, f: &VertexComponentFo
   match f.comp_type {
     Type::Floating => {
       unsafe {
-        gl::VertexAttribPointer(i as GLuint, dim_as_size(&f.dim), opengl_sized_type(&f.comp_type), gl::FALSE, stride, ptr::null().offset(off as isize));
+        gl::VertexAttribPointer(i as GLuint, dim_as_size(&f.dim), opengl_sized_type(&f), gl::FALSE, stride, ptr::null().offset(off as isize));
       }
     },
     Type::Integral | Type::Unsigned | Type::Boolean => {
       unsafe {
-        gl::VertexAttribIPointer(i as GLuint, dim_as_size(&f.dim), opengl_sized_type(&f.comp_type), stride, ptr::null().offset(off as isize));
+        gl::VertexAttribIPointer(i as GLuint, dim_as_size(&f.dim), opengl_sized_type(&f), stride, ptr::null().offset(off as isize));
       }
     }
   }
@@ -175,11 +175,16 @@ fn dim_as_size(d: &Dim) -> GLint {
   }
 }
 
-fn opengl_sized_type(t: &Type) -> GLenum {
-  match *t {
-    Type::Integral | Type::Boolean => gl::INT,
-    Type::Unsigned => gl::UNSIGNED_INT,
-    Type::Floating => gl::FLOAT,
+fn opengl_sized_type(f: &VertexComponentFormat) -> GLenum {
+  match (f.comp_type, f.comp_size) {
+    (Type::Integral, 8) => gl::BYTE,
+    (Type::Integral, 16) => gl::SHORT,
+    (Type::Integral, 32) => gl::INT,
+    (Type::Unsigned, 8) | (Type::Boolean, 8) => gl::UNSIGNED_BYTE,
+    (Type::Unsigned, 16) => gl::UNSIGNED_SHORT,
+    (Type::Unsigned, 32) => gl::UNSIGNED_INT,
+    (Type::Floating, 32) => gl::FLOAT,
+    _ => panic!("unsupported vertex component format: {:?}", f)
   }
 }
 
