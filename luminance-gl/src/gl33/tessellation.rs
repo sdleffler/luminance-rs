@@ -151,12 +151,12 @@ fn set_component_format(i: u32, stride: GLsizei, off: u32, f: &VertexComponentFo
   match f.comp_type {
     Type::Floating => {
       unsafe {
-        gl::VertexAttribPointer(i as GLuint, dim_as_size(&f.dim), from_type(&f.comp_type), gl::FALSE, stride, ptr::null().offset(off as isize));
+        gl::VertexAttribPointer(i as GLuint, dim_as_size(&f.dim), opengl_sized_type(&f.comp_type), gl::FALSE, stride, ptr::null().offset(off as isize));
       }
     },
     Type::Integral | Type::Unsigned | Type::Boolean => {
       unsafe {
-        gl::VertexAttribIPointer(i as GLuint, dim_as_size(&f.dim), from_type(&f.comp_type), stride, ptr::null().offset(off as isize));
+        gl::VertexAttribIPointer(i as GLuint, dim_as_size(&f.dim), opengl_sized_type(&f.comp_type), stride, ptr::null().offset(off as isize));
       }
     }
   }
@@ -175,7 +175,7 @@ fn dim_as_size(d: &Dim) -> GLint {
   }
 }
 
-fn from_type(t: &Type) -> GLenum {
+fn opengl_sized_type(t: &Type) -> GLenum {
   match *t {
     Type::Integral | Type::Boolean => gl::INT,
     Type::Unsigned => gl::UNSIGNED_INT,

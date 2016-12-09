@@ -237,49 +237,49 @@ impl HasProgram for GL33 {
 
   fn update1_bool(program: &Self::Program, u: SemIndex, x: bool) {
     assert!((u as usize) < program.sem_map.len());
-    unsafe { gl::Uniform1i(program.sem_map[u as usize], x as GLint) }
+    unsafe { gl::Uniform1ui(program.sem_map[u as usize], x as GLuint) }
   }
 
   fn update2_bool(program: &Self::Program, u: SemIndex, v: [bool; 2]) {
     assert!((u as usize) < program.sem_map.len());
-    let v = [v[0] as i32, v[1] as i32];
-    unsafe { gl::Uniform2iv(program.sem_map[u as usize], 1, &v as *const i32) }
+    let v = [v[0] as u32, v[1] as u32];
+    unsafe { gl::Uniform2uiv(program.sem_map[u as usize], 1, &v as *const u32) }
   }
 
   fn update3_bool(program: &Self::Program, u: SemIndex, v: [bool; 3]) {
     assert!((u as usize) < program.sem_map.len());
-    let v = [v[0] as i32, v[1] as i32, v[2] as i32];
-    unsafe { gl::Uniform3iv(program.sem_map[u as usize], 1, &v as *const i32) }
+    let v = [v[0] as u32, v[1] as u32, v[2] as u32];
+    unsafe { gl::Uniform3uiv(program.sem_map[u as usize], 1, &v as *const u32) }
   }
 
   fn update4_bool(program: &Self::Program, u: SemIndex, v: [bool; 4]) {
     assert!((u as usize) < program.sem_map.len());
-    let v = [v[0] as i32, v[1] as i32, v[2] as i32, v[3] as i32];
-    unsafe { gl::Uniform4iv(program.sem_map[u as usize], 1,  &v as *const i32) }
+    let v = [v[0] as u32, v[1] as u32, v[2] as u32, v[3] as u32];
+    unsafe { gl::Uniform4uiv(program.sem_map[u as usize], 1,  &v as *const u32) }
   }
 
   fn update1_slice_bool(program: &Self::Program, u: SemIndex, v: &[bool]) {
     assert!((u as usize) < program.sem_map.len());
-    let v: Vec<_> = v.iter().map(|x| *x as i32).collect();
-    unsafe { gl::Uniform1iv(program.sem_map[u as usize], v.len() as GLsizei, v.as_ptr()) }
+    let v: Vec<_> = v.iter().map(|x| *x as u32).collect();
+    unsafe { gl::Uniform1uiv(program.sem_map[u as usize], v.len() as GLsizei, v.as_ptr()) }
   }
 
   fn update2_slice_bool(program: &Self::Program, u: SemIndex, v: &[[bool; 2]]) {
     assert!((u as usize) < program.sem_map.len());
-    let v: Vec<_> = v.iter().map(|x| [x[0] as i32, x[1] as i32]).collect();
-    unsafe { gl::Uniform2iv(program.sem_map[u as usize], v.len() as GLsizei, v.as_ptr() as *const i32) }
+    let v: Vec<_> = v.iter().map(|x| [x[0] as u32, x[1] as u32]).collect();
+    unsafe { gl::Uniform2uiv(program.sem_map[u as usize], v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
   fn update3_slice_bool(program: &Self::Program, u: SemIndex, v: &[[bool; 3]]) {
     assert!((u as usize) < program.sem_map.len());
-    let v: Vec<_> = v.iter().map(|x| [x[0] as i32, x[1] as i32, x[2] as i32]).collect();
-    unsafe { gl::Uniform3iv(program.sem_map[u as usize], v.len() as GLsizei, v.as_ptr() as *const i32) }
+    let v: Vec<_> = v.iter().map(|x| [x[0] as u32, x[1] as u32, x[2] as u32]).collect();
+    unsafe { gl::Uniform3uiv(program.sem_map[u as usize], v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
   fn update4_slice_bool(program: &Self::Program, u: SemIndex, v: &[[bool; 4]]) {
     assert!((u as usize) < program.sem_map.len());
-    let v: Vec<_> = v.iter().map(|x| [x[0] as i32, x[1] as i32, x[2] as i32, x[3] as i32]).collect();
-    unsafe { gl::Uniform4iv(program.sem_map[u as usize], v.len() as GLsizei, v.as_ptr() as *const i32) }
+    let v: Vec<_> = v.iter().map(|x| [x[0] as u32, x[1] as u32, x[2] as u32, x[3] as u32]).collect();
+    unsafe { gl::Uniform4uiv(program.sem_map[u as usize], v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
   fn update_texture_unit(program: &Self::Program, u: SemIndex, unit: u32) {
