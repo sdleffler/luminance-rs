@@ -54,13 +54,14 @@
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
+use std::slice;
 use std::vec::Vec;
 
 use linear::{M22, M33, M44};
 use texture::Unit;
 
 /// Implement this trait to provide buffers.
-pub trait HasBuffer {
+pub unsafe trait HasBuffer {
   /// A type representing minimal information to operate on a buffer. For instance, a size, a
   /// pointer, a method to retrieve data, a handle, whatever.
   type ABuffer;
@@ -98,6 +99,9 @@ pub trait HasBuffer {
   ///
   /// `None` if you provide an offset that doesn’t lie in the allocated GPU region.
   fn read<T>(buffer: &Self::ABuffer, offset: usize) -> Option<T> where T: Copy;
+  fn map<T>(&mut Self::ABuffer) -> (*const T, usize);
+  fn map_mut<T>(&mut Self::ABuffer) -> (*mut T, usize);
+  fn unmap(&mut Self::ABuffer);
 }
 
 /// Buffer errors.
@@ -106,6 +110,46 @@ pub enum BufferError {
   Overflow,
   TooFewValues,
   TooManyValues
+}
+
+pub struct BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  /// Borrowed buffer.
+  buf: &'a mut C::ABuffer,
+  /// Raw pointer into the GPU memory.
+  ptr: *const T,
+  /// Number of elements in the GPU memory.
+  len: usize
+}
+
+impl<'a, C, T> Deref for BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  type Target = [T];
+
+  fn deref(&self) -> &Self::Target {
+    unsafe { slice::from_raw_parts(self.ptr, self.len) }
+  }
+}
+
+pub struct BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  /// Borrowed buffer.
+  buf: &'a mut C::ABuffer,
+  /// Raw pointer into the GPU memory.
+  ptr: *mut T,
+  /// Number of elements in the GPU memory.
+  len: usize
+}
+
+impl<'a, C, T> Deref for BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  type Target = [T];
+
+  fn deref(&self) -> &Self::Target {
+    unsafe { slice::from_raw_parts(self.ptr, self.len) }
+  }
+}
+
+impl<'a, C, T> DerefMut for BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
+  }
 }
 
 /// A `Buffer` is a GPU region you can picture as an array. It has a static size and cannot be
@@ -131,7 +175,7 @@ impl<C, T> Buffer<C, T> where C: HasBuffer {
   /// Retrieve an element from the `Buffer`.
   ///
   /// Checks boundaries.
-  pub fn get(&self, i: u32) -> Option<T> where T: Copy {
+  pub fn at(&self, i: u32) -> Option<T> where T: Copy {
     C::read(&self.repr, i as usize * mem::size_of::<T>())
   }
 
@@ -155,6 +199,26 @@ impl<C, T> Buffer<C, T> where C: HasBuffer {
   /// Fill the whole buffer with an array.
   pub fn fill(&self, values: &[T]) {
     let _ = C::write_whole(&self.repr, values);
+  }
+
+  pub fn get(&mut self) -> BufferSlice<C, T> {
+    let (p, l) = C::map(&mut self.repr);
+
+    BufferSlice {
+      buf: &mut self.repr,
+      ptr: p,
+      len: l
+    }
+  }
+
+  pub fn get_mut(&mut self) -> BufferSliceMut<C, T> {
+    let (p, l) = C::map_mut(&mut self.repr);
+
+    BufferSliceMut {
+      buf: &mut self.repr,
+      ptr: p,
+      len: l
+    }
   }
 }
 
