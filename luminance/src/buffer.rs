@@ -112,46 +112,6 @@ pub enum BufferError {
   TooManyValues
 }
 
-pub struct BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
-  /// Borrowed buffer.
-  buf: &'a mut C::ABuffer,
-  /// Raw pointer into the GPU memory.
-  ptr: *const T,
-  /// Number of elements in the GPU memory.
-  len: usize
-}
-
-impl<'a, C, T> Deref for BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
-  type Target = [T];
-
-  fn deref(&self) -> &Self::Target {
-    unsafe { slice::from_raw_parts(self.ptr, self.len) }
-  }
-}
-
-pub struct BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
-  /// Borrowed buffer.
-  buf: &'a mut C::ABuffer,
-  /// Raw pointer into the GPU memory.
-  ptr: *mut T,
-  /// Number of elements in the GPU memory.
-  len: usize
-}
-
-impl<'a, C, T> Deref for BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
-  type Target = [T];
-
-  fn deref(&self) -> &Self::Target {
-    unsafe { slice::from_raw_parts(self.ptr, self.len) }
-  }
-}
-
-impl<'a, C, T> DerefMut for BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
-  }
-}
-
 /// A `Buffer` is a GPU region you can picture as an array. It has a static size and cannot be
 /// resized. The size is expressed in number of elements lying in the buffer, not in bytes.
 #[derive(Debug)]
@@ -225,6 +185,46 @@ impl<C, T> Buffer<C, T> where C: HasBuffer {
 impl<C, T> Drop for Buffer<C, T> where C: HasBuffer {
   fn drop(&mut self) {
     C::free(&mut self.repr)
+  }
+}
+
+pub struct BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  /// Borrowed buffer.
+  buf: &'a mut C::ABuffer,
+  /// Raw pointer into the GPU memory.
+  ptr: *const T,
+  /// Number of elements in the GPU memory.
+  len: usize
+}
+
+impl<'a, C, T> Deref for BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  type Target = [T];
+
+  fn deref(&self) -> &Self::Target {
+    unsafe { slice::from_raw_parts(self.ptr, self.len) }
+  }
+}
+
+pub struct BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  /// Borrowed buffer.
+  buf: &'a mut C::ABuffer,
+  /// Raw pointer into the GPU memory.
+  ptr: *mut T,
+  /// Number of elements in the GPU memory.
+  len: usize
+}
+
+impl<'a, C, T> Deref for BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  type Target = [T];
+
+  fn deref(&self) -> &Self::Target {
+    unsafe { slice::from_raw_parts(self.ptr, self.len) }
+  }
+}
+
+impl<'a, C, T> DerefMut for BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
   }
 }
 
