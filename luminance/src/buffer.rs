@@ -190,11 +190,23 @@ impl<C, T> Drop for Buffer<C, T> where C: HasBuffer {
 
 pub struct BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
   /// Borrowed buffer.
-  buf: &'a mut C::ABuffer,
+  pub buf: &'a mut C::ABuffer,
   /// Raw pointer into the GPU memory.
   ptr: *const T,
   /// Number of elements in the GPU memory.
   len: usize
+}
+
+impl<'a, C, T> BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  pub fn map(buf: &'a mut C::ABuffer) -> Self {
+    let (p, l) = C::map(buf);
+
+    BufferSlice {
+      buf: buf,
+      ptr: p,
+      len: l
+    }
+  }
 }
 
 impl<'a, C, T> Deref for BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
@@ -207,11 +219,23 @@ impl<'a, C, T> Deref for BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
 
 pub struct BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
   /// Borrowed buffer.
-  buf: &'a mut C::ABuffer,
+  pub buf: &'a mut C::ABuffer,
   /// Raw pointer into the GPU memory.
   ptr: *mut T,
   /// Number of elements in the GPU memory.
   len: usize
+}
+
+impl<'a, C, T> BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  pub fn map_mut(buf: &'a mut C::ABuffer) -> Self {
+    let (p, l) = C::map_mut(buf);
+
+    BufferSliceMut {
+      buf: buf,
+      ptr: p,
+      len: l
+    }
+  }
 }
 
 impl<'a, C, T> Deref for BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
