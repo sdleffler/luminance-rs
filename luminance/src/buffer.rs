@@ -105,7 +105,7 @@ pub unsafe trait HasBuffer {
 }
 
 /// Buffer errors.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum BufferError {
   Overflow,
   TooFewValues,

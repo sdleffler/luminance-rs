@@ -130,6 +130,7 @@ impl<C> Drop for Tessellation<C> where C: HasTessellation {
 }
 
 /// Error that can occur while trying to map GPU tessellation to host code.
+#[derive(Debug, Eq, PartialEq)]
 pub enum TessellationMapError {
   MismatchVertexFormat(VertexFormat, VertexFormat),
   VertexBufferMapFailed(BufferError),
