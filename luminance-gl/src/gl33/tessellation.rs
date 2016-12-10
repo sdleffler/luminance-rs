@@ -19,7 +19,7 @@ pub struct GLTess {
 impl HasTessellation for GL33 {
   type Tessellation = GLTess;
 
-  fn new<T>(mode: Mode, vertices: &[T], indices: Option<&[u32]>) -> Self::Tessellation where T: Vertex {
+  fn new_tessellation<T>(mode: Mode, vertices: &[T], indices: Option<&[u32]>) -> Self::Tessellation where T: Vertex {
     let mut vao: GLuint = 0;
     let vert_nb = vertices.len();
 
@@ -95,7 +95,7 @@ impl HasTessellation for GL33 {
     }
   }
 
-  fn destroy(tessellation: &mut Self::Tessellation) {
+  fn destroy_tessellation(tessellation: &mut Self::Tessellation) {
     // delete vertex array and all bound buffers
     unsafe {
       gl::DeleteVertexArrays(1, &tessellation.vao);
