@@ -6,7 +6,7 @@ pub mod tessellation;
 pub mod texture;
 pub mod token;
 
-pub use self::buffer::Buffer;
+pub use self::buffer::{Buffer, BufferSlice, BufferSliceMut};
 pub use self::framebuffer::Framebuffer;
 pub use self::pipeline::{Pipe, Pipeline, RenderCommand, ShadingCommand};
 pub use self::shader::program::{Program, Uniform};
