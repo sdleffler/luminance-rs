@@ -61,8 +61,8 @@ pub trait HasTessellation: HasBuffer {
   fn attributeless(mode: Mode, vert_nb: usize) -> Self::Tessellation;
   /// Retrieve the vertex format the tessellation was created with.
   fn vertex_format(tessellation: &Self::Tessellation) -> VertexFormat;
-  /// Get a reference to the vertex buffer.
-  fn get_vertex_buffer_ref_mut(tessellation: &mut Self::Tessellation) -> &mut Self::ABuffer;
+  /// Get a reference to the vertex buffer and the number of elements in it.
+  fn get_vertex_buffer_ref_mut(tessellation: &mut Self::Tessellation) -> (&mut Self::ABuffer, usize);
 }
 
 /// GPU Tessellation.
@@ -94,7 +94,7 @@ impl<C> Tessellation<C> where C: HasTessellation {
     }
   }
 
-  fn get_vertex_buffer<T>(&mut self) -> Result<&mut C::ABuffer, TessellationMapError> where T: Vertex {
+  fn get_vertex_buffer<T>(&mut self) -> Result<(&mut C::ABuffer, usize), TessellationMapError> where T: Vertex {
     let live_vf = C::vertex_format(&self.repr);
     let req_vf = T::vertex_format();
 
@@ -106,15 +106,15 @@ impl<C> Tessellation<C> where C: HasTessellation {
   }
 
   pub fn get<T>(&mut self) -> Result<BufferSlice<C, T>, TessellationMapError> where T: Vertex {
-    let vertex_buffer = self.get_vertex_buffer::<T>()?;
+    let (vertex_buffer, len) = self.get_vertex_buffer::<T>()?;
 
-    Ok(BufferSlice::map(vertex_buffer))
+    Ok(BufferSlice::map(vertex_buffer, len))
   }
 
   pub fn get_mut<T>(&mut self) -> Result<BufferSliceMut<C, T>, TessellationMapError> where T: Vertex {
-    let vertex_buffer = self.get_vertex_buffer::<T>()?;
+    let (vertex_buffer, len) = self.get_vertex_buffer::<T>()?;
 
-    Ok(BufferSliceMut::map_mut(vertex_buffer))
+    Ok(BufferSliceMut::map_mut(vertex_buffer, len))
   }
 }
 

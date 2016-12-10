@@ -99,8 +99,8 @@ pub unsafe trait HasBuffer {
   ///
   /// `None` if you provide an offset that doesn’t lie in the allocated GPU region.
   fn read<T>(buffer: &Self::ABuffer, offset: usize) -> Option<T> where T: Copy;
-  fn map<T>(&mut Self::ABuffer) -> (*const T, usize);
-  fn map_mut<T>(&mut Self::ABuffer) -> (*mut T, usize);
+  fn map<T>(&mut Self::ABuffer) -> *const T;
+  fn map_mut<T>(&mut Self::ABuffer) -> *mut T;
   fn unmap(&mut Self::ABuffer);
 }
 
@@ -162,22 +162,22 @@ impl<C, T> Buffer<C, T> where C: HasBuffer {
   }
 
   pub fn get(&mut self) -> BufferSlice<C, T> {
-    let (p, l) = C::map(&mut self.repr);
+    let p = C::map(&mut self.repr);
 
     BufferSlice {
       buf: &mut self.repr,
       ptr: p,
-      len: l
+      len: self.size
     }
   }
 
   pub fn get_mut(&mut self) -> BufferSliceMut<C, T> {
-    let (p, l) = C::map_mut(&mut self.repr);
+    let p = C::map_mut(&mut self.repr);
 
     BufferSliceMut {
       buf: &mut self.repr,
       ptr: p,
-      len: l
+      len: self.size
     }
   }
 }
@@ -198,13 +198,13 @@ pub struct BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
 }
 
 impl<'a, C, T> BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
-  pub fn map(buf: &'a mut C::ABuffer) -> Self {
-    let (p, l) = C::map(buf);
+  pub fn map(buf: &'a mut C::ABuffer, len: usize) -> Self {
+    let p = C::map(buf);
 
     BufferSlice {
       buf: buf,
       ptr: p,
-      len: l
+      len: len
     }
   }
 }
@@ -233,13 +233,13 @@ pub struct BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
 }
 
 impl<'a, C, T> BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
-  pub fn map_mut(buf: &'a mut C::ABuffer) -> Self {
-    let (p, l) = C::map_mut(buf);
+  pub fn map_mut(buf: &'a mut C::ABuffer, len: usize) -> Self {
+    let p = C::map_mut(buf);
 
     BufferSliceMut {
       buf: buf,
       ptr: p,
-      len: l
+      len: len
     }
   }
 }
