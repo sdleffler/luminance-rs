@@ -109,7 +109,8 @@ pub unsafe trait HasBuffer {
 pub enum BufferError {
   Overflow,
   TooFewValues,
-  TooManyValues
+  TooManyValues,
+  MapFailed
 }
 
 /// A `Buffer` is a GPU region you can picture as an array. It has a static size and cannot be
@@ -161,24 +162,32 @@ impl<C, T> Buffer<C, T> where C: HasBuffer {
     let _ = C::write_whole(&self.repr, values);
   }
 
-  pub fn get(&mut self) -> BufferSlice<C, T> {
+  pub fn get(&mut self) -> Result<BufferSlice<C, T>, BufferError> {
     let p = C::map(&mut self.repr);
 
-    BufferSlice {
+    if p.is_null() {
+      return Err(BufferError::MapFailed);
+    }
+
+    Ok(BufferSlice {
       buf: &mut self.repr,
       ptr: p,
       len: self.size
-    }
+    })
   }
 
-  pub fn get_mut(&mut self) -> BufferSliceMut<C, T> {
+  pub fn get_mut(&mut self) -> Result<BufferSliceMut<C, T>, BufferError> {
     let p = C::map_mut(&mut self.repr);
 
-    BufferSliceMut {
+    if p.is_null() {
+      return Err(BufferError::MapFailed);
+    }
+
+    Ok(BufferSliceMut {
       buf: &mut self.repr,
       ptr: p,
       len: self.size
-    }
+    })
   }
 }
 
@@ -198,14 +207,18 @@ pub struct BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
 }
 
 impl<'a, C, T> BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
-  pub fn map(buf: &'a mut C::ABuffer, len: usize) -> Self {
+  pub fn map(buf: &'a mut C::ABuffer, len: usize) -> Result<Self, BufferError> {
     let p = C::map(buf);
 
-    BufferSlice {
+    if p.is_null() {
+      return Err(BufferError::MapFailed);
+    }
+
+    Ok(BufferSlice {
       buf: buf,
       ptr: p,
       len: len
-    }
+    })
   }
 }
 
@@ -233,14 +246,18 @@ pub struct BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
 }
 
 impl<'a, C, T> BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
-  pub fn map_mut(buf: &'a mut C::ABuffer, len: usize) -> Self {
+  pub fn map_mut(buf: &'a mut C::ABuffer, len: usize) -> Result<Self, BufferError> {
     let p = C::map_mut(buf);
 
-    BufferSliceMut {
+    if p.is_null() {
+      return Err(BufferError::MapFailed);
+    }
+
+    Ok(BufferSliceMut {
       buf: buf,
       ptr: p,
       len: len
-    }
+    })
   }
 }
 

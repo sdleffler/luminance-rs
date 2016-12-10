@@ -20,7 +20,7 @@
 //!
 //! You create a new `Tessellation` with the `new` function, and you can render it with `render`.
 
-use buffer::{BufferSlice, BufferSliceMut, HasBuffer};
+use buffer::{BufferError, BufferSlice, BufferSliceMut, HasBuffer};
 use vertex::{Vertex, VertexFormat};
 
 /// Vertices can be connected via several modes.
@@ -108,13 +108,13 @@ impl<C> Tessellation<C> where C: HasTessellation {
   pub fn get<T>(&mut self) -> Result<BufferSlice<C, T>, TessellationMapError> where T: Vertex {
     let (vertex_buffer, len) = self.get_vertex_buffer::<T>()?;
 
-    Ok(BufferSlice::map(vertex_buffer, len))
+    BufferSlice::map(vertex_buffer, len).map_err(TessellationMapError::VertexBufferMapFailed)
   }
 
   pub fn get_mut<T>(&mut self) -> Result<BufferSliceMut<C, T>, TessellationMapError> where T: Vertex {
     let (vertex_buffer, len) = self.get_vertex_buffer::<T>()?;
 
-    Ok(BufferSliceMut::map_mut(vertex_buffer, len))
+    BufferSliceMut::map_mut(vertex_buffer, len).map_err(TessellationMapError::VertexBufferMapFailed)
   }
 }
 
@@ -126,5 +126,6 @@ impl<C> Drop for Tessellation<C> where C: HasTessellation {
 
 /// Error that can occur while trying to map GPU tessellation to host code.
 pub enum TessellationMapError {
-  MismatchVertexFormat(VertexFormat, VertexFormat)
+  MismatchVertexFormat(VertexFormat, VertexFormat),
+  VertexBufferMapFailed(BufferError)
 }
