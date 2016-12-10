@@ -9,6 +9,8 @@ use std::ptr;
 use std::slice;
 
 pub type Buffer<T> = buffer::Buffer<GL33, T>;
+pub type BufferSlice<'a, T> = buffer::BufferSlice<'a, GL33, T>;
+pub type BufferSliceMut<'a, T> = buffer::BufferSliceMut<'a, GL33, T>;
 
 #[derive(Debug, Clone, Eq, PartialEq)]
 pub struct GLBuffer {
