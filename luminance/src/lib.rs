@@ -87,7 +87,7 @@ pub mod vertex;
 
 // re-exports
 pub use blending::*;
-pub use buffer::{Binding, BufferError};
+pub use buffer::{Binding, Buffer, BufferError, BufferSlice, BufferSliceMut};
 pub use chain::*;
 pub use framebuffer::{FramebufferError};
 pub use linear::*;
