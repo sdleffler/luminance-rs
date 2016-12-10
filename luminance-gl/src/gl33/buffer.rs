@@ -10,6 +10,7 @@ use std::slice;
 
 pub type Buffer<T> = buffer::Buffer<GL33, T>;
 
+#[derive(Debug, Clone, Eq, PartialEq)]
 pub struct GLBuffer {
   pub handle: GLuint,
   pub bytes: usize
@@ -111,6 +112,27 @@ unsafe impl buffer::HasBuffer for GL33 {
       gl::BindBuffer(gl::ARRAY_BUFFER, 0);
 
       Some(*x)
+    }
+  }
+
+  fn map<T>(buffer: &mut Self::ABuffer) -> *const T {
+    unsafe {
+      gl::BindBuffer(gl::ARRAY_BUFFER, buffer.handle);
+      gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *const T
+    }
+  }
+
+  fn map_mut<T>(buffer: &mut Self::ABuffer) -> *mut T {
+    unsafe {
+      gl::BindBuffer(gl::ARRAY_BUFFER, buffer.handle);
+      gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_WRITE) as *mut T
+    }
+  }
+
+  fn unmap(buffer: &mut Self::ABuffer) {
+    unsafe {
+      gl::BindBuffer(gl::ARRAY_BUFFER, buffer.handle); // do that to be sure we’re unmapping that buffer
+      gl::UnmapBuffer(gl::ARRAY_BUFFER);
     }
   }
 }

@@ -1,11 +1,12 @@
 use gl;
 use gl::types::*;
-use gl33::buffer::Buffer;
-use gl33::token::GL33;
 use luminance::tessellation::{self, HasTessellation, Mode};
-use luminance::vertex::{Dim, Type, Vertex, VertexComponentFormat};
+use luminance::vertex::{Dim, Type, Vertex, VertexComponentFormat, VertexFormat};
 use std::mem;
 use std::ptr;
+
+use gl33::buffer::{Buffer, GLBuffer};
+use gl33::token::GL33;
 
 pub type Tessellation = tessellation::Tessellation<GL33>;
 
@@ -13,7 +14,10 @@ pub struct GLTess {
   // closure taking the point / line size and the number of instances to render
   pub render: Box<Fn(Option<f32>, u32)>,
   vao: GLenum,
-  buffers: Vec<GLenum>
+  vbo: Option<GLBuffer>,
+  ibo: Option<GLBuffer>,
+  vertex_format: VertexFormat,
+  vert_nb: usize
 }
 
 impl HasTessellation for GL33 {
@@ -32,12 +36,12 @@ impl HasTessellation for GL33 {
       let vertex_buffer = Buffer::new(vert_nb);
       vertex_buffer.fill(vertices);
 
-      // once the vertex buffer is filled, we get its internal representation’s handle and we leak
-      // it so that it’s not dropped at the end of the scope
-      let vbo = vertex_buffer.repr.handle;
+      // once the vertex buffer is filled, we get its internal representation and we leak it so that
+      // it’s not dropped at the end of the scope
+      let vbo = vertex_buffer.repr.clone();
       mem::forget(vertex_buffer);
 
-      gl::BindBuffer(gl::ARRAY_BUFFER, vbo);
+      gl::BindBuffer(gl::ARRAY_BUFFER, vbo.handle);
       set_vertex_pointers(&T::vertex_format());
 
       // in case of indexed render, create the required objects
@@ -47,10 +51,10 @@ impl HasTessellation for GL33 {
         index_buffer.fill(indices);
 
         // same than vertex buffer, once the index buffer is filled, we leak it to the void
-        let ibo = index_buffer.repr.handle;
+        let ibo = index_buffer.repr.clone();
         mem::forget(index_buffer);
 
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ibo);
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, ibo.handle);
 
         gl::BindVertexArray(0);
 
@@ -69,7 +73,10 @@ impl HasTessellation for GL33 {
             }
           }),
           vao: vao,
-          buffers: vec![vbo, ibo]
+          vbo: Some(vbo),
+          ibo: Some(ibo),
+          vertex_format: T::vertex_format(),
+          vert_nb: vert_nb
         }
       } else {
         gl::BindVertexArray(0);
@@ -89,7 +96,10 @@ impl HasTessellation for GL33 {
             }
           }),
           vao: vao,
-          buffers: vec![vbo]
+          vbo: Some(vbo),
+          ibo: None,
+          vertex_format: T::vertex_format(),
+          vert_nb: vert_nb
         }
       }
     }
@@ -100,8 +110,12 @@ impl HasTessellation for GL33 {
     unsafe {
       gl::DeleteVertexArrays(1, &tessellation.vao);
 
-      if !tessellation.buffers.is_empty() {
-        gl::DeleteBuffers(tessellation.buffers.len() as GLsizei, tessellation.buffers.as_ptr());
+      if let &Some(ref vbo) = &tessellation.vbo {
+        gl::DeleteBuffers(1, &vbo.handle);
+      }
+
+      if let &Some(ref ibo) = &tessellation.ibo {
+        gl::DeleteBuffers(1, &ibo.handle);
       }
     }
   }
@@ -130,9 +144,21 @@ impl HasTessellation for GL33 {
           }
         }),
         vao: vao,
-        buffers: Vec::new(),
+        vbo: None,
+        ibo: None,
+        vertex_format: Vec::new(),
+        vert_nb: vert_nb
       }
     }
+  }
+
+  fn vertex_format(tessellation: &Self::Tessellation) -> &VertexFormat {
+    &tessellation.vertex_format
+  }
+
+  fn get_vertex_buffer_ref_mut(tessellation: &mut Self::Tessellation) -> Option<(&mut Self::ABuffer, usize)> {
+    let vert_nb = tessellation.vert_nb;
+    tessellation.vbo.as_mut().map(|vbo| (vbo, vert_nb))
   }
 }
 

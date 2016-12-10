@@ -60,9 +60,9 @@ pub trait HasTessellation: HasBuffer {
   /// will have to generate the vertices on the fly in your shaders.
   fn attributeless(mode: Mode, vert_nb: usize) -> Self::Tessellation;
   /// Retrieve the vertex format the tessellation was created with.
-  fn vertex_format(tessellation: &Self::Tessellation) -> VertexFormat;
+  fn vertex_format(tessellation: &Self::Tessellation) -> &VertexFormat;
   /// Get a reference to the vertex buffer and the number of elements in it.
-  fn get_vertex_buffer_ref_mut(tessellation: &mut Self::Tessellation) -> (&mut Self::ABuffer, usize);
+  fn get_vertex_buffer_ref_mut(tessellation: &mut Self::Tessellation) -> Option<(&mut Self::ABuffer, usize)>;
 }
 
 /// GPU Tessellation.
@@ -95,14 +95,19 @@ impl<C> Tessellation<C> where C: HasTessellation {
   }
 
   fn get_vertex_buffer<T>(&mut self) -> Result<(&mut C::ABuffer, usize), TessellationMapError> where T: Vertex {
-    let live_vf = C::vertex_format(&self.repr);
-    let req_vf = T::vertex_format();
+    {
+      let live_vf = C::vertex_format(&self.repr);
+      let req_vf = T::vertex_format();
 
-    if live_vf != req_vf {
-      return Err(TessellationMapError::MismatchVertexFormat(live_vf, req_vf));
+      if live_vf != &req_vf {
+        return Err(TessellationMapError::MismatchVertexFormat(live_vf.clone(), req_vf));
+      }
     }
 
-    Ok(C::get_vertex_buffer_ref_mut(&mut self.repr))
+    match C::get_vertex_buffer_ref_mut(&mut self.repr) {
+      Some(x) => Ok(x),
+      None => Err(TessellationMapError::ForbiddenAttributelessMapping)
+    }
   }
 
   pub fn get<T>(&mut self) -> Result<BufferSlice<C, T>, TessellationMapError> where T: Vertex {
@@ -127,5 +132,6 @@ impl<C> Drop for Tessellation<C> where C: HasTessellation {
 /// Error that can occur while trying to map GPU tessellation to host code.
 pub enum TessellationMapError {
   MismatchVertexFormat(VertexFormat, VertexFormat),
-  VertexBufferMapFailed(BufferError)
+  VertexBufferMapFailed(BufferError),
+  ForbiddenAttributelessMapping
 }
