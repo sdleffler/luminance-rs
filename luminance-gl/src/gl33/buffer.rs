@@ -108,12 +108,12 @@ unsafe impl buffer::HasBuffer for GL33 {
       gl::BindBuffer(gl::ARRAY_BUFFER, buffer.handle);
       let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY);
 
-      let x = &*(ptr.offset(off as isize) as *const T);
+      let x = *(ptr.offset(off as isize) as *const T);
 
       let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
       gl::BindBuffer(gl::ARRAY_BUFFER, 0);
 
-      Some(*x)
+      Some(x)
     }
   }
 
