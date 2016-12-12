@@ -32,7 +32,7 @@ use std::marker::PhantomData;
 
 use chain::Chain;
 use pixel::{ColorPixel, DepthPixel, PixelFormat, RenderablePixel};
-use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture};
+use texture::{Dim2, Dimensionable, Flat, HasTexture, Layerable, Texture, TextureError};
 
 /// Trait to implement to provide framebuffer features.
 ///
@@ -43,7 +43,7 @@ pub trait HasFramebuffer: HasTexture + Sized {
   type Framebuffer;
 
   /// Create a new framebuffer.
-  fn new_framebuffer<L, D, CS, DS>(size: D::Size, mipmaps: usize) -> Result<(Self::Framebuffer, Vec<Self::ATexture>, Option<Self::ATexture>), FramebufferError>
+  fn new_framebuffer<L, D, CS, DS>(size: D::Size, mipmaps: usize) -> Result<(Self::Framebuffer, Vec<Self::ATexture>, Option<Self::ATexture>)>
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -61,10 +61,13 @@ pub trait HasFramebuffer: HasTexture + Sized {
 ///
 /// `Incomplete(reason)` occurs at framebuffer creation and `reason` gives a `String` explaination
 /// of the failure.
-#[derive(Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum FramebufferError {
+  TextureError(TextureError),
   Incomplete(String)
 }
+
+pub type Result<T> = ::std::result::Result<T, FramebufferError>;
 
 /// Framebuffer with static layering, dimension, access and slots formats.
 ///
@@ -126,7 +129,7 @@ impl<C, L, D, CS, DS> Framebuffer<C, L, D, CS, DS>
           D::Size: Copy,
           CS: ColorSlot<C, L, D>,
           DS: DepthSlot<C, L, D> {
-  pub fn new(size: D::Size, mipmaps: usize) -> Result<Framebuffer<C, L, D, CS, DS>, FramebufferError> {
+  pub fn new(size: D::Size, mipmaps: usize) -> Result<Framebuffer<C, L, D, CS, DS>> {
     let mipmaps = mipmaps + 1;
 
     C::new_framebuffer::<L, D, CS, DS>(size, mipmaps).map(|(framebuffer, mut color_textures, depth_texture)| {

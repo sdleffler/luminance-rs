@@ -2,7 +2,7 @@ use gl;
 use gl::types::*;
 use gl33::texture::{GLTexture, create_texture, to_target};
 use gl33::token::GL33;
-use luminance::framebuffer::{self, ColorSlot, DepthSlot, FramebufferError, HasFramebuffer};
+use luminance::framebuffer::{self, ColorSlot, DepthSlot, FramebufferError, HasFramebuffer, Result};
 use luminance::texture::{Dimensionable, Layerable};
 use std::default::Default;
 
@@ -18,7 +18,7 @@ pub struct GLFramebuffer {
 impl HasFramebuffer for GL33 {
   type Framebuffer = GLFramebuffer;
 
-  fn new_framebuffer<L, D, CS, DS>(size: D::Size, mipmaps: usize) -> Result<(Self::Framebuffer, Vec<Self::ATexture>, Option<Self::ATexture>), FramebufferError>
+  fn new_framebuffer<L, D, CS, DS>(size: D::Size, mipmaps: usize) -> Result<(Self::Framebuffer, Vec<Self::ATexture>, Option<Self::ATexture>)>
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -46,7 +46,7 @@ impl HasFramebuffer for GL33 {
       } else {
         for (i, (format, texture)) in color_formats.iter().zip(&textures).enumerate() {
           gl::BindTexture(target, *texture);
-          create_texture::<L, D>(target, size, mipmaps, *format, &Default::default());
+          create_texture::<L, D>(target, size, mipmaps, *format, &Default::default()).map_err(FramebufferError::TextureError)?;
           gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0 + i as GLenum, *texture, 0);
         }
 
@@ -62,7 +62,7 @@ impl HasFramebuffer for GL33 {
         let texture = textures.pop().unwrap();
 
         gl::BindTexture(target, texture);
-        create_texture::<L, D>(target, size, mipmaps, format, &Default::default());
+        create_texture::<L, D>(target, size, mipmaps, format, &Default::default()).map_err(FramebufferError::TextureError)?;
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, texture, 0);
 
         depth_texture = Some(texture);

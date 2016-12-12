@@ -239,7 +239,7 @@ pub trait HasTexture {
   /// `size` is a value used to specify the dimension of the texture. `mipmaps` is the number of
   /// extra *mipmaps* you want to have. If you set this value to `0`, you end up with only one level
   /// (the base level) of texture storage.
-  fn new_texture<L, D, P>(size: D::Size, mipmaps: usize, sampler: &Sampler) -> Self::ATexture
+  fn new_texture<L, D, P>(size: D::Size, mipmaps: usize, sampler: &Sampler) -> Result<Self::ATexture>
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -285,18 +285,18 @@ impl<C, L, D, P> Texture<C, L, D, P>
           D: Dimensionable,
           D::Size: Copy,
           P: Pixel {
-  pub fn new(size: D::Size, mipmaps: usize, sampler: &Sampler) -> Self {
+  pub fn new(size: D::Size, mipmaps: usize, sampler: &Sampler) -> Result<Self> {
     let mipmaps = mipmaps + 1; // + 1 prevent having 0 mipmaps
-    let tex = C::new_texture::<L, D, P>(size, mipmaps, sampler);
+    let tex = C::new_texture::<L, D, P>(size, mipmaps, sampler)?;
 
-    Texture {
+    Ok(Texture {
       repr: tex,
       size: size,
       mipmaps: mipmaps,
       _c: PhantomData,
       _l: PhantomData,
       _p: PhantomData
-    }
+    })
   }
 
   /// Create a texture from its backend representation.
@@ -459,3 +459,11 @@ impl<'a, C, L, D, P> From<&'a Texture<C, L, D, P>> for TextureProxy<'a, C>
     }
   }
 }
+
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum TextureError {
+  TextureCreationFailed(String),
+  TextureStorageCreationFailed(String),
+}
+
+pub type Result<T> = ::std::result::Result<T, TextureError>;
