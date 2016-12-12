@@ -1,6 +1,6 @@
 use gl;
 use gl::types::*;
-use luminance::tessellation::{self, HasTessellation, Mode};
+use luminance::tess::{self, HasTess, Mode};
 use luminance::vertex::{Dim, Type, Vertex, VertexComponentFormat, VertexFormat};
 use std::mem;
 use std::ptr;
@@ -8,7 +8,7 @@ use std::ptr;
 use gl33::buffer::{Buffer, GLBuffer};
 use gl33::token::GL33;
 
-pub type Tessellation = tessellation::Tessellation<GL33>;
+pub type Tess = tess::Tess<GL33>;
 
 pub struct GLTess {
   // closure taking the point / line size and the number of instances to render
@@ -20,10 +20,10 @@ pub struct GLTess {
   vert_nb: usize
 }
 
-impl HasTessellation for GL33 {
-  type Tessellation = GLTess;
+impl HasTess for GL33 {
+  type Tess = GLTess;
 
-  fn new_tessellation<T>(mode: Mode, vertices: &[T], indices: Option<&[u32]>) -> Self::Tessellation where T: Vertex {
+  fn new_tess<T>(mode: Mode, vertices: &[T], indices: Option<&[u32]>) -> Self::Tess where T: Vertex {
     let mut vao: GLuint = 0;
     let vert_nb = vertices.len();
 
@@ -105,22 +105,22 @@ impl HasTessellation for GL33 {
     }
   }
 
-  fn destroy_tessellation(tessellation: &mut Self::Tessellation) {
+  fn destroy_tess(tess: &mut Self::Tess) {
     // delete vertex array and all bound buffers
     unsafe {
-      gl::DeleteVertexArrays(1, &tessellation.vao);
+      gl::DeleteVertexArrays(1, &tess.vao);
 
-      if let &Some(ref vbo) = &tessellation.vbo {
+      if let &Some(ref vbo) = &tess.vbo {
         gl::DeleteBuffers(1, &vbo.handle);
       }
 
-      if let &Some(ref ibo) = &tessellation.ibo {
+      if let &Some(ref ibo) = &tess.ibo {
         gl::DeleteBuffers(1, &ibo.handle);
       }
     }
   }
 
-  fn attributeless(mode: Mode, vert_nb: usize) -> Self::Tessellation {
+  fn attributeless(mode: Mode, vert_nb: usize) -> Self::Tess {
     let mut vao = 0;
 
     unsafe {
@@ -152,13 +152,13 @@ impl HasTessellation for GL33 {
     }
   }
 
-  fn vertex_format(tessellation: &Self::Tessellation) -> &VertexFormat {
-    &tessellation.vertex_format
+  fn vertex_format(tesse: &Self::Tess) -> &VertexFormat {
+    &tesse.vertex_format
   }
 
-  fn get_vertex_buffer_ref_mut(tessellation: &mut Self::Tessellation) -> Option<(&mut Self::ABuffer, usize)> {
-    let vert_nb = tessellation.vert_nb;
-    tessellation.vbo.as_mut().map(|vbo| (vbo, vert_nb))
+  fn get_vertex_buffer_ref_mut(tess: &mut Self::Tess) -> Option<(&mut Self::ABuffer, usize)> {
+    let vert_nb = tess.vert_nb;
+    tess.vbo.as_mut().map(|vbo| (vbo, vert_nb))
   }
 }
 
