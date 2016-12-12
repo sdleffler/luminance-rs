@@ -81,21 +81,21 @@ pub mod linear;
 pub mod pipeline;
 pub mod pixel;
 pub mod shader;
-pub mod tessellation;
+pub mod tess;
 pub mod texture;
 pub mod vertex;
 
 // re-exports
 pub use blending::*;
-pub use buffer::{Binding, Buffer, BufferError, BufferSlice, BufferSliceMut};
+pub use buffer::{Binding, BufferError};
 pub use chain::*;
-pub use framebuffer::{FramebufferError};
+pub use framebuffer::FramebufferError;
 pub use linear::*;
 pub use pixel::{ColorPixel, DepthPixel, Format, Pixel, PixelFormat, RenderablePixel, is_color_pixel, is_depth_pixel,
                 RGB8UI, RGBA8UI, RGB32F, RGBA32F, Depth32F};
 pub use shader::program::{ProgramError, Sem, SemIndex, Uniform, Uniformable};
 pub use shader::stage::{StageError};
-pub use tessellation::Mode;
+pub use tess::Mode;
 pub use texture::{CubeFace, Cubemap, DepthComparison, Dimensionable, Dim1, Dim2, Dim3, Flat, Filter,
                   Layerable, Layered, Layering, Sampler, Unit, Wrap};
 pub use vertex::{Vertex, VertexComponentFormat, VertexFormat};

@@ -7,11 +7,11 @@ use buffer::{HasBuffer, UniformBufferProxy};
 use blending;
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer, HasFramebuffer};
 use shader::program::{HasProgram, Program};
-use tessellation::{HasTessellation, Tessellation};
+use tess::{HasTess, Tess};
 use texture::{Dimensionable, HasTexture, Layerable, TextureProxy};
 
 /// Trait to implement to add `Pipeline` support.
-pub trait HasPipeline: HasFramebuffer + HasProgram + HasTessellation + HasTexture + HasBuffer + Sized {
+pub trait HasPipeline: HasFramebuffer + HasProgram + HasTess + HasTexture + HasBuffer + Sized {
   /// Execute a pipeline command, resulting in altering the embedded framebuffer.
   fn run_pipeline<L, D, CS, DS>(cmd: &Pipeline<Self, L, D, CS, DS>)
     where L: Layerable,
@@ -32,7 +32,7 @@ pub trait HasPipeline: HasFramebuffer + HasProgram + HasTessellation + HasTextur
 /// `CS` and `DS` are – respectively – the *color* and *depth* `Slot` of the underlying
 /// `Framebuffer`.
 pub struct Pipeline<'a, C, L, D, CS, DS>
-    where C: 'a + HasFramebuffer + HasProgram + HasTessellation + HasTexture + HasBuffer,
+    where C: 'a + HasFramebuffer + HasProgram + HasTess + HasTexture + HasBuffer,
           L: 'a + Layerable,
           D: 'a + Dimensionable,
           D::Size: Copy,
@@ -78,14 +78,14 @@ impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
 
 /// A dynamic *shading command*. A shading command gathers *render commands* under a shader
 /// `Program`.
-pub struct ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
+pub struct ShadingCommand<'a, C> where C: 'a + HasProgram + HasTess {
   /// Embedded program.
   pub program: &'a Program<C>,
   /// Render commands to execute for this shading command.
   pub render_commands: Vec<Pipe<'a, C, RenderCommand<'a, C>>>
 }
 
-impl<'a, C> ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
+impl<'a, C> ShadingCommand<'a, C> where C: 'a + HasProgram + HasTess {
   /// Create a new shading command.
   pub fn new(program: &'a Program<C>, render_commands: Vec<Pipe<'a, C, RenderCommand<'a, C>>>) -> Self {
     ShadingCommand {
@@ -96,7 +96,7 @@ impl<'a, C> ShadingCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
 }
 
 /// A render command, which holds information on how to rasterize tessellations.
-pub struct RenderCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
+pub struct RenderCommand<'a, C> where C: 'a + HasProgram + HasTess {
   /// Color blending configuration. Set to `None` if you don’t want any color blending. Set it to
   /// `Some(equation, source, destination)` if you want to perform a color blending with the
   /// `equation` formula and with the `source` and `destination` blending factors.
@@ -104,17 +104,17 @@ pub struct RenderCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
   /// Should a depth test be performed?
   pub depth_test: bool,
   /// The embedded tessellations.
-  pub tessellations: Vec<Pipe<'a, C, &'a Tessellation<C>>>,
+  pub tessellations: Vec<Pipe<'a, C, &'a Tess<C>>>,
   /// Number of instances of the tessellation to render.
   pub instances: u32,
   /// Rasterization size for points and lines.
   pub rasterization_size: Option<f32>
 }
 
-impl<'a, C> RenderCommand<'a, C> where C: 'a + HasProgram + HasTessellation {
+impl<'a, C> RenderCommand<'a, C> where C: 'a + HasProgram + HasTess {
   /// Create a new render command.
   pub fn new(blending: Option<(blending::Equation, blending::Factor, blending::Factor)>,
-             depth_test: bool, tessellations: Vec<Pipe<'a, C, &'a Tessellation<C>>>, instances: u32,
+             depth_test: bool, tessellations: Vec<Pipe<'a, C, &'a Tess<C>>>, instances: u32,
              rasterization_size: Option<f32>) -> Self {
     RenderCommand {
       blending: blending,
