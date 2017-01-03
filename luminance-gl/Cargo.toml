@@ -16,4 +16,4 @@ gl33 = []
 
 [dependencies]
 gl = "0.5.2"
-luminance = { version = "0.14.0", path = "../luminance" }
+luminance = { version = "0.15.0", path = "../luminance" }
