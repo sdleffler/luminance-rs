@@ -1,3 +1,7 @@
+## 0.12.0
+
+- Support for luminance-0.15.0 (yeah, lazy changelog line, sorry :D).
+
 ## 0.11.0
 
 - `UniformWarning::TypeMismatch` now includes the name of the uniform which type mismatches with the
