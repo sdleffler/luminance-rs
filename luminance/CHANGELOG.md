@@ -1,4 +1,13 @@
-## 0.14
+## 0.15.0
+
+- Texture and framebuffers have several functions that can fail with new errors.
+- Added buffer mapping. See `BufferSlice` and `BufferSliceMut` for further details.
+- `Tessellation` is now called `Tess` for simplicity (because it’s used **a lot**).
+- `VertexComponentFormat::comp_size` is now a `usize`.
+- The `Vertex` trait now accepts a lot more of new types (among changes, added support for
+  non-32-bit vertex components).
+
+## 0.14.0
 
 - `UniformWarning::TypeMismatch` now includes the name of the uniform which type mismatches with the
   requested on.
