@@ -58,7 +58,6 @@ use std::slice;
 use std::vec::Vec;
 
 use linear::{M22, M33, M44};
-use texture::Unit;
 
 /// Implement this trait to provide buffers.
 pub unsafe trait HasBuffer {
