@@ -323,29 +323,67 @@ impl<'a, C, T> From<&'a Buffer<C, T>> for UniformBufferProxy<'a, C>
   }
 }
 
+/// Typeclass of types that can be used inside a uniform block. You have to be extra careful when
+/// using uniform blocks and ensure you respect the OpenGL *std140* alignment / size rules. This
+/// will be fixed in a coming release.
 pub trait UniformBlock {}
 
+impl UniformBlock for u8 {}
+impl UniformBlock for u16 {}
 impl UniformBlock for u32 {}
+
+impl UniformBlock for i8 {}
+impl UniformBlock for i16 {}
 impl UniformBlock for i32 {}
+
 impl UniformBlock for f32 {}
+impl UniformBlock for f64 {}
+
 impl UniformBlock for bool {}
+
 impl UniformBlock for M22 {}
 impl UniformBlock for M33 {}
 impl UniformBlock for M44 {}
+
+impl UniformBlock for [u8; 2] {}
+impl UniformBlock for [u16; 2] {}
 impl UniformBlock for [u32; 2] {}
+
+impl UniformBlock for [i8; 2] {}
+impl UniformBlock for [i16; 2] {}
 impl UniformBlock for [i32; 2] {}
+
 impl UniformBlock for [f32; 2] {}
+impl UniformBlock for [f64; 2] {}
+
 impl UniformBlock for [bool; 2] {}
+
+impl UniformBlock for [u8; 3] {}
+impl UniformBlock for [u16; 3] {}
 impl UniformBlock for [u32; 3] {}
+
+impl UniformBlock for [i8; 3] {}
+impl UniformBlock for [i16; 3] {}
 impl UniformBlock for [i32; 3] {}
+
 impl UniformBlock for [f32; 3] {}
+impl UniformBlock for [f64; 3] {}
+
 impl UniformBlock for [bool; 3] {}
+
+impl UniformBlock for [u8; 4] {}
+impl UniformBlock for [u16; 4] {}
 impl UniformBlock for [u32; 4] {}
+
+impl UniformBlock for [i8; 4] {}
+impl UniformBlock for [i16; 4] {}
 impl UniformBlock for [i32; 4] {}
+
 impl UniformBlock for [f32; 4] {}
+impl UniformBlock for [f64; 4] {}
+
 impl UniformBlock for [bool; 4] {}
-impl UniformBlock for Unit {}
-impl UniformBlock for Binding {}
+
 impl<T> UniformBlock for [T] where T: UniformBlock {}
 
 macro_rules! impl_uniform_block_tuple {
