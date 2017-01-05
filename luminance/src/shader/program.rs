@@ -43,8 +43,8 @@ pub trait HasProgram: HasStage {
   /// Create a new program by linking it with stages.
   ///
   /// The last argument – `sem_map` – is a mapping between your semantic and the names of the code
-  /// variables they represent. Each semantic is represented by the index of the name in the slice
-  /// you pass in.
+  /// variables they represent. You can generate them out of `Uniform`s with the `Uniform::sem`
+  /// function.
   ///
   /// # Examples
   ///
@@ -121,9 +121,7 @@ impl<C> Program<C> where C: HasProgram {
   pub fn new(tess: Option<(&Stage<C>, &Stage<C>)>, vertex: &Stage<C>, geometry: Option<&Stage<C>>, fragment: &Stage<C>, sem_map: &[Sem]) -> Result<(Self, Vec<UniformWarning>), ProgramError> {
     let (repr, warnings) = C::new_program(tess.map(|(tcs, tes)| (&tcs.repr, &tes.repr)), &vertex.repr, geometry.map(|g| &g.repr), &fragment.repr, sem_map)?;
 
-    Ok(
-      (Program(repr), warnings)
-    )
+    Ok((Program(repr), warnings))
   }
 
   /// Update a uniform variable in the program.
@@ -137,14 +135,16 @@ impl<C> Program<C> where C: HasProgram {
 #[derive(Clone, Debug)]
 pub struct Sem {
   name: String,
+  index: SemIndex,
   ty: Type,
   dim: Dim
 }
 
 impl Sem {
-  pub fn new(name: &str, ty: Type, dim: Dim) -> Self {
+  pub fn new(name: &str, index: SemIndex, ty: Type, dim: Dim) -> Self {
     Sem {
       name: name.to_owned(),
+      index: index,
       ty: ty,
       dim: dim
     }
@@ -208,8 +208,8 @@ impl<C, T> Uniform<C, T> where C: HasProgram, T: Uniformable<C> {
 
   /// Create a `Sem` by giving a mapping name. The `Type` and `Dim` are reified using the static
   /// type of the uniform (`T`).
-  pub fn sem(name: &str) -> Sem {
-    Sem::new(name, T::reify_type(), T::dim())
+  pub fn sem(&self, name: &str) -> Sem {
+    Sem::new(name, self.sem_index, T::reify_type(), T::dim())
   }
 }
 
