@@ -154,6 +154,10 @@ impl Sem {
     &self.name
   }
 
+  pub fn index(&self) -> SemIndex {
+    self.index
+  }
+
   pub fn ty(&self) -> Type {
     self.ty
   }
