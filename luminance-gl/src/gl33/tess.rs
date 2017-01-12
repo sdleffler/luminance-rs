@@ -162,18 +162,18 @@ impl HasTess for GL33 {
   }
 }
 
-// Give OpenGL types information on the content of the VBO.
+// Give OpenGL types information on the content of the VBO by setting vertex formats and pointers
+// to buffer memory.
 fn set_vertex_pointers(formats: &[VertexComponentFormat]) {
-  let vertex_weight = vertex_weight(formats) as GLsizei;
-  let mut offset = 0;
+  let offsets = aligned_offsets(formats);
+  let vertex_weight = offset_based_vertex_weight(formats, &offsets) as GLsizei;
 
-  for (i, format) in formats.iter().enumerate() {
-    set_component_format(i as u32, vertex_weight, offset, format);
-    offset += component_weight(format) as u32;
+  for (i, (format, off)) in formats.iter().zip(offsets).enumerate() {
+    set_component_format(i as u32, vertex_weight, off, format);
   }
 }
 
-fn set_component_format(i: u32, stride: GLsizei, off: u32, f: &VertexComponentFormat) {
+fn set_component_format(i: u32, stride: GLsizei, off: usize, f: &VertexComponentFormat) {
   match f.comp_type {
     Type::Floating => {
       unsafe {
@@ -202,7 +202,7 @@ fn dim_as_size(d: &Dim) -> GLint {
 }
 
 fn opengl_sized_type(f: &VertexComponentFormat) -> GLenum {
-  match (f.comp_type, f.comp_size) {
+  match (f.comp_type, f.unit_size) {
     (Type::Integral, 1) => gl::BYTE,
     (Type::Integral, 2) => gl::SHORT,
     (Type::Integral, 4) => gl::INT,
@@ -214,14 +214,34 @@ fn opengl_sized_type(f: &VertexComponentFormat) -> GLenum {
   }
 }
 
-// Weight in bytes of a single vertex.
-fn vertex_weight(formats: &[VertexComponentFormat]) -> usize {
-  formats.iter().fold(0, |a, f| a + component_weight(f))
+// Compute offsets for all the vertex components according to the alignments provided.
+fn aligned_offsets(formats: &[VertexComponentFormat]) -> Vec<usize> {
+  let mut offsets = Vec::with_capacity(formats.len());
+  let mut off = 0;
+
+  // compute offsets
+  for f in formats {
+    off = off_align(off, f.align); // keep the current component format aligned
+    offsets.push(off);
+    off += component_weight(f); // increment the offset by the pratical size of the component
+  }
+
+  offsets
+}
+
+// Weight in bytes of a single vertex, taking into account padding so that the vertex stay correctly
+// aligned.
+fn offset_based_vertex_weight(formats: &[VertexComponentFormat], offsets: &[usize]) -> usize {
+  if formats.is_empty() || offsets.is_empty() {
+    return 0;
+  }
+
+  off_align(offsets[offsets.len() - 1] + component_weight(&formats[formats.len() - 1]), formats[0].align)
 }
 
 // Weight in bytes of a vertex component.
 fn component_weight(f: &VertexComponentFormat) -> usize {
-  dim_as_size(&f.dim) as usize * f.comp_size
+  dim_as_size(&f.dim) as usize * f.unit_size
 }
 
 fn opengl_mode(mode: Mode) -> GLenum {
@@ -243,4 +263,11 @@ fn set_point_line_size(mode: Mode, size: Option<f32>) {
     Mode::Line | Mode::LineStrip => unsafe { gl::LineWidth(computed) },
     _ => {}
   }
+}
+
+// Align an offset.
+#[inline]
+fn off_align(off: usize, align: usize) -> usize {
+  let a = align - 1;
+  (off + a) & !a
 }
