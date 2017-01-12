@@ -92,27 +92,39 @@ pub trait Vertex {
   fn vertex_format() -> VertexFormat;
 }
 
+/// Macro used to implement the `Vertex` trait.
+///
+/// The first form implements `Vertex` for `$t`. `$q` refers to the inner representation of `$t` –
+/// for instance, `[f32; N]` has `f32` as inner representation. `$comp_type` is the type of the
+/// component (variant of `Type`) and `$dim` is the dimension (variant of `Dim`).
+///
+/// The second form implement `Vertex` for `$t` for types that have the same inner representation
+/// than theirselves – usually, scalars.
 macro_rules! impl_base {
-  ($t:ty, $comp_type:ident, $dim:ident) => {
+  ($t:ty, $q:ty, $comp_type:ident, $dim:ident) => {
     impl Vertex for $t {
       fn vertex_format() -> VertexFormat {
         vec![VertexComponentFormat {
           comp_type: Type::$comp_type,
           dim: Dim::$dim,
-          unit_size: ::std::mem::size_of::<$t>(),
-          align: ::std::mem::align_of::<$t>()
+          unit_size: ::std::mem::size_of::<$q>(),
+          align: ::std::mem::align_of::<$q>()
         }]
       }
     }
+  };
+
+  ($t:ty, $comp_type:ident, $dim:ident) => {
+    impl_base!($t, $t, $comp_type, $dim);
   }
 }
 
 macro_rules! impl_arr {
   ($t:ty, $q:ident) => {
-    impl_base!([$t; 1], $q, Dim1);
-    impl_base!([$t; 2], $q, Dim2);
-    impl_base!([$t; 3], $q, Dim3);
-    impl_base!([$t; 4], $q, Dim4);
+    impl_base!([$t; 1], $t, $q, Dim1);
+    impl_base!([$t; 2], $t, $q, Dim2);
+    impl_base!([$t; 3], $t, $q, Dim3);
+    impl_base!([$t; 4], $t, $q, Dim4);
   }
 }
 
