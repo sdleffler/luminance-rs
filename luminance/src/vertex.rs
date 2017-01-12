@@ -49,16 +49,20 @@ pub fn vertex_format_size(vf: &[VertexComponentFormat]) -> usize {
   vf.len()
 }
 
-/// A `VertexComponentFormat` gives hints about:
-///
-/// - the type of the component (`Type`)
-/// - the dimension of the component (`Dim`)
-/// - the number of bytes a single component takes
+/// Vertex component format. It gives information on how vertices should be passed to the GPU and
+/// optimized in buffers.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct VertexComponentFormat {
+  /// Type of the component. See `Type` for further details.
   pub comp_type: Type,
+  /// Dimension of the component. It should be in 1–4. See `Dim` for further details.
   pub dim: Dim,
-  pub comp_size: usize
+  /// Size in bytes that a single element of the component takes. That is, if your component has
+  /// a dimension set to 2, then the unit size should be the size of a single element (not two).
+  pub unit_size: usize,
+  /// Alignment of the component. The best advice is to respect what Rust does, so it’s highly
+  /// recommended to use `::std::mem::align_of` to let it does the job for you.
+  pub align: usize
 }
 
 /// Possible type of vertex components.
@@ -89,21 +93,26 @@ pub trait Vertex {
 }
 
 macro_rules! impl_base {
-  ($t:ty, $q:ident, $d:ident, $s:expr) => {
+  ($t:ty, $comp_type:ident, $dim:ident) => {
     impl Vertex for $t {
       fn vertex_format() -> VertexFormat {
-        vec![ VertexComponentFormat { comp_type: Type::$q, dim: Dim::$d, comp_size: $s } ]
+        vec![VertexComponentFormat {
+          comp_type: Type::$comp_type,
+          dim: Dim::$dim,
+          unit_size: ::std::mem::size_of::<$t>(),
+          align: ::std::mem::align_of::<$t>()
+        }]
       }
     }
   }
 }
 
 macro_rules! impl_arr {
-  ($t:ty, $q:ident, $s:expr) => {
-    impl_base!([$t; 1], $q, Dim1, $s);
-    impl_base!([$t; 2], $q, Dim2, $s);
-    impl_base!([$t; 3], $q, Dim3, $s);
-    impl_base!([$t; 4], $q, Dim4, $s);
+  ($t:ty, $q:ident) => {
+    impl_base!([$t; 1], $q, Dim1);
+    impl_base!([$t; 2], $q, Dim2);
+    impl_base!([$t; 3], $q, Dim3);
+    impl_base!([$t; 4], $q, Dim4);
   }
 }
 
@@ -114,32 +123,32 @@ impl Vertex for () {
 }
 
 // scalars
-impl_base!(i8, Integral, Dim1, 1);
-impl_base!(i16, Integral, Dim1, 2);
-impl_base!(i32, Integral, Dim1, 4);
+impl_base!(i8, Integral, Dim1);
+impl_base!(i16, Integral, Dim1);
+impl_base!(i32, Integral, Dim1);
 
-impl_base!(u8, Unsigned, Dim1, 1);
-impl_base!(u16, Unsigned, Dim1, 2);
-impl_base!(u32, Unsigned, Dim1, 4);
+impl_base!(u8, Unsigned, Dim1);
+impl_base!(u16, Unsigned, Dim1);
+impl_base!(u32, Unsigned, Dim1);
 
-impl_base!(f32, Floating, Dim1, 4);
-impl_base!(f64, Floating, Dim1, 8);
+impl_base!(f32, Floating, Dim1);
+impl_base!(f64, Floating, Dim1);
 
-impl_base!(bool, Floating, Dim1, 1);
+impl_base!(bool, Floating, Dim1);
 
 // arrays
-impl_arr!(i8, Integral, 1);
-impl_arr!(i16, Integral, 2);
-impl_arr!(i32, Integral, 4);
+impl_arr!(i8, Integral);
+impl_arr!(i16, Integral);
+impl_arr!(i32, Integral);
 
-impl_arr!(u8, Unsigned, 1);
-impl_arr!(u16, Unsigned, 2);
-impl_arr!(u32, Unsigned, 4);
+impl_arr!(u8, Unsigned);
+impl_arr!(u16, Unsigned);
+impl_arr!(u32, Unsigned);
 
-impl_arr!(f32, Floating, 4);
-impl_arr!(f64, Floating, 8);
+impl_arr!(f32, Floating);
+impl_arr!(f64, Floating);
 
-impl_arr!(bool, Boolean, 1);
+impl_arr!(bool, Boolean);
 
 impl<A, B> Vertex for Chain<A, B> where A: Vertex, B: Vertex {
   fn vertex_format() -> VertexFormat {
