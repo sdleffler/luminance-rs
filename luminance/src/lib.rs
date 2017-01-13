@@ -75,6 +75,7 @@
 //! browse it with the projects you’re linking `luminance` against! (`cargo doc`).
 pub mod blending;
 pub mod buffer;
+#[macro_use]
 pub mod chain;
 pub mod framebuffer;
 pub mod linear;

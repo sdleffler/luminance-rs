@@ -39,6 +39,7 @@
 //! you use `Vertex` types. Feel free to dig in the `Chain` documentation for further details.
 
 use chain::Chain;
+
 use std::vec::Vec;
 
 /// A `VertexFormat` is a list of `VertexComponentFormat`s.
@@ -170,56 +171,28 @@ impl<A, B> Vertex for Chain<A, B> where A: Vertex, B: Vertex {
   }
 }
 
-impl<A, B> Vertex for (A, B) where A: Vertex, B: Vertex {
-  fn vertex_format() -> VertexFormat {
-    Chain::<A, B>::vertex_format()
+macro_rules! impl_vertex_for_tuple {
+  ($($t:tt),+) => {
+    impl<$($t),+> Vertex for ($($t),+) where $($t: Vertex),+ {
+      fn vertex_format() -> VertexFormat {
+        <chain!($($t),+) as Vertex>::vertex_format()
+      }
+    }
   }
 }
 
-impl<A, B, C> Vertex for (A, B, C) where A: Vertex, B: Vertex, C: Vertex {
-  fn vertex_format() -> VertexFormat {
-    Chain::<A, Chain<B, C>>::vertex_format()
-  }
-}
-
-impl<A, B, C, D> Vertex for (A, B, C, D) where A: Vertex, B: Vertex, C: Vertex, D: Vertex {
-  fn vertex_format() -> VertexFormat {
-    Chain::<A, Chain<B, Chain<C, D>>>::vertex_format()
-  }
-}
-
-impl<A, B, C, D, E> Vertex for (A, B, C, D, E) where A: Vertex, B: Vertex, C: Vertex, D: Vertex, E: Vertex {
-  fn vertex_format() -> VertexFormat {
-    Chain::<A, Chain<B, Chain<C, Chain<D, E>>>>::vertex_format()
-  }
-}
-
-impl<A, B, C, D, E, F> Vertex for (A, B, C, D, E, F) where A: Vertex, B: Vertex, C: Vertex, D: Vertex, E: Vertex, F: Vertex {
-  fn vertex_format() -> VertexFormat {
-    Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, F>>>>>::vertex_format()
-  }
-}
-
-impl<A, B, C, D, E, F, G> Vertex for (A, B, C, D, E, F, G) where A: Vertex, B: Vertex, C: Vertex, D: Vertex, E: Vertex, F: Vertex, G: Vertex {
-  fn vertex_format() -> VertexFormat {
-    Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, Chain<F, G>>>>>>::vertex_format()
-  }
-}
-
-impl<A, B, C, D, E, F, G, H> Vertex for (A, B, C, D, E, F, G, H) where A: Vertex, B: Vertex, C: Vertex, D: Vertex, E: Vertex, F: Vertex, G: Vertex, H: Vertex {
-  fn vertex_format() -> VertexFormat {
-    Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, Chain<F, Chain<G, H>>>>>>>::vertex_format()
-  }
-}
-
-impl<A, B, C, D, E, F, G, H, I> Vertex for (A, B, C, D, E, F, G, H, I) where A: Vertex, B: Vertex, C: Vertex, D: Vertex, E: Vertex, F: Vertex, G: Vertex, H: Vertex, I: Vertex {
-  fn vertex_format() -> VertexFormat {
-    Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, Chain<F, Chain<G, Chain<H, I>>>>>>>>::vertex_format()
-  }
-}
-
-impl<A, B, C, D, E, F, G, H, I, J> Vertex for (A, B, C, D, E, F, G, H, I, J) where A: Vertex, B: Vertex, C: Vertex, D: Vertex, E: Vertex, F: Vertex, G: Vertex, H: Vertex, I: Vertex, J: Vertex {
-  fn vertex_format() -> VertexFormat {
-    Chain::<A, Chain<B, Chain<C, Chain<D, Chain<E, Chain<F, Chain<G, Chain<H, Chain<I, J>>>>>>>>>::vertex_format()
-  }
-}
+impl_vertex_for_tuple!(A, B);
+impl_vertex_for_tuple!(A, B, C);
+impl_vertex_for_tuple!(A, B, C, D);
+impl_vertex_for_tuple!(A, B, C, D, E);
+impl_vertex_for_tuple!(A, B, C, D, E, F);
+impl_vertex_for_tuple!(A, B, C, D, E, F, G);
+impl_vertex_for_tuple!(A, B, C, D, E, F, G, H);
+impl_vertex_for_tuple!(A, B, C, D, E, F, G, H, I);
+impl_vertex_for_tuple!(A, B, C, D, E, F, G, H, I, J);
+impl_vertex_for_tuple!(A, B, C, D, E, F, G, H, I, J, K);
+impl_vertex_for_tuple!(A, B, C, D, E, F, G, H, I, J, K, L);
+impl_vertex_for_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M);
+impl_vertex_for_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N);
+impl_vertex_for_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O);
+impl_vertex_for_tuple!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
