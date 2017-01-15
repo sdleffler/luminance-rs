@@ -235,6 +235,15 @@ impl<'a, C, T> Deref for BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
   }
 }
 
+impl<'a, 'b, C, T> IntoIterator for &'b BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  type Item = &'b T;
+  type IntoIter = slice::Iter<'b, T>;
+
+  fn into_iter(self) -> Self::IntoIter {
+    self.deref().into_iter()
+  }
+}
+
 pub struct BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
   /// Borrowed buffer.
   pub buf: &'a mut C::ABuffer,
@@ -257,6 +266,24 @@ impl<'a, C, T> BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
       ptr: p,
       len: len
     })
+  }
+}
+
+impl<'a, 'b, C, T> IntoIterator for &'b BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  type Item = &'b T;
+  type IntoIter = slice::Iter<'b, T>;
+
+  fn into_iter(self) -> Self::IntoIter {
+    self.deref().into_iter()
+  }
+}
+
+impl<'a, 'b, C, T> IntoIterator for &'b mut BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+  type Item = &'b mut T;
+  type IntoIter = slice::IterMut<'b, T>;
+
+  fn into_iter(self) -> Self::IntoIter {
+    self.deref_mut().into_iter()
   }
 }
 
