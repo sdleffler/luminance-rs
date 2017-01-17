@@ -73,6 +73,9 @@
 //! library does and several articles will appear as the development goes on. Keep tuned! Online
 //! documentation is planned but in the waiting, feel free to generate the documentation on local and
 //! browse it with the projects you’re linking `luminance` against! (`cargo doc`).
+
+extern crate gl;
+
 pub mod blending;
 pub mod buffer;
 #[macro_use]

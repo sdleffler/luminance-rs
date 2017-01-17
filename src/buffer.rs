@@ -61,57 +61,17 @@
 //! `UniformBlock`. Keep in mind alignment must be respected and is a bit peculiar. TODO: explain
 //! std140 here.
 
+use gl;
+use gl::types::*;
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
+use std::os::raw::c_void;
+use std::ptr;
 use std::slice;
 use std::vec::Vec;
 
 use linear::{M22, M33, M44};
-
-/// Implement this trait to provide buffers.
-pub unsafe trait HasBuffer {
-  /// A type representing minimal information to operate on a buffer. For instance, a size, a
-  /// pointer, a method to retrieve data, a handle, whatever.
-  type ABuffer;
-
-  /// Create a new buffer with a given size.
-  fn new(size: usize) -> Self::ABuffer;
-  /// Destroy a buffer.
-  fn free(&mut Self::ABuffer);
-  /// Write values into the buffer.
-  ///
-  /// # Warnings
-  ///
-  ///  Those warnings are just **hints**. The behavior for each warning is specific and should be
-  ///  accounted.
-  ///
-  /// `Err(BufferError::TooManyValues)` if you provide more values than the buffer’s size. In that
-  /// case, the extra items are just ignored and all others are written; that is, the `values`
-  /// argument is considered having the same size as `buffer`.
-  ///
-  /// `Err(BufferError::TooFewValues)` if you provide less values than the buffer’s size. In that
-  /// case, all `values` are written and the missing ones remain the same in `buffer`.
-  fn write_whole<T>(buffer: &Self::ABuffer, values: &[T]) -> Result<(),BufferError>;
-  /// Write a single value in the buffer at a given offset.
-  ///
-  /// # Failures
-  ///
-  /// `Err(BufferError::Overflow)` if you provide an offset that doesn’t lie in the allocated GPU
-  /// region.
-  fn write<T>(buffer: &Self::ABuffer, offset: usize, x: T) -> Result<(), BufferError> where T: Copy;
-  /// Read all values from the buffer.
-  fn read_whole<T>(buffer: &Self::ABuffer, nb: usize) -> Vec<T> where T: Copy;
-  /// Read a single value from the buffer at a given offset.
-  ///
-  /// # Failures
-  ///
-  /// `None` if you provide an offset that doesn’t lie in the allocated GPU region.
-  fn read<T>(buffer: &Self::ABuffer, offset: usize) -> Option<T> where T: Copy;
-  fn map<T>(&mut Self::ABuffer) -> *const T;
-  fn map_mut<T>(&mut Self::ABuffer) -> *mut T;
-  fn unmap(&mut Self::ABuffer);
-}
 
 /// Buffer errors.
 #[derive(Debug, Eq, PartialEq)]
@@ -125,127 +85,199 @@ pub enum BufferError {
 /// A `Buffer` is a GPU region you can picture as an array. It has a static size and cannot be
 /// resized. The size is expressed in number of elements lying in the buffer, not in bytes.
 #[derive(Debug)]
-pub struct Buffer<C, T> where C: HasBuffer {
-  pub repr: C::ABuffer,
-  pub size: usize,
+pub struct Buffer<T> {
+  handle: GLuint,
+  bytes: usize,
+  len: usize,
   _t: PhantomData<T>
 }
 
-impl<C, T> Buffer<C, T> where C: HasBuffer {
+impl<T> Buffer<T> {
   /// Create a new `Buffer` with a given number of elements.
-  pub fn new(size: usize) -> Buffer<C, T> {
-    let buffer = C::new(size * mem::size_of::<T>());
+  pub fn new(len: usize) -> Buffer<T> {
+    let mut buffer: GLuint = 0;
+    let bytes = mem::size_of::<T> * len;
+
+    unsafe {
+      gl::GenBuffers(1, &mut buffer);
+      gl::BindBuffer(gl::ARRAY_BUFFER, buffer);
+      gl::BufferData(gl::ARRAY_BUFFER, bytes as isize, ptr::null(), gl::STREAM_DRAW);
+      gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+    }
+
     Buffer {
-      repr: buffer,
-      size: size,
+      handle: buffer,
+      bytes: bytes,
+      len: len,
       _t: PhantomData
     }
+  }
+
+  /// Get the length of the buffer.
+  pub fn len(&self) -> usize {
+    self.len
   }
 
   /// Retrieve an element from the `Buffer`.
   ///
   /// Checks boundaries.
-  pub fn at(&self, i: u32) -> Option<T> where T: Copy {
-    C::read(&self.repr, i as usize * mem::size_of::<T>())
+  fn at<T>(&self, i: usize) -> Option<T> where T: Copy {
+    if i >= self.len {
+      return None;
+    }
+
+    unsafe {
+      gl::BindBuffer(gl::ARRAY_BUFFER, self.handle);
+      let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *const T;
+
+      let x = *ptr.offset(i as isize);
+
+      let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
+      gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+
+      Some(x)
+    }
   }
 
   /// Retrieve the whole content of the `Buffer`.
-  pub fn whole(&self) -> Vec<T> where T: Copy {
-    C::read_whole(&self.repr, self.size)
+  fn whole<T>(&self) -> Vec<T> where T: Copy {
+    unsafe {
+      gl::BindBuffer(gl::ARRAY_BUFFER, self.handle);
+      let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *const T;
+
+      let values = Vec::from_raw_parts(ptr, self.len, self.len);
+
+      let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
+      gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+
+      values
+    }
   }
 
   /// Set a value at a given index in the `Buffer`.
   ///
   /// Checks boundaries.
   pub fn set(&mut self, i: u32, x: T) -> Result<(), BufferError> where T: Copy {
-    C::write(&self.repr, i as usize * mem::size_of::<T>(), x)
+    if i >= self.len {
+      return Err(BufferError::Overflow);
+    }
+
+    unsafe {
+      gl::BindBuffer(gl::ARRAY_BUFFER, self.handle);
+      let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::WRITE_ONLY) as *mut T;
+
+      *ptr.offset(i as isize) = x;
+
+      let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
+      gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+    }
+
+    Ok(())
+  }
+
+  fn write_whole<T>(&self, values: &[T]) -> Result<(), BufferError> {
+    let in_bytes = values.len() * mem::size_of::<T>();
+
+    // generate warning and recompute the proper number of bytes to copy
+    let (warning, real_bytes) = match in_bytes.cmp(&self.bytes) {
+      Less => (Some(BufferError::TooFewValues), in_bytes),
+      Greater => (Some(BufferError::TooManyValues), self.bytes),
+      _ => (None, in_bytes)
+    };
+
+    unsafe {
+      gl::BindBuffer(gl::ARRAY_BUFFER, self.handle);
+      let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::WRITE_ONLY);
+
+      ptr::copy_nonoverlapping(values.as_ptr() as *const c_void, ptr, real_bytes);
+
+      let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
+      gl::BindBuffer(gl::ARRAY_BUFFER, 0);
+    }
+
+    match warning {
+      Some(w) => Err(w),
+      None => Ok(())
+    }
   }
 
   /// Fill the `Buffer` with a single value.
   pub fn clear(&self, x: T) where T: Copy {
-    let _ = C::write_whole(&self.repr, &vec![x; self.size]);
+    let _ = self.write_whole(&self.repr, &vec![x; self.size]);
   }
 
   /// Fill the whole buffer with an array.
   pub fn fill(&self, values: &[T]) {
-    let _ = C::write_whole(&self.repr, values);
+    let _ = self.write_whole(&self.repr, values);
   }
 
-  pub fn get(&mut self) -> Result<BufferSlice<C, T>, BufferError> {
-    let p = C::map(&mut self.repr);
+  // TODO: see whether we can re-implement the above function with a call to this
+  /// Obtain an immutable slice over the range handled by the buffer.
+  pub fn get(&mut self) -> Result<BufferSlice<T>, BufferError> {
+    let ptr = unsafe {
+      gl::BindBuffer(gl::ARRAY_BUFFER, self.handle);
+      gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *const T
+    };
 
-    if p.is_null() {
+    if ptr.is_null() {
       return Err(BufferError::MapFailed);
     }
 
     Ok(BufferSlice {
-      buf: &mut self.repr,
-      ptr: p,
-      len: self.size
+      buf: &mut self,
+      ptr: ptr,
     })
   }
 
-  pub fn get_mut(&mut self) -> Result<BufferSliceMut<C, T>, BufferError> {
-    let p = C::map_mut(&mut self.repr);
+  // TODO: see whether we can re-implement the above function with a call to this
+  pub fn get_mut(&mut self) -> Result<BufferSliceMut<T>, BufferError> {
+    let ptr = unsafe {
+      gl::BindBuffer(gl::ARRAY_BUFFER, self.handle);
+      gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_WRITE) as *mut T
+    };
 
-    if p.is_null() {
+    if ptr.is_null() {
       return Err(BufferError::MapFailed);
     }
 
     Ok(BufferSliceMut {
-      buf: &mut self.repr,
-      ptr: p,
-      len: self.size
+      buf: &mut self,
+      ptr: ptr,
     })
   }
 }
 
-impl<C, T> Drop for Buffer<C, T> where C: HasBuffer {
+impl<T> Drop for Buffer<T> {
   fn drop(&mut self) {
-    C::free(&mut self.repr)
+    unsafe { gl::DeleteBuffers(1, &self.handle) }
   }
 }
 
-pub struct BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+pub struct BufferSlice<'a, T> where T: 'a {
   /// Borrowed buffer.
-  pub buf: &'a mut C::ABuffer,
+  buf: &'a mut Buffer<T>,
   /// Raw pointer into the GPU memory.
   ptr: *const T,
-  /// Number of elements in the GPU memory.
-  len: usize
 }
 
-impl<'a, C, T> BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
-  pub fn map(buf: &'a mut C::ABuffer, len: usize) -> Result<Self, BufferError> {
-    let p = C::map(buf);
-
-    if p.is_null() {
-      return Err(BufferError::MapFailed);
-    }
-
-    Ok(BufferSlice {
-      buf: buf,
-      ptr: p,
-      len: len
-    })
-  }
-}
-
-impl<'a, C, T> Drop for BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+impl<'a, T> Drop for BufferSlice<'a, T> where T: 'a {
   fn drop(&mut self) {
-    C::unmap(self.buf)
+    unsafe {
+      gl::BindBuffer(gl::ARRAY_BUFFER, self.buf.handle);
+      gl::UnmapBuffer(gl::ARRAY_BUFFER);
+    }
   }
 }
 
-impl<'a, C, T> Deref for BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+impl<'a, T> Deref for BufferSlice<'a, T> where T: 'a {
   type Target = [T];
 
   fn deref(&self) -> &Self::Target {
-    unsafe { slice::from_raw_parts(self.ptr, self.len) }
+    unsafe { slice::from_raw_parts(self.ptr, self.buf.len) }
   }
 }
 
-impl<'a, 'b, C, T> IntoIterator for &'b BufferSlice<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+impl<'a, 'b, T> IntoIterator for &'b BufferSlice<'a, T> where T: 'a {
   type Item = &'b T;
   type IntoIter = slice::Iter<'b, T>;
 
@@ -254,32 +286,14 @@ impl<'a, 'b, C, T> IntoIterator for &'b BufferSlice<'a, C, T> where C: 'a + HasB
   }
 }
 
-pub struct BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+pub struct BufferSliceMut<'a, T> where T: 'a {
   /// Borrowed buffer.
-  pub buf: &'a mut C::ABuffer,
+  pub buf: &'a mut Buffer<T>,
   /// Raw pointer into the GPU memory.
   ptr: *mut T,
-  /// Number of elements in the GPU memory.
-  len: usize
 }
 
-impl<'a, C, T> BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
-  pub fn map_mut(buf: &'a mut C::ABuffer, len: usize) -> Result<Self, BufferError> {
-    let p = C::map_mut(buf);
-
-    if p.is_null() {
-      return Err(BufferError::MapFailed);
-    }
-
-    Ok(BufferSliceMut {
-      buf: buf,
-      ptr: p,
-      len: len
-    })
-  }
-}
-
-impl<'a, 'b, C, T> IntoIterator for &'b BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+impl<'a, 'b, T> IntoIterator for &'b BufferSliceMut<'a, T> where T: 'a {
   type Item = &'b T;
   type IntoIter = slice::Iter<'b, T>;
 
@@ -288,7 +302,7 @@ impl<'a, 'b, C, T> IntoIterator for &'b BufferSliceMut<'a, C, T> where C: 'a + H
   }
 }
 
-impl<'a, 'b, C, T> IntoIterator for &'b mut BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+impl<'a, 'b, T> IntoIterator for &'b mut BufferSliceMut<'a, T> where T: 'a {
   type Item = &'b mut T;
   type IntoIter = slice::IterMut<'b, T>;
 
@@ -297,23 +311,26 @@ impl<'a, 'b, C, T> IntoIterator for &'b mut BufferSliceMut<'a, C, T> where C: 'a
   }
 }
 
-impl<'a, C, T> Drop for BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+impl<'a, T> Drop for BufferSliceMut<'a, T> where T: 'a {
   fn drop(&mut self) {
-    C::unmap(self.buf)
+    unsafe {
+      gl::BindBuffer(gl::ARRAY_BUFFER, self.buf.handle);
+      gl::UnmapBuffer(gl::ARRAY_BUFFER);
+    }
   }
 }
 
-impl<'a, C, T> Deref for BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+impl<'a, T> Deref for BufferSliceMut<'a, T> where T: 'a {
   type Target = [T];
 
   fn deref(&self) -> &Self::Target {
-    unsafe { slice::from_raw_parts(self.ptr, self.len) }
+    unsafe { slice::from_raw_parts(self.ptr, self.buf.len) }
   }
 }
 
-impl<'a, C, T> DerefMut for BufferSliceMut<'a, C, T> where C: 'a + HasBuffer, T: 'a {
+impl<'a, T> DerefMut for BufferSliceMut<'a, T> where T: 'a {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
+    unsafe { slice::from_raw_parts_mut(self.ptr, self.buf.len) }
   }
 }
 
@@ -345,16 +362,14 @@ impl DerefMut for Binding {
 }
 
 /// An opaque type representing any uniform buffer.
-pub struct UniformBufferProxy<'a, C> where C: HasBuffer + 'a {
-  pub repr: &'a C::ABuffer
+pub struct UniformBufferProxy<'a> {
+  handle: GLuint
 }
 
-impl<'a, C, T> From<&'a Buffer<C, T>> for UniformBufferProxy<'a, C>
-    where C: HasBuffer,
-          T: UniformBlock {
-  fn from(buffer: &'a Buffer<C, T>) -> Self {
+impl<'a, T> From<&'a Buffer<T>> for UniformBufferProxy<'a> where T: UniformBlock {
+  fn from(buffer: &'a Buffer<T>) -> Self {
     UniformBufferProxy {
-      repr: &buffer.repr
+      handle: &buffer.handle
     }
   }
 }
