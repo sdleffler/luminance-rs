@@ -15,10 +15,12 @@
 //! - passing them around as uniforms ;
 //! - etc.
 //!
+//! However, you cannot change their size.
+//!
 //! # Writing to a buffer
 //!
 //! `Buffer`s support several write methods. The simple one is *clearing*. That is, replacing the
-//! whole content of the buffer with a single value. Use the `fill` function to do so.
+//! whole content of the buffer with a single value. Use the `clear` function to do so.
 //!
 //! ```
 //! buffer.clear(0.);
@@ -44,12 +46,20 @@
 //! ```
 //! // get the whole content
 //! let all_elems = buffer.whole();
-//! assert_eq!(all_elems.len(), 5);
-//! assert_eq!(all_elemns, vec![1, 2, 3, 3.14, 5]); // admit floating equalities
+//! assert_eq!(all_elems, vec![1, 2, 3, 3.14, 5]); // admit floating equalities
 //!
 //! // get the element at index 3
 //! assert_eq!(buffer.get(3), Some(3.14));
 //! ```
+//!
+//! # Uniform buffer
+//!
+//! It’s possible to use buffers as *uniform buffers*. That is, buffers that will be in bound at
+//! rendering time and which content will be available for a shader to read (no write).
+//!
+//! In order to use your buffers in a uniform context, the inner type has to implement
+//! `UniformBlock`. Keep in mind alignment must be respected and is a bit peculiar. TODO: explain
+//! std140 here.
 
 use std::marker::PhantomData;
 use std::mem;
