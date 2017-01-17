@@ -1,3 +1,13 @@
+## 0.13.0
+
+- Vertices (`Vertex`) are now aligned based on what decides the Rust compiler. This is very
+  important, especially because of the version 0.15.0 adding non-32-bit vertex components: alignment
+  and padding is now completely handled for you and you have nothing to care about.
+- Changed the meaning of the semantic maps (uniforms). It is now required to provide a `Uniform` to
+  build a new `Sem`. This is an improvement in the sense that the *unsafe* zone is restricted to the
+  declaration of uniforms for a given program. This *unsafe* zone will be covered in a next release
+  by a macro to make it safe.
+
 ## 0.12.0
 
 - Support for luminance-0.15.0 (yeah, lazy changelog line, sorry :D).

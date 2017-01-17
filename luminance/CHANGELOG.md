@@ -1,3 +1,20 @@
+## 0.16.0
+
+- `BufferSlice{,Mut}` now implements `IntoIterator`.
+- Some internal changes.
+- Vertices (`Vertex`) are now aligned based on what decides the Rust compiler. This is very
+  important, especially because of the version 0.15.0 adding non-32-bit vertex components: alignment
+  and padding is now completely handled for you and you have nothing to care about.
+- Added some documentation here and there.
+- Changed the meaning of the semantic maps (uniforms). It is now required to provide a `Uniform` to
+  build a new `Sem`. This is an improvement in the sense that the *unsafe* zone is restricted to the
+  declaration of uniforms for a given program. This *unsafe* zone will be covered in a next release
+  by a macro to make it safe.
+- `texturee::Unit` cannot be used in a uniform block context (it doesn’t have sense on the GLSL
+  side).
+- Added some more types to `UniformBlock`. This trait is not very useful yet, but it’s required to
+  make a `Buffer` readable from GLSL.
+
 ## 0.15.0
 
 - Texture and framebuffers have several functions that can fail with new errors.
