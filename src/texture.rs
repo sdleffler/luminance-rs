@@ -289,7 +289,9 @@ impl<L, D, P> Texture<L, D, P>
   }
 
   /// Create a texture from its backend representation.
-  pub unsafe fn from_raw(handle: GLuint, target: GLenum, size: D::Size, mipmaps: usize) -> Self {
+  pub unsafe fn from_raw(handle: GLuint, size: D::Size, mipmaps: usize) -> Self {
+    let target = opengl_target(L::layering(), D::dim());
+
     Texture {
       handle: handle,
       target: target,
