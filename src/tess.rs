@@ -20,7 +20,7 @@
 //!
 //! You create a new tessellation with the `new` function.
 
-use buffer::{BufferError, BufferSlice, BufferSliceMut, HasBuffer};
+use buffer::{Buffer, BufferError, BufferSlice, BufferSliceMut};
 use vertex::{Vertex, VertexFormat};
 
 /// Vertices can be connected via several modes.
@@ -41,7 +41,7 @@ pub enum Mode {
 }
 
 /// Trait to implement to provide tessellation features.
-pub trait HasTess: HasBuffer {
+pub trait HasTess {
   /// A type representing tessellation on GPU.
   type Tess;
 
@@ -62,7 +62,7 @@ pub trait HasTess: HasBuffer {
   /// Retrieve the vertex format the tessellation was created with.
   fn vertex_format(tessellation: &Self::Tess) -> &VertexFormat;
   /// Get a reference to the vertex buffer and the number of elements in it.
-  fn get_vertex_buffer_ref_mut(tessellation: &mut Self::Tess) -> Option<(&mut Self::ABuffer, usize)>;
+  fn get_vertex_buffer_ref_mut(tessellation: &mut Self::Tess) -> Option<(&mut Buffer, usize)>;
 }
 
 /// GPU tessellation.
@@ -94,7 +94,7 @@ impl<C> Tess<C> where C: HasTess {
     }
   }
 
-  fn get_vertex_buffer<T>(&mut self) -> Result<(&mut C::ABuffer, usize), TessMapError> where T: Vertex {
+  fn get_vertex_buffer<T>(&mut self) -> Result<(&mut Buffer, usize), TessMapError> where T: Vertex {
     {
       let live_vf = C::vertex_format(&self.repr);
       let req_vf = T::vertex_format();

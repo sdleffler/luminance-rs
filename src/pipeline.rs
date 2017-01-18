@@ -3,7 +3,7 @@
 //! This module gives you materials to build *dynamic* rendering **pipelines**. A `Pipeline`
 //! represents a functional stream that consumes geometric data and rasterizes them.
 
-use buffer::{HasBuffer, UniformBufferProxy};
+use buffer::UniformBufferProxy;
 use blending;
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer, HasFramebuffer};
 use shader::program::{HasProgram, Program};
@@ -11,7 +11,7 @@ use tess::{HasTess, Tess};
 use texture::{Dimensionable, HasTexture, Layerable, TextureProxy};
 
 /// Trait to implement to add `Pipeline` support.
-pub trait HasPipeline: HasFramebuffer + HasProgram + HasTess + HasTexture + HasBuffer + Sized {
+pub trait HasPipeline: HasFramebuffer + HasProgram + HasTess + HasTexture + Sized {
   /// Execute a pipeline command, resulting in altering the embedded framebuffer.
   fn run_pipeline<L, D, CS, DS>(cmd: &Pipeline<Self, L, D, CS, DS>)
     where L: Layerable,
@@ -32,7 +32,7 @@ pub trait HasPipeline: HasFramebuffer + HasProgram + HasTess + HasTexture + HasB
 /// `CS` and `DS` are – respectively – the *color* and *depth* `Slot` of the underlying
 /// `Framebuffer`.
 pub struct Pipeline<'a, C, L, D, CS, DS>
-    where C: 'a + HasFramebuffer + HasProgram + HasTess + HasTexture + HasBuffer,
+    where C: 'a + HasFramebuffer + HasProgram + HasTess + HasTexture,
           L: 'a + Layerable,
           D: 'a + Dimensionable,
           D::Size: Copy,
@@ -45,7 +45,7 @@ pub struct Pipeline<'a, C, L, D, CS, DS>
   /// Texture set.
   pub texture_set: &'a[TextureProxy<'a, C>],
   /// Buffer set.
-  pub buffer_set: &'a[UniformBufferProxy<'a, C>],
+  pub buffer_set: &'a[UniformBufferProxy<'a>],
   /// Shading commands to render into the embedded framebuffer.
   pub shading_commands: Vec<Pipe<'a, C, ShadingCommand<'a, C>>>
 }
@@ -59,7 +59,7 @@ impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
           DS: DepthSlot<C, L, D> {
   /// Create a new pipeline.
   pub fn new(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, clear_color: [f32; 4],
-             texture_set: &'a[TextureProxy<'a, C>], buffer_set: &'a[UniformBufferProxy<'a, C>],
+             texture_set: &'a[TextureProxy<'a, C>], buffer_set: &'a[UniformBufferProxy<'a>],
              shading_commands: Vec<Pipe<'a, C, ShadingCommand<'a, C>>>) -> Self {
     Pipeline {
       framebuffer: framebuffer,
