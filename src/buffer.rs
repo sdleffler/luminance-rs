@@ -49,7 +49,7 @@
 //! assert_eq!(all_elems, vec![1, 2, 3, 3.14, 5]); // admit floating equalities
 //!
 //! // get the element at index 3
-//! assert_eq!(buffer.get(3), Some(3.14));
+//! assert_eq!(buffer.at(3), Some(3.14));
 //! ```
 //!
 //! # Uniform buffer
@@ -63,6 +63,7 @@
 
 use gl;
 use gl::types::*;
+use std::cmp::Ordering;
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
@@ -86,9 +87,7 @@ pub enum BufferError {
 /// resized. The size is expressed in number of elements lying in the buffer, not in bytes.
 #[derive(Debug)]
 pub struct Buffer<T> {
-  handle: GLuint,
-  bytes: usize,
-  len: usize,
+  raw: RawBuffer,
   _t: PhantomData<T>
 }
 
@@ -96,7 +95,7 @@ impl<T> Buffer<T> {
   /// Create a new `Buffer` with a given number of elements.
   pub fn new(len: usize) -> Buffer<T> {
     let mut buffer: GLuint = 0;
-    let bytes = mem::size_of::<T> * len;
+    let bytes = mem::size_of::<T>() * len;
 
     unsafe {
       gl::GenBuffers(1, &mut buffer);
@@ -106,9 +105,11 @@ impl<T> Buffer<T> {
     }
 
     Buffer {
-      handle: buffer,
-      bytes: bytes,
-      len: len,
+      raw: RawBuffer {
+        handle: buffer,
+        bytes: bytes,
+        len: len,
+      },
       _t: PhantomData
     }
   }
@@ -121,7 +122,7 @@ impl<T> Buffer<T> {
   /// Retrieve an element from the `Buffer`.
   ///
   /// Checks boundaries.
-  fn at<T>(&self, i: usize) -> Option<T> where T: Copy {
+  pub fn at(&self, i: usize) -> Option<T> where T: Copy {
     if i >= self.len {
       return None;
     }
@@ -140,10 +141,10 @@ impl<T> Buffer<T> {
   }
 
   /// Retrieve the whole content of the `Buffer`.
-  fn whole<T>(&self) -> Vec<T> where T: Copy {
+  pub fn whole(&self) -> Vec<T> where T: Copy {
     unsafe {
       gl::BindBuffer(gl::ARRAY_BUFFER, self.handle);
-      let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *const T;
+      let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *mut T;
 
       let values = Vec::from_raw_parts(ptr, self.len, self.len);
 
@@ -157,7 +158,7 @@ impl<T> Buffer<T> {
   /// Set a value at a given index in the `Buffer`.
   ///
   /// Checks boundaries.
-  pub fn set(&mut self, i: u32, x: T) -> Result<(), BufferError> where T: Copy {
+  pub fn set(&mut self, i: usize, x: T) -> Result<(), BufferError> where T: Copy {
     if i >= self.len {
       return Err(BufferError::Overflow);
     }
@@ -175,13 +176,13 @@ impl<T> Buffer<T> {
     Ok(())
   }
 
-  fn write_whole<T>(&self, values: &[T]) -> Result<(), BufferError> {
+  fn write_whole(&self, values: &[T]) -> Result<(), BufferError> {
     let in_bytes = values.len() * mem::size_of::<T>();
 
     // generate warning and recompute the proper number of bytes to copy
     let (warning, real_bytes) = match in_bytes.cmp(&self.bytes) {
-      Less => (Some(BufferError::TooFewValues), in_bytes),
-      Greater => (Some(BufferError::TooManyValues), self.bytes),
+      Ordering::Less => (Some(BufferError::TooFewValues), in_bytes),
+      Ordering::Greater => (Some(BufferError::TooManyValues), self.bytes),
       _ => (None, in_bytes)
     };
 
@@ -203,47 +204,100 @@ impl<T> Buffer<T> {
 
   /// Fill the `Buffer` with a single value.
   pub fn clear(&self, x: T) where T: Copy {
-    let _ = self.write_whole(&self.repr, &vec![x; self.size]);
+    let _ = self.write_whole(&vec![x; self.len]);
   }
 
   /// Fill the whole buffer with an array.
   pub fn fill(&self, values: &[T]) {
-    let _ = self.write_whole(&self.repr, values);
+    let _ = self.write_whole(values);
   }
 
-  // TODO: see whether we can re-implement the above function with a call to this
-  /// Obtain an immutable slice over the range handled by the buffer.
-  pub fn get(&mut self) -> Result<BufferSlice<T>, BufferError> {
-    let ptr = unsafe {
-      gl::BindBuffer(gl::ARRAY_BUFFER, self.handle);
-      gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *const T
+  /// Create a new buffer from its raw representation.
+  ///
+  /// This function is unsafe becomes it assumes that the representation is compliant to the type
+  /// you want to be.
+  pub unsafe fn from_raw(raw: RawBuffer) -> Self {
+    Buffer {
+      raw: raw,
+      _t: PhantomData
+    }
+  }
+
+  /// Convert a buffer to its raw representation.
+  pub fn to_raw(self) -> RawBuffer {
+    let raw = RawBuffer {
+      handle: self.handle,
+      bytes: self.bytes,
+      len: self.len
     };
+
+    // forget self so that we don’t call drop on it after the function has returned
+    mem::forget(self);
+    raw
+  }
+}
+
+impl<T> Deref for Buffer<T> {
+  type Target = RawBuffer;
+
+  fn deref(&self) -> &Self::Target {
+    &self.raw
+  }
+}
+
+impl<T> DerefMut for Buffer<T> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.raw
+  }
+}
+
+/// Raw buffer. Any buffer can be converted to that type. However, keep in mind that even though
+/// type erasure is safe, creating a buffer from a raw buffer is not.
+#[derive(Debug)]
+pub struct RawBuffer {
+  handle: GLuint,
+  bytes: usize,
+  len: usize
+}
+
+impl RawBuffer {
+  /// Obtain an immutable slice view into the buffer.
+  pub unsafe fn as_slice<T>(&self) -> Result<BufferSlice<T>, BufferError> {
+    gl::BindBuffer(gl::ARRAY_BUFFER, self.handle);
+
+    let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *const T;
 
     if ptr.is_null() {
       return Err(BufferError::MapFailed);
     }
 
     Ok(BufferSlice {
-      buf: &mut self,
+      raw: self,
       ptr: ptr,
+      _t: PhantomData
     })
   }
 
-  // TODO: see whether we can re-implement the above function with a call to this
-  pub fn get_mut(&mut self) -> Result<BufferSliceMut<T>, BufferError> {
-    let ptr = unsafe {
-      gl::BindBuffer(gl::ARRAY_BUFFER, self.handle);
-      gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_WRITE) as *mut T
-    };
+  /// Obtain a mutable slice view into the buffer.
+  pub unsafe fn as_slice_mut<T>(&mut self) -> Result<BufferSliceMut<T>, BufferError> {
+    gl::BindBuffer(gl::ARRAY_BUFFER, self.handle);
+
+    let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_WRITE) as *mut T;
 
     if ptr.is_null() {
       return Err(BufferError::MapFailed);
     }
 
     Ok(BufferSliceMut {
-      buf: &mut self,
+      raw: self,
       ptr: ptr,
+      _t: PhantomData
     })
+  }
+
+  /// Get the internal handle of the buffer.
+  pub unsafe fn handle(&self) -> GLuint {
+    self.handle
   }
 }
 
@@ -253,17 +307,24 @@ impl<T> Drop for Buffer<T> {
   }
 }
 
+impl<T> From<Buffer<T>> for RawBuffer {
+  fn from(buffer: Buffer<T>) -> Self {
+    buffer.to_raw()
+  }
+}
+
 pub struct BufferSlice<'a, T> where T: 'a {
-  /// Borrowed buffer.
-  buf: &'a mut Buffer<T>,
+  /// Borrowed raw buffer.
+  raw: &'a RawBuffer,
   /// Raw pointer into the GPU memory.
   ptr: *const T,
+  _t: PhantomData<T>
 }
 
 impl<'a, T> Drop for BufferSlice<'a, T> where T: 'a {
   fn drop(&mut self) {
     unsafe {
-      gl::BindBuffer(gl::ARRAY_BUFFER, self.buf.handle);
+      gl::BindBuffer(gl::ARRAY_BUFFER, self.raw.handle);
       gl::UnmapBuffer(gl::ARRAY_BUFFER);
     }
   }
@@ -273,7 +334,7 @@ impl<'a, T> Deref for BufferSlice<'a, T> where T: 'a {
   type Target = [T];
 
   fn deref(&self) -> &Self::Target {
-    unsafe { slice::from_raw_parts(self.ptr, self.buf.len) }
+    unsafe { slice::from_raw_parts(self.ptr, self.raw.len) }
   }
 }
 
@@ -288,9 +349,10 @@ impl<'a, 'b, T> IntoIterator for &'b BufferSlice<'a, T> where T: 'a {
 
 pub struct BufferSliceMut<'a, T> where T: 'a {
   /// Borrowed buffer.
-  pub buf: &'a mut Buffer<T>,
+  raw: &'a RawBuffer,
   /// Raw pointer into the GPU memory.
   ptr: *mut T,
+  _t: PhantomData<T>
 }
 
 impl<'a, 'b, T> IntoIterator for &'b BufferSliceMut<'a, T> where T: 'a {
@@ -314,7 +376,7 @@ impl<'a, 'b, T> IntoIterator for &'b mut BufferSliceMut<'a, T> where T: 'a {
 impl<'a, T> Drop for BufferSliceMut<'a, T> where T: 'a {
   fn drop(&mut self) {
     unsafe {
-      gl::BindBuffer(gl::ARRAY_BUFFER, self.buf.handle);
+      gl::BindBuffer(gl::ARRAY_BUFFER, self.raw.handle);
       gl::UnmapBuffer(gl::ARRAY_BUFFER);
     }
   }
@@ -324,13 +386,13 @@ impl<'a, T> Deref for BufferSliceMut<'a, T> where T: 'a {
   type Target = [T];
 
   fn deref(&self) -> &Self::Target {
-    unsafe { slice::from_raw_parts(self.ptr, self.buf.len) }
+    unsafe { slice::from_raw_parts(self.ptr, self.raw.len) }
   }
 }
 
 impl<'a, T> DerefMut for BufferSliceMut<'a, T> where T: 'a {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    unsafe { slice::from_raw_parts_mut(self.ptr, self.buf.len) }
+    unsafe { slice::from_raw_parts_mut(self.ptr, self.raw.len) }
   }
 }
 
@@ -363,13 +425,13 @@ impl DerefMut for Binding {
 
 /// An opaque type representing any uniform buffer.
 pub struct UniformBufferProxy<'a> {
-  handle: GLuint
+  raw: &'a RawBuffer
 }
 
 impl<'a, T> From<&'a Buffer<T>> for UniformBufferProxy<'a> where T: UniformBlock {
   fn from(buffer: &'a Buffer<T>) -> Self {
     UniformBufferProxy {
-      handle: &buffer.handle
+      raw: &buffer.raw
     }
   }
 }
