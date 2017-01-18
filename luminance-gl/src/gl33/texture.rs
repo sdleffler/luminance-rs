@@ -130,7 +130,7 @@ pub fn create_texture<L, D>(target: GLenum, size: D::Size, mipmaps: usize, pf: P
   create_texture_storage::<L, D>(size, mipmaps, pf)
 }
 
-pub fn to_target(l: Layering, d: Dim) -> GLenum {
+pub fn opengl_target(l: Layering, d: Dim) -> GLenum {
   match l {
     Layering::Flat => match d {
       Dim::Dim1 => gl::TEXTURE_1D,
@@ -246,7 +246,7 @@ fn apply_sampler_to_texture(target: GLenum, sampler: &Sampler) {
   }
 }
 
-fn from_wrap(wrap: Wrap) -> GLenum {
+fn opengl_wrap(wrap: Wrap) -> GLenum {
   match wrap {
     Wrap::ClampToEdge => gl::CLAMP_TO_EDGE,
     Wrap::Repeat => gl::REPEAT,
@@ -254,14 +254,14 @@ fn from_wrap(wrap: Wrap) -> GLenum {
   }
 }
 
-fn from_filter(filter: Filter) -> GLenum {
+fn opengl_filter(filter: Filter) -> GLenum {
   match filter {
     Filter::Nearest => gl::NEAREST,
     Filter::Linear => gl::LINEAR
   }
 }
 
-fn from_depth_comparison(fun: DepthComparison) -> GLenum {
+fn opengl_depth_comparison(fun: DepthComparison) -> GLenum {
   match fun {
     DepthComparison::Never => gl::NEVER,
     DepthComparison::Always => gl::ALWAYS,

@@ -1,9 +1,14 @@
 //! This module provides texture features.
 
+use gl;
+use gl::types::*;
 use std::marker::PhantomData;
+use std::mem;
+use std::os::raw::c_void;
 use std::ops::{Deref, DerefMut};
+use std::ptr;
 
-use pixel::Pixel;
+use pixel::{Pixel, PixelFormat, opengl_pixel_format, pixel_components};
 
 /// How to wrap texture coordinates while sampling textures?
 #[derive(Clone, Copy, Debug)]
@@ -230,67 +235,51 @@ pub struct Layered;
 
 impl Layerable for Layered { fn layering() -> Layering { Layering::Layered } }
 
-/// Trait to implement to provide texture features.
-pub trait HasTexture {
-  type ATexture;
-
-  /// Create a new texture.
-  ///
-  /// `size` is a value used to specify the dimension of the texture. `mipmaps` is the number of
-  /// extra *mipmaps* you want to have. If you set this value to `0`, you end up with only one level
-  /// (the base level) of texture storage.
-  fn new_texture<L, D, P>(size: D::Size, mipmaps: usize, sampler: &Sampler) -> Result<Self::ATexture>
-    where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          P: Pixel;
-  /// Destroy a texture.
-  fn free(tex: &mut Self::ATexture);
-  /// Clear the texture’s texels by setting them all to the same value.
-  fn clear_part<L, D, P>(tex: &Self::ATexture, gen_mimpmaps: bool, offset: D::Offset, size: D::Size, pixel: P::Encoding)
-    where L: Layerable, D: Dimensionable, D::Offset: Copy, D::Size: Copy, P: Pixel, P::Encoding: Copy;
-  /// Upload texels to the texture’s memory.
-  fn upload_part<L, D, P>(tex: &Self::ATexture, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &[P::Encoding])
-    where L: Layerable, D::Offset: Copy, D::Size: Copy, D: Dimensionable, P: Pixel;
-  /// Upload raw texels to the texture’s memory.
-  fn upload_part_raw<L, D, P>(tex: &Self::ATexture, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &[P::RawEncoding])
-    where L: Layerable, D::Offset: Copy, D::Size: Copy, D: Dimensionable, P: Pixel;
-  /// Retrieve the texels as a collection of P::RawEncoding.
-  fn get_raw_texels<P>(tex: &Self::ATexture) -> Vec<P::RawEncoding> where P: Pixel, P::RawEncoding: Copy;
-}
-
 /// Texture.
 ///
 /// `L` refers to the layering type; `D` refers to the dimension; `P` is the pixel format for the
 /// texels.
 #[derive(Debug)]
-pub struct Texture<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, P: Pixel {
-  pub repr: C::ATexture,
-  pub size: D::Size,
-  pub mipmaps: usize,
+pub struct Texture<L, D, P> where L: Layerable, D: Dimensionable, P: Pixel {
+  handle: GLuint, // handle to the GPU texture object
+  target: GLenum, // “type” of the texture; used for bindings
+  size: D::Size,
+  mipmaps: usize, // number of mipmaps
   _l: PhantomData<L>,
-  _c: PhantomData<C>,
   _p: PhantomData<P>
 }
 
-impl<C, L, D, P> Drop for Texture<C, L, D, P> where C: HasTexture, L: Layerable, D: Dimensionable, P: Pixel {
+impl<L, D, P> Drop for Texture<L, D, P> where L: Layerable, D: Dimensionable, P: Pixel {
   fn drop(&mut self) {
-    C::free(&mut self.repr)
+    unsafe { gl::DeleteTextures(1, &self.handle) }
   }
 }
 
-impl<C, L, D, P> Texture<C, L, D, P>
-    where C: HasTexture,
-          L: Layerable,
+impl<L, D, P> Texture<L, D, P>
+    where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
           P: Pixel {
   pub fn new(size: D::Size, mipmaps: usize, sampler: &Sampler) -> Result<Self> {
     let mipmaps = mipmaps + 1; // + 1 prevent having 0 mipmaps
-    let tex = C::new_texture::<L, D, P>(size, mipmaps, sampler)?;
+    let mut texture = 0;
+    let target = opengl_target(L::layering(), D::dim());
+
+    unsafe {
+      gl::GenTextures(1, &mut texture);
+      gl::BindTexture(target, texture);
+    }
+    
+    create_texture::<L, D>(target, size, mipmaps, P::pixel_format(), sampler)?;
+
+    // FIXME: maybe we can get rid of this
+    unsafe {
+      gl::BindTexture(target, 0);
+    }
 
     Ok(Texture {
-      repr: tex,
+      handle: texture,
+      target: target,
       size: size,
       mipmaps: mipmaps,
       _c: PhantomData,
@@ -300,9 +289,10 @@ impl<C, L, D, P> Texture<C, L, D, P>
   }
 
   /// Create a texture from its backend representation.
-  pub fn from_raw(texture: C::ATexture, size: D::Size, mipmaps: usize) -> Self {
+  pub unsafe fn from_raw(handle: GLuint, target: GLenum, size: D::Size, mipmaps: usize) -> Self {
     Texture {
-      repr: texture,
+      handle: handle,
+      target: target,
       size: size,
       mipmaps: mipmaps + 1,
       _c: PhantomData,
@@ -320,7 +310,7 @@ impl<C, L, D, P> Texture<C, L, D, P>
       where D::Offset: Copy,
             D::Size: Copy,
             P::Encoding: Copy {
-    C::clear_part::<L, D, P>(&self.repr, gen_mipmaps, offset, size, pixel)
+    self.upload_part::<L, D, P>(gen_mipmaps, offset, size, &vec![pixel; dim_capacity::<D>(size) as usize])
   }
 
   /// Clear a whole texture with a `pixel` value.
@@ -339,7 +329,17 @@ impl<C, L, D, P> Texture<C, L, D, P>
   pub fn upload_part(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &[P::Encoding])
       where D::Offset: Copy,
             D::Size: Copy {
-    C::upload_part::<L, D, P>(&self.repr, gen_mipmaps, offset, size, texels)
+    unsafe {
+      gl::BindTexture(self.target, self.handle);
+
+      upload_texels::<L, D, P, P::Encoding>(self.target, offset, size, texels);
+
+      if gen_mipmaps {
+        gl::GenerateMipmap(self.target);
+      }
+
+      gl::BindTexture(self.target, 0);
+    }
   }
 
   /// Upload `texels` to the whole texture.
@@ -357,7 +357,17 @@ impl<C, L, D, P> Texture<C, L, D, P>
   pub fn upload_part_raw(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &[P::RawEncoding])
       where D::Offset: Copy,
             D::Size: Copy {
-    C::upload_part_raw::<L, D, P>(&self.repr, gen_mipmaps, offset, size, texels)
+    unsafe {
+      gl::BindTexture(self.target, self.handle);
+
+      upload_texels::<L, D, P, P::RawEncoding>(self.target, offset, size, texels);
+
+      if gen_mipmaps {
+        gl::GenerateMipmap(self.target);
+      }
+
+      gl::BindTexture(self.target, 0);
+    }
   }
 
   /// Upload raw `texels` to the whole texture.
@@ -367,9 +377,212 @@ impl<C, L, D, P> Texture<C, L, D, P>
     self.upload_part_raw(gen_mipmaps, D::zero_offset(), self.size, texels)
   }
 
+  // FIXME: cubemaps?
   /// Get the raw texels associated with this texture.
   pub fn get_raw_texels(&self) -> Vec<P::RawEncoding> where P: Pixel, P::RawEncoding: Copy {
-    C::get_raw_texels::<P>(&self.repr)
+    let mut texels = Vec::new();
+    let pf = P::pixel_format();
+    let (format, _, ty) = opengl_pixel_format(pf).unwrap();
+
+    unsafe {
+      let mut w = 0;
+      let mut h = 0;
+
+      gl::BindTexture(self.target, self.handle);
+
+      // retrieve the size of the texture (w and h)
+      gl::GetTexLevelParameteriv(self.target, 0, gl::TEXTURE_WIDTH, &mut w);
+      gl::GetTexLevelParameteriv(self.target, 0, gl::TEXTURE_HEIGHT, &mut h);
+
+      // resize the vec to allocate enough space to host the returned texels
+      texels.resize((w * h) as usize * pixel_components(pf), mem::uninitialized());
+
+      gl::GetTexImage(self.target, 0, format, ty, texels.as_mut_ptr() as *mut c_void);
+
+      gl::BindTexture(self.target, 0);
+    }
+
+    texels
+  }
+}
+
+fn opengl_target(l: Layering, d: Dim) -> GLenum {
+  match l {
+    Layering::Flat => match d {
+      Dim::Dim1 => gl::TEXTURE_1D,
+      Dim::Dim2 => gl::TEXTURE_2D,
+      Dim::Dim3 => gl::TEXTURE_3D,
+      Dim::Cubemap => gl::TEXTURE_CUBE_MAP
+    },
+    Layering::Layered => match d {
+      Dim::Dim1 => gl::TEXTURE_1D_ARRAY,
+      Dim::Dim2 => gl::TEXTURE_2D_ARRAY,
+      Dim::Dim3 => panic!("3D textures array not supported"),
+      Dim::Cubemap => gl::TEXTURE_CUBE_MAP_ARRAY
+    }
+  }
+}
+
+fn create_texture<L, D>(target: GLenum, size: D::Size, mipmaps: usize, pf: PixelFormat, sampler: &Sampler) -> Result<()>
+    where L: Layerable,
+          D: Dimensionable,
+          D::Size: Copy {
+  set_texture_levels(target, mipmaps);
+  apply_sampler_to_texture(target, sampler);
+  create_texture_storage::<L, D>(size, mipmaps, pf)
+}
+
+fn create_texture_storage<L, D>(size: D::Size, mipmaps: usize, pf: PixelFormat) -> Result<()>
+    where L: Layerable,
+          D: Dimensionable,
+          D::Size: Copy {
+  match opengl_pixel_format(pf) {
+    Some(glf) => {
+      let (format, iformat, encoding) = glf;
+
+      match (L::layering(), D::dim()) {
+        // 1D texture
+        (Layering::Flat, Dim::Dim1) => {
+          create_texture_1d_storage(format, iformat, encoding, D::width(size), mipmaps);
+          Ok(())
+        },
+        // 2D texture
+        (Layering::Flat, Dim::Dim2) => {
+          create_texture_2d_storage(format, iformat, encoding, D::width(size), D::height(size), mipmaps);
+          Ok(())
+        },
+        // 3D texture
+        (Layering::Flat, Dim::Dim3) => {
+          create_texture_3d_storage(format, iformat, encoding, D::width(size), D::height(size), D::depth(size), mipmaps);
+          Ok(())
+        },
+        // cubemap
+        (Layering::Flat, Dim::Cubemap) => {
+          create_cubemap_storage(format, iformat, encoding, D::width(size), mipmaps);
+          Ok(())
+        },
+        _ => Err(TextureError::TextureStorageCreationFailed(format!("unsupported texture OpenGL pixel format: {:?}", glf)))
+      }
+    },
+    None => Err(TextureError::TextureStorageCreationFailed(format!("unsupported texture pixel format: {:?}", pf)))
+  }
+}
+
+fn create_texture_1d_storage(format: GLenum, iformat: GLenum, encoding: GLenum, w: u32, mipmaps: usize) {
+  for level in 0..mipmaps {
+    let w = w / 2u32.pow(level as u32);
+
+    unsafe { gl::TexImage1D(gl::TEXTURE_1D, level as GLint, iformat as GLint, w as GLsizei, 0, format, encoding, ptr::null()) };
+  }
+}
+
+fn create_texture_2d_storage(format: GLenum, iformat: GLenum, encoding: GLenum, w: u32, h: u32, mipmaps: usize) {
+  for level in 0..mipmaps {
+    let div = 2u32.pow(level as u32);
+    let w = w / div;
+    let h = h / div;
+
+    unsafe { gl::TexImage2D(gl::TEXTURE_2D, level as GLint, iformat as GLint, w as GLsizei, h as GLsizei, 0, format, encoding, ptr::null()) };
+  }
+}
+
+fn create_texture_3d_storage(format: GLenum, iformat: GLenum, encoding: GLenum, w: u32, h: u32, d: u32, mipmaps: usize) {
+  for level in 0..mipmaps {
+    let div = 2u32.pow(level as u32);
+    let w = w / div;
+    let h = h / div;
+    let d = d / div;
+
+    unsafe { gl::TexImage3D(gl::TEXTURE_3D, level as GLint, iformat as GLint, w as GLsizei, h as GLsizei, d as GLsizei, 0, format, encoding, ptr::null()) };
+  }
+}
+
+fn create_cubemap_storage(format: GLenum, iformat: GLenum, encoding: GLenum, s: u32, mipmaps: usize) {
+  for level in 0..mipmaps {
+    let s = s / 2u32.pow(level as u32);
+
+    unsafe { gl::TexImage2D(gl::TEXTURE_CUBE_MAP, level as GLint, iformat as GLint, s as GLsizei, s as GLsizei, 0, format, encoding, ptr::null()) };
+  }
+}
+
+fn set_texture_levels(target: GLenum, mipmaps: usize) {
+  unsafe {
+    gl::TexParameteri(target, gl::TEXTURE_BASE_LEVEL, 0);
+    gl::TexParameteri(target, gl::TEXTURE_MAX_LEVEL, mipmaps as GLint - 1);
+  }
+}
+
+fn apply_sampler_to_texture(target: GLenum, sampler: &Sampler) {
+  unsafe {
+    gl::TexParameteri(target, gl::TEXTURE_WRAP_R, opengl_wrap(sampler.wrap_r) as GLint);
+    gl::TexParameteri(target, gl::TEXTURE_WRAP_S, opengl_wrap(sampler.wrap_s) as GLint);
+    gl::TexParameteri(target, gl::TEXTURE_WRAP_T, opengl_wrap(sampler.wrap_t) as GLint);
+    gl::TexParameteri(target, gl::TEXTURE_MIN_FILTER, opengl_filter(sampler.minification) as GLint);
+    gl::TexParameteri(target, gl::TEXTURE_MAG_FILTER, opengl_filter(sampler.minification) as GLint);
+    match sampler.depth_comparison {
+      Some(fun) => {
+        gl::TexParameteri(target, gl::TEXTURE_COMPARE_FUNC, opengl_depth_comparison(fun) as GLint);
+        gl::TexParameteri(target, gl::TEXTURE_COMPARE_MODE, gl::COMPARE_REF_TO_TEXTURE as GLint);
+      },
+      None => {
+        gl::TexParameteri(target, gl::TEXTURE_COMPARE_MODE, gl::NONE as GLint);
+      }
+    }
+  }
+}
+
+fn opengl_wrap(wrap: Wrap) -> GLenum {
+  match wrap {
+    Wrap::ClampToEdge => gl::CLAMP_TO_EDGE,
+    Wrap::Repeat => gl::REPEAT,
+    Wrap::MirroredRepeat => gl::MIRRORED_REPEAT
+  }
+}
+
+fn opengl_filter(filter: Filter) -> GLenum {
+  match filter {
+    Filter::Nearest => gl::NEAREST,
+    Filter::Linear => gl::LINEAR
+  }
+}
+
+fn opengl_depth_comparison(fun: DepthComparison) -> GLenum {
+  match fun {
+    DepthComparison::Never => gl::NEVER,
+    DepthComparison::Always => gl::ALWAYS,
+    DepthComparison::Equal => gl::EQUAL,
+    DepthComparison::NotEqual => gl::NOTEQUAL,
+    DepthComparison::Less => gl::LESS,
+    DepthComparison::LessOrEqual => gl::LEQUAL,
+    DepthComparison::Greater => gl::GREATER,
+    DepthComparison::GreaterOrEqual => gl::GEQUAL
+  }
+}
+
+// Upload texels into the texture’s memory. Becareful of the type of texels you send down.
+fn upload_texels<L, D, P, T>(target: GLenum, off: D::Offset, size: D::Size, texels: &[T])
+    where L: Layerable,
+          D: Dimensionable,
+          D::Offset: Copy,
+          D::Size: Copy,
+          P: Pixel {
+  let pf = P::pixel_format();
+
+  match opengl_pixel_format(pf) {
+    Some((format, _, encoding)) => {
+      match L::layering() {
+        Layering::Flat => {
+          match D::dim() {
+            Dim::Dim1 => unsafe { gl::TexSubImage1D(target, 0, D::x_offset(off) as GLint, D::width(size) as GLsizei, format, encoding, texels.as_ptr() as *const c_void) },
+            Dim::Dim2 => unsafe { gl::TexSubImage2D(target, 0, D::x_offset(off) as GLint, D::y_offset(off) as GLint, D::width(size) as GLsizei, D::height(size) as GLsizei, format, encoding, texels.as_ptr() as *const c_void) },
+            Dim::Dim3 => unsafe { gl::TexSubImage3D(target, 0, D::x_offset(off) as GLint, D::y_offset(off) as GLint, D::z_offset(off) as GLint, D::width(size) as GLsizei, D::height(size) as GLsizei, D::depth(size) as GLsizei, format, encoding, texels.as_ptr() as *const c_void) },
+            Dim::Cubemap => unsafe { gl::TexSubImage3D(target, 0, D::x_offset(off) as GLint, D::y_offset(off) as GLint, (gl::TEXTURE_CUBE_MAP_POSITIVE_X + D::z_offset(off)) as GLint, D::width(size) as GLsizei, D::width(size) as GLsizei, 1, format, encoding, texels.as_ptr() as *const c_void) }
+          }
+        },
+        Layering::Layered => panic!("Layering::Layered not implemented yet")
+      }
+    },
+    None => panic!("unknown pixel format")
   }
 }
 
@@ -443,19 +656,18 @@ impl DerefMut for Unit {
 }
 
 /// An opaque type representing any texture.
-pub struct TextureProxy<'a, C> where C: HasTexture + 'a {
-  pub repr: &'a C::ATexture
+pub struct TextureProxy<'a> {
+  pub repr: &'a Texture
 }
 
-impl<'a, C, L, D, P> From<&'a Texture<C, L, D, P>> for TextureProxy<'a, C>
-    where C: HasTexture,
-          L: Layerable,
+impl<'a, L, D, P> From<&'a Texture<L, D, P>> for TextureProxy<'a>
+    where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
           P: Pixel {
-  fn from(texture: &'a Texture<C, L, D, P>) -> Self {
+  fn from(texture: &'a Texture<L, D, P>) -> Self {
     TextureProxy {
-      repr: &texture.repr
+      repr: &texture
     }
   }
 }
