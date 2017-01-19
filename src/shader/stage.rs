@@ -78,7 +78,6 @@ pub enum StageError {
 fn glsl_pragma_src(src: &str) -> String {
   let mut pragma = String::from(GLSL_PRAGMA);
   pragma.push_str(src);
-
   pragma
 }
 
