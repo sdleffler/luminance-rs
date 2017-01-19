@@ -28,11 +28,13 @@
 //!
 //! Color buffers are abstracted by `ColorSlot` and the depth buffer by `DepthSlot`.
 
+use gl;
+use gl::types::*;
 use std::marker::PhantomData;
 
 use chain::Chain;
 use pixel::{ColorPixel, DepthPixel, PixelFormat, RenderablePixel};
-use texture::{Dim2, Dimensionable, Flat, Layerable, Texture, TextureError};
+use texture::{Dim2, Dimensionable, Flat, Layerable, Texture, TextureError, create_texture, opengl_target};
 
 /// Framebuffer error.
 ///
@@ -41,10 +43,23 @@ use texture::{Dim2, Dimensionable, Flat, Layerable, Texture, TextureError};
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum FramebufferError {
   TextureError(TextureError),
-  Incomplete(String)
+  Incomplete(IncompleteReason)
 }
 
-pub type Result<T> = std::result::Result<T, FramebufferError>;
+/// Reason a framebuffer is incomplete.
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum IncompleteReason {
+  Undefined,
+  IncompleteAttachment,
+  MissingAttachment,
+  IncompleteDrawBuffer,
+  IncompleteReadBuffer,
+  Unsupported,
+  IncompleteMultisample,
+  IncompleteLayerTargets,
+}
+
+pub type Result<T> = ::std::result::Result<T, FramebufferError>;
 
 /// Framebuffer with static layering, dimension, access and slots formats.
 ///
@@ -82,8 +97,8 @@ impl Framebuffer<Flat, Dim2, (), ()> {
     Framebuffer {
       handle: 0,
       renderbuffer: None,
-      w: D::width(size),
-      h: D::height(size),
+      w: size.0,
+      h: size.1,
       color_slot: (),
       depth_slot: (),
       _l: PhantomData,
@@ -109,13 +124,15 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
           D::Size: Copy,
           CS: ColorSlot<L, D>,
           DS: DepthSlot<L, D> {
+  // FIXME: use LinkedList instead of Vec for textures
   pub fn new(size: D::Size, mipmaps: usize) -> Result<Framebuffer<L, D, CS, DS>> {
     let mipmaps = mipmaps + 1;
     let mut handle: GLuint = 0;
     let color_formats = CS::color_formats();
     let depth_format = DS::depth_format();
-    let target = to_target(L::layering(), D::dim());
+    let target = opengl_target(L::layering(), D::dim());
     let mut textures: Vec<GLuint> = vec![0; (color_formats.len() + if depth_format.is_some() { 1 } else { 0 })]; // FIXME: remove that (inference)
+    let mut color_textures: Vec<GLuint> = Vec::new();
     let mut depth_texture: Option<GLuint> = None;
     let mut depth_renderbuffer: Option<GLuint> = None;
 
@@ -124,7 +141,8 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
 
       gl::BindFramebuffer(gl::FRAMEBUFFER, handle);
 
-      // generate all the required textures with the correct formats
+      // generate all the required textures once; the textures vec will be reduced and dispatched
+      // into other containers afterwards (in ColorSlot::reify_textures)
       gl::GenTextures((textures.len()) as GLint, textures.as_mut_ptr());
 
       // color textures
@@ -180,20 +198,20 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
       };
 
       match get_status() {
-        Some(incomplete) => {
+        Ok(_) => {
+          gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+
+          let textures = textures.into_iter().map(|t| Texture::new(t, target)).collect();
+          let depth_texture = depth_texture.map(|t| Texture::new(t, target));
+
+          Ok((framebuffer, textures, depth_texture))
+        },
+        Err(reason) => {
           gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
 
           Self::destroy(framebuffer);
 
-          Err(FramebufferError::Incomplete(incomplete))
-        },
-        None => {
-          gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
-
-          let textures = textures.into_iter().map(|t| GLTexture::new(t, target)).collect();
-          let depth_texture = depth_texture.map(|t| GLTexture::new(t, target));
-
-          Ok((framebuffer, textures, depth_texture))
+          Err(FramebufferError::Incomplete(reason))
         }
       }
     }
@@ -213,16 +231,33 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
   }
 }
 
+fn get_status() -> ::std::result::Result<(), IncompleteReason> {
+  let status = unsafe { gl::CheckFramebufferStatus(gl::FRAMEBUFFER) };
+
+  match status {
+    gl::FRAMEBUFFER_COMPLETE => Ok(()),
+    gl::FRAMEBUFFER_UNDEFINED => Err(IncompleteReason::Undefined),
+    gl::FRAMEBUFFER_INCOMPLETE_ATTACHMENT => Err(IncompleteReason::IncompleteAttachment),
+    gl::FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT => Err(IncompleteReason::MissingAttachment),
+    gl::FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER => Err(IncompleteReason::IncompleteDrawBuffer),
+    gl::FRAMEBUFFER_INCOMPLETE_READ_BUFFER => Err(IncompleteReason::IncompleteReadBuffer),
+    gl::FRAMEBUFFER_UNSUPPORTED => Err(IncompleteReason::Unsupported),
+    gl::FRAMEBUFFER_INCOMPLETE_MULTISAMPLE => Err(IncompleteReason::IncompleteMultisample),
+    gl::FRAMEBUFFER_INCOMPLETE_LAYER_TARGETS => Err(IncompleteReason::IncompleteLayerTargets),
+    _ => panic!("unknown OpenGL framebuffer incomplete status! status={}", status)
+  }
+}
+
 /// A framebuffer has a color slot. A color slot can either be empty (the *unit* type is used,`()`)
 /// or several color formats.
-pub trait ColorSlot<L, D> L: Layerable, D: Dimensionable, D::Size: Copy {
+pub trait ColorSlot<L, D> where L: Layerable, D: Dimensionable, D::Size: Copy {
   /// Turn a color slot into a list of pixel formats.
   fn color_formats() -> Vec<PixelFormat>;
   /// Reify a list of raw textures into a color slot.
   fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self;
 }
 
-impl<L, D> ColorSlot<L, D> for () L: Layerable, D: Dimensionable, D::Size: Copy {
+impl<L, D> ColorSlot<L, D> for () where L: Layerable, D: Dimensionable, D::Size: Copy {
   fn color_formats() -> Vec<PixelFormat> { Vec::new() }
 
   fn reify_textures(_: D::Size, _: usize, _: &mut Vec<GLuint>) -> Self { () }
@@ -247,7 +282,7 @@ impl<L, D, P, B> ColorSlot<L, D> for Chain<Texture<L, D, P>, B>
           D: Dimensionable,
           D::Size: Copy,
           P: ColorPixel + RenderablePixel,
-          B: ColorSlot<C, L, D> {
+          B: ColorSlot<L, D> {
   fn color_formats() -> Vec<PixelFormat> {
     let mut a = Texture::<L, D, P>::color_formats();
     a.extend(B::color_formats());
@@ -327,7 +362,7 @@ impl<L, D, P0, P1, P2, P3, P4> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L
   }
 
   fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
-    let Chain(a, Chain(b, Chain(c, Chain(d, e)))) = Chain::<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Texture<L, D, P4>>>>>::reify_textures(size, mipmaps, textures);
+    let Chain(a, Chain(b, Chain(c, Chain(d, e)))) = Chain::<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Texture<L, D, P4>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e)
   }
 }

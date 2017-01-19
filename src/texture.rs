@@ -408,7 +408,7 @@ impl<L, D, P> Texture<L, D, P>
   }
 }
 
-fn opengl_target(l: Layering, d: Dim) -> GLenum {
+pub fn opengl_target(l: Layering, d: Dim) -> GLenum {
   match l {
     Layering::Flat => match d {
       Dim::Dim1 => gl::TEXTURE_1D,
@@ -425,7 +425,7 @@ fn opengl_target(l: Layering, d: Dim) -> GLenum {
   }
 }
 
-fn create_texture<L, D>(target: GLenum, size: D::Size, mipmaps: usize, pf: PixelFormat, sampler: &Sampler) -> Result<()>
+pub unsafe fn create_texture<L, D>(target: GLenum, size: D::Size, mipmaps: usize, pf: PixelFormat, sampler: &Sampler) -> Result<()>
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy {
