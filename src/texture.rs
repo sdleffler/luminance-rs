@@ -235,18 +235,52 @@ pub struct Layered;
 
 impl Layerable for Layered { fn layering() -> Layering { Layering::Layered } }
 
+/// Raw buffer. Any buffer can be converted to that type. However, keep in mind that even though
+/// type erasure is safe, creating a buffer from a raw buffer is not.
+#[derive(Debug)]
+pub struct RawTexture {
+  handle: GLuint, // handle to the GPU texture object
+  target: GLenum, // “type” of the texture; used for bindings
+}
+
+impl RawTexture {
+  pub unsafe fn new(handle: GLuint, target: GLenum) -> Self {
+    RawTexture {
+      handle: handle,
+      target: target
+    }
+  }
+
+  pub unsafe fn handle(&self) -> GLuint {
+    self.handle
+  }
+}
+
 /// Texture.
 ///
 /// `L` refers to the layering type; `D` refers to the dimension; `P` is the pixel format for the
 /// texels.
 #[derive(Debug)]
 pub struct Texture<L, D, P> where L: Layerable, D: Dimensionable, P: Pixel {
-  handle: GLuint, // handle to the GPU texture object
-  target: GLenum, // “type” of the texture; used for bindings
+  raw: RawTexture,
   size: D::Size,
   mipmaps: usize, // number of mipmaps
   _l: PhantomData<L>,
   _p: PhantomData<P>
+}
+
+impl<L, D, P> Deref for Texture<L, D, P> where L: Layerable, D: Dimensionable, P: Pixel {
+  type Target = RawTexture;
+
+  fn deref(&self) -> &Self::Target {
+    &self.raw
+  }
+}
+
+impl<L, D, P> DerefMut for Texture<L, D, P> where L: Layerable, D: Dimensionable, P: Pixel {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.raw
+  }
 }
 
 impl<L, D, P> Drop for Texture<L, D, P> where L: Layerable, D: Dimensionable, P: Pixel {
@@ -268,39 +302,46 @@ impl<L, D, P> Texture<L, D, P>
     unsafe {
       gl::GenTextures(1, &mut texture);
       gl::BindTexture(target, texture);
-    }
     
-    create_texture::<L, D>(target, size, mipmaps, P::pixel_format(), sampler)?;
+      create_texture::<L, D>(target, size, mipmaps, P::pixel_format(), sampler)?;
 
-    // FIXME: maybe we can get rid of this
-    unsafe {
+      // FIXME: maybe we can get rid of this
       gl::BindTexture(target, 0);
     }
 
     Ok(Texture {
-      handle: texture,
-      target: target,
+      raw: RawTexture {
+        handle: texture,
+        target: target
+      },
       size: size,
       mipmaps: mipmaps,
-      _c: PhantomData,
       _l: PhantomData,
       _p: PhantomData
     })
   }
 
   /// Create a texture from its backend representation.
-  pub unsafe fn from_raw(handle: GLuint, size: D::Size, mipmaps: usize) -> Self {
-    let target = opengl_target(L::layering(), D::dim());
-
+  pub unsafe fn from_raw(raw: RawTexture, size: D::Size, mipmaps: usize) -> Self {
     Texture {
-      handle: handle,
-      target: target,
+      raw: raw,
       size: size,
       mipmaps: mipmaps + 1,
-      _c: PhantomData,
       _l: PhantomData,
       _p: PhantomData
     }
+  }
+
+  /// Convert a texture to its raw representation.
+  pub fn to_raw(self) -> RawTexture {
+    let raw = RawTexture {
+      handle: self.handle,
+      target: self.target
+    };
+
+    // forget self so that we don’t call drop on it after the function has returned
+    mem::forget(self);
+    raw
   }
 
   /// Clear a part of a texture.
@@ -312,7 +353,7 @@ impl<L, D, P> Texture<L, D, P>
       where D::Offset: Copy,
             D::Size: Copy,
             P::Encoding: Copy {
-    self.upload_part::<L, D, P>(gen_mipmaps, offset, size, &vec![pixel; dim_capacity::<D>(size) as usize])
+    self.upload_part(gen_mipmaps, offset, size, &vec![pixel; dim_capacity::<D>(size) as usize])
   }
 
   /// Clear a whole texture with a `pixel` value.
@@ -659,7 +700,7 @@ impl DerefMut for Unit {
 
 /// An opaque type representing any texture.
 pub struct TextureProxy<'a> {
-  pub repr: &'a Texture
+  pub repr: &'a RawTexture
 }
 
 impl<'a, L, D, P> From<&'a Texture<L, D, P>> for TextureProxy<'a>

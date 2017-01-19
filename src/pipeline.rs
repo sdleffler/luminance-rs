@@ -5,20 +5,20 @@
 
 use buffer::UniformBufferProxy;
 use blending;
-use framebuffer::{ColorSlot, DepthSlot, Framebuffer, HasFramebuffer};
+use framebuffer::{ColorSlot, DepthSlot, Framebuffer};
 use shader::program::{HasProgram, Program};
 use tess::Tess;
-use texture::{Dimensionable, HasTexture, Layerable, TextureProxy};
+use texture::{Dimensionable, Layerable, TextureProxy};
 
 /// Trait to implement to add `Pipeline` support.
-pub trait HasPipeline: HasFramebuffer + HasProgram + HasTexture + Sized {
+pub trait HasPipeline: HasProgram + Sized {
   /// Execute a pipeline command, resulting in altering the embedded framebuffer.
   fn run_pipeline<L, D, CS, DS>(cmd: &Pipeline<Self, L, D, CS, DS>)
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
-          CS: ColorSlot<Self, L, D>,
-          DS: DepthSlot<Self, L, D>;
+          CS: ColorSlot<L, D>,
+          DS: DepthSlot<L, D>;
   /// Execute a shading command.
   fn run_shading_command<'a>(shading_cmd: &Pipe<'a, Self, ShadingCommand<Self>>);
 }
@@ -32,18 +32,18 @@ pub trait HasPipeline: HasFramebuffer + HasProgram + HasTexture + Sized {
 /// `CS` and `DS` are – respectively – the *color* and *depth* `Slot` of the underlying
 /// `Framebuffer`.
 pub struct Pipeline<'a, C, L, D, CS, DS>
-    where C: 'a + HasFramebuffer + HasProgram + HasTexture,
+    where C: 'a + HasProgram,
           L: 'a + Layerable,
           D: 'a + Dimensionable,
           D::Size: Copy,
-          CS: 'a + ColorSlot<C, L, D>,
-          DS: 'a + DepthSlot<C, L, D> {
+          CS: 'a + ColorSlot<L, D>,
+          DS: 'a + DepthSlot<L, D> {
   /// The embedded framebuffer.
-  pub framebuffer: &'a Framebuffer<C, L, D, CS, DS>,
+  pub framebuffer: &'a Framebuffer<L, D, CS, DS>,
   /// The color used to clean the framebuffer when  executing the pipeline.
   pub clear_color: [f32; 4],
   /// Texture set.
-  pub texture_set: &'a[TextureProxy<'a, C>],
+  pub texture_set: &'a[TextureProxy<'a>],
   /// Buffer set.
   pub buffer_set: &'a[UniformBufferProxy<'a>],
   /// Shading commands to render into the embedded framebuffer.
@@ -55,11 +55,11 @@ impl<'a, C, L, D, CS, DS> Pipeline<'a, C, L, D, CS, DS>
           L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
-          CS: ColorSlot<C, L, D>,
-          DS: DepthSlot<C, L, D> {
+          CS: ColorSlot<L, D>,
+          DS: DepthSlot<L, D> {
   /// Create a new pipeline.
-  pub fn new(framebuffer: &'a Framebuffer<C, L, D, CS, DS>, clear_color: [f32; 4],
-             texture_set: &'a[TextureProxy<'a, C>], buffer_set: &'a[UniformBufferProxy<'a>],
+  pub fn new(framebuffer: &'a Framebuffer<L, D, CS, DS>, clear_color: [f32; 4],
+             texture_set: &'a[TextureProxy<'a>], buffer_set: &'a[UniformBufferProxy<'a>],
              shading_commands: Vec<Pipe<'a, C, ShadingCommand<'a, C>>>) -> Self {
     Pipeline {
       framebuffer: framebuffer,

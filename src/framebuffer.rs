@@ -34,7 +34,8 @@ use std::marker::PhantomData;
 
 use chain::Chain;
 use pixel::{ColorPixel, DepthPixel, PixelFormat, RenderablePixel};
-use texture::{Dim2, Dimensionable, Flat, Layerable, Texture, TextureError, create_texture, opengl_target};
+use texture::{Dim2, Dimensionable, Flat, Layerable, RawTexture, Texture, TextureError,
+              create_texture, opengl_target};
 
 /// Framebuffer error.
 ///
@@ -201,15 +202,12 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
         Ok(_) => {
           gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
 
-          let textures = textures.into_iter().map(|t| Texture::new(t, target)).collect();
-          let depth_texture = depth_texture.map(|t| Texture::new(t, target));
-
-          Ok((framebuffer, textures, depth_texture))
+          Ok(framebuffer)
         },
         Err(reason) => {
           gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
 
-          Self::destroy(framebuffer);
+          Self::destroy(&framebuffer);
 
           Err(FramebufferError::Incomplete(reason))
         }
@@ -273,7 +271,10 @@ impl<L, D, P> ColorSlot<L, D> for Texture<L, D, P>
   fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
     let color_texture = textures.swap_remove(0);
 
-    Texture::from_raw(color_texture, size, mipmaps)
+    unsafe {
+      let raw = RawTexture::new(color_texture, opengl_target(L::layering(), D::dim()));
+      Texture::from_raw(raw, size, mipmaps)
+    }
   }
 }
 
@@ -362,7 +363,7 @@ impl<L, D, P0, P1, P2, P3, P4> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L
   }
 
   fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
-    let Chain(a, Chain(b, Chain(c, Chain(d, e)))) = Chain::<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Texture<L, D, P4>>>>::reify_textures(size, mipmaps, textures);
+    let Chain(a, Chain(b, Chain(c, Chain(d, e)))) = Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Texture<L, D, P4>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e)
   }
 }
@@ -499,6 +500,9 @@ impl<L, D, P> DepthSlot<L, D> for Texture<L, D, P>
   fn depth_format() -> Option<PixelFormat> { Some(P::pixel_format()) }
 
   fn reify_texture(size: D::Size, mipmaps: usize, texture: Option<GLuint>) -> Self {
-    Texture::from_raw(texture.unwrap(), size, mipmaps)
+    unsafe {
+      let raw = RawTexture::new(texture.unwrap(), opengl_target(L::layering(), D::dim()));
+      Texture::from_raw(raw, size, mipmaps)
+    }
   }
 }
