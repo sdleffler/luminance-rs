@@ -58,6 +58,11 @@ impl Stage {
       }
     }
   }
+
+  #[inline]
+  pub unsafe fn handle(&self) -> GLuint {
+    self.handle
+  }
 }
 
 impl Drop for Stage {

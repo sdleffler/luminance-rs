@@ -227,6 +227,21 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
       }
     }
   }
+
+  #[inline]
+  pub unsafe fn handle(&self) -> GLuint {
+    self.handle
+  }
+
+  #[inline]
+  pub fn width(&self) -> u32 {
+    self.w
+  }
+
+  #[inline]
+  pub fn height(&self) -> u32 {
+    self.h
+  }
 }
 
 fn get_status() -> ::std::result::Result<(), IncompleteReason> {

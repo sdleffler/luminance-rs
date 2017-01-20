@@ -60,7 +60,6 @@ pub struct Tess {
   vbo: Option<RawBuffer>, // no vbo means attributeless render
   ibo: Option<RawBuffer>,
   vertex_format: VertexFormat,
-  vert_nb: usize
 }
 
 impl Tess {
@@ -116,8 +115,7 @@ impl Tess {
           vao: vao,
           vbo: Some(raw_vbo),
           ibo: Some(raw_ibo),
-          vertex_format: T::vertex_format(),
-          vert_nb: vert_nb
+          vertex_format: T::vertex_format()
         }
       } else {
         gl::BindVertexArray(0);
@@ -139,8 +137,7 @@ impl Tess {
           vao: vao,
           vbo: Some(raw_vbo),
           ibo: None,
-          vertex_format: T::vertex_format(),
-          vert_nb: vert_nb
+          vertex_format: T::vertex_format()
         }
       }
     }
@@ -177,10 +174,14 @@ impl Tess {
         vao: vao,
         vbo: None,
         ibo: None,
-        vertex_format: Vec::new(),
-        vert_nb: vert_nb
+        vertex_format: Vec::new()
       }
     }
+  }
+
+  #[inline]
+  pub fn render(&self, rasterization_size: Option<f32>, instances: u32) {
+    (self.render)(rasterization_size, instances)
   }
 
   pub fn as_slice<T>(&self) -> Result<BufferSlice<T>, TessMapError> where T: Vertex {

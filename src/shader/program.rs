@@ -58,17 +58,17 @@ impl Program {
       let handle = gl::CreateProgram();
 
       if let Some((tcs, tes)) = tess {
-        gl::AttachShader(handle, *tcs);
-        gl::AttachShader(handle, *tes);
+        gl::AttachShader(handle, tcs.handle());
+        gl::AttachShader(handle, tes.handle());
       }
 
-      gl::AttachShader(handle, *vertex);
+      gl::AttachShader(handle, vertex.handle());
 
       if let Some(geometry) = geometry {
-        gl::AttachShader(handle, *geometry);
+        gl::AttachShader(handle, geometry.handle());
       }
 
-      gl::AttachShader(handle, *fragment);
+      gl::AttachShader(handle, fragment.handle());
 
       gl::LinkProgram(handle);
 
@@ -89,7 +89,7 @@ impl Program {
           };
 
           // if there’s a warning, add it to the list of warnings
-          if let Some(warning) = warning {
+          if let Err(warning) = warning {
             warnings.push(warning);
           }
         }
@@ -118,8 +118,14 @@ impl Program {
   }
 
   /// Update a uniform variable in the program.
+  #[inline]
   pub fn update<T>(&self, u: &Uniform<T>, value: T) where T: Uniformable {
     value.update(&self, u);
+  }
+
+  #[inline]
+  pub unsafe fn handle(&self) -> GLuint {
+    self.handle
   }
 }
 
@@ -252,7 +258,7 @@ pub trait Uniformable: Sized {
 impl Uniformable for i32 {
   fn update(self, program: &Program, u: &Uniform<Self>) {
     assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1i(program.uni_sem_map[&u], self) }
+    unsafe { gl::Uniform1i(program.uni_sem_map[&u.sem_index], self) }
   }
 
   fn reify_type() -> Type { Type::Integral }
@@ -516,7 +522,8 @@ impl<'a> Uniformable for &'a [[f32; 4]] {
 impl Uniformable for M22 {
   fn update(self, program: &Program, u: &Uniform<Self>) {
     assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    self.update(program, u, &[self])
+    let v = [self];
+    unsafe { gl::UniformMatrix2fv(program.uni_sem_map[&u.sem_index], 1, gl::FALSE, v.as_ptr() as *const f32) }
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -527,7 +534,8 @@ impl Uniformable for M22 {
 impl Uniformable for M33 {
   fn update(self, program: &Program, u: &Uniform<Self>) {
     assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    self.update(program, u, &[self])
+    let v = [self];
+    unsafe { gl::UniformMatrix3fv(program.uni_sem_map[&u.sem_index], 1, gl::FALSE, v.as_ptr() as *const f32) }
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -538,7 +546,8 @@ impl Uniformable for M33 {
 impl Uniformable for M44 {
   fn update(self, program: &Program, u: &Uniform<Self>) {
     assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    self.update(program, u, &[self])
+    let v = [self];
+    unsafe { gl::UniformMatrix4fv(program.uni_sem_map[&u.sem_index], 1, gl::FALSE, v.as_ptr() as *const f32) }
   }
 
   fn reify_type() -> Type { Type::Floating }
@@ -677,7 +686,7 @@ impl<'a> Uniformable for &'a [[bool; 4]] {
 impl Uniformable for Unit {
   fn update(self, program: &Program, u: &Uniform<Self>) {
     assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1i(program.uni_sem_map[&u.sem_index], self as GLint) }
+    unsafe { gl::Uniform1i(program.uni_sem_map[&u.sem_index], *self as GLint) }
   }
 
   fn reify_type() -> Type { Type::TextureUnit }
@@ -687,8 +696,8 @@ impl Uniformable for Unit {
 
 impl Uniformable for Binding {
   fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_dex as usize) < program.ubo_sem_map.len());
-    unsafe { gl::UniformBlockBinding(program.id, program.ubo_sem_map[&u.sem_index] as GLuint, self as GLuint) }
+    assert!((u.sem_index as usize) < program.ubo_sem_map.len());
+    unsafe { gl::UniformBlockBinding(program.handle(), program.ubo_sem_map[&u.sem_index] as GLuint, *self as GLuint) }
   }
 
   fn reify_type() -> Type { Type::BufferBinding }
@@ -708,7 +717,7 @@ fn get_uniform_location(program: GLuint, name: &str, ty: Type, dim: Dim) -> (Loc
     let index = unsafe { gl::GetUniformBlockIndex(program, c_name.as_ptr() as *const GLchar) };
 
     if index == gl::INVALID_INDEX {
-      return (Location::UniformBlock(-1), Some(UniformWarning::Inactive(name.to_owned())));
+      return (Location::UniformBlock(-1), Err(UniformWarning::Inactive(name.to_owned())));
     }
 
     Location::UniformBlock(index as GLint)
@@ -716,17 +725,17 @@ fn get_uniform_location(program: GLuint, name: &str, ty: Type, dim: Dim) -> (Loc
     let location = unsafe { gl::GetUniformLocation(program, c_name.as_ptr() as *const GLchar) };
 
     if location == -1 {
-      return (Location::Uniform(-1), Some(UniformWarning::Inactive(name.to_owned())));
+      return (Location::Uniform(-1), Err(UniformWarning::Inactive(name.to_owned())));
     }
 
     Location::Uniform(location)
   };
 
   if let Some(err) = uniform_type_match(program, name, ty, dim) {
-    return (location, Some(UniformWarning::TypeMismatch(name.to_owned(), err)));
+    return (location, Err(UniformWarning::TypeMismatch(name.to_owned(), err)));
   }
 
-  (location, None)
+  (location, Ok(()))
 }
 
 // Return something if no match can be established.

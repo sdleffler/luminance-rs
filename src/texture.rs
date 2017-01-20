@@ -251,8 +251,14 @@ impl RawTexture {
     }
   }
 
+  #[inline]
   pub unsafe fn handle(&self) -> GLuint {
     self.handle
+  }
+
+  #[inline]
+  pub unsafe fn target(&self) -> GLenum {
+    self.target
   }
 }
 
@@ -695,23 +701,6 @@ impl Deref for Unit {
 impl DerefMut for Unit {
   fn deref_mut(&mut self) -> &mut Self::Target {
     &mut self.unit
-  }
-}
-
-/// An opaque type representing any texture.
-pub struct TextureProxy<'a> {
-  pub repr: &'a RawTexture
-}
-
-impl<'a, L, D, P> From<&'a Texture<L, D, P>> for TextureProxy<'a>
-    where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          P: Pixel {
-  fn from(texture: &'a Texture<L, D, P>) -> Self {
-    TextureProxy {
-      repr: &texture
-    }
   }
 }
 

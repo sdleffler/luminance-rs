@@ -423,19 +423,6 @@ impl DerefMut for Binding {
   }
 }
 
-/// An opaque type representing any uniform buffer.
-pub struct UniformBufferProxy<'a> {
-  raw: &'a RawBuffer
-}
-
-impl<'a, T> From<&'a Buffer<T>> for UniformBufferProxy<'a> where T: UniformBlock {
-  fn from(buffer: &'a Buffer<T>) -> Self {
-    UniformBufferProxy {
-      raw: &buffer.raw
-    }
-  }
-}
-
 /// Typeclass of types that can be used inside a uniform block. You have to be extra careful when
 /// using uniform blocks and ensure you respect the OpenGL *std140* alignment / size rules. This
 /// will be fixed in a coming release.
