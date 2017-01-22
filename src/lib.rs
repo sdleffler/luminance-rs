@@ -91,15 +91,16 @@ pub mod vertex;
 
 // re-exports
 pub use blending::*;
-pub use buffer::{Binding, BufferError};
+pub use buffer::{Binding, Buffer, BufferSlice, BufferSliceMut, BufferError};
 pub use chain::*;
-pub use framebuffer::FramebufferError;
+pub use framebuffer::{Framebuffer, FramebufferError};
 pub use linear::*;
-pub use pixel::{ColorPixel, DepthPixel, Format, Pixel, PixelFormat, RenderablePixel, is_color_pixel, is_depth_pixel,
-                RGB8UI, RGBA8UI, RGB32F, RGBA32F, Depth32F};
-pub use shader::program::{ProgramError, Sem, SemIndex, Uniform, Uniformable};
-pub use shader::stage::{StageError};
-pub use tess::Mode;
+pub use pipeline::{Pipe, Pipeline, RenderCommand, ShadingCommand};
+pub use pixel::{ColorPixel, DepthPixel, Format, Pixel, PixelFormat, RenderablePixel,  RGB8UI,
+                RGBA8UI, RGB32F, RGBA32F, Depth32F, is_color_pixel, is_depth_pixel};
+pub use shader::program::{Program, ProgramError, Sem, SemIndex, Uniform, Uniformable};
+pub use shader::stage::{Stage, StageError};
+pub use tess::{Tess, Mode};
 pub use texture::{CubeFace, Cubemap, DepthComparison, Dimensionable, Dim1, Dim2, Dim3, Flat, Filter,
-                  Layerable, Layered, Layering, Sampler, Unit, Wrap};
+                  Layerable, Layered, Layering, Sampler, Texture, Unit, Wrap};
 pub use vertex::{Vertex, VertexComponentFormat, VertexFormat};
