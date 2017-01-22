@@ -98,7 +98,7 @@ pub use linear::*;
 pub use pipeline::{Pipe, Pipeline, RenderCommand, ShadingCommand};
 pub use pixel::{ColorPixel, DepthPixel, Format, Pixel, PixelFormat, RenderablePixel,  RGB8UI,
                 RGBA8UI, RGB32F, RGBA32F, Depth32F, is_color_pixel, is_depth_pixel};
-pub use shader::program::{Program, ProgramError, Sem, SemIndex, Uniform, Uniformable};
+pub use shader::program::{Program, ProgramError, Sem, SemIndex, Uniform, UniformWarning, Uniformable};
 pub use shader::stage::{Stage, StageError};
 pub use tess::{Tess, Mode};
 pub use texture::{CubeFace, Cubemap, DepthComparison, Dimensionable, Dim1, Dim2, Dim3, Flat, Filter,
