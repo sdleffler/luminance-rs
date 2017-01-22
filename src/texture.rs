@@ -453,6 +453,10 @@ impl<L, D, P> Texture<L, D, P>
 
     texels
   }
+
+  pub fn size(&self) -> D::Size {
+    self.size
+  }
 }
 
 pub fn opengl_target(l: Layering, d: Dim) -> GLenum {
