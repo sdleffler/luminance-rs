@@ -102,5 +102,5 @@ pub use shader::program::{Program, ProgramError, Sem, SemIndex, Uniform, Uniform
 pub use shader::stage::{Stage, StageError};
 pub use tess::{Tess, Mode};
 pub use texture::{CubeFace, Cubemap, DepthComparison, Dimensionable, Dim1, Dim2, Dim3, Flat, Filter,
-                  Layerable, Layered, Layering, Sampler, Texture, Unit, Wrap};
+                  Layerable, Layered, Layering, RawTexture, Sampler, Texture, Unit, Wrap};
 pub use vertex::{Vertex, VertexComponentFormat, VertexFormat};
