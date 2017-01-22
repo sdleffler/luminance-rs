@@ -133,7 +133,6 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
     let depth_format = DS::depth_format();
     let target = opengl_target(L::layering(), D::dim());
     let mut textures: Vec<GLuint> = vec![0; (color_formats.len() + if depth_format.is_some() { 1 } else { 0 })]; // FIXME: remove that (inference)
-    let mut color_textures: Vec<GLuint> = Vec::new();
     let mut depth_texture: Option<GLuint> = None;
     let mut depth_renderbuffer: Option<GLuint> = None;
 
@@ -192,7 +191,7 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
         renderbuffer: depth_renderbuffer,
         w: D::width(size),
         h: D::height(size),
-        color_slot: CS::reify_textures(size, mipmaps, &mut color_textures),
+        color_slot: CS::reify_textures(size, mipmaps, &mut textures),
         depth_slot: DS::reify_texture(size, mipmaps, depth_texture),
         _l: PhantomData,
         _d: PhantomData,
