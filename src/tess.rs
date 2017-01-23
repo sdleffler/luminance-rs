@@ -63,7 +63,7 @@ pub enum TessVertices<'a, T> where T: 'a + Vertex {
   Reserve(usize)
 }
 
-impl<'a, 'b, T> From<&'a [T]> for TessVertices<'b, T> where 'a: 'b, T: 'b + Vertex {
+impl<'a, T> From<&'a [T]> for TessVertices<'a, T> where T: 'a + Vertex {
   fn from(slice: &'a [T]) -> Self {
     TessVertices::Fill(slice)
   }
