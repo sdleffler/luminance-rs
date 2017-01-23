@@ -100,7 +100,7 @@ pub use pixel::{ColorPixel, DepthPixel, Format, Pixel, PixelFormat, RenderablePi
                 RGBA8UI, RGB32F, RGBA32F, Depth32F, is_color_pixel, is_depth_pixel};
 pub use shader::program::{Program, ProgramError, Sem, SemIndex, Uniform, UniformWarning, Uniformable};
 pub use shader::stage::{Stage, StageError};
-pub use tess::{Tess, Mode};
+pub use tess::{Tess, TessVertices, Mode};
 pub use texture::{CubeFace, Cubemap, DepthComparison, Dimensionable, Dim1, Dim2, Dim3, Flat, Filter,
                   Layerable, Layered, Layering, RawTexture, Sampler, Texture, Unit, Wrap};
 pub use vertex::{Vertex, VertexComponentFormat, VertexFormat};
