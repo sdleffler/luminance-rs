@@ -52,6 +52,23 @@ pub enum TessMapError {
   ForbiddenAttributelessMapping
 }
 
+/// Accepted vertices for building tessellations.
+///
+/// This type enables you to pass in a slice of vertices or ask for the GPU to only reserve enough
+/// space for the number of vertices.
+pub enum TessVertices<'a, T> where T: 'a + Vertex {
+  /// Pass in a slice of vertices.
+  Fill(&'a [T]),
+  /// Reserve as many vertices as you want.
+  Reserve(usize)
+}
+
+impl<'a, T> From<&'a [T]> for TessVertices<'a, T> where T: 'a + Vertex {
+  fn from(slice: &'a [T]) -> Self {
+    TessVertices::Fill(slice)
+  }
+}
+
 /// GPU tessellation.
 pub struct Tess {
   // closure taking the point / line size and the number of instances to render
@@ -68,9 +85,14 @@ impl Tess {
   /// The `mode` argument gives the type of the primitives and how to interpret the `vertices` and
   /// `indices` slices. If `indices` is set to `None`, the tessellation will use the `vertices`
   /// as-is.
-  pub fn new<T>(mode: Mode, vertices: &[T], indices: Option<&[u32]>) -> Self where T: Vertex {
+  pub fn new<'a, V, T>(mode: Mode, vertices: V, indices: Option<&[u32]>) -> Self where TessVertices<'a, T>: From<V>, T: 'a + Vertex {
+    let vertices = vertices.into();
+
     let mut vao: GLuint = 0;
-    let vert_nb = vertices.len();
+    let vert_nb = match vertices {
+      TessVertices::Fill(slice) => slice.len(),
+      TessVertices::Reserve(nb) => nb
+    };
 
     unsafe {
       gl::GenVertexArrays(1, &mut vao);
@@ -79,7 +101,11 @@ impl Tess {
 
       // vertex buffer
       let vertex_buffer = Buffer::new(vert_nb);
-      vertex_buffer.fill(vertices);
+
+      // fill the buffer with vertices only if asked by the user
+      if let TessVertices::Fill(verts) = vertices {
+        vertex_buffer.fill(verts);
+      }
 
       let raw_vbo = vertex_buffer.to_raw();
 
