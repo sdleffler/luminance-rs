@@ -55,11 +55,11 @@ pub enum TessMapError {
 /// Accepted vertices for building tessellations.
 ///
 /// This type enables you to pass in a slice of vertices or ask for the GPU to only reserve enough
-/// space for the number of vertices.
+/// space for the number of vertices, leaving the allocated memory uninitialized.
 pub enum TessVertices<'a, T> where T: 'a + Vertex {
   /// Pass in a slice of vertices.
   Fill(&'a [T]),
-  /// Reserve as many vertices as you want.
+  /// Reserve a certain number of vertices.
   Reserve(usize)
 }
 
@@ -71,8 +71,7 @@ impl<'a, T> From<&'a [T]> for TessVertices<'a, T> where T: 'a + Vertex {
 
 /// GPU tessellation.
 pub struct Tess {
-  // closure taking the point / line size and the number of instances to render
-  render: Box<Fn(Option<f32>, u32)>,
+  mode: GLenum,
   vao: GLenum,
   vbo: Option<RawBuffer>, // no vbo means attributeless render
   ibo: Option<RawBuffer>,
@@ -125,19 +124,7 @@ impl Tess {
         gl::BindVertexArray(0);
 
         Tess {
-          render: Box::new(move |size, instances| {
-            gl::BindVertexArray(vao);
-
-            set_point_line_size(mode, size);
-
-            if instances == 1 {
-              gl::DrawElements(opengl_mode(mode), ind_nb as GLsizei, gl::UNSIGNED_INT, ptr::null());
-            } else if instances > 1 {
-              gl::DrawElementsInstanced(opengl_mode(mode), ind_nb as GLsizei, gl::UNSIGNED_INT, ptr::null(), instances as GLsizei);
-            } else {
-              panic!("cannot index-render 0 instance");
-            }
-          }),
+          mode: opengl_mode(mode),
           vao: vao,
           vbo: Some(raw_vbo),
           ibo: Some(raw_ibo),
@@ -147,19 +134,7 @@ impl Tess {
         gl::BindVertexArray(0);
 
         Tess {
-          render: Box::new(move |size, instances| {
-            gl::BindVertexArray(vao);
-
-            set_point_line_size(mode, size);
-
-            if instances == 1 {
-              gl::DrawArrays(opengl_mode(mode), 0, vert_nb as GLsizei);
-            } else if instances > 1 {
-              gl::DrawArraysInstanced(opengl_mode(mode), 0, vert_nb as GLsizei, instances as GLsizei);
-            } else {
-              panic!("cannot render 0 instance");
-            }
-          }),
+          mode: opengl_mode(mode),
           vao: vao,
           vbo: Some(raw_vbo),
           ibo: None,
@@ -184,19 +159,7 @@ impl Tess {
       gl::BindVertexArray(0);
 
       Tess {
-        render: Box::new(move |size, instances| {
-          gl::BindVertexArray(vao);
-
-          set_point_line_size(mode, size);
-
-          if instances == 1 {
-            gl::DrawArrays(opengl_mode(mode), 0, vert_nb as GLsizei);
-          } else if instances > 1 {
-            gl::DrawArraysInstanced(opengl_mode(mode), 0, vert_nb as GLsizei, instances as GLsizei);
-          } else {
-            panic!("cannot render 0 instance");
-          }
-        }),
+        mode: opengl_mode(mode),
         vao: vao,
         vbo: None,
         ibo: None,
@@ -205,11 +168,41 @@ impl Tess {
     }
   }
 
-  #[inline]
-  pub fn render(&self, rasterization_size: Option<f32>, instances: u32) {
-    (self.render)(rasterization_size, instances)
+  /// Render the tessellation by providing the number of vertices to pick from it and how many
+  /// instances are wished.
+  pub fn render(&self, vert_nb: usize, inst_nb: usize) {
+    let vert_nb = vert_nb as GLsizei;
+    let inst_nb = inst_nb as GLsizei;
+
+    gl::BindVertexArray(self.vao);
+
+    if self.ibo.is_some() { // indexed render
+      if inst_nb == 1 {
+        gl::DrawElements(self.mode, vert_nb, gl::UNSIGNED_INT, ptr::null());
+      } else if inst_nb > 1 {
+        gl::DrawElementsInstanced(self.mode, vert_nb, gl::UNSIGNED_INT, ptr::null(), inst_nb);
+      } else {
+        panic!("cannot index-render 0 instance");
+      }
+    } else { // direct render
+      if inst_nb == 1 {
+        gl::DrawArrays(self.mode, 0, vert_nb);
+      } else if inst_nb > 1 {
+        gl::DrawArraysInstanced(self.mode, 0, vert_nb, inst_nb);
+      } else {
+        panic!("cannot render 0 instance");
+      }
+    }
   }
 
+  /// Render the tessellation by automatically picking all of its vertices and by providing how many
+  /// instances are to draw.
+  #[inline]
+  pub fn render_whole(&self, inst_nb: usize) {
+    self.render(self.vert_nb, inst_nb);
+  }
+
+  /// Get an immutable slice over the vertices stored on GPU.
   pub fn as_slice<T>(&self) -> Result<BufferSlice<T>, TessMapError> where T: Vertex {
     let live_vf = &self.vertex_format;
     let req_vf = T::vertex_format();
@@ -223,6 +216,7 @@ impl Tess {
       .and_then(|raw| unsafe { RawBuffer::as_slice(raw).map_err(TessMapError::VertexBufferMapFailed) })
   }
 
+  /// Get a mutable slice over the vertices stored on GPU.
   pub fn as_slice_mut<T>(&mut self) -> Result<BufferSliceMut<T>, TessMapError> where T: Vertex {
     let live_vf = &self.vertex_format;
     let req_vf = T::vertex_format();
@@ -341,18 +335,6 @@ fn opengl_sized_type(f: &VertexComponentFormat) -> GLenum {
     (Type::Unsigned, 4) => gl::UNSIGNED_INT,
     (Type::Floating, 4) => gl::FLOAT,
     _ => panic!("unsupported vertex component format: {:?}", f)
-  }
-}
-
-// Either set the point line or the line size (regarding what the mode is). If it’s not either point
-// or line, that function does nothing.
-fn set_point_line_size(mode: Mode, size: Option<f32>) {
-  let computed = size.unwrap_or(1.);
-
-  match mode {
-    Mode::Point => unsafe { gl::PointSize(computed) },
-    Mode::Line | Mode::LineStrip => unsafe { gl::LineWidth(computed) },
-    _ => {}
   }
 }
 
