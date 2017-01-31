@@ -360,10 +360,22 @@ pub struct TessRender<'a> {
 }
 
 impl<'a> TessRender<'a> {
+  /// Create a tessellation render for the whole tessellation once.
   pub fn one_whole(tess: &'a Tess) -> Self {
     TessRender {
       tess: tess,
       vert_nb: tess.vert_nb,
+      inst_nb: 1
+    }
+  }
+
+  /// Create a tessellation render for a part of the tessellation once. The part is selected by
+  /// giving the number of vertices to render. This function can then be used to use the
+  /// tessellation’s vertex buffer as one see fit.
+  pub fn one_part(tess: &'a Tess, vert_nb: usize) -> Self {
+    TessRender {
+      tess: tess,
+      vert_nb: ::std::cmp::min(vert_nb, tess.vert_nb),
       inst_nb: 1
     }
   }
