@@ -10,7 +10,7 @@ use buffer::RawBuffer;
 use blending;
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer};
 use shader::program::Program;
-use tess::Tess;
+use tess::TessRender;
 use texture::{Dimensionable, Layerable, RawTexture};
 
 /// A dynamic rendering pipeline. A *pipeline* is responsible of rendering into a `Framebuffer`.
@@ -107,13 +107,12 @@ impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
     set_blending(render_cmd.blending);
     set_depth_test(render_cmd.depth_test);
 
-    for piped_tess in &render_cmd.tessellations {
+    for piped_tess in &render_cmd.tess {
       let tess_update_program = &piped_tess.update_program;
       let tess = &piped_tess.next;
 
       tess_update_program(program);
-
-      tess.render(render_cmd.rasterization_size, render_cmd.instances);
+      tess.render();
     }
   }
 }
@@ -197,24 +196,17 @@ pub struct RenderCommand<'a> {
   /// Should a depth test be performed?
   pub depth_test: bool,
   /// The embedded tessellations.
-  pub tessellations: Vec<Pipe<'a, &'a Tess>>,
-  /// Number of instances of the tessellation to render.
-  pub instances: u32,
-  /// Rasterization size for points and lines.
-  pub rasterization_size: Option<f32>
+  pub tess: Vec<Pipe<'a, TessRender<'a>>>,
 }
 
 impl<'a> RenderCommand<'a> {
   /// Create a new render command.
   pub fn new(blending: Option<(blending::Equation, blending::Factor, blending::Factor)>,
-             depth_test: bool, tessellations: Vec<Pipe<'a, &'a Tess>>, instances: u32,
-             rasterization_size: Option<f32>) -> Self {
+             depth_test: bool, tess: Vec<Pipe<'a, TessRender<'a>>>) -> Self {
     RenderCommand {
       blending: blending,
       depth_test: depth_test,
-      tessellations: tessellations,
-      instances: instances,
-      rasterization_size: rasterization_size
+      tess: tess,
     }
   }
 }

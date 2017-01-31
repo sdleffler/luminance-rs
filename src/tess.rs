@@ -72,6 +72,7 @@ impl<'a, T> From<&'a [T]> for TessVertices<'a, T> where T: 'a + Vertex {
 /// GPU tessellation.
 pub struct Tess {
   mode: GLenum,
+  vert_nb: usize,
   vao: GLenum,
   vbo: Option<RawBuffer>, // no vbo means attributeless render
   ibo: Option<RawBuffer>,
@@ -111,6 +112,7 @@ impl Tess {
       gl::BindBuffer(gl::ARRAY_BUFFER, raw_vbo.handle());
       set_vertex_pointers(&T::vertex_format());
 
+      // TODO: refactor this schiesse
       // in case of indexed render, create an index buffer
       if let Some(indices) = indices {
         let ind_nb = indices.len();
@@ -125,6 +127,7 @@ impl Tess {
 
         Tess {
           mode: opengl_mode(mode),
+          vert_nb: ind_nb,
           vao: vao,
           vbo: Some(raw_vbo),
           ibo: Some(raw_ibo),
@@ -135,6 +138,7 @@ impl Tess {
 
         Tess {
           mode: opengl_mode(mode),
+          vert_nb: vert_nb,
           vao: vao,
           vbo: Some(raw_vbo),
           ibo: None,
@@ -160,6 +164,7 @@ impl Tess {
 
       Tess {
         mode: opengl_mode(mode),
+        vert_nb: vert_nb,
         vao: vao,
         vbo: None,
         ibo: None,
@@ -174,32 +179,27 @@ impl Tess {
     let vert_nb = vert_nb as GLsizei;
     let inst_nb = inst_nb as GLsizei;
 
-    gl::BindVertexArray(self.vao);
+    unsafe {
+      gl::BindVertexArray(self.vao);
 
-    if self.ibo.is_some() { // indexed render
-      if inst_nb == 1 {
-        gl::DrawElements(self.mode, vert_nb, gl::UNSIGNED_INT, ptr::null());
-      } else if inst_nb > 1 {
-        gl::DrawElementsInstanced(self.mode, vert_nb, gl::UNSIGNED_INT, ptr::null(), inst_nb);
-      } else {
-        panic!("cannot index-render 0 instance");
-      }
-    } else { // direct render
-      if inst_nb == 1 {
-        gl::DrawArrays(self.mode, 0, vert_nb);
-      } else if inst_nb > 1 {
-        gl::DrawArraysInstanced(self.mode, 0, vert_nb, inst_nb);
-      } else {
-        panic!("cannot render 0 instance");
+      if self.ibo.is_some() { // indexed render
+        if inst_nb == 1 {
+          gl::DrawElements(self.mode, vert_nb, gl::UNSIGNED_INT, ptr::null());
+        } else if inst_nb > 1 {
+          gl::DrawElementsInstanced(self.mode, vert_nb, gl::UNSIGNED_INT, ptr::null(), inst_nb);
+        } else {
+          panic!("cannot index-render 0 instance");
+        }
+      } else { // direct render
+        if inst_nb == 1 {
+          gl::DrawArrays(self.mode, 0, vert_nb);
+        } else if inst_nb > 1 {
+          gl::DrawArraysInstanced(self.mode, 0, vert_nb, inst_nb);
+        } else {
+          panic!("cannot render 0 instance");
+        }
       }
     }
-  }
-
-  /// Render the tessellation by automatically picking all of its vertices and by providing how many
-  /// instances are to draw.
-  #[inline]
-  pub fn render_whole(&self, inst_nb: usize) {
-    self.render(self.vert_nb, inst_nb);
   }
 
   /// Get an immutable slice over the vertices stored on GPU.
@@ -346,5 +346,29 @@ fn opengl_mode(mode: Mode) -> GLenum {
     Mode::Triangle => gl::TRIANGLES,
     Mode::TriangleFan => gl::TRIANGLE_FAN,
     Mode::TriangleStrip => gl::TRIANGLE_STRIP
+  }
+}
+
+/// Tessellation render.
+pub struct TessRender<'a> {
+  /// Tessellation to render.
+  tess: &'a Tess,
+  /// Number of vertices to pick from the tessellation. If `None`, all of them are selected.
+  vert_nb: usize,
+  /// Number of instances to render.
+  inst_nb: usize
+}
+
+impl<'a> TessRender<'a> {
+  pub fn one_whole(tess: &'a Tess) -> Self {
+    TessRender {
+      tess: tess,
+      vert_nb: tess.vert_nb,
+      inst_nb: 1
+    }
+  }
+
+  pub fn render(&self) {
+    self.tess.render(self.vert_nb, self.inst_nb);
   }
 }
