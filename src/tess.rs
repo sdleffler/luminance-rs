@@ -372,10 +372,18 @@ impl<'a> TessRender<'a> {
   /// Create a tessellation render for a part of the tessellation once. The part is selected by
   /// giving the number of vertices to render. This function can then be used to use the
   /// tessellation’s vertex buffer as one see fit.
+  ///
+  /// # Panic
+  ///
+  /// Panic if the number of vertices is higher to the capacity of the tessellation’s vertex buffer.
   pub fn one_part(tess: &'a Tess, vert_nb: usize) -> Self {
+    if vert_nb > tess.vert_nb {
+      panic!("cannot render {} vertices for a tessellation which vertex capacity is {}", vert_nb, tess.vert_nb);
+    }
+
     TessRender {
       tess: tess,
-      vert_nb: ::std::cmp::min(vert_nb, tess.vert_nb),
+      vert_nb: vert_nb,
       inst_nb: 1
     }
   }
