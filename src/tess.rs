@@ -376,7 +376,7 @@ impl<'a> TessRender<'a> {
   /// # Panic
   ///
   /// Panic if the number of vertices is higher to the capacity of the tessellation’s vertex buffer.
-  pub fn one_part(tess: &'a Tess, vert_nb: usize) -> Self {
+  pub fn one_sub(tess: &'a Tess, vert_nb: usize) -> Self {
     if vert_nb > tess.vert_nb {
       panic!("cannot render {} vertices for a tessellation which vertex capacity is {}", vert_nb, tess.vert_nb);
     }
