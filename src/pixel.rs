@@ -186,6 +186,7 @@ impl DepthPixel for Depth32F {}
 // OpenGL format, internal sized-format and type.
 pub fn opengl_pixel_format(pf: PixelFormat) -> Option<(GLenum, GLenum, GLenum)> {
   match (pf.format, pf.encoding) {
+    (Format::R(32), Type::Floating) => Some((gl::RED, gl::R32F, gl::FLOAT)),
     (Format::RGB(8, 8, 8), Type::Unsigned) => Some((gl::RGB_INTEGER, gl::RGB8UI, gl::UNSIGNED_BYTE)),
     (Format::RGBA(8, 8, 8, 8), Type::Unsigned) => Some((gl::RGBA_INTEGER, gl::RGBA8UI, gl::UNSIGNED_BYTE)),
     (Format::RGB(32, 32, 32), Type::Floating) => Some((gl::RGB, gl::RGB32F, gl::FLOAT)),
