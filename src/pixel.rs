@@ -65,8 +65,8 @@ pub enum Format {
 /// Does a `PixelFormat` represent a color?
 pub fn is_color_pixel(f: PixelFormat) -> bool {
   match f.format {
-      Format::Depth(_) => false
-    , _ => true
+    Format::Depth(_) => false,
+    _ => true
   }
 }
 
@@ -85,8 +85,8 @@ impl Pixel for RGB8UI {
 
   fn pixel_format() -> PixelFormat {
     PixelFormat {
-        encoding: Type::Unsigned
-      , format: Format::RGB(8, 8, 8)
+      encoding: Type::Unsigned,
+      format: Format::RGB(8, 8, 8)
     }
   }
 }
@@ -103,14 +103,30 @@ impl Pixel for RGBA8UI {
 
   fn pixel_format() -> PixelFormat {
     PixelFormat {
-        encoding: Type::Unsigned
-      , format: Format::RGBA(8, 8, 8, 8)
+      encoding: Type::Unsigned,
+      format: Format::RGBA(8, 8, 8, 8)
     }
   }
 }
 
 impl ColorPixel for RGBA8UI {}
 impl RenderablePixel for RGBA8UI {}
+
+/// A red 32-bit floating pixel format.
+#[derive(Clone, Copy, Debug)]
+pub struct R32F;
+
+impl Pixel for R32F {
+  type Encoding = f32;
+  type RawEncoding = f32;
+
+  fn pixel_format() -> PixelFormat {
+    PixelFormat {
+      encoding: Type::Floating,
+      format: Format::R(32)
+    }
+  }
+}
 
 /// A red, green and blue 32-bit floating pixel format.
 #[derive(Clone, Copy, Debug)]
@@ -122,8 +138,8 @@ impl Pixel for RGB32F {
 
   fn pixel_format() -> PixelFormat {
     PixelFormat {
-        encoding: Type::Floating
-      , format: Format::RGB(32, 32, 32)
+      encoding: Type::Floating,
+      format: Format::RGB(32, 32, 32)
     }
   }
 }
@@ -140,8 +156,8 @@ impl Pixel for RGBA32F {
 
   fn pixel_format() -> PixelFormat {
     PixelFormat {
-        encoding: Type::Floating
-      , format: Format::RGBA(32, 32, 32, 32)
+      encoding: Type::Floating,
+      format: Format::RGBA(32, 32, 32, 32)
     }
   }
 }
@@ -159,8 +175,8 @@ impl Pixel for Depth32F {
 
   fn pixel_format() -> PixelFormat {
     PixelFormat {
-        encoding: Type::Floating
-      , format: Format::Depth(32)
+      encoding: Type::Floating,
+      format: Format::Depth(32)
     }
   }
 }
