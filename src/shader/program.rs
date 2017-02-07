@@ -200,7 +200,7 @@ pub enum UniformWarning {
 /// A shader uniform. `Uniform<T>` doesn’t hold any value. It’s more like a mapping between the
 /// host code and the shader the uniform was retrieved from.
 #[derive(Debug)]
-pub struct Uniform<T> where T: Uniformable {
+pub struct Uniform<T> {
   pub sem_index: SemIndex,
   _t: PhantomData<*const T>
 }
