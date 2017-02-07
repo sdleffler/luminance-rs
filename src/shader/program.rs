@@ -31,6 +31,7 @@
 
 use gl;
 use gl::types::*;
+use std::boxed::FnBox;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::marker::PhantomData;
@@ -218,6 +219,27 @@ impl<T> Uniform<T> where T: Uniformable {
   /// type of the uniform (`T`).
   pub fn sem(&self, name: &str) -> Sem {
     Sem::new(name, self.sem_index, T::reify_type(), T::dim())
+  }
+}
+
+/// A uniform altered with a value. Type erasure is performed on the type of the uniform so that
+/// this type can be collected and pass down to whatever function needs heterogenous collections of
+/// altered uniforms.
+pub struct AlterUniform<'a> {
+  alter: Box<for<'b> FnBox(&'b Program) + 'a>
+}
+
+impl<'a> AlterUniform<'a> {
+  pub fn new<T>(uniform: &'a Uniform<T>, value: T) -> Self where T: Uniformable {
+    AlterUniform {
+      alter: Box::new(move |program: &Program| {
+        program.update(uniform, value)
+      })
+    }
+  }
+
+  pub fn consume(self, program: &Program) {
+    self.alter.call_box((program,));
   }
 }
 

@@ -1,4 +1,5 @@
 #![feature(const_fn)]
+#![feature(fnbox)]
 
 //! # What is this?
 //!
