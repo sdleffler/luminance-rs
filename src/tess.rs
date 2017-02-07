@@ -350,6 +350,7 @@ fn opengl_mode(mode: Mode) -> GLenum {
 }
 
 /// Tessellation render.
+#[derive(Clone)]
 pub struct TessRender<'a> {
   /// Tessellation to render.
   tess: &'a Tess,
