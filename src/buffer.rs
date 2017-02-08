@@ -397,6 +397,7 @@ impl<'a, T> DerefMut for BufferSliceMut<'a, T> where T: 'a {
 }
 
 /// Buffer binding.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Binding {
   index: u32
 }

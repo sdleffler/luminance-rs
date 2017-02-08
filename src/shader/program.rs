@@ -31,7 +31,6 @@
 
 use gl;
 use gl::types::*;
-use std::boxed::FnBox;
 use std::collections::HashMap;
 use std::ffi::CString;
 use std::marker::PhantomData;
@@ -226,7 +225,7 @@ impl<T> Uniform<T> where T: Uniformable {
 /// this type can be collected and pass down to whatever function needs heterogenous collections of
 /// altered uniforms.
 pub struct AlterUniform<'a> {
-  alter: Box<for<'b> FnBox(&'b Program) + 'a>
+  alter: Box<for<'b> Fn(&'b Program) + 'a>
 }
 
 impl<'a> AlterUniform<'a> {
@@ -238,8 +237,8 @@ impl<'a> AlterUniform<'a> {
     }
   }
 
-  pub fn consume(self, program: &Program) {
-    self.alter.call_box((program,));
+  pub fn consume(&self, program: &Program) {
+    (self.alter)(program);
   }
 }
 
@@ -268,7 +267,7 @@ pub enum Dim {
 }
 
 /// Types that can behave as `Uniform`.
-pub trait Uniformable: Sized {
+pub trait Uniformable: Copy + Sized {
   /// Update the uniform with a new value.
   fn update(self, program: &Program, u: &Uniform<Self>);
   /// Retrieve the `Type` of the uniform.

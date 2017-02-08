@@ -9,7 +9,7 @@ use gl::types::*;
 use buffer::RawBuffer;
 use blending;
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer};
-use shader::program::Program;
+use shader::program::{AlterUniform, Program};
 use tess::TessRender;
 use texture::{Dimensionable, Layerable, RawTexture};
 
@@ -59,7 +59,7 @@ impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
   }
 
   /// Run a `Pipeline`.
-  pub fn run(&self) {
+  pub fn run(self) {
     let clear_color = self.clear_color;
 
     unsafe {
@@ -80,38 +80,42 @@ impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
       }
     }
 
-    for piped_shading_cmd in &self.shading_commands {
-      Self::run_shading_command(piped_shading_cmd);
+    for pipe_shading_cmd in self.shading_commands {
+      Self::run_shading_command(pipe_shading_cmd);
     }
   }
 
-  fn run_shading_command(piped: &Pipe<'a, ShadingCommand>) {
-    let update_program = &piped.update_program;
-    let shading_cmd = &piped.next;
+  fn run_shading_command(pipe: Pipe<'a, ShadingCommand>) {
+    let shading_cmd = pipe.next;
 
     unsafe { gl::UseProgram(shading_cmd.program.handle()) };
 
-    update_program(&shading_cmd.program);
+    for uniform in pipe.uniforms {
+      uniform.consume(&shading_cmd.program);
+    }
 
-    for piped_render_cmd in &shading_cmd.render_commands {
-      Self::run_render_command(&shading_cmd.program, piped_render_cmd);
+    for pipe_render_cmd in shading_cmd.render_commands {
+      Self::run_render_command(&shading_cmd.program, pipe_render_cmd);
     }
   }
 
-  fn run_render_command(program: &Program, piped: &Pipe<'a, RenderCommand<'a>>) {
-    let update_program = &piped.update_program;
-    let render_cmd = &piped.next;
+  fn run_render_command(program: &Program, pipe: Pipe<'a, RenderCommand<'a>>) {
+    let render_cmd = pipe.next;
 
-    update_program(program);
+    for uniform in pipe.uniforms {
+      uniform.consume(program);
+    }
 
     set_blending(render_cmd.blending);
     set_depth_test(render_cmd.depth_test);
 
-    for piped_tess in &render_cmd.tess {
-      let tess_update_program = &piped_tess.update_program;
-      let tess = &piped_tess.next;
+    for pipe_tess in render_cmd.tess {
+      let tess = pipe_tess.next;
 
-      tess_update_program(program);
+      for uniform in pipe_tess.uniforms {
+        uniform.consume(program);
+      }
+
       tess.render();
     }
   }
@@ -213,15 +217,40 @@ impl<'a> RenderCommand<'a> {
 
 /// A pipe used to build up a `Pipeline` by connecting its inner layers.
 pub struct Pipe<'a, T> {
-  pub update_program: Box<Fn(&Program) + 'a>,
-  pub next: T
+  uniforms: &'a [AlterUniform<'a>],
+  uniform_buffers: &'a [RawBuffer],
+  textures: &'a [RawTexture],
+  next: T
 }
 
 impl<'a, T> Pipe<'a, T> {
-  pub fn new<F>(update_program: F, next: T) -> Self where F: Fn(&Program) + 'a {
+  pub fn new<F>(next: T) -> Self where F: Fn(&Program) + 'a {
     Pipe {
-      update_program: Box::new(update_program),
+      uniforms: &[],
+      uniform_buffers: &[],
+      textures: &[],
       next: next
+    }
+  }
+
+  pub fn uniforms(self, uniforms: &'a [AlterUniform<'a>]) -> Self {
+    Pipe {
+      uniforms: uniforms,
+      ..self
+    }
+  }
+
+  pub fn uniform_buffers(self, uniform_buffers: &'a [RawBuffer]) -> Self {
+    Pipe {
+      uniform_buffers: uniform_buffers,
+      ..self
+    }
+  }
+
+  pub fn textures(self, textures: &'a [RawTexture]) -> Self {
+    Pipe {
+      textures: textures,
+      ..self
     }
   }
 }

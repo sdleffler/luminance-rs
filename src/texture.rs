@@ -682,6 +682,7 @@ impl Default for Sampler {
 }
 
 /// Texture unit.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Unit {
   unit: u32
 }
