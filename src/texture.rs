@@ -43,7 +43,6 @@ pub enum MagFilter {
   Nearest,
   /// Linear interpolation between surrounding pixels.
   Linear,
-  ///
 }
 
 /// Depth comparison to perform while depth test. `a` is the incoming fragment’s depth and b is the
@@ -580,8 +579,8 @@ fn apply_sampler_to_texture(target: GLenum, sampler: &Sampler) {
     gl::TexParameteri(target, gl::TEXTURE_WRAP_R, opengl_wrap(sampler.wrap_r) as GLint);
     gl::TexParameteri(target, gl::TEXTURE_WRAP_S, opengl_wrap(sampler.wrap_s) as GLint);
     gl::TexParameteri(target, gl::TEXTURE_WRAP_T, opengl_wrap(sampler.wrap_t) as GLint);
-    gl::TexParameteri(target, gl::TEXTURE_MIN_FILTER, opengl_filter(sampler.minification) as GLint);
-    gl::TexParameteri(target, gl::TEXTURE_MAG_FILTER, opengl_filter(sampler.minification) as GLint);
+    gl::TexParameteri(target, gl::TEXTURE_MIN_FILTER, opengl_min_filter(sampler.min_filter) as GLint);
+    gl::TexParameteri(target, gl::TEXTURE_MAG_FILTER, opengl_mag_filter(sampler.mag_filter) as GLint);
     match sampler.depth_comparison {
       Some(fun) => {
         gl::TexParameteri(target, gl::TEXTURE_COMPARE_FUNC, opengl_depth_comparison(fun) as GLint);
@@ -602,10 +601,17 @@ fn opengl_wrap(wrap: Wrap) -> GLenum {
   }
 }
 
-fn opengl_filter(filter: Filter) -> GLenum {
+fn opengl_min_filter(filter: MinFilter) -> GLenum {
   match filter {
-    Filter::Nearest => gl::NEAREST,
-    Filter::Linear => gl::LINEAR
+    MinFilter::Nearest => gl::NEAREST,
+    MinFilter::Linear => gl::LINEAR
+  }
+}
+
+fn opengl_mag_filter(filter: MagFilter) -> GLenum {
+  match filter {
+    MagFilter::Nearest => gl::NEAREST,
+    MagFilter::Linear => gl::LINEAR
   }
 }
 
@@ -659,33 +665,22 @@ pub struct Sampler {
   /// How should we wrap around the *t* sampling coordinate?
   pub wrap_t: Wrap,
   /// Minification filter.
-  pub minification: Filter,
+  pub min_filter: MinFilter,
   /// Magnification filter.
-  pub magnification: Filter,
+  pub mag_filter: MagFilter,
   /// For depth textures, should we perform depth comparison and if so, how?
   pub depth_comparison: Option<DepthComparison>
 }
 
 /// Default value is as following:
-///
-/// ```
-/// Sampler {
-///   wrap_r: Wrap::ClampToEdge,
-///   wrap_s: Wrap::ClampToEdge,
-///   wrap_t: Wrap::ClampToEdge,
-///   minification: Filter::Linear,
-///   magnification: Filter::Linear,
-///   depth_comparison: None
-/// }
-/// ```
 impl Default for Sampler {
   fn default() -> Self {
     Sampler {
       wrap_r: Wrap::ClampToEdge,
       wrap_s: Wrap::ClampToEdge,
       wrap_t: Wrap::ClampToEdge,
-      minification: Filter::Linear,
-      magnification: Filter::Linear,
+      min_filter: MinFilter::Linear,
+      mag_filter: MagFilter::Linear,
       depth_comparison: None
     }
   }
