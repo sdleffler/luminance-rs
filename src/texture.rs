@@ -27,13 +27,23 @@ pub enum Wrap {
   MirroredRepeat
 }
 
-/// Minification and magnification filter.
+/// Minification filter.
 #[derive(Clone, Copy, Debug)]
-pub enum Filter {
+pub enum MinFilter {
   /// Clamp to nearest pixel.
   Nearest,
-  /// Linear interpolation with surrounding pixels.
+  /// Linear interpolation between surrounding pixels.
   Linear
+}
+
+/// Magnification filter.
+#[derive(Clone, Copy, Debug)]
+pub enum MagFilter {
+  /// Clamp to nearest pixel.
+  Nearest,
+  /// Linear interpolation between surrounding pixels.
+  Linear,
+  ///
 }
 
 /// Depth comparison to perform while depth test. `a` is the incoming fragment’s depth and b is the
