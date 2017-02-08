@@ -30,19 +30,31 @@ pub enum Wrap {
 /// Minification filter.
 #[derive(Clone, Copy, Debug)]
 pub enum MinFilter {
-  /// Clamp to nearest pixel.
+  /// Nearest interpolation.
   Nearest,
   /// Linear interpolation between surrounding pixels.
-  Linear
+  Linear,
+  /// This filter will select the nearest mipmap between two samples and will perform a nearest
+  /// interpolation afterwards.
+  NearestMipmapNearest,
+  /// This filter will select the nearest mipmap between two samples and will perform a linear
+  /// interpolation afterwards.
+  NearestMipmapLinear,
+  /// This filter will linearly interpolate between two mipmaps, which selected texels would have
+  /// been interpolated with a nearest filter.
+  LinearMipmapNearest,
+  /// This filter will linearly interpolate between two mipmaps, which selected texels would have
+  /// been linarily interpolated as well.
+  LinearMipmapLinear
 }
 
 /// Magnification filter.
 #[derive(Clone, Copy, Debug)]
 pub enum MagFilter {
-  /// Clamp to nearest pixel.
+  /// Nearest interpolation.
   Nearest,
   /// Linear interpolation between surrounding pixels.
-  Linear,
+  Linear
 }
 
 /// Depth comparison to perform while depth test. `a` is the incoming fragment’s depth and b is the
@@ -604,7 +616,11 @@ fn opengl_wrap(wrap: Wrap) -> GLenum {
 fn opengl_min_filter(filter: MinFilter) -> GLenum {
   match filter {
     MinFilter::Nearest => gl::NEAREST,
-    MinFilter::Linear => gl::LINEAR
+    MinFilter::Linear => gl::LINEAR,
+    MinFilter::NearestMipmapNearest => gl::NEAREST_MIPMAP_NEAREST,
+    MinFilter::NearestMipmapLinear => gl::NEAREST_MIPMAP_LINEAR,
+    MinFilter::LinearMipmapNearest => gl::LINEAR_MIPMAP_NEAREST,
+    MinFilter::LinearMipmapLinear => gl::LINEAR_MIPMAP_LINEAR
   }
 }
 
