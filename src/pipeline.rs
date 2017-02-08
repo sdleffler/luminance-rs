@@ -68,16 +68,8 @@ impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
       gl::ClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
       gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
 
-      // traverse the texture set and bind required textures
-      for (unit, tex) in self.texture_set.iter().enumerate() {
-        gl::ActiveTexture(gl::TEXTURE0 + unit as GLenum);
-        gl::BindTexture(tex.target(), tex.handle());
-      }
-
-      // traverse the buffer set and bind required buffers
-      for (index, buf) in self.buffer_set.iter().enumerate() {
-        gl::BindBufferBase(gl::UNIFORM_BUFFER, index as GLuint, buf.handle());
-      }
+      bind_uniform_buffers(self.buffer_set);
+      bind_textures(self.texture_set);
     }
 
     for pipe_shading_cmd in self.shading_commands {
@@ -87,24 +79,25 @@ impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
 
   fn run_shading_command(pipe: Pipe<'a, ShadingCommand>) {
     let shading_cmd = pipe.next;
+    let program = &shading_cmd.program;
 
-    unsafe { gl::UseProgram(shading_cmd.program.handle()) };
+    unsafe { gl::UseProgram(program.handle()) };
 
-    for uniform in pipe.uniforms {
-      uniform.consume(&shading_cmd.program);
-    }
+    alter_uniforms(program, pipe.uniforms);
+    bind_uniform_buffers(pipe.uniform_buffers);
+    bind_textures(pipe.textures);
 
     for pipe_render_cmd in shading_cmd.render_commands {
-      Self::run_render_command(&shading_cmd.program, pipe_render_cmd);
+      Self::run_render_command(program, pipe_render_cmd);
     }
   }
 
   fn run_render_command(program: &Program, pipe: Pipe<'a, RenderCommand<'a>>) {
     let render_cmd = pipe.next;
 
-    for uniform in pipe.uniforms {
-      uniform.consume(program);
-    }
+    alter_uniforms(program, pipe.uniforms);
+    bind_uniform_buffers(pipe.uniform_buffers);
+    bind_textures(pipe.textures);
 
     set_blending(render_cmd.blending);
     set_depth_test(render_cmd.depth_test);
@@ -112,9 +105,8 @@ impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
     for pipe_tess in render_cmd.tess {
       let tess = pipe_tess.next;
 
-      for uniform in pipe_tess.uniforms {
-        uniform.consume(program);
-      }
+      alter_uniforms(program, pipe_tess.uniforms);
+      bind_textures(pipe.textures);
 
       tess.render();
     }
@@ -218,8 +210,8 @@ impl<'a> RenderCommand<'a> {
 /// A pipe used to build up a `Pipeline` by connecting its inner layers.
 pub struct Pipe<'a, T> {
   uniforms: &'a [AlterUniform<'a>],
-  uniform_buffers: &'a [RawBuffer],
-  textures: &'a [RawTexture],
+  uniform_buffers: &'a [&'a RawBuffer],
+  textures: &'a [&'a RawTexture],
   next: T
 }
 
@@ -240,17 +232,41 @@ impl<'a, T> Pipe<'a, T> {
     }
   }
 
-  pub fn uniform_buffers(self, uniform_buffers: &'a [RawBuffer]) -> Self {
+  pub fn uniform_buffers(self, uniform_buffers: &'a [&'a RawBuffer]) -> Self {
     Pipe {
       uniform_buffers: uniform_buffers,
       ..self
     }
   }
 
-  pub fn textures(self, textures: &'a [RawTexture]) -> Self {
+  pub fn textures(self, textures: &'a [&'a RawTexture]) -> Self {
     Pipe {
       textures: textures,
       ..self
+    }
+  }
+}
+
+#[inline]
+fn alter_uniforms(program: &Program, uniforms: &[AlterUniform]) {
+  for uniform in uniforms {
+    uniform.alter(program);
+  }
+}
+
+#[inline]
+fn bind_uniform_buffers(uniform_buffers: &[&RawBuffer]) {
+  for (index, buf) in uniform_buffers.iter().enumerate() {
+    unsafe { gl::BindBufferBase(gl::UNIFORM_BUFFER, index as GLuint, buf.handle()); }
+  }
+}
+
+#[inline]
+fn bind_textures(textures: &[&RawTexture]) {
+  for (unit, tex) in textures.iter().enumerate() {
+    unsafe {
+      gl::ActiveTexture(gl::TEXTURE0 + unit as GLenum);
+      gl::BindTexture(tex.target(), tex.handle());
     }
   }
 }

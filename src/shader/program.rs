@@ -237,7 +237,7 @@ impl<'a> AlterUniform<'a> {
     }
   }
 
-  pub fn consume(&self, program: &Program) {
+  pub fn alter(&self, program: &Program) {
     (self.alter)(program);
   }
 }
