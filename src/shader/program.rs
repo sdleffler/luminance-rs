@@ -219,6 +219,11 @@ impl<T> Uniform<T> where T: Uniformable {
   pub fn sem(&self, name: &str) -> Sem {
     Sem::new(name, self.sem_index, T::reify_type(), T::dim())
   }
+
+  /// Lazily alter the content of a uniform.
+  pub fn alter(&self, value: T) -> AlterUniform {
+    AlterUniform::new(self, value)
+  }
 }
 
 /// A uniform altered with a value. Type erasure is performed on the type of the uniform so that
