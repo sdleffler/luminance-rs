@@ -216,7 +216,7 @@ pub struct Pipe<'a, T> {
 }
 
 impl<'a, T> Pipe<'a, T> {
-  pub fn new<F>(next: T) -> Self where F: Fn(&Program) + 'a {
+  pub fn new(next: T) -> Self {
     Pipe {
       uniforms: &[],
       uniform_buffers: &[],
