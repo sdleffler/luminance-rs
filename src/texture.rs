@@ -695,7 +695,7 @@ impl Default for Sampler {
       wrap_r: Wrap::ClampToEdge,
       wrap_s: Wrap::ClampToEdge,
       wrap_t: Wrap::ClampToEdge,
-      min_filter: MinFilter::Linear,
+      min_filter: MinFilter::NearestMipmapLinear,
       mag_filter: MagFilter::Linear,
       depth_comparison: None
     }
