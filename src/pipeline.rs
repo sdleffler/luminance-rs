@@ -224,6 +224,21 @@ impl<'a, T> Pipe<'a, T> {
       next: next
     }
   }
+}
+
+impl<'a> Pipe<'a, ()> {
+  pub fn empty() -> Pipe<'a, ()> {
+    Self::new(())
+  }
+
+  pub fn unwrap<T>(self, next: T) -> Pipe<'a, T> {
+    Pipe {
+      uniforms: self.uniforms,
+      uniform_buffers: self.uniform_buffers,
+      textures: self.textures,
+      next: next
+    }
+  }
 
   pub fn uniforms(self, uniforms: &'a [AlterUniform<'a>]) -> Self {
     Pipe {
