@@ -1,3 +1,40 @@
+## 0.17.0
+
+- Added mipmap texture filtering to `texture::MagFilter`.
+- Splitted `texture::Filter` into `texture::MinFilter` and `texture::MagFilter` for a better static
+  safety.
+- Rewrite of pipelines. Their `Pipe` don’t accept a `Fn` closure anymore – see the point just below.
+  Pipes are now created without the assumptions of anything else, and you can add *uniforms*,
+  *uniform buffers* or *textures* as you see fit. The interface is designed in a way that no
+  breaking changes will happen if another type of resources is added in the future.
+- Introduced `AlterUniform`. This type adds purity to alter uniforms. You cannot change the value
+  of uniforms as you used to – via a `T: Fn`. This is because updating a uniform shouldn’t enable
+  you to execute code as freely as you’d wish. The semantic is *“update the uniform”*.
+  `AlterUniform` implements such a semantic.
+- Free some structs from useless trait bounds.
+- Unsupported pixel formats are now shown in a panic. Those should never arrive in a client code.
+  The panics are just for developping luminance; which is then justified.
+- `R32F` pixel format was introduced.
+- Introduced `TessRender`. This type is great as it enables you to render a sub-part of a `Tess` if
+  you want to, or change the number of instances you want. It’s a clearer interface than the
+  previous one.
+- Internal code clean up.
+- It’s now possible to reserve GPU memory for vertices without filling tessellations. This choice
+  is made via the `TessVertices` type.
+- Fixed a panic on `Framebuffer::new()`.
+- Added `RawTexture` and `RawBuffer`. Those types are type-erased versions of `Texture<_, _, _>` and
+  `Buffer<_>`, respectively, used to pass them via heterogeneous slices for instance. There’s a
+  `Deref` implementation that automatically promotes them to the raw equivalent.
+- Added `UniformWarning` to the public interface.
+- Merged `luminance-gl` into `luminance`. This decision is intended to make the use of luminance
+  easier and take advantage of the underlying technology (in the current case,
+  [OpenGL 3.3](https://www.opengl.org). The idea is that abstracting over several low-level
+  graphics API makes it almost impossible to abstract them in a unified way and still be able to
+  take full advantages of them, because they also provide very specific primitives and way of
+  working with them that preclude any abstraction. Keep in mind that the low-level technology used
+  also has an important impact on the design of the higher level API – to, actually, take advantage
+  of it and keep performance as high as possible. Thank you for your attention.
+
 ## 0.16.0
 
 - `BufferSlice{,Mut}` now implements `IntoIterator`.
