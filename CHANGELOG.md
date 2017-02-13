@@ -1,3 +1,8 @@
+## 0.17.1
+
+- Enhanced the interface of pipes.
+- Rewrote the documentation.
+
 ## 0.17.0
 
 - Added mipmap texture filtering to `texture::MagFilter`.
