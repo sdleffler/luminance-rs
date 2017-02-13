@@ -328,7 +328,7 @@ pub struct BufferSlice<'a, T> where T: 'a {
   raw: &'a RawBuffer,
   /// Raw pointer into the GPU memory.
   ptr: *const T,
-  _t: PhantomData<T>
+  _t: PhantomData<&'a T>
 }
 
 impl<'a, T> Drop for BufferSlice<'a, T> where T: 'a {
@@ -363,7 +363,7 @@ pub struct BufferSliceMut<'a, T> where T: 'a {
   raw: &'a RawBuffer,
   /// Raw pointer into the GPU memory.
   ptr: *mut T,
-  _t: PhantomData<T>
+  _t: PhantomData<&'a mut T>
 }
 
 impl<'a, 'b, T> IntoIterator for &'b BufferSliceMut<'a, T> where T: 'a {

@@ -1,4 +1,8 @@
-## 0.17.1
+### 0.17.2
+
+- Fixed variance of `BufferSlice*`.
+
+### 0.17.1
 
 - Enhanced the interface of pipes.
 - Rewrote the documentation.
