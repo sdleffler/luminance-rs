@@ -13,12 +13,24 @@
 //!
 //! Those kinds of tessellation are designated by the `Mode` type.
 //!
-//! # Tessellation abstraction
+//! # Tessellation creation
 //!
-//! The tessellation is an abstract concept that depends on the backend. That’s why tessellation is an
-//! associated type found in the `HasTess` trait.
+//! Creation is done via the `Tess::new` function. This function is polymorphing in the type of
+//! vertices you send. See the `TessVertices` type for further details.
 //!
-//! You create a new tessellation with the `new` function.
+//! # Tessellation vertices mapping
+//!
+//! It’s possible to map `Tess`’ vertices into your code. You’re provided with two types to do so:
+//!
+//! - `BufferSlice`, which gives you an immutable access to the vertices
+//! - `BufferSliceMut`, which gives you a mutable access to the vertices
+//!
+//! You can retrieve those slices with the `Tess::as_slice` and `Tess::as_slice_mut` methods. 
+//!
+//! # Tessellation render
+//!
+//! In order to render a `Tess`, you have to use a `TessRender` object. You’ll be able to use that
+//! object in *pipelines*. See the `pipeline` module for further details.
 
 use gl;
 use gl::types::*;
@@ -175,7 +187,7 @@ impl Tess {
 
   /// Render the tessellation by providing the number of vertices to pick from it and how many
   /// instances are wished.
-  pub fn render(&self, vert_nb: usize, inst_nb: usize) {
+  fn render(&self, vert_nb: usize, inst_nb: usize) {
     let vert_nb = vert_nb as GLsizei;
     let inst_nb = inst_nb as GLsizei;
 
@@ -213,7 +225,7 @@ impl Tess {
 
     self.vbo.as_ref()
       .ok_or(TessMapError::ForbiddenAttributelessMapping)
-      .and_then(|raw| unsafe { RawBuffer::as_slice(raw).map_err(TessMapError::VertexBufferMapFailed) })
+      .and_then(|raw| RawBuffer::as_slice(raw).map_err(TessMapError::VertexBufferMapFailed))
   }
 
   /// Get a mutable slice over the vertices stored on GPU.
@@ -227,7 +239,7 @@ impl Tess {
 
     self.vbo.as_mut()
       .ok_or(TessMapError::ForbiddenAttributelessMapping)
-      .and_then(|raw| unsafe { RawBuffer::as_slice_mut(raw).map_err(TessMapError::VertexBufferMapFailed) })
+      .and_then(|raw| RawBuffer::as_slice_mut(raw).map_err(TessMapError::VertexBufferMapFailed))
   }
 }
 

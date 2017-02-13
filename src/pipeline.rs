@@ -19,8 +19,14 @@ use texture::{Dimensionable, Layerable, RawTexture};
 ///
 /// `D` refers to the `Dim` of the underlying `Framebuffer`.
 ///
-/// `CS` and `DS` are – respectively – the *color* and *depth* `Slot` of the underlying
+/// `CS` and `DS` are – respectively – the *color* and *depth* `Slot`(s) of the underlying
 /// `Framebuffer`.
+///
+/// Pipelines also have several transient objects:
+///
+/// - a *clear color*, used to clear the framebuffer
+/// - a *texture set*, used to make textures available in subsequent structures
+/// - a *buffer set*, used to make uniform buffers available in subsequent structures
 pub struct Pipeline<'a, L, D, CS, DS>
     where L: 'a + Layerable,
           D: 'a + Dimensionable,
@@ -29,7 +35,7 @@ pub struct Pipeline<'a, L, D, CS, DS>
           DS: 'a + DepthSlot<L, D> {
   /// The embedded framebuffer.
   framebuffer: &'a Framebuffer<L, D, CS, DS>,
-  /// The color used to clean the framebuffer when  executing the pipeline.
+  /// The color used to clean the framebuffer when executing the pipeline.
   clear_color: [f32; 4],
   /// Texture set.
   texture_set: &'a[&'a RawTexture],
@@ -168,9 +174,9 @@ fn opengl_blending_factor(factor: blending::Factor) -> GLenum {
 /// `Program`.
 pub struct ShadingCommand<'a> {
   /// Embedded program.
-  pub program: &'a Program,
+  program: &'a Program,
   /// Render commands to execute for this shading command.
-  pub render_commands: Vec<Pipe<'a, RenderCommand<'a>>>
+  render_commands: Vec<Pipe<'a, RenderCommand<'a>>>
 }
 
 impl<'a> ShadingCommand<'a> {
@@ -183,16 +189,17 @@ impl<'a> ShadingCommand<'a> {
   }
 }
 
-/// A render command, which holds information on how to rasterize tessellations.
+/// A render command, which holds information on how to rasterize tessellations and render-related
+/// hints (like blending equations and factors and whether the depth test should be enabled).
 pub struct RenderCommand<'a> {
   /// Color blending configuration. Set to `None` if you don’t want any color blending. Set it to
   /// `Some(equation, source, destination)` if you want to perform a color blending with the
   /// `equation` formula and with the `source` and `destination` blending factors.
-  pub blending: Option<(blending::Equation, blending::Factor, blending::Factor)>,
+  blending: Option<(blending::Equation, blending::Factor, blending::Factor)>,
   /// Should a depth test be performed?
-  pub depth_test: bool,
+  depth_test: bool,
   /// The embedded tessellations.
-  pub tess: Vec<Pipe<'a, TessRender<'a>>>,
+  tess: Vec<Pipe<'a, TessRender<'a>>>,
 }
 
 impl<'a> RenderCommand<'a> {
@@ -216,6 +223,7 @@ pub struct Pipe<'a, T> {
 }
 
 impl<'a, T> Pipe<'a, T> {
+  /// Create a new pipe that just contains the next layer.
   pub fn new(next: T) -> Self {
     Pipe {
       uniforms: &[],
@@ -227,10 +235,12 @@ impl<'a, T> Pipe<'a, T> {
 }
 
 impl<'a> Pipe<'a, ()> {
+  /// Create an empty pipe; it holds nothing.
   pub fn empty() -> Pipe<'a, ()> {
     Self::new(())
   }
 
+  /// Add the next layer to make it hold something.
   pub fn unwrap<T>(self, next: T) -> Pipe<'a, T> {
     Pipe {
       uniforms: self.uniforms,
@@ -240,6 +250,7 @@ impl<'a> Pipe<'a, ()> {
     }
   }
 
+  /// Add uniforms to be altered to this pipe.
   pub fn uniforms(self, uniforms: &'a [AlterUniform<'a>]) -> Self {
     Pipe {
       uniforms: uniforms,
@@ -247,6 +258,7 @@ impl<'a> Pipe<'a, ()> {
     }
   }
 
+  /// Add uniform buffers as available to this pipe.
   pub fn uniform_buffers(self, uniform_buffers: &'a [&'a RawBuffer]) -> Self {
     Pipe {
       uniform_buffers: uniform_buffers,
@@ -254,6 +266,7 @@ impl<'a> Pipe<'a, ()> {
     }
   }
 
+  /// Add textures as available to this pipe.
   pub fn textures(self, textures: &'a [&'a RawTexture]) -> Self {
     Pipe {
       textures: textures,
@@ -265,7 +278,7 @@ impl<'a> Pipe<'a, ()> {
 #[inline]
 fn alter_uniforms(program: &Program, uniforms: &[AlterUniform]) {
   for uniform in uniforms {
-    uniform.alter(program);
+    unsafe { uniform.alter(program) };
   }
 }
 

@@ -9,25 +9,24 @@
 //! Creating a shader program is very simple. You need shader `Stage`s representing each step of the
 //! processing.
 //!
-//! You *have* to provide at least a vertex and fragment stages. If you want tessellation
+//! You *have* to provide at least a vertex and a fragment stages. If you want tessellation
 //! processing, you need to provide a tessellation control and tessellation evaluation stages. If
 //! you want primitives processing, you need to add a geometry stage.
 //!
 //! In order to customize the behavior of your shader programs, you have access to *uniforms*. For
 //! more details about them, see the documentation for the type `Uniform` and trait `Uniformable`.
-//! When creating a new shader program, you have to provide code to declare its *uniform interface*.
-//! The *uniform interface* refers to a type of your own that will be kept by the shader program and
-//! exposed to you when you’ll express the need to update its uniforms. That *uniform interface* is
-//! created via a closure you pass. That closure takes as arguments a `ProgramProxy` used to
-//! retrieve `Uniform`s from the program being constructed. That pattern, that can be a bit
-//! overwhelming at first, is important to keep things safe and functional. Keep in mind that you
-//! can make the closure fail, so that you can notify a `Uniform` lookup failure, for instance.
+//! When creating a new shader program, you have to provide code to declare its *uniform semantics*.
+//!
+//! The *uniform semantics* represent a mapping between the variables declared in your shader
+//! sources and variables you have access in your host code in Rust. Typically, you declare your
+//! variable – `Uniform` – in Rust as `const` and use the function `Uniform::sem` to get the
+//! semantic associated with the string you pass in.
+//!
+//! > **Becareful: currently, uniforms are a bit messy as you have to provide a per-program unique
+//! number when you use the `Uniform::new` method. Efforts will be done in that direction in later
+//! releases.
 //!
 //! You can create a `Program` with its `new` associated function.
-//!
-//! # Example
-//!
-//! TODO
 
 use gl;
 use gl::types::*;
@@ -119,7 +118,7 @@ impl Program {
 
   /// Update a uniform variable in the program.
   #[inline]
-  pub fn update<T>(&self, u: &Uniform<T>, value: T) where T: Uniformable {
+  fn update<T>(&self, u: &Uniform<T>, value: T) where T: Uniformable {
     value.update(&self, u);
   }
 
@@ -137,6 +136,8 @@ impl Drop for Program {
 
 /// A shader uniform semantic. It holds information on the variable it represents such as a name,
 /// its type and its dimension.
+///
+/// You can create them from `Uniform` with the `Uniform::sem` method.
 #[derive(Clone, Debug)]
 pub struct Sem {
   name: String,
@@ -146,7 +147,8 @@ pub struct Sem {
 }
 
 impl Sem {
-  pub fn new(name: &str, index: SemIndex, ty: Type, dim: Dim) -> Self {
+  /// Create a new sem.
+  fn new(name: &str, index: SemIndex, ty: Type, dim: Dim) -> Self {
     Sem {
       name: name.to_owned(),
       index: index,
@@ -155,18 +157,22 @@ impl Sem {
     }
   }
 
+  /// Name of the uniform in the shader program.
   pub fn name(&self) -> &str {
     &self.name
   }
 
+  /// Index of the uniform in the shader program.
   pub fn index(&self) -> SemIndex {
     self.index
   }
 
+  /// Type of the uniform in the shader program.
   pub fn ty(&self) -> Type {
     self.ty
   }
 
+  /// Dimension of the uniform in the shader program.
   pub fn dim(&self) -> Dim {
     self.dim
   }
@@ -201,7 +207,7 @@ pub enum UniformWarning {
 /// host code and the shader the uniform was retrieved from.
 #[derive(Debug)]
 pub struct Uniform<T> {
-  pub sem_index: SemIndex,
+  sem_index: SemIndex,
   _t: PhantomData<*const T>
 }
 
@@ -234,7 +240,8 @@ pub struct AlterUniform<'a> {
 }
 
 impl<'a> AlterUniform<'a> {
-  pub fn new<T>(uniform: &'a Uniform<T>, value: T) -> Self where T: Uniformable {
+  /// Create a new `AlterUniform`.
+  fn new<T>(uniform: &'a Uniform<T>, value: T) -> Self where T: Uniformable {
     AlterUniform {
       alter: Box::new(move |program: &Program| {
         program.update(uniform, value)
@@ -242,7 +249,8 @@ impl<'a> AlterUniform<'a> {
     }
   }
 
-  pub fn alter(&self, program: &Program) {
+  /// Alter the uniform. You must not use that function directly.
+  pub unsafe fn alter(&self, program: &Program) {
     (self.alter)(program);
   }
 }

@@ -126,6 +126,7 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
           CS: ColorSlot<L, D>,
           DS: DepthSlot<L, D> {
   // FIXME: use LinkedList instead of Vec for textures
+  /// Create a new farmebuffer.
   pub fn new(size: D::Size, mipmaps: usize) -> Result<Framebuffer<L, D, CS, DS>> {
     let mipmaps = mipmaps + 1;
     let mut handle: GLuint = 0;
