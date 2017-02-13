@@ -1,9 +1,8 @@
-//! Vertex formats and associated types and functions.
+//! Vertex formats, associated types and functions.
 //!
-//! A vertex is a type representing a point. It’s common to find vertex position, normals, colors or
-//! even texture coordinates. However, you’re free to use whichever type you want.
-//! Nevertheless, you’re limited to a range of types and dimensions. See `Type` and
-//! `Dim` for further details.
+//! A vertex is a type representing a point. It’s common to find vertex positions, normals, colors
+//! or even texture coordinates. However, you’re free to use whichever type you want. Nevertheless,
+//! you’re limited to a range of types and dimensions. See `Type` and `Dim` for further details.
 //!
 //! # `Vertex`
 //!
@@ -25,7 +24,9 @@
 //! As mentionned above, you can use tuples and structs as `Vertex`. If you look at the definition
 //! of `VertexFormat`, you’ll notice that it’s a `Vec<VertexComponentFormat>`. That means simple
 //! and primary types map to unit vectors – i.e. their size is 1 – but tuples and structs need
-//! several `VertexComponentFormat`s to be represented, hence vectors with sizes greater than 1.
+//! several `VertexComponentFormat`s to be represented, hence vectors with sizes greater than 1. No
+//! check is made on how many vertex components you’re using – there’s a practical limit, set by the
+//! GPU, but it’s not checked (yet).
 //!
 //! # Generic implementation
 //!
@@ -37,6 +38,9 @@
 //! `Chain` is a special type used to represent static list of types. With that in hand, you can
 //! easily create `Vertex` types and start using them without even implementing `Vertex`, as long as
 //! you use `Vertex` types. Feel free to dig in the `Chain` documentation for further details.
+//!
+//! If you absolutely want to use your own types – which is legit, you can to implement `Vertex` by
+//! mapping your inner fields to tuples, and call the right `Vertex` method on that tuple.
 
 use chain::Chain;
 
