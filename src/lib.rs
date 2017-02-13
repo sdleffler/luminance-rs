@@ -93,7 +93,7 @@ pub mod vertex;
 pub use blending::*;
 pub use buffer::{Binding, Buffer, BufferSlice, BufferSliceMut, BufferError, RawBuffer};
 pub use chain::*;
-pub use framebuffer::{Framebuffer, FramebufferError};
+pub use framebuffer::{ColorSlot, DepthSlot, Framebuffer, FramebufferError};
 pub use linear::*;
 pub use pipeline::{Pipe, Pipeline, RenderCommand, ShadingCommand};
 pub use pixel::{ColorPixel, DepthPixel, Format, Pixel, PixelFormat, RenderablePixel,  RGB8UI,
