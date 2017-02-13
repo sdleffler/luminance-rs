@@ -225,7 +225,7 @@ impl Tess {
 
     self.vbo.as_ref()
       .ok_or(TessMapError::ForbiddenAttributelessMapping)
-      .and_then(|raw| unsafe { RawBuffer::as_slice(raw).map_err(TessMapError::VertexBufferMapFailed) })
+      .and_then(|raw| RawBuffer::as_slice(raw).map_err(TessMapError::VertexBufferMapFailed))
   }
 
   /// Get a mutable slice over the vertices stored on GPU.
@@ -239,7 +239,7 @@ impl Tess {
 
     self.vbo.as_mut()
       .ok_or(TessMapError::ForbiddenAttributelessMapping)
-      .and_then(|raw| unsafe { RawBuffer::as_slice_mut(raw).map_err(TessMapError::VertexBufferMapFailed) })
+      .and_then(|raw| RawBuffer::as_slice_mut(raw).map_err(TessMapError::VertexBufferMapFailed))
   }
 }
 

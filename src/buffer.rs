@@ -176,7 +176,13 @@ impl<T> Buffer<T> {
     Ok(())
   }
 
-  fn write_whole(&self, values: &[T]) -> Result<(), BufferError> {
+  /// Write a whole slice into a buffer.
+  ///
+  /// If the slice you pass in as less items than the length of the buffer, you’ll get a
+  /// `BufferError::TooFewValues`. If it has more, you’ll get `BufferError::TooManyValues`.
+  ///
+  /// In all cases, the copy will be performed and clamped to reasonable length.
+  pub fn write_whole(&self, values: &[T]) -> Result<(), BufferError> {
     let in_bytes = values.len() * mem::size_of::<T>();
 
     // generate warning and recompute the proper number of bytes to copy
@@ -215,7 +221,7 @@ impl<T> Buffer<T> {
   /// Create a new buffer from its raw representation.
   ///
   /// This function is unsafe becomes it assumes that the representation is compliant to the type
-  /// you want to be.
+  /// you want it to be.
   pub unsafe fn from_raw(raw: RawBuffer) -> Self {
     Buffer {
       raw: raw,
@@ -262,40 +268,43 @@ pub struct RawBuffer {
 
 impl RawBuffer {
   /// Obtain an immutable slice view into the buffer.
-  pub unsafe fn as_slice<T>(&self) -> Result<BufferSlice<T>, BufferError> {
-    gl::BindBuffer(gl::ARRAY_BUFFER, self.handle);
+  pub fn as_slice<T>(&self) -> Result<BufferSlice<T>, BufferError> {
+    unsafe {
+      gl::BindBuffer(gl::ARRAY_BUFFER, self.handle);
 
-    let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *const T;
+      let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *const T;
 
-    if ptr.is_null() {
-      return Err(BufferError::MapFailed);
+      if ptr.is_null() {
+        return Err(BufferError::MapFailed);
+      }
+
+      Ok(BufferSlice {
+        raw: self,
+        ptr: ptr,
+        _t: PhantomData
+      })
     }
-
-    Ok(BufferSlice {
-      raw: self,
-      ptr: ptr,
-      _t: PhantomData
-    })
   }
 
   /// Obtain a mutable slice view into the buffer.
-  pub unsafe fn as_slice_mut<T>(&mut self) -> Result<BufferSliceMut<T>, BufferError> {
-    gl::BindBuffer(gl::ARRAY_BUFFER, self.handle);
+  pub fn as_slice_mut<T>(&mut self) -> Result<BufferSliceMut<T>, BufferError> {
+    unsafe {
+      gl::BindBuffer(gl::ARRAY_BUFFER, self.handle);
 
-    let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_WRITE) as *mut T;
+      let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_WRITE) as *mut T;
 
-    if ptr.is_null() {
-      return Err(BufferError::MapFailed);
+      if ptr.is_null() {
+        return Err(BufferError::MapFailed);
+      }
+
+      Ok(BufferSliceMut {
+        raw: self,
+        ptr: ptr,
+        _t: PhantomData
+      })
     }
-
-    Ok(BufferSliceMut {
-      raw: self,
-      ptr: ptr,
-      _t: PhantomData
-    })
   }
 
-  /// Get the internal handle of the buffer.
   pub unsafe fn handle(&self) -> GLuint {
     self.handle
   }
@@ -313,6 +322,7 @@ impl<T> From<Buffer<T>> for RawBuffer {
   }
 }
 
+/// A buffer slice mapped into GPU memory.
 pub struct BufferSlice<'a, T> where T: 'a {
   /// Borrowed raw buffer.
   raw: &'a RawBuffer,
@@ -347,6 +357,7 @@ impl<'a, 'b, T> IntoIterator for &'b BufferSlice<'a, T> where T: 'a {
   }
 }
 
+/// A buffer mutable slice into GPU memory.
 pub struct BufferSliceMut<'a, T> where T: 'a {
   /// Borrowed buffer.
   raw: &'a RawBuffer,
@@ -397,6 +408,8 @@ impl<'a, T> DerefMut for BufferSliceMut<'a, T> where T: 'a {
 }
 
 /// Buffer binding.
+///
+/// This type is used whenever you want to use a uniform buffer.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct Binding {
   index: u32
@@ -426,7 +439,7 @@ impl DerefMut for Binding {
 
 /// Typeclass of types that can be used inside a uniform block. You have to be extra careful when
 /// using uniform blocks and ensure you respect the OpenGL *std140* alignment / size rules. This
-/// will be fixed in a coming release.
+/// will be fixed in a future release.
 pub trait UniformBlock {}
 
 impl UniformBlock for u8 {}
