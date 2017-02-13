@@ -278,7 +278,7 @@ impl<'a> Pipe<'a, ()> {
 #[inline]
 fn alter_uniforms(program: &Program, uniforms: &[AlterUniform]) {
   for uniform in uniforms {
-    uniform.alter(program);
+    unsafe { uniform.alter(program) };
   }
 }
 
