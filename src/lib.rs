@@ -10,8 +10,6 @@
 //!   - making **unsafe** and **stateful** *APIs* (e.g. **OpenGL**) **safe** and **stateless** ;
 //!   - providing a simple API; that is, exposing core concepts without anything extra – just the bare
 //!     stuff ;
-//!   - abstract over the trending hardware interfaces (i.e. **OpenGL** up to now) and provide several
-//!     backends to pick through different packages ;
 //!   - easy to read with a good documentation and set of tutorials, so that new comers don’t have to
 //!     learn a lot of new concepts to get their feet wet.
 //!
@@ -20,16 +18,6 @@
 //! `luminance` is a rendering framework, not a 3D engine. As so, it doesn’t include stuff like
 //! lights, materials, asset management nor scene description. It only provides a rendering framework
 //! you can plug in whatever libraries you want to.
-//!
-//! ## luminance ecosystem
-//!
-//! Because I think it’s important to [KISS](https://en.wikipedia.org/wiki/KISS_principle), `luminance`
-//! is split in very several, very simple packages. The idea is that the `luminance` package is the core
-//! package of the library. It provides all the interface, common algorithms and the overall
-//! architecture and how you should interact with a *GPU*. However, you need a *backend* to interpret
-//! that code and make it run – one could even imagine a backend making it run on a CPU!
-//!
-//! Feel free to search for `luminance-*` packages and pick the one you need ;).
 //!
 //! ## Features set
 //!
@@ -53,12 +41,10 @@
 //!   between each other ;
 //! - and a lot of other cool things like *GPU commands*.
 //!
-//! # Current backends
+//! # Current implementation
 //!
-//! Here’s a list of backends for `luminance`. If you’ve written one and like to make it appear in that
-//! list, feel free to contact me on github or push a PR ;).
-//!
-//! - `luminance-gl`: **OpenGL** backend; [`luminance-gl` github page](https://github.com/phaazon/luminance-gl-rs.git)
+//! Currently, luminance is powered by OpenGL. It might change, but it’ll always be in favor on
+//! supporting more devices and technologies – a shift to Vulkan is planned.
 //!
 //! # Windowing
 //!
@@ -70,9 +56,8 @@
 //! # How to dig in?
 //!
 //! `luminance` is written to be fairly simple. The documentation is very transparent about what the
-//! library does and several articles will appear as the development goes on. Keep tuned! Online
-//! documentation is planned but in the waiting, feel free to generate the documentation on local and
-//! browse it with the projects you’re linking `luminance` against! (`cargo doc`).
+//! library does and several articles will appear as the development goes on. Keep tuned! The
+//! [online documentation](https://docs.rs/luminance) is also a good link to have around.
 
 extern crate gl;
 
