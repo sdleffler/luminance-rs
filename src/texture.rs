@@ -1,4 +1,72 @@
 //! This module provides texture features.
+//!
+//! # Introduction to textures
+//!
+//! Textures are used intensively in graphics programs as they tend to be the *de facto* memory area
+//! to store data. You use them typically when you want to customize a render, hold a render’s
+//! texels or even store arbritrary data.
+//!
+//! Currently, the following textures are supported:
+//!
+//! - 1D, 2D and 3D textures
+//! - cubemaps
+//! - array of textures (any of the types above)
+//!
+//! Those combinations are encoded by several types. First of all, `Texture<L, D, P>` is the
+//! polymorphic type used to represent textures. The `L` type variable is the *layering type* of
+//! the texture. It can either be `Flat` or `Layered`. The `D` type variable is the dimension of the
+//! texture. It can either be `Dim1`, `Dim2`, `Dim3` or `Cubemap`. Finally, the `P` type variable
+//! is the pixel format the texture follows. See the `pixel` module for further details about pixel
+//! formats.
+//!
+//! Additionally, all textures have between 0 or several *mipmaps*. Mipmaps are additional layers of
+//! texels used to perform trilinear filtering in most applications. Those are low-definition images
+//! of the the base image used to smoothly interpolate texels when a projection kicks in. See
+//! [this](https://en.wikipedia.org/wiki/Mipmap) for more insight.
+//!
+//! # Creating textures
+//!
+//! Textures are created by providing a size, the number of mipmaps that should be used and a
+//! reference to a `Sampler` object. Up to now, textures and samplers form the same object – but
+//! that might change in the future. Samplers are just a way to describe how texels will be fetched
+//! from a shader.
+//!
+//! ## Associated types
+//!
+//! Because textures might have different shapes, the types of their sizes and offsets vary. You
+//! have to look at the implementation of `Dimensionable::Size` and `Dimensionable::Offset` to know
+//! which type you have to pass. For instance, for a 2D texture – e.g. `Texture<Flat, Dim2, _>`, you
+//! have to pass a pair `(width, height)`.
+//!
+//! ## Samplers
+//!
+//! Samplers gather filters – i.e. how a shader should interpolate texels while fetching them,
+//! wrap rules – i.e. how a shader should behave when leaving the normalized UV coordinates? and
+//! a depth comparison, for depth textures only. See the documentation `Sampler` for further
+//! explanations.
+//!
+//! # Uploading data to textures
+//!
+//! One of the primary use of textures is to store images so that they can be used in your
+//! application mapped on objects in your scene, for instance. In order to do so, you have to load
+//! the image from the disk – see the awesome [image](https://crates.io/crates/image) – and then
+//! upload the data to the texture. You have several functions to do so:
+//!
+//! - `Texture::upload`: this function takes a slice of texels and upload them to the whole texture
+//!   memory
+//! - `Texture::upload_part`: this function does the same thing as `Texture::upload`, but gives you
+//!   the extra control on where in the texture you want to upload and with which size
+//! - `Texture::upload_raw`: this function takes a slice of raw encoding data and upload them to the
+//!   whole texture memory. This is especially handy when your texture has several channels but the
+//!   data you have don’t take channels into account and are just *raw* data.
+//! - `Texture::upload_part_raw`: same thing as above, but with offset and size control.
+//!
+//! Alternatively, you can clear the texture with `Texture::clear` and `Texture::clear_part`.
+//!
+//! # Retrieving texels
+//!
+//! The function `Texel::get_raw_texels` must be used to retreive texels out of a texture. This
+//! function allocates memory, so be careful when using it.
 
 use gl;
 use gl::types::*;
