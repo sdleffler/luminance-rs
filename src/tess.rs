@@ -406,8 +406,8 @@ impl<'a> TessRender<'a> {
   }
 }
 
-impl<'a> Into<TessRender<'a>> for &'a Tess {
-  fn into(self) -> TessRender<'a> {
-    TessRender::one_whole(self)
+impl<'a> From<&'a Tess> for TessRender<'a> {
+  fn from(tess: &'a Tess) -> Self {
+    TessRender::one_whole(tess)
   }
 }
