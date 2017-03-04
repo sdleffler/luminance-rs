@@ -43,7 +43,7 @@ pub struct Pipeline<'a, L, D, CS, DS>
   /// Buffer set.
   buffer_set: &'a[&'a RawBuffer],
   /// Shading commands to render into the embedded framebuffer.
-  shading_commands: Vec<Pipe<'a, ShadingCommand<'a>>>
+  shading_commands: &'a [Pipe<'a, ShadingCommand<'a>>]
 }
 
 impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
@@ -55,7 +55,7 @@ impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
   /// Create a new pipeline.
   pub fn new(framebuffer: &'a Framebuffer<L, D, CS, DS>, clear_color: [f32; 4],
              texture_set: &'a[&'a RawTexture], buffer_set: &'a[&'a RawBuffer],
-             shading_commands: Vec<Pipe<'a, ShadingCommand<'a>>>) -> Self {
+             shading_commands: &'a [Pipe<'a, ShadingCommand<'a>>]) -> Self {
     Pipeline {
       framebuffer: framebuffer,
       clear_color: clear_color,
@@ -84,8 +84,8 @@ impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
     }
   }
 
-  fn run_shading_command(pipe: Pipe<'a, ShadingCommand>) {
-    let shading_cmd = pipe.next;
+  fn run_shading_command(pipe: &Pipe<'a, ShadingCommand>) {
+    let shading_cmd = &pipe.next;
     let program = &shading_cmd.program;
 
     unsafe { gl::UseProgram(program.handle()) };
@@ -99,8 +99,8 @@ impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
     }
   }
 
-  fn run_render_command(program: &Program, pipe: Pipe<'a, RenderCommand<'a>>) {
-    let render_cmd = pipe.next;
+  fn run_render_command(program: &Program, pipe: &Pipe<'a, RenderCommand<'a>>) {
+    let render_cmd = &pipe.next;
 
     alter_uniforms(program, pipe.uniforms);
     bind_uniform_buffers(pipe.uniform_buffers);
@@ -110,7 +110,7 @@ impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
     set_depth_test(render_cmd.depth_test);
 
     for pipe_tess in render_cmd.tess {
-      let tess = pipe_tess.next;
+      let tess = &pipe_tess.next;
 
       alter_uniforms(program, pipe_tess.uniforms);
       bind_textures(pipe.textures);
@@ -178,12 +178,12 @@ pub struct ShadingCommand<'a> {
   /// Embedded program.
   program: &'a Program,
   /// Render commands to execute for this shading command.
-  render_commands: Vec<Pipe<'a, RenderCommand<'a>>>
+  render_commands: &'a [Pipe<'a, RenderCommand<'a>>]
 }
 
 impl<'a> ShadingCommand<'a> {
   /// Create a new shading command.
-  pub fn new(program: &'a Program, render_commands: Vec<Pipe<'a, RenderCommand<'a>>>) -> Self {
+  pub fn new(program: &'a Program, render_commands: &'a [Pipe<'a, RenderCommand<'a>>]) -> Self {
     ShadingCommand {
       program: program,
       render_commands: render_commands
@@ -202,13 +202,13 @@ pub struct RenderCommand<'a> {
   /// Should a depth test be performed?
   depth_test: bool,
   /// The embedded tessellations.
-  tess: Vec<Pipe<'a, TessRender<'a>>>,
+  tess: &'a [Pipe<'a, TessRender<'a>>],
 }
 
 impl<'a> RenderCommand<'a> {
   /// Create a new render command.
   pub fn new(blending: Option<(blending::Equation, blending::Factor, blending::Factor)>,
-             depth_test: bool, tess: Vec<Pipe<'a, TessRender<'a>>>) -> Self {
+             depth_test: bool, tess: &'a [Pipe<'a, TessRender<'a>>]) -> Self {
     RenderCommand {
       blending: blending,
       depth_test: depth_test,
