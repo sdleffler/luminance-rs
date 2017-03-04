@@ -228,12 +228,12 @@ pub struct Pipe<'a, T> {
 
 impl<'a, T> Pipe<'a, T> {
   /// Create a new pipe that just contains the next layer.
-  pub fn new<N>(next: T) -> Self where N: Into<T> {
+  pub fn new(next: T) -> Self {
     Pipe {
       uniforms: &[],
       uniform_buffers: &[],
       textures: &[],
-      next: next.into()
+      next: next
     }
   }
 }
@@ -241,16 +241,16 @@ impl<'a, T> Pipe<'a, T> {
 impl<'a> Pipe<'a, ()> {
   /// Create an empty pipe; it holds nothing.
   pub fn empty() -> Pipe<'a, ()> {
-    Self::new::<()>(())
+    Self::new(())
   }
 
   /// Add the next layer to make it hold something.
-  pub fn unwrap<T, N>(self, next: N) -> Pipe<'a, T> where N: Into<T> {
+  pub fn unwrap<T>(self, next: T) -> Pipe<'a, T> {
     Pipe {
       uniforms: self.uniforms,
       uniform_buffers: self.uniform_buffers,
       textures: self.textures,
-      next: next.into()
+      next: next
     }
   }
 
