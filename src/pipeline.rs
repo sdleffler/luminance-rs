@@ -27,6 +27,7 @@ use texture::{Dimensionable, Layerable, RawTexture};
 /// - a *clear color*, used to clear the framebuffer
 /// - a *texture set*, used to make textures available in subsequent structures
 /// - a *buffer set*, used to make uniform buffers available in subsequent structures
+#[derive(Clone)]
 pub struct Pipeline<'a, L, D, CS, DS>
     where L: 'a + Layerable,
           D: 'a + Dimensionable,
@@ -172,6 +173,7 @@ fn opengl_blending_factor(factor: blending::Factor) -> GLenum {
 
 /// A dynamic *shading command*. A shading command gathers *render commands* under a shader
 /// `Program`.
+#[derive(Clone)]
 pub struct ShadingCommand<'a> {
   /// Embedded program.
   program: &'a Program,
@@ -191,6 +193,7 @@ impl<'a> ShadingCommand<'a> {
 
 /// A render command, which holds information on how to rasterize tessellations and render-related
 /// hints (like blending equations and factors and whether the depth test should be enabled).
+#[derive(Clone)]
 pub struct RenderCommand<'a> {
   /// Color blending configuration. Set to `None` if you don’t want any color blending. Set it to
   /// `Some(equation, source, destination)` if you want to perform a color blending with the
@@ -215,6 +218,7 @@ impl<'a> RenderCommand<'a> {
 }
 
 /// A pipe used to build up a `Pipeline` by connecting its inner layers.
+#[derive(Clone)]
 pub struct Pipe<'a, T> {
   uniforms: &'a [AlterUniform<'a>],
   uniform_buffers: &'a [&'a RawBuffer],
