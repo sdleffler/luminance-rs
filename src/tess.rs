@@ -405,3 +405,9 @@ impl<'a> TessRender<'a> {
     self.tess.render(self.vert_nb, self.inst_nb);
   }
 }
+
+impl<'a> Into<TessRender<'a>> for &'a Tess {
+  fn into(self) -> TessRender<'a> {
+    TessRender::one_whole(self)
+  }
+}
