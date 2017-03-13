@@ -1,3 +1,11 @@
+## 0.18.0
+
+- `TessRender` now implements `From` for basic cases.
+- All pipeline types now implement `Clone`.
+- Pipeline types have lost ownership of subcommands (shading commands, render commands, etc.). This
+  is a very important change made so that we can have more sharing and then expect a performance
+  boost.
+
 ### 0.17.2
 
 - Fixed variance of `BufferSlice*`.
