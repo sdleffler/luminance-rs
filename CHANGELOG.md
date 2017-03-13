@@ -1,3 +1,7 @@
+### 0.18.1
+
+- Support for the latest `gl` crate.
+
 ## 0.18.0
 
 - `TessRender` now implements `From` for basic cases.
