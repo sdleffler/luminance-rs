@@ -113,7 +113,7 @@ impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
       let tess = &pipe_tess.next;
 
       alter_uniforms(program, pipe_tess.uniforms);
-      bind_textures(pipe.textures);
+      bind_textures(pipe_tess.textures);
 
       tess.render();
     }
