@@ -207,10 +207,9 @@ pub struct RenderCommand<'a> {
 
 impl<'a> RenderCommand<'a> {
   /// Create a new render command.
-  pub fn new(blending: Option<(blending::Equation, blending::Factor, blending::Factor)>,
-             depth_test: bool, tess: &'a [Pipe<'a, TessRender<'a>>]) -> Self {
+  pub fn new<B>(blending: B, depth_test: bool, tess: &'a [Pipe<'a, TessRender<'a>>]) -> Self where B: Into<Option<(blending::Equation, blending::Factor, blending::Factor)>>{
     RenderCommand {
-      blending: blending,
+      blending: blending.into(),
       depth_test: depth_test,
       tess: tess,
     }
