@@ -1,3 +1,9 @@
+### 0.18.2
+
+- Fixed some internal code about pipelines.
+- Fixed some internal code about texture set binding.
+- `RenderCommand::new` is now polymorphic in its blending argument.
+
 ### 0.18.1
 
 - Support for the latest `gl` crate.
