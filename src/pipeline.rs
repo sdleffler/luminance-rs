@@ -62,7 +62,7 @@ impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
   }
 
   /// Enter a `Pipeline`.
-  pub fn enter<F>(self, f: F) where F: FnOnce(&ShadingGate) {
+  pub fn enter<F>(&self, f: F) where F: FnOnce(&ShadingGate) {
     let clear_color = self.clear_color;
 
     unsafe {
