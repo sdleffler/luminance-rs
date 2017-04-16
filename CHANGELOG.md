@@ -1,3 +1,8 @@
+## 0.19
+
+- `Into<Option<_>>` elegancy additions.
+- Changed the whole pipeline system. It’s now a traversal-like system.
+
 ### 0.18.2
 
 - Fixed some internal code about pipelines.
