@@ -98,8 +98,8 @@ impl Framebuffer<Flat, Dim2, (), ()> {
     Framebuffer {
       handle: 0,
       renderbuffer: None,
-      w: size.0,
-      h: size.1,
+      w: size[0],
+      h: size[1],
       color_slot: (),
       depth_slot: (),
       _l: PhantomData,

@@ -206,20 +206,20 @@ impl Dimensionable for Dim1 {
 pub struct Dim2;
 
 impl Dimensionable for Dim2 {
-  type Size = (u32, u32);
-  type Offset = (u32, u32);
+  type Size = [u32; 2];
+  type Offset = [u32; 2];
 
   fn dim() -> Dim { Dim::Dim2 }
 
-  fn width(size: Self::Size) -> u32 { size.0 }
+  fn width(size: Self::Size) -> u32 { size[0] }
 
-  fn height(size: Self::Size) -> u32 { size.1 }
+  fn height(size: Self::Size) -> u32 { size[1] }
 
-  fn x_offset(off: Self::Offset) -> u32 { off.0 }
+  fn x_offset(off: Self::Offset) -> u32 { off[0] }
 
-  fn y_offset(off: Self::Offset) -> u32 { off.1 }
+  fn y_offset(off: Self::Offset) -> u32 { off[1] }
 
-  fn zero_offset() -> Self::Offset { (0, 0) }
+  fn zero_offset() -> Self::Offset { [0, 0] }
 }
 
 /// 3D dimension.
@@ -227,24 +227,24 @@ impl Dimensionable for Dim2 {
 pub struct Dim3;
 
 impl Dimensionable for Dim3 {
-  type Size = (u32, u32, u32);
-  type Offset = (u32, u32, u32);
+  type Size = [u32; 3];
+  type Offset = [u32; 3];
 
   fn dim() -> Dim { Dim::Dim3 }
 
-  fn width(size: Self::Size) -> u32 { size.0 }
+  fn width(size: Self::Size) -> u32 { size[0] }
 
-  fn height(size: Self::Size) -> u32 { size.1 }
+  fn height(size: Self::Size) -> u32 { size[1] }
 
-  fn depth(size: Self::Size) -> u32 { size.2 }
+  fn depth(size: Self::Size) -> u32 { size[2] }
 
-  fn x_offset(off: Self::Offset) -> u32 { off.0 }
+  fn x_offset(off: Self::Offset) -> u32 { off[0] }
 
-  fn y_offset(off: Self::Offset) -> u32 { off.1 }
+  fn y_offset(off: Self::Offset) -> u32 { off[1] }
 
-  fn z_offset(off: Self::Offset) -> u32 { off.2 }
+  fn z_offset(off: Self::Offset) -> u32 { off[2] }
 
-  fn zero_offset() -> Self::Offset { (0, 0, 0) }
+  fn zero_offset() -> Self::Offset { [0, 0, 0] }
 }
 
 /// Cubemap dimension.
@@ -253,7 +253,7 @@ pub struct Cubemap;
 
 impl Dimensionable for Cubemap {
   type Size = u32;
-  type Offset = (u32, u32, CubeFace);
+  type Offset = ([u32; 2], CubeFace);
 
   fn dim() -> Dim { Dim::Cubemap }
 
@@ -263,12 +263,12 @@ impl Dimensionable for Cubemap {
 
   fn depth(_: Self::Size) -> u32 { 6 }
 
-  fn x_offset(off: Self::Offset) -> u32 { off.0 }
+  fn x_offset(off: Self::Offset) -> u32 { off.0[0] }
 
-  fn y_offset(off: Self::Offset) -> u32 { off.1 }
+  fn y_offset(off: Self::Offset) -> u32 { off.0[1] }
 
   fn z_offset(off: Self::Offset) -> u32 {
-    match off.2 {
+    match off.1 {
       CubeFace::PositiveX => 0,
       CubeFace::NegativeX => 1,
       CubeFace::PositiveY => 2,
@@ -278,7 +278,7 @@ impl Dimensionable for Cubemap {
     }
   }
 
-  fn zero_offset() -> Self::Offset { (0, 0, CubeFace::PositiveX) }
+  fn zero_offset() -> Self::Offset { ([0, 0], CubeFace::PositiveX) }
 }
 
 /// Faces of a cubemap.
