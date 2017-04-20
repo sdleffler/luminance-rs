@@ -9,7 +9,7 @@ use gl::types::*;
 use buffer::RawBuffer;
 use blending::{Equation, Factor};
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer};
-use shader::program::{AlterUniform, Program};
+use shader::program::{AlterUniform, RawProgram};
 use tess::TessRender;
 use texture::{Dimensionable, Layerable, RawTexture};
 
@@ -82,7 +82,7 @@ impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
 pub struct ShadingGate;
 
 impl ShadingGate {
-  pub fn new<'a>(&self, program: &'a Program, uniforms: &'a [AlterUniform<'a>], texture_set: &'a [&'a RawTexture], buffer_set: &'a [&'a RawBuffer]) -> ShadingCommand<'a> {
+  pub fn new<'a>(&self, program: &'a RawProgram, uniforms: &'a [AlterUniform<'a>], texture_set: &'a [&'a RawTexture], buffer_set: &'a [&'a RawBuffer]) -> ShadingCommand<'a> {
     ShadingCommand::new(program, uniforms, texture_set, buffer_set)
   }
 }
@@ -92,7 +92,7 @@ impl ShadingGate {
 #[derive(Clone)]
 pub struct ShadingCommand<'a> {
   /// Embedded program.
-  program: &'a Program,
+  program: &'a RawProgram,
   /// Uniforms.
   uniforms: &'a [AlterUniform<'a>],
   /// Texture set.
@@ -103,7 +103,7 @@ pub struct ShadingCommand<'a> {
 
 impl<'a> ShadingCommand<'a> {
   /// Create a new shading command.
-  fn new(program: &'a Program, uniforms: &'a [AlterUniform<'a>], texture_set: &'a [&'a RawTexture], buffer_set: &'a [&'a RawBuffer]) -> Self {
+  fn new(program: &'a RawProgram, uniforms: &'a [AlterUniform<'a>], texture_set: &'a [&'a RawTexture], buffer_set: &'a [&'a RawBuffer]) -> Self {
     ShadingCommand {
       program: program,
       uniforms: uniforms,
@@ -126,7 +126,7 @@ impl<'a> ShadingCommand<'a> {
 }
 
 pub struct RenderGate<'a> {
-  program: &'a Program
+  program: &'a RawProgram
 }
 
 impl<'a> RenderGate<'a> {
@@ -140,7 +140,7 @@ impl<'a> RenderGate<'a> {
 #[derive(Clone)]
 pub struct RenderCommand<'a> {
   /// Embedded program.
-  program: &'a Program,
+  program: &'a RawProgram,
   /// Color blending configuration. Set to `None` if you don’t want any color blending. Set it to
   /// `Some(equation, source, destination)` if you want to perform a color blending with the
   /// `equation` formula and with the `source` and `destination` blending factors.
@@ -157,7 +157,7 @@ pub struct RenderCommand<'a> {
 
 impl<'a> RenderCommand<'a> {
   /// Create a new render command.
-  fn new<B>(program: &'a Program, blending: B, depth_test: bool, uniforms: &'a [AlterUniform<'a>], texture_set: &'a [&'a RawTexture], buffer_set: &'a [&'a RawBuffer]) -> Self where B: Into<Option<(Equation, Factor, Factor)>>{
+  fn new<B>(program: &'a RawProgram, blending: B, depth_test: bool, uniforms: &'a [AlterUniform<'a>], texture_set: &'a [&'a RawTexture], buffer_set: &'a [&'a RawBuffer]) -> Self where B: Into<Option<(Equation, Factor, Factor)>>{
     RenderCommand {
       program: program,
       blending: blending.into(),
@@ -183,7 +183,7 @@ impl<'a> RenderCommand<'a> {
 }
 
 pub struct TessGate<'a> {
-  program: &'a Program
+  program: &'a RawProgram
 }
 
 impl<'a> TessGate<'a> {
@@ -197,7 +197,7 @@ impl<'a> TessGate<'a> {
 }
 
 #[inline]
-fn alter_uniforms(program: &Program, uniforms: &[AlterUniform]) {
+fn alter_uniforms(program: &RawProgram, uniforms: &[AlterUniform]) {
   for uniform in uniforms {
     unsafe { uniform.alter(program) };
   }

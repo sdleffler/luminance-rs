@@ -39,20 +39,25 @@ use buffer::Binding;
 use linear::{M22, M33, M44};
 use shader::stage::Stage;
 use texture::Unit;
+use vertex::Vertex;
 
 type Result<A> = ::std::result::Result<A, ProgramError>;
 
 /// A shader program.
 #[derive(Debug)]
-pub struct Program {
-  handle: GLuint,
-  uni_sem_map: HashMap<SemIndex, GLint>, // mapping between user semantic (indexes) and OpenGL uniform locations
-  ubo_sem_map: HashMap<SemIndex, GLint>, // mapping between user semantic (indexes) and OpenGL uniform block indexes
+pub struct RawProgram {
+  handle: GLuint
 }
 
-impl Program {
+impl RawProgram {
   /// Create a new program by linking shader stages.
-  pub fn new<'a, T, G>(tess: T, vertex: &Stage, geometry: G, fragment: &Stage, sem_map: &[Sem]) -> Result<(Self, Vec<UniformWarning>)> where T: Into<Option<(&'a Stage, &'a Stage)>>, G: Into<Option<&'a Stage>> {
+  pub fn new<'a, T, G>(tess: T,
+                       vertex: &Stage,
+                       geometry: G,
+                       fragment: &Stage)
+                       -> Result<Self>
+      where T: Into<Option<(&'a Stage, &'a Stage)>>,
+            G: Into<Option<&'a Stage>> {
     unsafe {
       let handle = gl::CreateProgram();
 
@@ -75,31 +80,7 @@ impl Program {
       gl::GetProgramiv(handle, gl::LINK_STATUS, &mut linked);
 
       if linked == (gl::TRUE as GLint) {
-        let mut uni_sem_map = HashMap::new();
-        let mut ubo_sem_map = HashMap::new();
-        let mut warnings = Vec::new();
-
-        for sem in sem_map {
-          let (loc, warning) = get_uniform_location(handle, sem.name(), sem.ty(), sem.dim());
-
-          match loc {
-            Location::Uniform(location) => uni_sem_map.insert(sem.index(), location),
-            Location::UniformBlock(index) => ubo_sem_map.insert(sem.index(), index)
-          };
-
-          // if there’s a warning, add it to the list of warnings
-          if let Err(warning) = warning {
-            warnings.push(warning);
-          }
-        }
-
-        let program = Program {
-          handle: handle,
-          uni_sem_map: uni_sem_map,
-          ubo_sem_map: ubo_sem_map,
-        };
-
-        Ok((program, warnings))
+        Ok(RawProgram { handle: handle })
       } else {
         let mut log_len: GLint = 0;
         gl::GetProgramiv(handle, gl::INFO_LOG_LENGTH, &mut log_len);
@@ -128,58 +109,59 @@ impl Program {
   }
 }
 
-impl Drop for Program {
+impl Drop for RawProgram {
   fn drop(&mut self) {
     unsafe { gl::DeleteProgram(self.handle) }
   }
 }
 
-/// A shader uniform semantic. It holds information on the variable it represents such as a name,
-/// its type and its dimension.
+/// A typed shader program.
 ///
-/// You can create them from `Uniform` with the `Uniform::sem` method.
-#[derive(Clone, Debug)]
-pub struct Sem {
-  name: String,
-  index: SemIndex,
-  ty: Type,
-  dim: Dim
+/// Typed shader programs represent their inputs, outputs and environment (uniforms) directly in
+/// their types. This is very interesting as it adds more static safety and enables such programs
+/// to *“store”* information like uniform variables and such.
+pub struct Program<In, Out, Uni> {
+  raw: RawProgram,
+  uni: Uni,
+  _in: PhantomData<In>,
+  _out: PhantomData<Out>
 }
 
-impl Sem {
-  /// Create a new sem.
-  fn new(name: &str, index: SemIndex, ty: Type, dim: Dim) -> Self {
-    Sem {
-      name: name.to_owned(),
-      index: index,
-      ty: ty,
-      dim: dim
+impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformTrait {
+  //pub fn new<'a, T, G>(tess: T,
+  //                     vertex: &Stage,
+  //                     geometry: G,
+  //                     fragment: &Stage)
+  //                     -> Result<(Self, Vec<UniformWarning>)>
+  //    where T: Into<Option<(&'a Stage, &'a Stage)>>,
+  //          G: Into<Option<&'a Stage>> {
+}
+
+pub trait UniformTrait {
+}
+
+pub struct UniformBuilder {
+  raw: RawProgram
+}
+
+impl UniformBuilder {
+  fn new(raw: RawProgram) -> Self {
+    UniformBuilder {
+      raw: raw
     }
   }
 
-  /// Name of the uniform in the shader program.
-  pub fn name(&self) -> &str {
-    &self.name
-  }
+  pub fn uniform<T>(&self, name: &str) -> Result<Uniform<T>> where T: Uniformable {
+    let c_name = CString::new(name.as_bytes()).unwrap();
+    let location = unsafe { gl::GetUniformLocation(self.raw.handle, c_name.as_ptr() as *const GLchar) };
 
-  /// Index of the uniform in the shader program.
-  pub fn index(&self) -> SemIndex {
-    self.index
-  }
-
-  /// Type of the uniform in the shader program.
-  pub fn ty(&self) -> Type {
-    self.ty
-  }
-
-  /// Dimension of the uniform in the shader program.
-  pub fn dim(&self) -> Dim {
-    self.dim
+    if location < 0 {
+      Err(ProgramError::UniformWarning(UniformWarning::Inactive(name.to_owned())))
+    } else {
+      Ok(Uniform::new(location))
+    }
   }
 }
-
-/// Semantic index.
-pub type SemIndex = u32;
 
 /// Errors that a `Program` can generate.
 #[derive(Clone, Debug)]
@@ -207,51 +189,24 @@ pub enum UniformWarning {
 /// host code and the shader the uniform was retrieved from.
 #[derive(Debug)]
 pub struct Uniform<T> {
-  sem_index: SemIndex,
+  index: GLint,
   _t: PhantomData<*const T>
 }
 
 impl<T> Uniform<T> where T: Uniformable {
-  /// Create a new uniform from a semantic index.
-  pub const fn new(sem_index: SemIndex) -> Uniform<T> {
+  fn new(index: GLint) -> Self {
     Uniform {
-      sem_index: sem_index,
+      index: index,
       _t: PhantomData
     }
   }
 
-  /// Create a `Sem` by giving a mapping name. The `Type` and `Dim` are reified using the static
-  /// type of the uniform (`T`).
-  pub fn sem(&self, name: &str) -> Sem {
-    Sem::new(name, self.sem_index, T::reify_type(), T::dim())
-  }
-
-  /// Lazily alter the content of a uniform.
-  pub fn alter(&self, value: T) -> AlterUniform {
-    AlterUniform::new(self, value)
-  }
-}
-
-/// A uniform altered with a value. Type erasure is performed on the type of the uniform so that
-/// this type can be collected and pass down to whatever function needs heterogenous collections of
-/// altered uniforms.
-pub struct AlterUniform<'a> {
-  alter: Box<for<'b> Fn(&'b Program) + 'a>
-}
-
-impl<'a> AlterUniform<'a> {
-  /// Create a new `AlterUniform`.
-  fn new<T>(uniform: &'a Uniform<T>, value: T) -> Self where T: Uniformable {
-    AlterUniform {
-      alter: Box::new(move |program: &Program| {
-        program.update(uniform, value)
-      })
+  /// Create a new unbound uniform.
+  pub fn unbound() -> Self {
+    Uniform {
+      index: -1,
+      _t: PhantomData
     }
-  }
-
-  /// Alter the uniform. You must not use that function directly.
-  pub unsafe fn alter(&self, program: &Program) {
-    (self.alter)(program);
   }
 }
 
@@ -282,459 +237,458 @@ pub enum Dim {
 /// Types that can behave as `Uniform`.
 pub trait Uniformable: Copy + Sized {
   /// Update the uniform with a new value.
-  fn update(self, program: &Program, u: &Uniform<Self>);
+  fn update(self, program: &RawProgram, u: &Uniform<Self>);
   /// Retrieve the `Type` of the uniform.
-  fn reify_type() -> Type; // FIXME: call that ty() instead
+  fn ty() -> Type; // FIXME: call that ty() instead
   /// Retrieve the `Dim` of the uniform.
   fn dim() -> Dim;
 }
 
 impl Uniformable for i32 {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1i(program.uni_sem_map[&u.sem_index], self) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    unsafe { gl::Uniform1i(u.index, self) }
   }
 
-  fn reify_type() -> Type { Type::Integral }
+  fn ty() -> Type { Type::Integral }
 
   fn dim() -> Dim { Dim::Dim1 }
 }
 
 impl Uniformable for [i32; 2] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform2iv(program.uni_sem_map[&u.sem_index], 1, &self as *const i32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform2iv(program.uni_sem_map[&u.index], 1, &self as *const i32) }
   }
 
-  fn reify_type() -> Type { Type::Integral }
+  fn ty() -> Type { Type::Integral }
 
   fn dim() -> Dim { Dim::Dim2 }
 }
 
 impl Uniformable for [i32; 3] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform3iv(program.uni_sem_map[&u.sem_index], 1, &self as *const i32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform3iv(program.uni_sem_map[&u.index], 1, &self as *const i32) }
   }
 
-  fn reify_type() -> Type { Type::Integral }
+  fn ty() -> Type { Type::Integral }
 
   fn dim() -> Dim { Dim::Dim3 }
 }
 
 impl Uniformable for [i32; 4] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform4iv(program.uni_sem_map[&u.sem_index], 1, &self as *const i32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform4iv(program.uni_sem_map[&u.index], 1, &self as *const i32) }
   }
 
-  fn reify_type() -> Type { Type::Integral }
+  fn ty() -> Type { Type::Integral }
 
   fn dim() -> Dim { Dim::Dim4 }
 }
 
 impl<'a> Uniformable for &'a [i32] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1iv(program.uni_sem_map[&u.sem_index], self.len() as GLsizei, self.as_ptr()) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform1iv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr()) }
   }
 
-  fn reify_type() -> Type { Type::Integral }
+  fn ty() -> Type { Type::Integral }
 
   fn dim() -> Dim { Dim::Dim1 }
 }
 
 impl<'a> Uniformable for &'a [[i32; 2]] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform2iv(program.uni_sem_map[&u.sem_index], self.len() as GLsizei, self.as_ptr() as *const i32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform2iv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const i32) }
   }
 
-  fn reify_type() -> Type { Type::Integral }
+  fn ty() -> Type { Type::Integral }
 
   fn dim() -> Dim { Dim::Dim2 }
 }
 
 impl<'a> Uniformable for &'a [[i32; 3]] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform3iv(program.uni_sem_map[&u.sem_index], self.len() as GLsizei, self.as_ptr() as *const i32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform3iv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const i32) }
   }
 
-  fn reify_type() -> Type { Type::Integral }
+  fn ty() -> Type { Type::Integral }
 
   fn dim() -> Dim { Dim::Dim3 }
 }
 
 impl<'a> Uniformable for &'a [[i32; 4]] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform4iv(program.uni_sem_map[&u.sem_index], self.len() as GLsizei, self.as_ptr() as *const i32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform4iv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const i32) }
   }
 
-  fn reify_type() -> Type { Type::Integral }
+  fn ty() -> Type { Type::Integral }
 
   fn dim() -> Dim { Dim::Dim4 }
 }
 
 impl Uniformable for u32 {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1ui(program.uni_sem_map[&u.sem_index], self) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform1ui(program.uni_sem_map[&u.index], self) }
   }
 
-  fn reify_type() -> Type { Type::Unsigned }
+  fn ty() -> Type { Type::Unsigned }
 
   fn dim() -> Dim { Dim::Dim1 }
 }
 
 impl Uniformable for [u32; 2] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform2uiv(program.uni_sem_map[&u.sem_index], 1, &self as *const u32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform2uiv(program.uni_sem_map[&u.index], 1, &self as *const u32) }
   }
 
-  fn reify_type() -> Type { Type::Unsigned }
+  fn ty() -> Type { Type::Unsigned }
 
   fn dim() -> Dim { Dim::Dim2 }
 }
 
 impl Uniformable for [u32; 3] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform3uiv(program.uni_sem_map[&u.sem_index], 1, &self as *const u32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform3uiv(program.uni_sem_map[&u.index], 1, &self as *const u32) }
   }
 
-  fn reify_type() -> Type { Type::Unsigned }
+  fn ty() -> Type { Type::Unsigned }
 
   fn dim() -> Dim { Dim::Dim3 }
 }
 
 impl Uniformable for [u32; 4] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform4uiv(program.uni_sem_map[&u.sem_index], 1, &self as *const u32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform4uiv(program.uni_sem_map[&u.index], 1, &self as *const u32) }
   }
 
-  fn reify_type() -> Type { Type::Unsigned }
+  fn ty() -> Type { Type::Unsigned }
 
   fn dim() -> Dim { Dim::Dim4 }
 }
 
 impl<'a> Uniformable for &'a [u32] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1uiv(program.uni_sem_map[&u.sem_index], self.len() as GLsizei, self.as_ptr() as *const u32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform1uiv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
-  fn reify_type() -> Type { Type::Unsigned }
+  fn ty() -> Type { Type::Unsigned }
 
   fn dim() -> Dim { Dim::Dim1 }
 }
 
 impl<'a> Uniformable for &'a [[u32; 2]] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform2uiv(program.uni_sem_map[&u.sem_index], self.len() as GLsizei, self.as_ptr() as *const u32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform2uiv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
-  fn reify_type() -> Type { Type::Unsigned }
+  fn ty() -> Type { Type::Unsigned }
 
   fn dim() -> Dim { Dim::Dim2 }
 }
 
 impl<'a> Uniformable for &'a [[u32; 3]] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform3uiv(program.uni_sem_map[&u.sem_index], self.len() as GLsizei, self.as_ptr() as *const u32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform3uiv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
-  fn reify_type() -> Type { Type::Unsigned }
+  fn ty() -> Type { Type::Unsigned }
 
   fn dim() -> Dim { Dim::Dim3 }
 }
 
 impl<'a> Uniformable for &'a [[u32; 4]] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform4uiv(program.uni_sem_map[&u.sem_index], self.len() as GLsizei, self.as_ptr() as *const u32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform4uiv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
-  fn reify_type() -> Type { Type::Unsigned }
+  fn ty() -> Type { Type::Unsigned }
 
   fn dim() -> Dim { Dim::Dim4 }
 }
 
 impl Uniformable for f32 {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1f(program.uni_sem_map[&u.sem_index], self) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform1f(program.uni_sem_map[&u.index], self) }
   }
 
-  fn reify_type() -> Type { Type::Floating }
+  fn ty() -> Type { Type::Floating }
 
   fn dim() -> Dim { Dim::Dim1 }
 }
 
 impl Uniformable for [f32; 2] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform2fv(program.uni_sem_map[&u.sem_index], 1, &self as *const f32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform2fv(program.uni_sem_map[&u.index], 1, &self as *const f32) }
   }
 
-  fn reify_type() -> Type { Type::Floating }
+  fn ty() -> Type { Type::Floating }
 
   fn dim() -> Dim { Dim::Dim2 }
 }
 
 impl Uniformable for [f32; 3] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform3fv(program.uni_sem_map[&u.sem_index], 1, &self as *const f32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform3fv(program.uni_sem_map[&u.index], 1, &self as *const f32) }
   }
 
-  fn reify_type() -> Type { Type::Floating }
+  fn ty() -> Type { Type::Floating }
 
   fn dim() -> Dim { Dim::Dim3 }
 }
 
 impl Uniformable for [f32; 4] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform4fv(program.uni_sem_map[&u.sem_index], 1, &self as *const f32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform4fv(program.uni_sem_map[&u.index], 1, &self as *const f32) }
   }
 
-  fn reify_type() -> Type { Type::Floating }
+  fn ty() -> Type { Type::Floating }
 
   fn dim() -> Dim { Dim::Dim4 }
 }
 
 impl<'a> Uniformable for &'a [f32] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1fv(program.uni_sem_map[&u.sem_index], self.len() as GLsizei, self.as_ptr() as *const f32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform1fv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
-  fn reify_type() -> Type { Type::Floating }
+  fn ty() -> Type { Type::Floating }
 
   fn dim() -> Dim { Dim::Dim1 }
 }
 
 impl<'a> Uniformable for &'a [[f32; 2]] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform2fv(program.uni_sem_map[&u.sem_index], self.len() as GLsizei, self.as_ptr() as *const f32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform2fv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
-  fn reify_type() -> Type { Type::Floating }
+  fn ty() -> Type { Type::Floating }
 
   fn dim() -> Dim { Dim::Dim2 }
 }
 
 impl<'a> Uniformable for &'a [[f32; 3]] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform3fv(program.uni_sem_map[&u.sem_index], self.len() as GLsizei, self.as_ptr() as *const f32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform3fv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
-  fn reify_type() -> Type { Type::Floating }
+  fn ty() -> Type { Type::Floating }
 
   fn dim() -> Dim { Dim::Dim3 }
 }
 
 impl<'a> Uniformable for &'a [[f32; 4]] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform4fv(program.uni_sem_map[&u.sem_index], self.len() as GLsizei, self.as_ptr() as *const f32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform4fv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
-  fn reify_type() -> Type { Type::Floating }
+  fn ty() -> Type { Type::Floating }
 
   fn dim() -> Dim { Dim::Dim4 }
 }
 
 impl Uniformable for M22 {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
     let v = [self];
-    unsafe { gl::UniformMatrix2fv(program.uni_sem_map[&u.sem_index], 1, gl::FALSE, v.as_ptr() as *const f32) }
+    unsafe { gl::UniformMatrix2fv(program.uni_sem_map[&u.index], 1, gl::FALSE, v.as_ptr() as *const f32) }
   }
 
-  fn reify_type() -> Type { Type::Floating }
+  fn ty() -> Type { Type::Floating }
 
   fn dim() -> Dim { Dim::Dim22 }
 }
 
 impl Uniformable for M33 {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
     let v = [self];
-    unsafe { gl::UniformMatrix3fv(program.uni_sem_map[&u.sem_index], 1, gl::FALSE, v.as_ptr() as *const f32) }
+    unsafe { gl::UniformMatrix3fv(program.uni_sem_map[&u.index], 1, gl::FALSE, v.as_ptr() as *const f32) }
   }
 
-  fn reify_type() -> Type { Type::Floating }
+  fn ty() -> Type { Type::Floating }
 
   fn dim() -> Dim { Dim::Dim33 }
 }
 
 impl Uniformable for M44 {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
     let v = [self];
-    unsafe { gl::UniformMatrix4fv(program.uni_sem_map[&u.sem_index], 1, gl::FALSE, v.as_ptr() as *const f32) }
+    unsafe { gl::UniformMatrix4fv(program.uni_sem_map[&u.index], 1, gl::FALSE, v.as_ptr() as *const f32) }
   }
 
-  fn reify_type() -> Type { Type::Floating }
+  fn ty() -> Type { Type::Floating }
 
   fn dim() -> Dim { Dim::Dim44 }
 }
 
 impl<'a> Uniformable for &'a [M22] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::UniformMatrix2fv(program.uni_sem_map[&u.sem_index], self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::UniformMatrix2fv(program.uni_sem_map[&u.index], self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
   }
 
-  fn reify_type() -> Type { Type::Floating }
+  fn ty() -> Type { Type::Floating }
 
   fn dim() -> Dim { Dim::Dim22 }
 }
 
 impl<'a> Uniformable for &'a [M33] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::UniformMatrix3fv(program.uni_sem_map[&u.sem_index], self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::UniformMatrix3fv(program.uni_sem_map[&u.index], self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
   }
 
-  fn reify_type() -> Type { Type::Floating }
+  fn ty() -> Type { Type::Floating }
 
   fn dim() -> Dim { Dim::Dim33 }
 }
 
 impl<'a> Uniformable for &'a [M44] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::UniformMatrix4fv(program.uni_sem_map[&u.sem_index], self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::UniformMatrix4fv(program.uni_sem_map[&u.index], self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
   }
 
-  fn reify_type() -> Type { Type::Floating }
+  fn ty() -> Type { Type::Floating }
 
   fn dim() -> Dim { Dim::Dim44 }
 }
 
 impl Uniformable for bool {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1ui(program.uni_sem_map[&u.sem_index], self as GLuint) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform1ui(program.uni_sem_map[&u.index], self as GLuint) }
   }
 
-  fn reify_type() -> Type { Type::Boolean }
+  fn ty() -> Type { Type::Boolean }
 
   fn dim() -> Dim { Dim::Dim1 }
 }
 
 impl Uniformable for [bool; 2] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
     let v = [self[0] as u32, self[1] as u32];
-    unsafe { gl::Uniform2uiv(program.uni_sem_map[&u.sem_index], 1, &v as *const u32) }
+    unsafe { gl::Uniform2uiv(program.uni_sem_map[&u.index], 1, &v as *const u32) }
   }
 
-  fn reify_type() -> Type { Type::Boolean }
+  fn ty() -> Type { Type::Boolean }
 
   fn dim() -> Dim { Dim::Dim2 }
 }
 
 impl Uniformable for [bool; 3] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
     let v = [self[0] as u32, self[1] as u32, self[2] as u32];
-    unsafe { gl::Uniform3uiv(program.uni_sem_map[&u.sem_index], 1, &v as *const u32) }
+    unsafe { gl::Uniform3uiv(program.uni_sem_map[&u.index], 1, &v as *const u32) }
   }
 
-  fn reify_type() -> Type { Type::Boolean }
+  fn ty() -> Type { Type::Boolean }
 
   fn dim() -> Dim { Dim::Dim3 }
 }
 
 impl Uniformable for [bool; 4] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
     let v = [self[0] as u32, self[1] as u32, self[2] as u32, self[3] as u32];
-    unsafe { gl::Uniform4uiv(program.uni_sem_map[&u.sem_index], 1,  &v as *const u32) }
+    unsafe { gl::Uniform4uiv(program.uni_sem_map[&u.index], 1,  &v as *const u32) }
   }
 
-  fn reify_type() -> Type { Type::Boolean }
+  fn ty() -> Type { Type::Boolean }
 
   fn dim() -> Dim { Dim::Dim4 }
 }
 
 impl<'a> Uniformable for &'a [bool] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
     let v: Vec<_> = self.iter().map(|x| *x as u32).collect();
-    unsafe { gl::Uniform1uiv(program.uni_sem_map[&u.sem_index], v.len() as GLsizei, v.as_ptr()) }
+    unsafe { gl::Uniform1uiv(program.uni_sem_map[&u.index], v.len() as GLsizei, v.as_ptr()) }
   }
 
-  fn reify_type() -> Type { Type::Boolean }
+  fn ty() -> Type { Type::Boolean }
 
   fn dim() -> Dim { Dim::Dim1 }
 }
 
 impl<'a> Uniformable for &'a [[bool; 2]] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
     let v: Vec<_> = self.iter().map(|x| [x[0] as u32, x[1] as u32]).collect();
-    unsafe { gl::Uniform2uiv(program.uni_sem_map[&u.sem_index], v.len() as GLsizei, v.as_ptr() as *const u32) }
+    unsafe { gl::Uniform2uiv(program.uni_sem_map[&u.index], v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
-  fn reify_type() -> Type { Type::Boolean }
+  fn ty() -> Type { Type::Boolean }
 
   fn dim() -> Dim { Dim::Dim2 }
 }
 
 impl<'a> Uniformable for &'a [[bool; 3]] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
     let v: Vec<_> = self.iter().map(|x| [x[0] as u32, x[1] as u32, x[2] as u32]).collect();
-    unsafe { gl::Uniform3uiv(program.uni_sem_map[&u.sem_index], v.len() as GLsizei, v.as_ptr() as *const u32) }
+    unsafe { gl::Uniform3uiv(program.uni_sem_map[&u.index], v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
-  fn reify_type() -> Type { Type::Boolean }
+  fn ty() -> Type { Type::Boolean }
 
   fn dim() -> Dim { Dim::Dim3 }
 }
 
 impl<'a> Uniformable for &'a [[bool; 4]] {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
     let v: Vec<_> = self.iter().map(|x| [x[0] as u32, x[1] as u32, x[2] as u32, x[3] as u32]).collect();
-    unsafe { gl::Uniform4uiv(program.uni_sem_map[&u.sem_index], v.len() as GLsizei, v.as_ptr() as *const u32) }
+    unsafe { gl::Uniform4uiv(program.uni_sem_map[&u.index], v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
-  fn reify_type() -> Type { Type::Boolean }
+  fn ty() -> Type { Type::Boolean }
 
   fn dim() -> Dim { Dim::Dim4 }
 }
 
 impl Uniformable for Unit {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1i(program.uni_sem_map[&u.sem_index], *self as GLint) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.uni_sem_map.len());
+    unsafe { gl::Uniform1i(program.uni_sem_map[&u.index], *self as GLint) }
   }
 
-  fn reify_type() -> Type { Type::TextureUnit }
+  fn ty() -> Type { Type::TextureUnit }
 
   fn dim() -> Dim { Dim::Dim1 }
 }
 
 impl Uniformable for Binding {
-  fn update(self, program: &Program, u: &Uniform<Self>) {
-    assert!((u.sem_index as usize) < program.ubo_sem_map.len());
-    unsafe { gl::UniformBlockBinding(program.handle(), program.ubo_sem_map[&u.sem_index] as GLuint, *self as GLuint) }
+  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+    assert!((u.index as usize) < program.ubo_sem_map.len());
+    unsafe { gl::UniformBlockBinding(program.handle(), program.ubo_sem_map[&u.index] as GLuint, *self as GLuint) }
   }
 
-  fn reify_type() -> Type { Type::BufferBinding }
+  fn ty() -> Type { Type::BufferBinding }
 
   fn dim() -> Dim { Dim::Dim1 }
 }
