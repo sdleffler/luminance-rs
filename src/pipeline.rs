@@ -9,7 +9,7 @@ use gl::types::*;
 use buffer::RawBuffer;
 use blending::{Equation, Factor};
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer};
-use shader::program::{AlterUniform, RawProgram};
+use shader::program::RawProgram;
 use tess::TessRender;
 use texture::{Dimensionable, Layerable, RawTexture};
 

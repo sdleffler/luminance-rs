@@ -122,30 +122,47 @@ impl Drop for RawProgram {
 /// to *“store”* information like uniform variables and such.
 pub struct Program<In, Out, Uni> {
   raw: RawProgram,
-  uni: Uni,
+  uni_iface: Uni,
   _in: PhantomData<In>,
   _out: PhantomData<Out>
 }
 
-impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformTrait {
-  //pub fn new<'a, T, G>(tess: T,
-  //                     vertex: &Stage,
-  //                     geometry: G,
-  //                     fragment: &Stage)
-  //                     -> Result<(Self, Vec<UniformWarning>)>
-  //    where T: Into<Option<(&'a Stage, &'a Stage)>>,
-  //          G: Into<Option<&'a Stage>> {
+impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface {
+  pub fn new<'a, T, G>(tess: T,
+                       vertex: &Stage,
+                       geometry: G,
+                       fragment: &Stage)
+                       -> Result<(Self, Vec<UniformWarning>)>
+      where T: Into<Option<(&'a Stage, &'a Stage)>>,
+            G: Into<Option<&'a Stage>> {
+    let raw = RawProgram::new(tess, vertex, geometry, fragment)?;
+    let (iface, warnings) = Uni::uniform_interface(UniformBuilder::new(&raw))?;
+
+    let program = Program {
+      raw: raw,
+      uni_iface: iface,
+      _in: PhantomData,
+      _out: PhantomData
+    };
+
+    Ok((program, warnings))
+  }
 }
 
-pub trait UniformTrait {
+pub trait UniformInterface: Sized {
+  /// Build the uniform interface.
+  ///
+  /// When mapping a uniform, if you want to accept failures, you can discard the error and use
+  /// `Uniform::unbound` to let the uniform pass through, and collect the uniform warning.
+  fn uniform_interface<'a>(builder: UniformBuilder<'a>) -> Result<(Self, Vec<UniformWarning>)>;
 }
 
-pub struct UniformBuilder {
-  raw: RawProgram
+pub struct UniformBuilder<'a> {
+  raw: &'a RawProgram
 }
 
-impl UniformBuilder {
-  fn new(raw: RawProgram) -> Self {
+impl<'a> UniformBuilder<'a> {
+  fn new(raw: &'a RawProgram) -> Self {
     UniformBuilder {
       raw: raw
     }
@@ -256,8 +273,7 @@ impl Uniformable for i32 {
 
 impl Uniformable for [i32; 2] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform2iv(program.uni_sem_map[&u.index], 1, &self as *const i32) }
+    unsafe { gl::Uniform2iv(u.index, 1, &self as *const i32) }
   }
 
   fn ty() -> Type { Type::Integral }
@@ -267,8 +283,7 @@ impl Uniformable for [i32; 2] {
 
 impl Uniformable for [i32; 3] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform3iv(program.uni_sem_map[&u.index], 1, &self as *const i32) }
+    unsafe { gl::Uniform3iv(u.index, 1, &self as *const i32) }
   }
 
   fn ty() -> Type { Type::Integral }
@@ -278,8 +293,7 @@ impl Uniformable for [i32; 3] {
 
 impl Uniformable for [i32; 4] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform4iv(program.uni_sem_map[&u.index], 1, &self as *const i32) }
+    unsafe { gl::Uniform4iv(u.index, 1, &self as *const i32) }
   }
 
   fn ty() -> Type { Type::Integral }
@@ -289,8 +303,7 @@ impl Uniformable for [i32; 4] {
 
 impl<'a> Uniformable for &'a [i32] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1iv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr()) }
+    unsafe { gl::Uniform1iv(u.index, self.len() as GLsizei, self.as_ptr()) }
   }
 
   fn ty() -> Type { Type::Integral }
@@ -300,8 +313,7 @@ impl<'a> Uniformable for &'a [i32] {
 
 impl<'a> Uniformable for &'a [[i32; 2]] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform2iv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const i32) }
+    unsafe { gl::Uniform2iv(u.index, self.len() as GLsizei, self.as_ptr() as *const i32) }
   }
 
   fn ty() -> Type { Type::Integral }
@@ -311,8 +323,7 @@ impl<'a> Uniformable for &'a [[i32; 2]] {
 
 impl<'a> Uniformable for &'a [[i32; 3]] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform3iv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const i32) }
+    unsafe { gl::Uniform3iv(u.index, self.len() as GLsizei, self.as_ptr() as *const i32) }
   }
 
   fn ty() -> Type { Type::Integral }
@@ -322,8 +333,7 @@ impl<'a> Uniformable for &'a [[i32; 3]] {
 
 impl<'a> Uniformable for &'a [[i32; 4]] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform4iv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const i32) }
+    unsafe { gl::Uniform4iv(u.index, self.len() as GLsizei, self.as_ptr() as *const i32) }
   }
 
   fn ty() -> Type { Type::Integral }
@@ -333,8 +343,7 @@ impl<'a> Uniformable for &'a [[i32; 4]] {
 
 impl Uniformable for u32 {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1ui(program.uni_sem_map[&u.index], self) }
+    unsafe { gl::Uniform1ui(u.index, self) }
   }
 
   fn ty() -> Type { Type::Unsigned }
@@ -344,8 +353,7 @@ impl Uniformable for u32 {
 
 impl Uniformable for [u32; 2] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform2uiv(program.uni_sem_map[&u.index], 1, &self as *const u32) }
+    unsafe { gl::Uniform2uiv(u.index, 1, &self as *const u32) }
   }
 
   fn ty() -> Type { Type::Unsigned }
@@ -355,8 +363,7 @@ impl Uniformable for [u32; 2] {
 
 impl Uniformable for [u32; 3] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform3uiv(program.uni_sem_map[&u.index], 1, &self as *const u32) }
+    unsafe { gl::Uniform3uiv(u.index, 1, &self as *const u32) }
   }
 
   fn ty() -> Type { Type::Unsigned }
@@ -366,8 +373,7 @@ impl Uniformable for [u32; 3] {
 
 impl Uniformable for [u32; 4] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform4uiv(program.uni_sem_map[&u.index], 1, &self as *const u32) }
+    unsafe { gl::Uniform4uiv(u.index, 1, &self as *const u32) }
   }
 
   fn ty() -> Type { Type::Unsigned }
@@ -377,8 +383,7 @@ impl Uniformable for [u32; 4] {
 
 impl<'a> Uniformable for &'a [u32] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1uiv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const u32) }
+    unsafe { gl::Uniform1uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
   fn ty() -> Type { Type::Unsigned }
@@ -388,8 +393,7 @@ impl<'a> Uniformable for &'a [u32] {
 
 impl<'a> Uniformable for &'a [[u32; 2]] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform2uiv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const u32) }
+    unsafe { gl::Uniform2uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
   fn ty() -> Type { Type::Unsigned }
@@ -399,8 +403,7 @@ impl<'a> Uniformable for &'a [[u32; 2]] {
 
 impl<'a> Uniformable for &'a [[u32; 3]] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform3uiv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const u32) }
+    unsafe { gl::Uniform3uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
   fn ty() -> Type { Type::Unsigned }
@@ -410,8 +413,7 @@ impl<'a> Uniformable for &'a [[u32; 3]] {
 
 impl<'a> Uniformable for &'a [[u32; 4]] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform4uiv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const u32) }
+    unsafe { gl::Uniform4uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
   fn ty() -> Type { Type::Unsigned }
@@ -421,8 +423,7 @@ impl<'a> Uniformable for &'a [[u32; 4]] {
 
 impl Uniformable for f32 {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1f(program.uni_sem_map[&u.index], self) }
+    unsafe { gl::Uniform1f(u.index, self) }
   }
 
   fn ty() -> Type { Type::Floating }
@@ -432,8 +433,7 @@ impl Uniformable for f32 {
 
 impl Uniformable for [f32; 2] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform2fv(program.uni_sem_map[&u.index], 1, &self as *const f32) }
+    unsafe { gl::Uniform2fv(u.index, 1, &self as *const f32) }
   }
 
   fn ty() -> Type { Type::Floating }
@@ -443,8 +443,7 @@ impl Uniformable for [f32; 2] {
 
 impl Uniformable for [f32; 3] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform3fv(program.uni_sem_map[&u.index], 1, &self as *const f32) }
+    unsafe { gl::Uniform3fv(u.index, 1, &self as *const f32) }
   }
 
   fn ty() -> Type { Type::Floating }
@@ -454,8 +453,7 @@ impl Uniformable for [f32; 3] {
 
 impl Uniformable for [f32; 4] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform4fv(program.uni_sem_map[&u.index], 1, &self as *const f32) }
+    unsafe { gl::Uniform4fv(u.index, 1, &self as *const f32) }
   }
 
   fn ty() -> Type { Type::Floating }
@@ -465,8 +463,7 @@ impl Uniformable for [f32; 4] {
 
 impl<'a> Uniformable for &'a [f32] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1fv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const f32) }
+    unsafe { gl::Uniform1fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
   fn ty() -> Type { Type::Floating }
@@ -476,8 +473,7 @@ impl<'a> Uniformable for &'a [f32] {
 
 impl<'a> Uniformable for &'a [[f32; 2]] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform2fv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const f32) }
+    unsafe { gl::Uniform2fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
   fn ty() -> Type { Type::Floating }
@@ -487,8 +483,7 @@ impl<'a> Uniformable for &'a [[f32; 2]] {
 
 impl<'a> Uniformable for &'a [[f32; 3]] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform3fv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const f32) }
+    unsafe { gl::Uniform3fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
   fn ty() -> Type { Type::Floating }
@@ -498,8 +493,7 @@ impl<'a> Uniformable for &'a [[f32; 3]] {
 
 impl<'a> Uniformable for &'a [[f32; 4]] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform4fv(program.uni_sem_map[&u.index], self.len() as GLsizei, self.as_ptr() as *const f32) }
+    unsafe { gl::Uniform4fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
   fn ty() -> Type { Type::Floating }
@@ -509,9 +503,8 @@ impl<'a> Uniformable for &'a [[f32; 4]] {
 
 impl Uniformable for M22 {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
     let v = [self];
-    unsafe { gl::UniformMatrix2fv(program.uni_sem_map[&u.index], 1, gl::FALSE, v.as_ptr() as *const f32) }
+    unsafe { gl::UniformMatrix2fv(u.index, 1, gl::FALSE, v.as_ptr() as *const f32) }
   }
 
   fn ty() -> Type { Type::Floating }
@@ -521,9 +514,8 @@ impl Uniformable for M22 {
 
 impl Uniformable for M33 {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
     let v = [self];
-    unsafe { gl::UniformMatrix3fv(program.uni_sem_map[&u.index], 1, gl::FALSE, v.as_ptr() as *const f32) }
+    unsafe { gl::UniformMatrix3fv(u.index, 1, gl::FALSE, v.as_ptr() as *const f32) }
   }
 
   fn ty() -> Type { Type::Floating }
@@ -533,9 +525,8 @@ impl Uniformable for M33 {
 
 impl Uniformable for M44 {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
     let v = [self];
-    unsafe { gl::UniformMatrix4fv(program.uni_sem_map[&u.index], 1, gl::FALSE, v.as_ptr() as *const f32) }
+    unsafe { gl::UniformMatrix4fv(u.index, 1, gl::FALSE, v.as_ptr() as *const f32) }
   }
 
   fn ty() -> Type { Type::Floating }
@@ -545,8 +536,7 @@ impl Uniformable for M44 {
 
 impl<'a> Uniformable for &'a [M22] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::UniformMatrix2fv(program.uni_sem_map[&u.index], self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
+    unsafe { gl::UniformMatrix2fv(u.index, self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
   }
 
   fn ty() -> Type { Type::Floating }
@@ -556,8 +546,7 @@ impl<'a> Uniformable for &'a [M22] {
 
 impl<'a> Uniformable for &'a [M33] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::UniformMatrix3fv(program.uni_sem_map[&u.index], self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
+    unsafe { gl::UniformMatrix3fv(u.index, self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
   }
 
   fn ty() -> Type { Type::Floating }
@@ -567,8 +556,7 @@ impl<'a> Uniformable for &'a [M33] {
 
 impl<'a> Uniformable for &'a [M44] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::UniformMatrix4fv(program.uni_sem_map[&u.index], self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
+    unsafe { gl::UniformMatrix4fv(u.index, self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
   }
 
   fn ty() -> Type { Type::Floating }
@@ -578,8 +566,7 @@ impl<'a> Uniformable for &'a [M44] {
 
 impl Uniformable for bool {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1ui(program.uni_sem_map[&u.index], self as GLuint) }
+    unsafe { gl::Uniform1ui(u.index, self as GLuint) }
   }
 
   fn ty() -> Type { Type::Boolean }
@@ -589,9 +576,8 @@ impl Uniformable for bool {
 
 impl Uniformable for [bool; 2] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
     let v = [self[0] as u32, self[1] as u32];
-    unsafe { gl::Uniform2uiv(program.uni_sem_map[&u.index], 1, &v as *const u32) }
+    unsafe { gl::Uniform2uiv(u.index, 1, &v as *const u32) }
   }
 
   fn ty() -> Type { Type::Boolean }
@@ -601,9 +587,8 @@ impl Uniformable for [bool; 2] {
 
 impl Uniformable for [bool; 3] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
     let v = [self[0] as u32, self[1] as u32, self[2] as u32];
-    unsafe { gl::Uniform3uiv(program.uni_sem_map[&u.index], 1, &v as *const u32) }
+    unsafe { gl::Uniform3uiv(u.index, 1, &v as *const u32) }
   }
 
   fn ty() -> Type { Type::Boolean }
@@ -613,9 +598,8 @@ impl Uniformable for [bool; 3] {
 
 impl Uniformable for [bool; 4] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
     let v = [self[0] as u32, self[1] as u32, self[2] as u32, self[3] as u32];
-    unsafe { gl::Uniform4uiv(program.uni_sem_map[&u.index], 1,  &v as *const u32) }
+    unsafe { gl::Uniform4uiv(u.index, 1,  &v as *const u32) }
   }
 
   fn ty() -> Type { Type::Boolean }
@@ -625,9 +609,8 @@ impl Uniformable for [bool; 4] {
 
 impl<'a> Uniformable for &'a [bool] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
     let v: Vec<_> = self.iter().map(|x| *x as u32).collect();
-    unsafe { gl::Uniform1uiv(program.uni_sem_map[&u.index], v.len() as GLsizei, v.as_ptr()) }
+    unsafe { gl::Uniform1uiv(u.index, v.len() as GLsizei, v.as_ptr()) }
   }
 
   fn ty() -> Type { Type::Boolean }
@@ -637,9 +620,8 @@ impl<'a> Uniformable for &'a [bool] {
 
 impl<'a> Uniformable for &'a [[bool; 2]] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
     let v: Vec<_> = self.iter().map(|x| [x[0] as u32, x[1] as u32]).collect();
-    unsafe { gl::Uniform2uiv(program.uni_sem_map[&u.index], v.len() as GLsizei, v.as_ptr() as *const u32) }
+    unsafe { gl::Uniform2uiv(u.index, v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
   fn ty() -> Type { Type::Boolean }
@@ -649,9 +631,8 @@ impl<'a> Uniformable for &'a [[bool; 2]] {
 
 impl<'a> Uniformable for &'a [[bool; 3]] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
     let v: Vec<_> = self.iter().map(|x| [x[0] as u32, x[1] as u32, x[2] as u32]).collect();
-    unsafe { gl::Uniform3uiv(program.uni_sem_map[&u.index], v.len() as GLsizei, v.as_ptr() as *const u32) }
+    unsafe { gl::Uniform3uiv(u.index, v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
   fn ty() -> Type { Type::Boolean }
@@ -661,9 +642,8 @@ impl<'a> Uniformable for &'a [[bool; 3]] {
 
 impl<'a> Uniformable for &'a [[bool; 4]] {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
     let v: Vec<_> = self.iter().map(|x| [x[0] as u32, x[1] as u32, x[2] as u32, x[3] as u32]).collect();
-    unsafe { gl::Uniform4uiv(program.uni_sem_map[&u.index], v.len() as GLsizei, v.as_ptr() as *const u32) }
+    unsafe { gl::Uniform4uiv(u.index, v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
   fn ty() -> Type { Type::Boolean }
@@ -673,8 +653,7 @@ impl<'a> Uniformable for &'a [[bool; 4]] {
 
 impl Uniformable for Unit {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.uni_sem_map.len());
-    unsafe { gl::Uniform1i(program.uni_sem_map[&u.index], *self as GLint) }
+    unsafe { gl::Uniform1i(u.index, *self as GLint) }
   }
 
   fn ty() -> Type { Type::TextureUnit }
@@ -684,8 +663,7 @@ impl Uniformable for Unit {
 
 impl Uniformable for Binding {
   fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    assert!((u.index as usize) < program.ubo_sem_map.len());
-    unsafe { gl::UniformBlockBinding(program.handle(), program.ubo_sem_map[&u.index] as GLuint, *self as GLuint) }
+    unsafe { gl::UniformBlockBinding(program.handle(), u.index as GLuint, *self as GLuint) }
   }
 
   fn ty() -> Type { Type::BufferBinding }
