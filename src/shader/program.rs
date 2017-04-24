@@ -147,6 +147,14 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface
 
     Ok((program, warnings))
   }
+
+  // TODO: hide that from the public interface when pub(crate) is available
+  /// Get the uniform interface associated with this program.
+  ///
+  /// > Note: please do not use that function as it’s unsafe and for internal use only.
+  pub unsafe fn uniform_interface(&self) -> &Uni {
+    &self.uni
+  }
 }
 
 pub trait UniformInterface: Sized {
