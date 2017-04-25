@@ -123,8 +123,8 @@ impl Drop for RawProgram {
 pub struct Program<In, Out, Uni> {
   raw: RawProgram,
   uni_iface: Uni,
-  _in: PhantomData<In>,
-  _out: PhantomData<Out>
+  _in: PhantomData<*const In>,
+  _out: PhantomData<*const Out>
 }
 
 impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface {
