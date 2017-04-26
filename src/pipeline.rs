@@ -193,8 +193,8 @@ pub struct TessGate<V> {
   _v: PhantomData<*const V>
 }
 
-impl<V> TessGate<V> {
-  pub fn render(&self, tess: TessRender, texture_set: &[&RawTexture], buffer_set: &[&RawBuffer]) {
+impl<V> TessGate<V> where V: Vertex {
+  pub fn render(&self, tess: TessRender<V>, texture_set: &[&RawTexture], buffer_set: &[&RawBuffer]) {
     bind_uniform_buffers(buffer_set);
     bind_textures(texture_set);
 

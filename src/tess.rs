@@ -34,6 +34,7 @@
 
 use gl;
 use gl::types::*;
+use std::marker::PhantomData;
 use std::ptr;
 
 use buffer::{Buffer, BufferError, BufferSlice, BufferSliceMut, RawBuffer};
@@ -81,23 +82,28 @@ impl<'a, T> From<&'a [T]> for TessVertices<'a, T> where T: 'a + Vertex {
   }
 }
 
-/// GPU tessellation.
-pub struct Tess {
+/// GPU typed tessellation.
+///
+/// The tessellation is typed with the vertex type.
+pub struct Tess<V> {
   mode: GLenum,
   vert_nb: usize,
   vao: GLenum,
   vbo: Option<RawBuffer>, // no vbo means attributeless render
   ibo: Option<RawBuffer>,
-  vertex_format: VertexFormat,
+  _v: PhantomData<V>
 }
 
-impl Tess {
+impl<V> Tess<V> where V: Vertex {
   /// Create a new tessellation.
   ///
   /// The `mode` argument gives the type of the primitives and how to interpret the `vertices` and
   /// `indices` slices. If `indices` is set to `None`, the tessellation will use the `vertices`
   /// as-is.
-  pub fn new<'a, V, T, O>(mode: Mode, vertices: V, indices: O) -> Self where TessVertices<'a, T>: From<V>, T: 'a + Vertex, O: Into<Option<&'a[u32]>> {
+  pub fn new<'a, W, I>(mode: Mode, vertices: W, indices: I) -> Self
+      where TessVertices<'a, V>: From<W>,
+            V: 'a + Vertex,
+            I: Into<Option<&'a[u32]>> {
     let vertices = vertices.into();
 
     let mut vao: GLuint = 0;
@@ -122,7 +128,7 @@ impl Tess {
       let raw_vbo = vertex_buffer.to_raw();
 
       gl::BindBuffer(gl::ARRAY_BUFFER, raw_vbo.handle());
-      set_vertex_pointers(&T::vertex_format());
+      set_vertex_pointers(&V::vertex_format());
 
       // TODO: refactor this schiesse
       // in case of indexed render, create an index buffer
@@ -143,7 +149,7 @@ impl Tess {
           vao: vao,
           vbo: Some(raw_vbo),
           ibo: Some(raw_ibo),
-          vertex_format: T::vertex_format()
+          _v: PhantomData
         }
       } else {
         gl::BindVertexArray(0);
@@ -154,7 +160,7 @@ impl Tess {
           vao: vao,
           vbo: Some(raw_vbo),
           ibo: None,
-          vertex_format: T::vertex_format()
+          _v: PhantomData
         }
       }
     }
@@ -180,7 +186,7 @@ impl Tess {
         vao: vao,
         vbo: None,
         ibo: None,
-        vertex_format: Vec::new()
+        _v: PhantomData
       }
     }
   }
@@ -216,10 +222,10 @@ impl Tess {
 
   /// Get an immutable slice over the vertices stored on GPU.
   pub fn as_slice<T>(&self) -> Result<BufferSlice<T>, TessMapError> where T: Vertex {
-    let live_vf = &self.vertex_format;
+    let live_vf = V::vertex_format();
     let req_vf = T::vertex_format();
 
-    if live_vf != &req_vf {
+    if live_vf != req_vf {
       return Err(TessMapError::MismatchVertexFormat(live_vf.clone(), req_vf));
     }
 
@@ -230,10 +236,10 @@ impl Tess {
 
   /// Get a mutable slice over the vertices stored on GPU.
   pub fn as_slice_mut<T>(&mut self) -> Result<BufferSliceMut<T>, TessMapError> where T: Vertex {
-    let live_vf = &self.vertex_format;
+    let live_vf = V::vertex_format();
     let req_vf = T::vertex_format();
 
-    if live_vf != &req_vf {
+    if live_vf != req_vf {
       return Err(TessMapError::MismatchVertexFormat(live_vf.clone(), req_vf));
     }
 
@@ -243,7 +249,7 @@ impl Tess {
   }
 }
 
-impl Drop for Tess {
+impl<V> Drop for Tess<V> {
   fn drop(&mut self) {
     // delete the vertex array and all bound buffers
     unsafe {
@@ -363,18 +369,18 @@ fn opengl_mode(mode: Mode) -> GLenum {
 
 /// Tessellation render.
 #[derive(Clone)]
-pub struct TessRender<'a> {
+pub struct TessRender<'a, V> where V: 'a {
   /// Tessellation to render.
-  tess: &'a Tess,
+  tess: &'a Tess<V>,
   /// Number of vertices to pick from the tessellation. If `None`, all of them are selected.
   vert_nb: usize,
   /// Number of instances to render.
   inst_nb: usize
 }
 
-impl<'a> TessRender<'a> {
+impl<'a, V> TessRender<'a, V> {
   /// Create a tessellation render for the whole tessellation once.
-  pub fn one_whole(tess: &'a Tess) -> Self {
+  pub fn one_whole(tess: &'a Tess<V>) -> Self {
     TessRender {
       tess: tess,
       vert_nb: tess.vert_nb,
@@ -389,7 +395,7 @@ impl<'a> TessRender<'a> {
   /// # Panic
   ///
   /// Panic if the number of vertices is higher to the capacity of the tessellation’s vertex buffer.
-  pub fn one_sub(tess: &'a Tess, vert_nb: usize) -> Self {
+  pub fn one_sub(tess: &'a Tess<V>, vert_nb: usize) -> Self {
     if vert_nb > tess.vert_nb {
       panic!("cannot render {} vertices for a tessellation which vertex capacity is {}", vert_nb, tess.vert_nb);
     }
@@ -401,13 +407,13 @@ impl<'a> TessRender<'a> {
     }
   }
 
-  pub fn render(&self) {
+  pub fn render(&self) where V: Vertex {
     self.tess.render(self.vert_nb, self.inst_nb);
   }
 }
 
-impl<'a> From<&'a Tess> for TessRender<'a> {
-  fn from(tess: &'a Tess) -> Self {
+impl<'a, V> From<&'a Tess<V>> for TessRender<'a, V> {
+  fn from(tess: &'a Tess<V>) -> Self {
     TessRender::one_whole(tess)
   }
 }
