@@ -30,9 +30,9 @@
 
 use gl;
 use gl::types::*;
-use std::collections::HashMap;
 use std::ffi::CString;
 use std::marker::PhantomData;
+use std::ops::Deref;
 use std::ptr::null_mut;
 
 use buffer::Binding;
@@ -97,12 +97,6 @@ impl RawProgram {
     }
   }
 
-  /// Update a uniform variable in the program.
-  #[inline]
-  fn update<T>(&self, u: &Uniform<T>, value: T) where T: Uniformable {
-    value.update(&self, u);
-  }
-
   #[inline]
   pub unsafe fn handle(&self) -> GLuint {
     self.handle
@@ -153,7 +147,15 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface
   ///
   /// > Note: please do not use that function as it’s unsafe and for internal use only.
   pub unsafe fn uniform_interface(&self) -> &Uni {
-    &self.uni
+    &self.uni_iface
+  }
+}
+
+impl<In, Out, Uni> Deref for Program<In, Out, Uni> {
+  type Target = RawProgram;
+
+  fn deref(&self) -> &Self::Target {
+    &self.raw
   }
 }
 
@@ -161,7 +163,7 @@ pub trait UniformInterface: Sized {
   /// Build the uniform interface.
   ///
   /// When mapping a uniform, if you want to accept failures, you can discard the error and use
-  /// `Uniform::unbound` to let the uniform pass through, and collect the uniform warning.
+  /// `UniformBuilder::unbound` to let the uniform pass through, and collect the uniform warning.
   fn uniform_interface<'a>(builder: UniformBuilder<'a>) -> Result<(Self, Vec<UniformWarning>)>;
 }
 
@@ -176,15 +178,43 @@ impl<'a> UniformBuilder<'a> {
     }
   }
 
-  pub fn uniform<T>(&self, name: &str) -> Result<Uniform<T>> where T: Uniformable {
+  pub fn ask<T>(&self, name: &str) -> Result<Uniform<T>> where T: Uniformable {
+    let uniform = match T::ty() {
+      Type::BufferBinding => self.ask_uniform_block(name)?,
+      _ => self.ask_uniform(name)?
+    };
+
+    if let Some(err) = uniform_type_match(self.raw.handle, name, T::ty(), T::dim()) {
+      Err(ProgramError::UniformWarning(UniformWarning::TypeMismatch(name.to_owned(), err)))
+    } else {
+      Ok(uniform)
+    }
+  }
+
+  fn ask_uniform<T>(&self, name: &str) -> Result<Uniform<T>> where T: Uniformable {
     let c_name = CString::new(name.as_bytes()).unwrap();
     let location = unsafe { gl::GetUniformLocation(self.raw.handle, c_name.as_ptr() as *const GLchar) };
 
     if location < 0 {
       Err(ProgramError::UniformWarning(UniformWarning::Inactive(name.to_owned())))
     } else {
-      Ok(Uniform::new(location))
+      Ok(Uniform::new(self.raw.handle, location))
     }
+  }
+
+  fn ask_uniform_block<T>(&self, name: &str) -> Result<Uniform<T>> where T: Uniformable {
+    let c_name = CString::new(name.as_bytes()).unwrap();
+    let location = unsafe { gl::GetUniformBlockIndex(self.raw.handle, c_name.as_ptr() as *const GLchar) };
+
+    if location == gl::INVALID_INDEX {
+      Err(ProgramError::UniformWarning(UniformWarning::Inactive(name.to_owned())))
+    } else {
+      Ok(Uniform::new(self.raw.handle, location as GLint))
+    }
+  }
+
+  pub fn unbound<T>(&self) -> Uniform<T> where T: Uniformable {
+    Uniform::unbound(self.raw.handle)
   }
 }
 
@@ -214,21 +244,24 @@ pub enum UniformWarning {
 /// host code and the shader the uniform was retrieved from.
 #[derive(Debug)]
 pub struct Uniform<T> {
+  program: GLuint,
   index: GLint,
   _t: PhantomData<*const T>
 }
 
 impl<T> Uniform<T> where T: Uniformable {
-  fn new(index: GLint) -> Self {
+  fn new(program: GLuint, index: GLint) -> Self {
     Uniform {
+      program: program,
       index: index,
       _t: PhantomData
     }
   }
 
   /// Create a new unbound uniform.
-  pub fn unbound() -> Self {
+  fn unbound(program: GLuint) -> Self {
     Uniform {
+      program: program,
       index: -1,
       _t: PhantomData
     }
@@ -262,7 +295,7 @@ pub enum Dim {
 /// Types that can behave as `Uniform`.
 pub trait Uniformable: Copy + Sized {
   /// Update the uniform with a new value.
-  fn update(self, program: &RawProgram, u: &Uniform<Self>);
+  fn update(self, u: &Uniform<Self>);
   /// Retrieve the `Type` of the uniform.
   fn ty() -> Type; // FIXME: call that ty() instead
   /// Retrieve the `Dim` of the uniform.
@@ -270,7 +303,7 @@ pub trait Uniformable: Copy + Sized {
 }
 
 impl Uniformable for i32 {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1i(u.index, self) }
   }
 
@@ -280,7 +313,7 @@ impl Uniformable for i32 {
 }
 
 impl Uniformable for [i32; 2] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform2iv(u.index, 1, &self as *const i32) }
   }
 
@@ -290,7 +323,7 @@ impl Uniformable for [i32; 2] {
 }
 
 impl Uniformable for [i32; 3] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform3iv(u.index, 1, &self as *const i32) }
   }
 
@@ -300,7 +333,7 @@ impl Uniformable for [i32; 3] {
 }
 
 impl Uniformable for [i32; 4] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform4iv(u.index, 1, &self as *const i32) }
   }
 
@@ -310,7 +343,7 @@ impl Uniformable for [i32; 4] {
 }
 
 impl<'a> Uniformable for &'a [i32] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1iv(u.index, self.len() as GLsizei, self.as_ptr()) }
   }
 
@@ -320,7 +353,7 @@ impl<'a> Uniformable for &'a [i32] {
 }
 
 impl<'a> Uniformable for &'a [[i32; 2]] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform2iv(u.index, self.len() as GLsizei, self.as_ptr() as *const i32) }
   }
 
@@ -330,7 +363,7 @@ impl<'a> Uniformable for &'a [[i32; 2]] {
 }
 
 impl<'a> Uniformable for &'a [[i32; 3]] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform3iv(u.index, self.len() as GLsizei, self.as_ptr() as *const i32) }
   }
 
@@ -340,7 +373,7 @@ impl<'a> Uniformable for &'a [[i32; 3]] {
 }
 
 impl<'a> Uniformable for &'a [[i32; 4]] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform4iv(u.index, self.len() as GLsizei, self.as_ptr() as *const i32) }
   }
 
@@ -350,7 +383,7 @@ impl<'a> Uniformable for &'a [[i32; 4]] {
 }
 
 impl Uniformable for u32 {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1ui(u.index, self) }
   }
 
@@ -360,7 +393,7 @@ impl Uniformable for u32 {
 }
 
 impl Uniformable for [u32; 2] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform2uiv(u.index, 1, &self as *const u32) }
   }
 
@@ -370,7 +403,7 @@ impl Uniformable for [u32; 2] {
 }
 
 impl Uniformable for [u32; 3] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform3uiv(u.index, 1, &self as *const u32) }
   }
 
@@ -380,7 +413,7 @@ impl Uniformable for [u32; 3] {
 }
 
 impl Uniformable for [u32; 4] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform4uiv(u.index, 1, &self as *const u32) }
   }
 
@@ -390,7 +423,7 @@ impl Uniformable for [u32; 4] {
 }
 
 impl<'a> Uniformable for &'a [u32] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
@@ -400,7 +433,7 @@ impl<'a> Uniformable for &'a [u32] {
 }
 
 impl<'a> Uniformable for &'a [[u32; 2]] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform2uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
@@ -410,7 +443,7 @@ impl<'a> Uniformable for &'a [[u32; 2]] {
 }
 
 impl<'a> Uniformable for &'a [[u32; 3]] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform3uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
@@ -420,7 +453,7 @@ impl<'a> Uniformable for &'a [[u32; 3]] {
 }
 
 impl<'a> Uniformable for &'a [[u32; 4]] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform4uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
@@ -430,7 +463,7 @@ impl<'a> Uniformable for &'a [[u32; 4]] {
 }
 
 impl Uniformable for f32 {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1f(u.index, self) }
   }
 
@@ -440,7 +473,7 @@ impl Uniformable for f32 {
 }
 
 impl Uniformable for [f32; 2] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform2fv(u.index, 1, &self as *const f32) }
   }
 
@@ -450,7 +483,7 @@ impl Uniformable for [f32; 2] {
 }
 
 impl Uniformable for [f32; 3] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform3fv(u.index, 1, &self as *const f32) }
   }
 
@@ -460,7 +493,7 @@ impl Uniformable for [f32; 3] {
 }
 
 impl Uniformable for [f32; 4] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform4fv(u.index, 1, &self as *const f32) }
   }
 
@@ -470,7 +503,7 @@ impl Uniformable for [f32; 4] {
 }
 
 impl<'a> Uniformable for &'a [f32] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
@@ -480,7 +513,7 @@ impl<'a> Uniformable for &'a [f32] {
 }
 
 impl<'a> Uniformable for &'a [[f32; 2]] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform2fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
@@ -490,7 +523,7 @@ impl<'a> Uniformable for &'a [[f32; 2]] {
 }
 
 impl<'a> Uniformable for &'a [[f32; 3]] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform3fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
@@ -500,7 +533,7 @@ impl<'a> Uniformable for &'a [[f32; 3]] {
 }
 
 impl<'a> Uniformable for &'a [[f32; 4]] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform4fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
@@ -510,7 +543,7 @@ impl<'a> Uniformable for &'a [[f32; 4]] {
 }
 
 impl Uniformable for M22 {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     let v = [self];
     unsafe { gl::UniformMatrix2fv(u.index, 1, gl::FALSE, v.as_ptr() as *const f32) }
   }
@@ -521,7 +554,7 @@ impl Uniformable for M22 {
 }
 
 impl Uniformable for M33 {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     let v = [self];
     unsafe { gl::UniformMatrix3fv(u.index, 1, gl::FALSE, v.as_ptr() as *const f32) }
   }
@@ -532,7 +565,7 @@ impl Uniformable for M33 {
 }
 
 impl Uniformable for M44 {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     let v = [self];
     unsafe { gl::UniformMatrix4fv(u.index, 1, gl::FALSE, v.as_ptr() as *const f32) }
   }
@@ -543,7 +576,7 @@ impl Uniformable for M44 {
 }
 
 impl<'a> Uniformable for &'a [M22] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::UniformMatrix2fv(u.index, self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
   }
 
@@ -553,7 +586,7 @@ impl<'a> Uniformable for &'a [M22] {
 }
 
 impl<'a> Uniformable for &'a [M33] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::UniformMatrix3fv(u.index, self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
   }
 
@@ -563,7 +596,7 @@ impl<'a> Uniformable for &'a [M33] {
 }
 
 impl<'a> Uniformable for &'a [M44] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::UniformMatrix4fv(u.index, self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
   }
 
@@ -573,7 +606,7 @@ impl<'a> Uniformable for &'a [M44] {
 }
 
 impl Uniformable for bool {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1ui(u.index, self as GLuint) }
   }
 
@@ -583,7 +616,7 @@ impl Uniformable for bool {
 }
 
 impl Uniformable for [bool; 2] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     let v = [self[0] as u32, self[1] as u32];
     unsafe { gl::Uniform2uiv(u.index, 1, &v as *const u32) }
   }
@@ -594,7 +627,7 @@ impl Uniformable for [bool; 2] {
 }
 
 impl Uniformable for [bool; 3] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     let v = [self[0] as u32, self[1] as u32, self[2] as u32];
     unsafe { gl::Uniform3uiv(u.index, 1, &v as *const u32) }
   }
@@ -605,7 +638,7 @@ impl Uniformable for [bool; 3] {
 }
 
 impl Uniformable for [bool; 4] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     let v = [self[0] as u32, self[1] as u32, self[2] as u32, self[3] as u32];
     unsafe { gl::Uniform4uiv(u.index, 1,  &v as *const u32) }
   }
@@ -616,7 +649,7 @@ impl Uniformable for [bool; 4] {
 }
 
 impl<'a> Uniformable for &'a [bool] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     let v: Vec<_> = self.iter().map(|x| *x as u32).collect();
     unsafe { gl::Uniform1uiv(u.index, v.len() as GLsizei, v.as_ptr()) }
   }
@@ -627,7 +660,7 @@ impl<'a> Uniformable for &'a [bool] {
 }
 
 impl<'a> Uniformable for &'a [[bool; 2]] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     let v: Vec<_> = self.iter().map(|x| [x[0] as u32, x[1] as u32]).collect();
     unsafe { gl::Uniform2uiv(u.index, v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
@@ -638,7 +671,7 @@ impl<'a> Uniformable for &'a [[bool; 2]] {
 }
 
 impl<'a> Uniformable for &'a [[bool; 3]] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     let v: Vec<_> = self.iter().map(|x| [x[0] as u32, x[1] as u32, x[2] as u32]).collect();
     unsafe { gl::Uniform3uiv(u.index, v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
@@ -649,7 +682,7 @@ impl<'a> Uniformable for &'a [[bool; 3]] {
 }
 
 impl<'a> Uniformable for &'a [[bool; 4]] {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     let v: Vec<_> = self.iter().map(|x| [x[0] as u32, x[1] as u32, x[2] as u32, x[3] as u32]).collect();
     unsafe { gl::Uniform4uiv(u.index, v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
@@ -660,7 +693,7 @@ impl<'a> Uniformable for &'a [[bool; 4]] {
 }
 
 impl Uniformable for Unit {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
+  fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1i(u.index, *self as GLint) }
   }
 
@@ -670,8 +703,8 @@ impl Uniformable for Unit {
 }
 
 impl Uniformable for Binding {
-  fn update(self, program: &RawProgram, u: &Uniform<Self>) {
-    unsafe { gl::UniformBlockBinding(program.handle(), u.index as GLuint, *self as GLuint) }
+  fn update(self, u: &Uniform<Self>) {
+    unsafe { gl::UniformBlockBinding(u.program, u.index as GLuint, *self as GLuint) }
   }
 
   fn ty() -> Type { Type::BufferBinding }
@@ -679,38 +712,33 @@ impl Uniformable for Binding {
   fn dim() -> Dim { Dim::Dim1 }
 }
 
-enum Location {
-  Uniform(GLint),
-  UniformBlock(GLint),
-}
-
 // Retrieve the uniform location.
-fn get_uniform_location(program: GLuint, name: &str, ty: Type, dim: Dim) -> (Location, ::std::result::Result<(), UniformWarning>) {
-  let c_name = CString::new(name.as_bytes()).unwrap();
-  let location = if ty == Type::BufferBinding {
-    let index = unsafe { gl::GetUniformBlockIndex(program, c_name.as_ptr() as *const GLchar) };
-
-    if index == gl::INVALID_INDEX {
-      return (Location::UniformBlock(-1), Err(UniformWarning::Inactive(name.to_owned())));
-    }
-
-    Location::UniformBlock(index as GLint)
-  } else {
-    let location = unsafe { gl::GetUniformLocation(program, c_name.as_ptr() as *const GLchar) };
-
-    if location == -1 {
-      return (Location::Uniform(-1), Err(UniformWarning::Inactive(name.to_owned())));
-    }
-
-    Location::Uniform(location)
-  };
-
-  if let Some(err) = uniform_type_match(program, name, ty, dim) {
-    return (location, Err(UniformWarning::TypeMismatch(name.to_owned(), err)));
-  }
-
-  (location, Ok(()))
-}
+//fn get_uniform_location(program: GLuint, name: &str, ty: Type, dim: Dim) -> (Location, ::std::result::Result<(), UniformWarning>) {
+//  let c_name = CString::new(name.as_bytes()).unwrap();
+//  let location = if ty == Type::BufferBinding {
+//    let index = unsafe { gl::GetUniformBlockIndex(program, c_name.as_ptr() as *const GLchar) };
+//
+//    if index == gl::INVALID_INDEX {
+//      return (Location::UniformBlock(-1), Err(UniformWarning::Inactive(name.to_owned())));
+//    }
+//
+//    Location::UniformBlock(index as GLint)
+//  } else {
+//    let location = unsafe { gl::GetUniformLocation(program, c_name.as_ptr() as *const GLchar) };
+//
+//    if location == -1 {
+//      return (Location::Uniform(-1), Err(UniformWarning::Inactive(name.to_owned())));
+//    }
+//
+//    Location::Uniform(location)
+//  };
+//
+//  if let Some(err) = uniform_type_match(program, name, ty, dim) {
+//    return (location, Err(UniformWarning::TypeMismatch(name.to_owned(), err)));
+//  }
+//
+//  (location, Ok(()))
+//}
 
 // Return something if no match can be established.
 fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> Option<String> {

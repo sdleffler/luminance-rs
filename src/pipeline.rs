@@ -9,10 +9,11 @@ use gl::types::*;
 use buffer::RawBuffer;
 use blending::{Equation, Factor};
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer};
-use shader::program::Program;
+use shader::program::{Program, UniformInterface};
 use std::marker::PhantomData;
 use tess::TessRender;
 use texture::{Dimensionable, Layerable, RawTexture};
+use vertex::Vertex;
 
 /// A dynamic rendering pipeline. A *pipeline* is responsible of rendering into a `Framebuffer`.
 ///
@@ -91,7 +92,7 @@ impl ShadingGate {
 /// A dynamic *shading command*. A shading command gathers *render commands* under a shader
 /// `Program`.
 #[derive(Clone)]
-pub struct ShadingCommand<'a, In, Out, Uni> {
+pub struct ShadingCommand<'a, In, Out, Uni> where In: 'a, Out: 'a, Uni: 'a {
   /// Embedded program.
   program: &'a Program<In, Out, Uni>,
   /// Texture set.
@@ -111,27 +112,30 @@ impl<'a, In, Out, Uni> ShadingCommand<'a, In, Out, Uni> {
   }
 
   /// Enter a `ShadingCommand`.
-  pub fn enter<F>(&self, f: F) where F: FnOnce(&RenderGate<In, Out>, &Uni) {
+  pub fn enter<F>(&self, f: F)
+      where F: FnOnce(&RenderGate<Out>, &Uni),
+            In: Vertex,
+            Uni: UniformInterface {
     unsafe { gl::UseProgram(self.program.handle()) };
 
     bind_uniform_buffers(self.buffer_set);
     bind_textures(self.texture_set);
 
     let render_gate = RenderGate {
-      _in: PhantomData,
-      _out: PhantomData,
+      _v: PhantomData,
     };
 
-    f(&render_gate, self.uniform_interface());
+    let uni_iface = unsafe { self.program.uniform_interface() };
+    f(&render_gate, uni_iface);
   }
 }
 
-pub struct RenderGate<'a, V> {
+pub struct RenderGate<V> {
   _v: PhantomData<*const V>,
 }
 
-impl<'a, V> RenderGate<'a, V> {
-  pub fn new<B>(&self, blending: B, depth_test: bool, texture_set: &'a [&'a RawTexture], buffer_set: &'a [&'a RawBuffer]) -> RenderCommand<'a, V> where B: Into<Option<(Equation, Factor, Factor)>> {
+impl<V> RenderGate<V> {
+  pub fn new<'a, B>(&self, blending: B, depth_test: bool, texture_set: &'a [&'a RawTexture], buffer_set: &'a [&'a RawBuffer]) -> RenderCommand<'a, V> where B: Into<Option<(Equation, Factor, Factor)>> {
     RenderCommand::new(blending, depth_test, texture_set, buffer_set)
   }
 }
@@ -139,7 +143,7 @@ impl<'a, V> RenderGate<'a, V> {
 /// A render command, which holds information on how to rasterize tessellations and render-related
 /// hints (like blending equations and factors and whether the depth test should be enabled).
 #[derive(Clone)]
-pub struct RenderCommand<'a, In, Out, Uni> {
+pub struct RenderCommand<'a, V> {
   /// Color blending configuration. Set to `None` if you don’t want any color blending. Set it to
   /// `Some(equation, source, destination)` if you want to perform a color blending with the
   /// `equation` formula and with the `source` and `destination` blending factors.
@@ -150,12 +154,10 @@ pub struct RenderCommand<'a, In, Out, Uni> {
   texture_set: &'a [&'a RawTexture],
   /// Buffer set.
   buffer_set: &'a [&'a RawBuffer],
-  _in: PhantomData<*const In>,
-  _out: PhantomData<*const Out>,
-  _uni: PhantomData<*const Uni>,
+  _v: PhantomData<*const V>,
 }
 
-impl<'a> RenderCommand<'a> {
+impl<'a, V> RenderCommand<'a, V> {
   /// Create a new render command.
   fn new<B>(blending: B,
             depth_test: bool,
@@ -167,14 +169,12 @@ impl<'a> RenderCommand<'a> {
       depth_test: depth_test,
       texture_set: texture_set,
       buffer_set: buffer_set,
-      _in: PhantomData,
-      _out: PhantomData,
-      _uni: PhantomData
+      _v: PhantomData,
     }
   }
 
   /// Enter the render command.
-  pub fn enter<F>(&self, f: F) where F: FnOnce(&TessGate) {
+  pub fn enter<F>(&self, f: F) where F: FnOnce(&TessGate<V>) {
     bind_uniform_buffers(self.buffer_set);
     bind_textures(self.texture_set);
 
@@ -189,24 +189,16 @@ impl<'a> RenderCommand<'a> {
   }
 }
 
-pub struct TessGate<'a, V> {
+pub struct TessGate<V> {
   _v: PhantomData<*const V>
 }
 
-impl<'a> TessGate<'a> {
-  pub fn render(&self, tess: TessRender<'a>, uniforms: &'a [AlterUniform<'a>], texture_set: &'a [&'a RawTexture], buffer_set: &'a [&'a RawBuffer]) {
-    alter_uniforms(self.program, uniforms);
+impl<V> TessGate<V> {
+  pub fn render(&self, tess: TessRender, texture_set: &[&RawTexture], buffer_set: &[&RawBuffer]) {
     bind_uniform_buffers(buffer_set);
     bind_textures(texture_set);
 
     tess.render();
-  }
-}
-
-#[inline]
-fn alter_uniforms(program: &RawProgram, uniforms: &[AlterUniform]) {
-  for uniform in uniforms {
-    unsafe { uniform.alter(program) };
   }
 }
 
