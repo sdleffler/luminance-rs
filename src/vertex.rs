@@ -97,6 +97,17 @@ pub trait Vertex {
   fn vertex_format() -> VertexFormat;
 }
 
+/// A hint trait to implement to state whether a vertex type is compatible with another.
+///
+/// If you have two types `V0: Vertex` and `V1: Vertex`, we say that `V1` is compatible with `V0`
+/// only if `&V0::vertex_format()[0..V1::vertex_format().len()] == &V1::vertex_format()[..]`. That
+/// is, if `V1` is a sub-slice of `V0` starting at 0.
+///
+/// We node that as `V1: CompatibleVertex<V0>`.
+pub trait CompatibleVertex<V>: Vertex where V: Vertex  {}
+
+impl<V> CompatibleVertex<V> for V where V: Vertex {}
+
 /// Macro used to implement the `Vertex` trait.
 ///
 /// The first form implements `Vertex` for `$t`. `$q` refers to the inner representation of `$t` –

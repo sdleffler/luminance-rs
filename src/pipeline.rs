@@ -13,7 +13,7 @@ use shader::program::{Program, UniformInterface};
 use std::marker::PhantomData;
 use tess::TessRender;
 use texture::{Dimensionable, Layerable, RawTexture};
-use vertex::Vertex;
+use vertex::{CompatibleVertex, Vertex};
 
 /// A dynamic rendering pipeline. A *pipeline* is responsible of rendering into a `Framebuffer`.
 ///
@@ -194,7 +194,11 @@ pub struct TessGate<V> {
 }
 
 impl<V> TessGate<V> where V: Vertex {
-  pub fn render(&self, tess: TessRender<V>, texture_set: &[&RawTexture], buffer_set: &[&RawBuffer]) {
+  pub fn render<W>(&self,
+                   tess: TessRender<W>,
+                   texture_set: &[&RawTexture],
+                   buffer_set: &[&RawBuffer])
+      where W: CompatibleVertex<V> {
     bind_uniform_buffers(buffer_set);
     bind_textures(texture_set);
 
