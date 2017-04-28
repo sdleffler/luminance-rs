@@ -41,7 +41,7 @@ use shader::stage::Stage;
 use texture::Unit;
 use vertex::Vertex;
 
-type Result<A> = ::std::result::Result<A, ProgramError>;
+pub type Result<A> = ::std::result::Result<A, ProgramError>;
 
 /// A shader program.
 #[derive(Debug)]
