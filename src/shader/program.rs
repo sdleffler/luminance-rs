@@ -266,6 +266,13 @@ impl<T> Uniform<T> where T: Uniformable {
       _t: PhantomData
     }
   }
+
+  // TODO: state whether it should be mutable or not – feels like a RefCell to me.
+  // TODO: redesign the whole Uniformable + Uniform.update thing
+  /// Update the value pointed by this uniform.
+  pub fn update(&self, x: T) {
+    x.update(self);
+  }
 }
 
 /// Type of a uniform.
