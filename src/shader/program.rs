@@ -167,6 +167,12 @@ pub trait UniformInterface: Sized {
   fn uniform_interface<'a>(builder: UniformBuilder<'a>) -> Result<(Self, Vec<UniformWarning>)>;
 }
 
+impl UniformInterface for () {
+  fn uniform_interface<'a>(_: UniformBuilder<'a>) -> Result<(Self, Vec<UniformWarning>)> {
+    Ok(((), Vec::new()))
+  }
+}
+
 pub struct UniformBuilder<'a> {
   raw: &'a RawProgram
 }
