@@ -178,36 +178,36 @@ impl<'a> UniformBuilder<'a> {
     }
   }
 
-  pub fn ask<T>(&self, name: &str) -> Result<Uniform<T>> where T: Uniformable {
+  pub fn ask<T>(&self, name: &str) -> ::std::result::Result<Uniform<T>, UniformWarning> where T: Uniformable {
     let uniform = match T::ty() {
       Type::BufferBinding => self.ask_uniform_block(name)?,
       _ => self.ask_uniform(name)?
     };
 
     if let Some(err) = uniform_type_match(self.raw.handle, name, T::ty(), T::dim()) {
-      Err(ProgramError::UniformWarning(UniformWarning::TypeMismatch(name.to_owned(), err)))
+      Err(UniformWarning::TypeMismatch(name.to_owned(), err))
     } else {
       Ok(uniform)
     }
   }
 
-  fn ask_uniform<T>(&self, name: &str) -> Result<Uniform<T>> where T: Uniformable {
+  fn ask_uniform<T>(&self, name: &str) -> ::std::result::Result<Uniform<T>, UniformWarning> where T: Uniformable {
     let c_name = CString::new(name.as_bytes()).unwrap();
     let location = unsafe { gl::GetUniformLocation(self.raw.handle, c_name.as_ptr() as *const GLchar) };
 
     if location < 0 {
-      Err(ProgramError::UniformWarning(UniformWarning::Inactive(name.to_owned())))
+      Err(UniformWarning::Inactive(name.to_owned()))
     } else {
       Ok(Uniform::new(self.raw.handle, location))
     }
   }
 
-  fn ask_uniform_block<T>(&self, name: &str) -> Result<Uniform<T>> where T: Uniformable {
+  fn ask_uniform_block<T>(&self, name: &str) -> ::std::result::Result<Uniform<T>, UniformWarning> where T: Uniformable {
     let c_name = CString::new(name.as_bytes()).unwrap();
     let location = unsafe { gl::GetUniformBlockIndex(self.raw.handle, c_name.as_ptr() as *const GLchar) };
 
     if location == gl::INVALID_INDEX {
-      Err(ProgramError::UniformWarning(UniformWarning::Inactive(name.to_owned())))
+      Err(UniformWarning::Inactive(name.to_owned()))
     } else {
       Ok(Uniform::new(self.raw.handle, location as GLint))
     }
