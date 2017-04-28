@@ -113,7 +113,7 @@ impl<'a, In, Out, Uni> ShadingCommand<'a, In, Out, Uni> {
 
   /// Enter a `ShadingCommand`.
   pub fn enter<F>(&self, f: F)
-      where F: FnOnce(&RenderGate<Out>, &Uni),
+      where F: FnOnce(&RenderGate<In>, &Uni),
             In: Vertex,
             Uni: UniformInterface {
     unsafe { gl::UseProgram(self.program.handle()) };
