@@ -1,4 +1,14 @@
-## 0.19
+## 0.20.0
+
+- Typed shader programs are re-introduced. They now accept three type variables: the input of the
+  shader program, its output and its uniform interface. The output is currently unused. A lot of
+  things were added, documentation is not up to date and will come in the next release.
+- Vertex-typed tessellations are now a thing – it’s implemented so that the input type used in typed
+  shader programs has a sense. The `CompatibleVertex` trait must be implemented when a tessellation
+  having more than the required set of vertex components is used and must adapt to the shader input.
+- `Texture::Dim` is now (mostly) an array instead of a tuple.
+
+## 0.19.0
 
 - `Into<Option<_>>` elegancy additions.
 - Changed the whole pipeline system. It’s now a traversal-like system.
