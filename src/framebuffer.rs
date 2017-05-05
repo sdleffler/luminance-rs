@@ -87,8 +87,8 @@ pub struct Framebuffer<L, D, CS, DS>
   renderbuffer: Option<GLuint>,
   w: u32,
   h: u32,
-  pub color_slot: CS,
-  pub depth_slot: DS,
+  color_slot: CS,
+  depth_slot: DS,
   _l: PhantomData<L>,
   _d: PhantomData<D>,
 }
@@ -241,6 +241,16 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
   #[inline]
   pub fn height(&self) -> u32 {
     self.h
+  }
+
+  #[inline]
+  pub fn color_slot(&self) -> &CS {
+    &self.color_slot
+  }
+
+  #[inline]
+  pub fn depth_slot(&self) -> &DS {
+    &self.depth_slot
   }
 }
 
