@@ -64,8 +64,8 @@ extern crate gl;
 pub mod blending;
 pub mod buffer;
 #[macro_use]
-pub mod chain;
 pub mod framebuffer;
+pub mod gtup;
 pub mod linear;
 pub mod pipeline;
 pub mod pixel;
