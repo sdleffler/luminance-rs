@@ -1,3 +1,8 @@
+## 0.21
+
+- Renamed `Chain` into `GTup` and added some macros.
+- Made `Framebuffer::{color,depth}_slot` private and provided accessors.
+
 ## 0.20.0
 
 - Typed shader programs are re-introduced. They now accept three type variables: the input of the
