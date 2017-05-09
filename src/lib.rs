@@ -65,6 +65,7 @@ pub mod blending;
 pub mod buffer;
 #[macro_use]
 pub mod framebuffer;
+#[macro_use]
 pub mod gtup;
 pub mod linear;
 pub mod pipeline;

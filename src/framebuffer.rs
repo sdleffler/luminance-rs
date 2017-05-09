@@ -32,7 +32,7 @@ use gl;
 use gl::types::*;
 use std::marker::PhantomData;
 
-use chain::Chain;
+use gtup::GTup;
 use pixel::{ColorPixel, DepthPixel, PixelFormat, RenderablePixel};
 use texture::{Dim2, Dimensionable, Flat, Layerable, RawTexture, Texture, TextureError,
               create_texture, opengl_target};
@@ -303,7 +303,7 @@ impl<L, D, P> ColorSlot<L, D> for Texture<L, D, P>
   }
 }
 
-impl<L, D, P, B> ColorSlot<L, D> for Chain<Texture<L, D, P>, B>
+impl<L, D, P, B> ColorSlot<L, D> for GTup<Texture<L, D, P>, B>
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -319,7 +319,7 @@ impl<L, D, P, B> ColorSlot<L, D> for Chain<Texture<L, D, P>, B>
     let a = Texture::<L, D, P>::reify_textures(size, mipmaps, textures);
     let b = B::reify_textures(size, mipmaps, textures);
 
-    Chain(a, b)
+    GTup(a, b)
   }
 }
 
@@ -330,11 +330,11 @@ impl<L, D, P0, P1> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>)
           P0: ColorPixel + RenderablePixel,
           P1: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
-    Chain::<Texture<L, D, P0>, Texture<L, D, P1>>::color_formats()
+    GTup::<Texture<L, D, P0>, Texture<L, D, P1>>::color_formats()
   }
 
   fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
-    let Chain(a, b) = Chain::<Texture<L, D, P0>, Texture<L, D, P1>>::reify_textures(size, mipmaps, textures);
+    let GTup(a, b) = GTup::<Texture<L, D, P0>, Texture<L, D, P1>>::reify_textures(size, mipmaps, textures);
     (a, b)
   }
 }
@@ -347,11 +347,11 @@ impl<L, D, P0, P1, P2> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>
           P1: ColorPixel + RenderablePixel,
           P2: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
-    Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Texture<L, D, P2>>>::color_formats()
+    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, Texture<L, D, P2>>>::color_formats()
   }
 
   fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
-    let Chain(a, Chain(b, c)) = Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Texture<L, D, P2>>>::reify_textures(size, mipmaps, textures);
+    let GTup(a, GTup(b, c)) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, Texture<L, D, P2>>>::reify_textures(size, mipmaps, textures);
     (a, b, c)
   }
 }
@@ -365,11 +365,11 @@ impl<L, D, P0, P1, P2, P3> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D,
           P2: ColorPixel + RenderablePixel,
           P3: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
-    Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Texture<L, D, P3>>>>::color_formats()
+    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, Texture<L, D, P3>>>>::color_formats()
   }
 
   fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
-    let Chain(a, Chain(b, Chain(c, d))) = Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Texture<L, D, P3>>>>::reify_textures(size, mipmaps, textures);
+    let GTup(a, GTup(b, GTup(c, d))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, Texture<L, D, P3>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d)
   }
 }
@@ -384,11 +384,11 @@ impl<L, D, P0, P1, P2, P3, P4> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L
           P3: ColorPixel + RenderablePixel,
           P4: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
-    Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Texture<L, D, P4>>>>>::color_formats()
+    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, Texture<L, D, P4>>>>>::color_formats()
   }
 
   fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
-    let Chain(a, Chain(b, Chain(c, Chain(d, e)))) = Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Texture<L, D, P4>>>>>::reify_textures(size, mipmaps, textures);
+    let GTup(a, GTup(b, GTup(c, GTup(d, e)))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, Texture<L, D, P4>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e)
   }
 }
@@ -404,11 +404,11 @@ impl<L, D, P0, P1, P2, P3, P4, P5> ColorSlot<L, D> for (Texture<L, D, P0>, Textu
           P4: ColorPixel + RenderablePixel,
           P5: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
-    Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Chain<Texture<L, D, P4>, Texture<L, D, P5>>>>>>::color_formats()
+    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, Texture<L, D, P5>>>>>>::color_formats()
   }
 
   fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
-    let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, f))))) = Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Chain<Texture<L, D, P4>, Texture<L, D, P5>>>>>>::reify_textures(size, mipmaps, textures);
+    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, f))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, Texture<L, D, P5>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f)
   }
 }
@@ -425,11 +425,11 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6> ColorSlot<L, D> for (Texture<L, D, P0>, T
           P5: ColorPixel + RenderablePixel,
           P6: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
-    Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Chain<Texture<L, D, P4>, Chain<Texture<L, D, P5>, Texture<L, D, P6>>>>>>>::color_formats()
+    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, Texture<L, D, P6>>>>>>>::color_formats()
   }
 
   fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
-    let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, g)))))) = Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Chain<Texture<L, D, P4>, Chain<Texture<L, D, P5>, Texture<L, D, P6>>>>>>>::reify_textures(size, mipmaps, textures);
+    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, g)))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, Texture<L, D, P6>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g)
   }
 }
@@ -447,11 +447,11 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7> ColorSlot<L, D> for (Texture<L, D, P0
           P6: ColorPixel + RenderablePixel,
           P7: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
-    Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Chain<Texture<L, D, P4>, Chain<Texture<L, D, P5>, Chain<Texture<L, D, P6>, Texture<L, D, P7>>>>>>>>::color_formats()
+    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, Texture<L, D, P7>>>>>>>>::color_formats()
   }
 
   fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
-    let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, Chain(g, h))))))) = Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Chain<Texture<L, D, P4>, Chain<Texture<L, D, P5>, Chain<Texture<L, D, P6>, Texture<L, D, P7>>>>>>>>::reify_textures(size, mipmaps, textures);
+    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, GTup(g, h))))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, Texture<L, D, P7>>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g, h)
   }
 }
@@ -470,11 +470,11 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8> ColorSlot<L, D> for (Texture<L, D
           P7: ColorPixel + RenderablePixel,
           P8: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
-    Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Chain<Texture<L, D, P4>, Chain<Texture<L, D, P5>, Chain<Texture<L, D, P6>, Chain<Texture<L, D, P7>, Texture<L, D, P8>>>>>>>>>::color_formats()
+    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, Texture<L, D, P8>>>>>>>>>::color_formats()
   }
 
   fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
-    let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, Chain(g, Chain(h, i)))))))) = Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Chain<Texture<L, D, P4>, Chain<Texture<L, D, P5>, Chain<Texture<L, D, P6>, Chain<Texture<L, D, P7>, Texture< L, D, P8>>>>>>>>>::reify_textures(size, mipmaps, textures);
+    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, GTup(g, GTup(h, i)))))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, Texture< L, D, P8>>>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g, h, i)
   }
 }
@@ -494,11 +494,11 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8, P9> ColorSlot<L, D> for (Texture<
           P8: ColorPixel + RenderablePixel,
           P9: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> {
-    Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Chain<Texture<L, D, P4>, Chain<Texture<L, D, P5>, Chain<Texture<L, D, P6>, Chain<Texture<L, D, P7>, Chain<Texture<L, D, P8>, Texture<L, D, P9>>>>>>>>>>::color_formats()
+    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, GTup<Texture<L, D, P8>, Texture<L, D, P9>>>>>>>>>>::color_formats()
   }
 
   fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
-    let Chain(a, Chain(b, Chain(c, Chain(d, Chain(e, Chain(f, Chain(g, Chain(h, Chain(i, j))))))))) = Chain::<Texture<L, D, P0>, Chain<Texture<L, D, P1>, Chain<Texture<L, D, P2>, Chain<Texture<L, D, P3>, Chain<Texture<L, D, P4>, Chain<Texture<L, D, P5>, Chain<Texture<L, D, P6>, Chain<Texture<L, D, P7>, Chain<Texture<L, D, P8>, Texture<L, D, P9>>>>>>>>>>::reify_textures(size, mipmaps, textures);
+    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, GTup(g, GTup(h, GTup(i, j))))))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, GTup<Texture<L, D, P8>, Texture<L, D, P9>>>>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g, h, i, j)
   }
 }

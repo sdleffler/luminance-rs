@@ -33,18 +33,20 @@
 //! You have `Vertex` implementations for all the primary types that can be mapped to
 //! `VertexFormat`. However, as it’s not possible to automatically implement `Vertex` for your
 //! structure (yet?), a type is provided to help you design your vertex type so that you’re
-//! automatically provided with a `Vertex` implementation if you use `Chain`.
+//! automatically provided with a `Vertex` implementation if you use `GTup`.
 //!
-//! `Chain` is a special type used to represent static list of types. With that in hand, you can
-//! easily create `Vertex` types and start using them without even implementing `Vertex`, as long as
-//! you use `Vertex` types. Feel free to dig in the `Chain` documentation for further details.
+//! `GTup` is a special type used to represent static heterogeneous list of types. With that in
+//! hand, you can easily create `Vertex` types and start using them without even implementing
+//! `Vertex`, as long as you use `Vertex` types. Feel free to dig in the `GTup` documentation for
+//! further details.
 //!
-//! If you absolutely want to use your own types – which is legit, you can to implement `Vertex` by
-//! mapping your inner fields to tuples, and call the right `Vertex` method on that tuple.
-
-use chain::Chain;
+//! If you absolutely want to use your own types – which is legit, you can implement `Vertex` by
+//! mapping your inner fields to a tuple or `GTup`, and call the right `Vertex` method on that
+//! tuple.
 
 use std::vec::Vec;
+
+use gtup::GTup;
 
 /// A `VertexFormat` is a list of `VertexComponentFormat`s.
 pub type VertexFormat = Vec<VertexComponentFormat>;
@@ -92,7 +94,7 @@ pub enum Dim {
 /// to `VertexFormat`.
 ///
 /// If you’re not sure on how to implement that or if you want to use automatic types, feel free
-/// to use the primary supported types and `Chain` or tuples.
+/// to use the primary supported types and `GTup` or tuples.
 pub trait Vertex {
   fn vertex_format() -> VertexFormat;
 }
@@ -178,7 +180,7 @@ impl_arr!(f64, Floating);
 
 impl_arr!(bool, Boolean);
 
-impl<A, B> Vertex for Chain<A, B> where A: Vertex, B: Vertex {
+impl<A, B> Vertex for GTup<A, B> where A: Vertex, B: Vertex {
   fn vertex_format() -> VertexFormat {
     let mut t = A::vertex_format();
     t.extend(B::vertex_format());
@@ -190,7 +192,7 @@ macro_rules! impl_vertex_for_tuple {
   ($($t:tt),+) => {
     impl<$($t),+> Vertex for ($($t),+) where $($t: Vertex),+ {
       fn vertex_format() -> VertexFormat {
-        <chain!($($t),+) as Vertex>::vertex_format()
+        <gtup!(:$($t),+) as Vertex>::vertex_format()
       }
     }
   }
