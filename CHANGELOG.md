@@ -1,4 +1,10 @@
-## 0.21
+### 0.21.1
+
+- `Tess::as_slice{,_mut}` now don’t need type annotations anymore and provide slices typed by `V`.
+- Added `as_slice{,_mut}` to `Buffer` directly, setting the phantom type to what the `Buffer<_>`
+ holds – it’s safer and will remove type annotations in client code, much cool!
+
+## 0.21.0
 
 - Renamed `Chain` into `GTup` and added some macros.
 - Made `Framebuffer::{color,depth}_slot` private and provided accessors.

@@ -241,6 +241,16 @@ impl<T> Buffer<T> {
     mem::forget(self);
     raw
   }
+
+  /// Obtain an immutable slice view into the buffer.
+  pub fn as_slice(&self) -> Result<BufferSlice<T>, BufferError> {
+    self.raw.as_slice()
+  }
+
+  /// Obtain a mutable slice view into the buffer.
+  pub fn as_slice_mut(&mut self) -> Result<BufferSliceMut<T>, BufferError> {
+    self.raw.as_slice_mut()
+  }
 }
 
 impl<T> Deref for Buffer<T> {

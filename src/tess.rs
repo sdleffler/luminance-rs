@@ -221,28 +221,14 @@ impl<V> Tess<V> where V: Vertex {
   }
 
   /// Get an immutable slice over the vertices stored on GPU.
-  pub fn as_slice<T>(&self) -> Result<BufferSlice<T>, TessMapError> where T: Vertex {
-    let live_vf = V::vertex_format();
-    let req_vf = T::vertex_format();
-
-    if live_vf != req_vf {
-      return Err(TessMapError::MismatchVertexFormat(live_vf.clone(), req_vf));
-    }
-
+  pub fn as_slice(&self) -> Result<BufferSlice<V>, TessMapError> {
     self.vbo.as_ref()
       .ok_or(TessMapError::ForbiddenAttributelessMapping)
       .and_then(|raw| RawBuffer::as_slice(raw).map_err(TessMapError::VertexBufferMapFailed))
   }
 
   /// Get a mutable slice over the vertices stored on GPU.
-  pub fn as_slice_mut<T>(&mut self) -> Result<BufferSliceMut<T>, TessMapError> where T: Vertex {
-    let live_vf = V::vertex_format();
-    let req_vf = T::vertex_format();
-
-    if live_vf != req_vf {
-      return Err(TessMapError::MismatchVertexFormat(live_vf.clone(), req_vf));
-    }
-
+  pub fn as_slice_mut(&mut self) -> Result<BufferSliceMut<V>, TessMapError> {
     self.vbo.as_mut()
       .ok_or(TessMapError::ForbiddenAttributelessMapping)
       .and_then(|raw| RawBuffer::as_slice_mut(raw).map_err(TessMapError::VertexBufferMapFailed))
