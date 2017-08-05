@@ -1,7 +1,95 @@
 //! Dynamic rendering pipelines.
 //!
-//! This module gives you materials to build *dynamic* rendering **pipelines**. A `Pipeline`
-//! represents a functional stream that consumes geometric data and rasterizes them.
+//! This module gives you types and functions to build *dynamic* rendering **pipelines**. A
+//! `Pipeline` represents a functional stream that consumes geometric data and rasterizes them.
+//!
+//! # Key concepts
+//!
+//! luminance exposes several concepts you have to be familiar with:
+//!
+//! - render buffers;
+//! - blending;
+//! - shaders;
+//! - tessellations;
+//! - gates;
+//! - render commands;
+//! - shading commands;
+//! - pipelines;
+//!
+//! # Render buffers
+//!
+//! The render buffers are GPU-allocated memory regions used while rendering images into
+//! framebuffers. Typically, a framebuffer has at least three buffers:
+//!
+//! - a *color buffer*, that will receive texels (akin to pixels, but for textures/buffers);
+//! - a *depth buffer*, a special buffer mostly used to determine whether a fragment (pixel) is
+//!   behind something that was previously rendered – it’s a simple solution to discard render that
+//!   won’t be visible anyway;
+//! - a *stencil buffer*, which often acts as a mask to create interesting effects to your renders.
+//!
+//! luminance gives you access to the first two – the stencil buffer will be added in a future
+//! release.
+//!
+//! Alternatively, you can also tell your GPU that you won’t be using a depth buffer, or that you
+//! need several color buffers – this is called [MRT](https://en.wikipedia.org/wiki/Multiple_Render_Targets).
+//! In most frameworks, you create some textures to hold the color information, then you “bind” them
+//! to your pipeline, and you’re good to go. In luminance, everything happens at the type level: you
+//! say to luminance which type of framebuffer you want (for instance, a framebuffer with two color
+//! outputs and a depth buffer). luminance will handle the textures for you – you can retrieve access
+//! to them whenever you want to.
+//!
+//! If you have a depth buffer, you can ask luminance to perform a depth test that will discard any
+//! fragment being “behind” the fragment already in place. You can also give luminance the *clear
+//! color* it must use when you issue a new pipeline to fill the buffers.
+//!
+//! # Blending
+//!
+//! When you render a fragment A at a position P in a framebuffer, there are several configurations:
+//!
+//! - you have a depth buffer and the depth test is enabled: in that case, no blending will happen
+//!   as either the already in-place fragment will be chosen or the new one you try to write,
+//!   depending on the result of the depth test;
+//! - the depth test is disabled: in that case, each time a fragment is to be written to a place in
+//!   a buffer, its output will be blended with the color already present according to a *blending
+//!   equation* and two *blending factors*.
+//!
+//! # Shaders
+//!
+//! Shaders in luminance are pretty simple: you have `Stage` that represents each type of shader
+//! stages you can use, and `Program`, that links them into a GPU executable.
+//!
+//! In luminance, you’re supposed to create a `Program` with `Stage`. Some of them are mandatory and
+//! others are optional. In order to customize your build, you can use a *uniform interface*. The
+//! uniform interface is defined by our own type. When you create a program, you pass code to tell
+//! luminance how to get such a type. Then that type will be handed back to you when needed in the
+//! form of an immutable object.
+//!
+//! # Tessellations
+//!
+//! The `Tess` type represents a tessellation associated with a possible set of GPU vertices and
+//! indices. Note that it’s also possible to create *attributeless* tesselations – i.e.
+//! tessellations that don’t own any vertices nor indices and are used with specific shaders only.
+//!
+//! # Gates
+//!
+//! The gate concept is quite easy to understand: picture a pipeline as tree. Each node is typed,
+//! hence, the structure is quite limited to what your GPU can understand. Gates are a way to
+//! spread information of root nodes down. For instance, if you have a shader node, every nested
+//! child of that shader node will have the possibility to use its features via a shading gate.
+//!
+//! # Render commands
+//!
+//! A set of values that tag a collection of tessellations. Typical information is whether we should
+//! use a depth test, the blending factors and equation, etc.
+//!
+//! # Shading commands
+//!
+//! A set of values that tag a collection of render commands. Typical information is a shader
+//! program along with its uniform interface.
+//!
+//! # Pipelines
+//!
+//! A pipeline is just an aggregation of shadings commands with a few extra information.
 
 use gl;
 use gl::types::*;
