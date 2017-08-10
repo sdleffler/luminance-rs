@@ -69,6 +69,7 @@ pub enum TessMapError {
 ///
 /// This type enables you to pass in a slice of vertices or ask for the GPU to only reserve enough
 /// space for the number of vertices, leaving the allocated memory uninitialized.
+#[derive(Debug, Eq, PartialEq)]
 pub enum TessVertices<'a, T> where T: 'a + Vertex {
   /// Pass in a slice of vertices.
   Fill(&'a [T]),
@@ -85,6 +86,7 @@ impl<'a, T> From<&'a [T]> for TessVertices<'a, T> where T: 'a + Vertex {
 /// GPU typed tessellation.
 ///
 /// The tessellation is typed with the vertex type.
+#[derive(Debug, Eq, PartialEq)]
 pub struct Tess<V> {
   mode: GLenum,
   vert_nb: usize,

@@ -85,7 +85,7 @@ pub enum BufferError {
 
 /// A `Buffer` is a GPU region you can picture as an array. It has a static size and cannot be
 /// resized. The size is expressed in number of elements lying in the buffer, not in bytes.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct Buffer<T> {
   raw: RawBuffer,
   _t: PhantomData<T>
@@ -269,7 +269,7 @@ impl<T> DerefMut for Buffer<T> {
 
 /// Raw buffer. Any buffer can be converted to that type. However, keep in mind that even though
 /// type erasure is safe, creating a buffer from a raw buffer is not.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub struct RawBuffer {
   handle: GLuint,
   bytes: usize,
@@ -333,6 +333,7 @@ impl<T> From<Buffer<T>> for RawBuffer {
 }
 
 /// A buffer slice mapped into GPU memory.
+#[derive(Debug, Eq, PartialEq)]
 pub struct BufferSlice<'a, T> where T: 'a {
   /// Borrowed raw buffer.
   raw: &'a RawBuffer,
@@ -368,6 +369,7 @@ impl<'a, 'b, T> IntoIterator for &'b BufferSlice<'a, T> where T: 'a {
 }
 
 /// A buffer mutable slice into GPU memory.
+#[derive(Debug, Eq, PartialEq)]
 pub struct BufferSliceMut<'a, T> where T: 'a {
   /// Borrowed buffer.
   raw: &'a RawBuffer,

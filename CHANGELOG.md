@@ -1,3 +1,7 @@
+## 0.21.3
+
+- Some `tess` and `buffer` types now implement some standard traits (`Debug`, `Eq`, `PartialEq`).
+
 ## 0.21.2
 
 - Updated the documentation.
