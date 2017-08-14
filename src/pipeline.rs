@@ -1,7 +1,10 @@
 //! Dynamic rendering pipelines.
 //!
 //! This module gives you types and functions to build *dynamic* rendering **pipelines**. A
-//! `Pipeline` represents a functional stream that consumes geometric data and rasterizes them.
+//! pipeline represents a functional stream that consumes geometric data and rasterizes them.
+//!
+//! When you want to build a render, the main entry point is the `entry` function. It gives you a
+//! `Gpu` object that enables you to perform stateful graphics operations.
 //!
 //! # Key concepts
 //!
@@ -94,14 +97,157 @@
 use gl;
 use gl::types::*;
 
+use std::cell::RefCell;
+use std::collections::HashSet;
+use std::marker::PhantomData;
+use std::ops::Deref;
+use std::rc::Rc;
+
 use buffer::RawBuffer;
 use blending::{Equation, Factor};
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer};
-use shader::program::{Program, UniformInterface};
-use std::marker::PhantomData;
+use shader::program::{Dim, Program, Type, Uniform, Uniformable, UniformInterface};
 use tess::TessRender;
 use texture::{Dimensionable, Layerable, RawTexture};
 use vertex::{CompatibleVertex, Vertex};
+
+struct GpuState {
+  texture_units: HashSet<u32>,
+  texture_units_free: Vec<u32>,
+  buffers: HashSet<u32>,
+  buffers_free: Vec<u32>
+}
+
+impl GpuState {
+  fn new() -> Self {
+    GpuState {
+      texture_units: HashSet::new(),
+      texture_units_free: Vec::new(),
+      buffers: HashSet::new(),
+      buffers_free: Vec::new()
+    }
+  }
+}
+
+/// An opaque type representing the GPU. You can perform stateful operations on it.
+pub struct Gpu {
+  gpu_state: Rc<RefCell<GpuState>>
+}
+
+impl Gpu {
+  fn new() -> Self {
+    Gpu {
+      gpu_state: Rc::new(RefCell::new(GpuState::new()))
+    }
+  }
+
+  /// Bind a texture and return the bound texture.
+  pub fn bind_texture<T>(&self, texture: &T) -> BoundTexture<T> where T: Deref<Target = RawTexture> {
+    let mut state = self.gpu_state.borrow_mut();
+
+    let unit = state.texture_units_free.pop().unwrap_or_else(|| state.texture_units.len() as u32);
+
+    unsafe { bind_texture_at(texture.deref(), unit) };
+    state.texture_units.insert(unit); // reserve the unit
+    BoundTexture::new(self.gpu_state.clone(), unit)
+  }
+
+  /// Bind a buffer and return the bound buffer.
+  pub fn bind_buffer<T>(&self, buffer: &T) -> BoundBuffer<T> where T: Deref<Target = RawBuffer> {
+    let mut state = self.gpu_state.borrow_mut();
+
+    let binding = state.buffers_free.pop().unwrap_or_else(|| state.buffers.len() as u32);
+
+    unsafe { bind_buffer_at(buffer.deref(), binding) };
+    state.buffers.insert(binding); // reserve the binding
+    BoundBuffer::new(self.gpu_state.clone(), binding)
+  }
+}
+
+/// An opaque type representing a bound texture in a `Gpu`. You may want to pass such an object to
+/// a shader’s uniform’s update.
+pub struct BoundTexture<T> {
+  unit: u32,
+  gpu_state: Rc<RefCell<GpuState>>,
+  _t: PhantomData<*const T>
+}
+
+impl<T> BoundTexture<T> {
+  fn new(gpu_state: Rc<RefCell<GpuState>>, unit: u32) -> Self {
+    BoundTexture {
+      unit,
+      gpu_state,
+      _t: PhantomData
+    }
+  }
+}
+
+impl<T> Drop for BoundTexture<T> {
+  fn drop(&mut self) {
+    let mut state = self.gpu_state.borrow_mut();
+    // remove the unit from the in-use units
+    state.texture_units.remove(&self.unit);
+    // place the unit into the free list
+    state.texture_units_free.push(self.unit);
+  }
+}
+
+impl<T> Uniformable for BoundTexture<T> {
+  fn update(self, u: &Uniform<Self>) {
+    unsafe { gl::Uniform1i(u.index(), self.unit as GLint) }
+  }
+
+  fn ty() -> Type { Type::TextureUnit }
+
+  fn dim() -> Dim { Dim::Dim1 }
+}
+
+/// An opaque type representing a bound buffer in a `Gpu`. You may want to pass such an object to
+/// a shader’s uniform’s update.
+pub struct BoundBuffer<T> {
+  binding: u32,
+  gpu_state: Rc<RefCell<GpuState>>,
+  _t: PhantomData<*const T>
+}
+
+impl<T> BoundBuffer<T> {
+  fn new(gpu_state: Rc<RefCell<GpuState>>, binding: u32) -> Self {
+    BoundBuffer {
+      binding,
+      gpu_state,
+      _t: PhantomData
+    }
+  }
+}
+
+impl<T> Drop for BoundBuffer<T> {
+  fn drop(&mut self) {
+    let mut state = self.gpu_state.borrow_mut();
+    // remove the binding from the in-use bindings
+    state.buffers.remove(&self.binding);
+    // place the binding into the free list
+    state.buffers_free.push(self.binding);
+  }
+}
+
+impl<T> Uniformable for BoundBuffer<T> {
+  fn update(self, u: &Uniform<Self>) {
+    unsafe { gl::UniformBlockBinding(u.program(), u.index() as GLuint, self.binding as GLuint) }
+  }
+
+  fn ty() -> Type { Type::TextureUnit }
+
+  fn dim() -> Dim { Dim::Dim1 }
+}
+
+/// This is the entry point of a render.
+///
+/// You’re handed a `Gpu` object that allows you to perform stateful operations on the GPU. For
+/// instance, you can bind textures and buffers to use them in shaders.
+pub fn entry<F>(f: F) where F: FnOnce(Gpu) {
+  let gpu = Gpu::new();
+  f(gpu);
+}
 
 /// A dynamic rendering pipeline. A *pipeline* is responsible of rendering into a `Framebuffer`.
 ///
@@ -117,157 +263,51 @@ use vertex::{CompatibleVertex, Vertex};
 /// - a *clear color*, used to clear the framebuffer
 /// - a *texture set*, used to make textures available in subsequent structures
 /// - a *buffer set*, used to make uniform buffers available in subsequent structures
-#[derive(Clone)]
-pub struct Pipeline<'a, L, D, CS, DS>
-    where L: 'a + Layerable,
-          D: 'a + Dimensionable,
+pub fn pipeline<L, D, CS, DS, F>(framebuffer: &Framebuffer<L, D, CS, DS>, clear_color: [f32; 4], f: F)
+    where L: Layerable,
+          D: Dimensionable,
           D::Size: Copy,
-          CS: 'a + ColorSlot<L, D>,
-          DS: 'a + DepthSlot<L, D> {
-  /// The embedded framebuffer.
-  framebuffer: &'a Framebuffer<L, D, CS, DS>,
-  /// The color used to clean the framebuffer when executing the pipeline.
-  clear_color: [f32; 4],
-  /// Texture set.
-  texture_set: &'a [&'a RawTexture],
-  /// Buffer set.
-  buffer_set: &'a [&'a RawBuffer]
-}
-
-impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
-    where L: 'a + Layerable,
-          D: 'a + Dimensionable,
-          D::Size: Copy,
-          CS: 'a + ColorSlot<L, D>,
-          DS: 'a + DepthSlot<L, D> {
-  /// Create a new pipeline.
-  pub fn new(framebuffer: &'a Framebuffer<L, D, CS, DS>, clear_color: [f32; 4],
-             texture_set: &'a [&'a RawTexture], buffer_set: &'a [&'a RawBuffer]) -> Self {
-    Pipeline {
-      framebuffer: framebuffer,
-      clear_color: clear_color,
-      texture_set: texture_set,
-      buffer_set: buffer_set
-    }
+          CS: ColorSlot<L, D>,
+          DS: DepthSlot<L, D>,
+          F: FnOnce(&ShadingGate) {
+  unsafe {
+    gl::BindFramebuffer(gl::FRAMEBUFFER, framebuffer.handle());
+    gl::Viewport(0, 0, framebuffer.width() as GLint, framebuffer.height() as GLint);
+    gl::ClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
+    gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
   }
 
-  /// Enter a `Pipeline`.
-  pub fn enter<F>(&self, f: F) where F: FnOnce(&ShadingGate) {
-    let clear_color = self.clear_color;
-
-    unsafe {
-      gl::BindFramebuffer(gl::FRAMEBUFFER, self.framebuffer.handle());
-      gl::Viewport(0, 0, self.framebuffer.width() as GLint, self.framebuffer.height() as GLint);
-      gl::ClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
-      gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-
-      bind_uniform_buffers(self.buffer_set);
-      bind_textures(self.texture_set);
-    }
-
-    f(&ShadingGate);
-  }
+  f(&ShadingGate);
 }
 
+/// An object created only via `pipeline` and that gives you shading features.
 pub struct ShadingGate;
 
 impl ShadingGate {
-  pub fn new<'a, In, Out, Uni>(&self, program: &'a Program<In, Out, Uni>, texture_set: &'a [&'a RawTexture], buffer_set: &'a [&'a RawBuffer]) -> ShadingCommand<'a, In, Out, Uni> {
-    ShadingCommand::new(program, texture_set, buffer_set)
-  }
-}
-
-/// A dynamic *shading command*. A shading command gathers *render commands* under a shader
-/// `Program`.
-#[derive(Clone)]
-pub struct ShadingCommand<'a, In, Out, Uni> where In: 'a, Out: 'a, Uni: 'a {
-  /// Embedded program.
-  program: &'a Program<In, Out, Uni>,
-  /// Texture set.
-  texture_set: &'a [&'a RawTexture],
-  /// Buffer set.
-  buffer_set: &'a [&'a RawBuffer]
-}
-
-impl<'a, In, Out, Uni> ShadingCommand<'a, In, Out, Uni> {
-  /// Create a new shading command.
-  fn new(program: &'a Program<In, Out, Uni>, texture_set: &'a [&'a RawTexture], buffer_set: &'a [&'a RawBuffer]) -> Self {
-    ShadingCommand {
-      program: program,
-      texture_set: texture_set,
-      buffer_set
-    }
-  }
-
-  /// Enter a `ShadingCommand`.
-  pub fn enter<F>(&self, f: F)
-      where F: FnOnce(&RenderGate<In>, &Uni),
-            In: Vertex,
-            Uni: UniformInterface {
-    unsafe { gl::UseProgram(self.program.handle()) };
-
-    bind_uniform_buffers(self.buffer_set);
-    bind_textures(self.texture_set);
+  pub fn shade<In, Out, Uni, F>(&self, program: &Program<In, Out, Uni>, f: F)
+      where In: Vertex, Uni: UniformInterface, F: FnOnce(&RenderGate<In>, &Uni) {
+    unsafe { gl::UseProgram(program.handle()) };
 
     let render_gate = RenderGate {
       _v: PhantomData,
     };
 
-    let uni_iface = unsafe { self.program.uniform_interface() };
+    let uni_iface = unsafe { program.uniform_interface() };
     f(&render_gate, uni_iface);
   }
 }
 
 pub struct RenderGate<V> {
-  _v: PhantomData<*const V>,
+  _v: PhantomData<*const V>
 }
 
 impl<V> RenderGate<V> {
-  pub fn new<'a, B>(&self, blending: B, depth_test: bool, texture_set: &'a [&'a RawTexture], buffer_set: &'a [&'a RawBuffer]) -> RenderCommand<'a, V> where B: Into<Option<(Equation, Factor, Factor)>> {
-    RenderCommand::new(blending, depth_test, texture_set, buffer_set)
-  }
-}
-
-/// A render command, which holds information on how to rasterize tessellations and render-related
-/// hints (like blending equations and factors and whether the depth test should be enabled).
-#[derive(Clone)]
-pub struct RenderCommand<'a, V> {
-  /// Color blending configuration. Set to `None` if you don’t want any color blending. Set it to
-  /// `Some(equation, source, destination)` if you want to perform a color blending with the
-  /// `equation` formula and with the `source` and `destination` blending factors.
-  blending: Option<(Equation, Factor, Factor)>,
-  /// Should a depth test be performed?
-  depth_test: bool,
-  /// Texture set.
-  texture_set: &'a [&'a RawTexture],
-  /// Buffer set.
-  buffer_set: &'a [&'a RawBuffer],
-  _v: PhantomData<*const V>,
-}
-
-impl<'a, V> RenderCommand<'a, V> {
-  /// Create a new render command.
-  fn new<B>(blending: B,
-            depth_test: bool,
-            texture_set: &'a [&'a RawTexture],
-            buffer_set: &'a [&'a RawBuffer])
-            -> Self where B: Into<Option<(Equation, Factor, Factor)>>{
-    RenderCommand {
-      blending: blending.into(),
-      depth_test: depth_test,
-      texture_set: texture_set,
-      buffer_set: buffer_set,
-      _v: PhantomData,
+  pub fn render<B, F>(&self, blending: B, depth_test: bool, f: F)
+      where B: Into<Option<(Equation, Factor, Factor)>>, F: FnOnce(&TessGate<V>) {
+    unsafe {
+      set_blending(blending);
+      set_depth_test(depth_test);
     }
-  }
-
-  /// Enter the render command.
-  pub fn enter<F>(&self, f: F) where F: FnOnce(&TessGate<V>) {
-    bind_uniform_buffers(self.buffer_set);
-    bind_textures(self.texture_set);
-
-    set_blending(self.blending);
-    set_depth_test(self.depth_test);
 
     let tess_gate = TessGate {
       _v: PhantomData,
@@ -282,64 +322,47 @@ pub struct TessGate<V> {
 }
 
 impl<V> TessGate<V> where V: Vertex {
-  pub fn render<W>(&self,
-                   tess: TessRender<W>,
-                   texture_set: &[&RawTexture],
-                   buffer_set: &[&RawBuffer])
-      where W: CompatibleVertex<V> {
-    bind_uniform_buffers(buffer_set);
-    bind_textures(texture_set);
-
+  pub fn render<W>(&self, tess: TessRender<W>) where W: CompatibleVertex<V> {
     tess.render();
   }
 }
 
 #[inline]
-fn bind_uniform_buffers(uniform_buffers: &[&RawBuffer]) {
-  for (index, buf) in uniform_buffers.iter().enumerate() {
-    unsafe { gl::BindBufferBase(gl::UNIFORM_BUFFER, index as GLuint, buf.handle()); }
-  }
+unsafe fn bind_buffer_at(buf: &RawBuffer, binding: u32) {
+  gl::BindBufferBase(gl::UNIFORM_BUFFER, binding as GLuint, buf.handle());
 }
 
 #[inline]
-fn bind_textures(textures: &[&RawTexture]) {
-  for (unit, tex) in textures.iter().enumerate() {
-    unsafe {
-      gl::ActiveTexture(gl::TEXTURE0 + unit as GLenum);
-      gl::BindTexture(tex.target(), tex.handle());
-    }
-  }
+unsafe fn bind_texture_at(tex: &RawTexture, unit: u32) {
+  gl::ActiveTexture(gl::TEXTURE0 + unit as GLenum);
+  gl::BindTexture(tex.target(), tex.handle());
 }
 
 #[inline]
-fn set_blending<B>(blending: B) where B: Into<Option<(Equation, Factor, Factor)>> {
+unsafe fn set_blending<B>(blending: B) where B: Into<Option<(Equation, Factor, Factor)>> {
   match blending.into() {
     Some((equation, src_factor, dest_factor)) => {
-      unsafe {
-        gl::Enable(gl::BLEND);
-        gl::BlendEquation(opengl_blending_equation(equation));
-        gl::BlendFunc(opengl_blending_factor(src_factor), opengl_blending_factor(dest_factor));
-      }
+      gl::Enable(gl::BLEND);
+      gl::BlendEquation(blending_equation(equation));
+      gl::BlendFunc(blending_factor(src_factor), blending_factor(dest_factor));
     },
     None => {
-      unsafe { gl::Disable(gl::BLEND) };
+      gl::Disable(gl::BLEND);
     }
   }
 }
 
 #[inline]
-fn set_depth_test(test: bool) {
-  unsafe {
-    if test {
-      gl::Enable(gl::DEPTH_TEST);
-    } else {
-      gl::Disable(gl::DEPTH_TEST);
-    }
+unsafe fn set_depth_test(test: bool) {
+  if test {
+    gl::Enable(gl::DEPTH_TEST);
+  } else {
+    gl::Disable(gl::DEPTH_TEST);
   }
 }
 
 #[inline]
-fn opengl_blending_equation(equation: Equation) -> GLenum {
+fn blending_equation(equation: Equation) -> GLenum {
   match equation {
     Equation::Additive => gl::FUNC_ADD,
     Equation::Subtract => gl::FUNC_SUBTRACT,
@@ -350,7 +373,7 @@ fn opengl_blending_equation(equation: Equation) -> GLenum {
 }
 
 #[inline]
-fn opengl_blending_factor(factor: Factor) -> GLenum {
+fn blending_factor(factor: Factor) -> GLenum {
   match factor {
     Factor::One => gl::ONE,
     Factor::Zero => gl::ZERO,

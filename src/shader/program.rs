@@ -35,10 +35,8 @@ use std::marker::PhantomData;
 use std::ops::Deref;
 use std::ptr::null_mut;
 
-use buffer::Binding;
 use linear::{M22, M33, M44};
 use shader::stage::Stage;
-use texture::Unit;
 use vertex::Vertex;
 
 pub type Result<A> = ::std::result::Result<A, ProgramError>;
@@ -273,6 +271,14 @@ impl<T> Uniform<T> where T: Uniformable {
     }
   }
 
+  pub unsafe fn program(&self) -> GLuint {
+    self.program
+  }
+
+  pub unsafe fn index(&self) -> GLint {
+    self.index
+  }
+
   // TODO: state whether it should be mutable or not – feels like a RefCell to me.
   // TODO: redesign the whole Uniformable + Uniform.update thing
   /// Update the value pointed by this uniform.
@@ -306,7 +312,7 @@ pub enum Dim {
 }
 
 /// Types that can behave as `Uniform`.
-pub trait Uniformable: Copy + Sized {
+pub trait Uniformable: Sized {
   /// Update the uniform with a new value.
   fn update(self, u: &Uniform<Self>);
   /// Retrieve the `Type` of the uniform.
@@ -704,54 +710,6 @@ impl<'a> Uniformable for &'a [[bool; 4]] {
 
   fn dim() -> Dim { Dim::Dim4 }
 }
-
-impl Uniformable for Unit {
-  fn update(self, u: &Uniform<Self>) {
-    unsafe { gl::Uniform1i(u.index, *self as GLint) }
-  }
-
-  fn ty() -> Type { Type::TextureUnit }
-
-  fn dim() -> Dim { Dim::Dim1 }
-}
-
-impl Uniformable for Binding {
-  fn update(self, u: &Uniform<Self>) {
-    unsafe { gl::UniformBlockBinding(u.program, u.index as GLuint, *self as GLuint) }
-  }
-
-  fn ty() -> Type { Type::BufferBinding }
-
-  fn dim() -> Dim { Dim::Dim1 }
-}
-
-// Retrieve the uniform location.
-//fn get_uniform_location(program: GLuint, name: &str, ty: Type, dim: Dim) -> (Location, ::std::result::Result<(), UniformWarning>) {
-//  let c_name = CString::new(name.as_bytes()).unwrap();
-//  let location = if ty == Type::BufferBinding {
-//    let index = unsafe { gl::GetUniformBlockIndex(program, c_name.as_ptr() as *const GLchar) };
-//
-//    if index == gl::INVALID_INDEX {
-//      return (Location::UniformBlock(-1), Err(UniformWarning::Inactive(name.to_owned())));
-//    }
-//
-//    Location::UniformBlock(index as GLint)
-//  } else {
-//    let location = unsafe { gl::GetUniformLocation(program, c_name.as_ptr() as *const GLchar) };
-//
-//    if location == -1 {
-//      return (Location::Uniform(-1), Err(UniformWarning::Inactive(name.to_owned())));
-//    }
-//
-//    Location::Uniform(location)
-//  };
-//
-//  if let Some(err) = uniform_type_match(program, name, ty, dim) {
-//    return (location, Err(UniformWarning::TypeMismatch(name.to_owned(), err)));
-//  }
-//
-//  (location, Ok(()))
-//}
 
 // Return something if no match can be established.
 fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> Option<String> {
