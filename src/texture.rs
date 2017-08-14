@@ -770,34 +770,6 @@ impl Default for Sampler {
   }
 }
 
-/// Texture unit.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct Unit {
-  unit: u32
-}
-
-impl Unit {
-  pub fn new(unit: u32) -> Self {
-    Unit {
-      unit: unit
-    }
-  }
-}
-
-impl Deref for Unit {
-  type Target = u32;
-
-  fn deref(&self) -> &Self::Target {
-    &self.unit
-  }
-}
-
-impl DerefMut for Unit {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.unit
-  }
-}
-
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TextureError {
   TextureCreationFailed(String),

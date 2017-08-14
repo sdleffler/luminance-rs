@@ -419,36 +419,6 @@ impl<'a, T> DerefMut for BufferSliceMut<'a, T> where T: 'a {
   }
 }
 
-/// Buffer binding.
-///
-/// This type is used whenever you want to use a uniform buffer.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct Binding {
-  index: u32
-}
-
-impl Binding {
-  pub fn new(index: u32) -> Self {
-    Binding {
-      index: index
-    }
-  }
-}
-
-impl Deref for Binding {
-  type Target = u32;
-
-  fn deref(&self) -> &Self::Target {
-    &self.index
-  }
-}
-
-impl DerefMut for Binding {
-  fn deref_mut(&mut self) -> &mut Self::Target {
-    &mut self.index
-  }
-}
-
 /// Typeclass of types that can be used inside a uniform block. You have to be extra careful when
 /// using uniform blocks and ensure you respect the OpenGL *std140* alignment / size rules. This
 /// will be fixed in a future release.
