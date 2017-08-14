@@ -1,3 +1,8 @@
+# 0.22
+
+- Added the `Gpu` type, handling stateful operations on the GPU.
+- Rework of the `pipeline` module. It might change a lot in the near future.
+
 ## 0.21.3
 
 - Some `tess` and `buffer` types now implement some standard traits (`Debug`, `Eq`, `PartialEq`).
