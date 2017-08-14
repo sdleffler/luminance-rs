@@ -129,9 +129,9 @@ pub struct Pipeline<'a, L, D, CS, DS>
   /// The color used to clean the framebuffer when executing the pipeline.
   clear_color: [f32; 4],
   /// Texture set.
-  texture_set: &'a[&'a RawTexture],
+  texture_set: &'a [&'a RawTexture],
   /// Buffer set.
-  buffer_set: &'a[&'a RawBuffer]
+  buffer_set: &'a [&'a RawBuffer]
 }
 
 impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
@@ -142,7 +142,7 @@ impl<'a, L, D, CS, DS> Pipeline<'a, L, D, CS, DS>
           DS: 'a + DepthSlot<L, D> {
   /// Create a new pipeline.
   pub fn new(framebuffer: &'a Framebuffer<L, D, CS, DS>, clear_color: [f32; 4],
-             texture_set: &'a[&'a RawTexture], buffer_set: &'a[&'a RawBuffer]) -> Self {
+             texture_set: &'a [&'a RawTexture], buffer_set: &'a [&'a RawBuffer]) -> Self {
     Pipeline {
       framebuffer: framebuffer,
       clear_color: clear_color,
