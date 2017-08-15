@@ -1,3 +1,7 @@
+## 0.22.1
+
+- Better implementation of texture and buffer binding.
+
 # 0.22
 
 - Added the `Gpu` type, handling stateful operations on the GPU.

@@ -98,7 +98,6 @@ use gl;
 use gl::types::*;
 
 use std::cell::RefCell;
-use std::collections::HashSet;
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::rc::Rc;
@@ -112,19 +111,19 @@ use texture::{Dimensionable, Layerable, RawTexture};
 use vertex::{CompatibleVertex, Vertex};
 
 struct GpuState {
-  texture_units: HashSet<u32>,
-  texture_units_free: Vec<u32>,
-  buffers: HashSet<u32>,
-  buffers_free: Vec<u32>
+  next_texture_unit: u32,
+  free_texture_units: Vec<u32>,
+  next_buffer_binding: u32,
+  free_buffer_bindings: Vec<u32>
 }
 
 impl GpuState {
   fn new() -> Self {
     GpuState {
-      texture_units: HashSet::new(),
-      texture_units_free: Vec::new(),
-      buffers: HashSet::new(),
-      buffers_free: Vec::new()
+      next_texture_unit: 0,
+      free_texture_units: Vec::new(),
+      next_buffer_binding: 0,
+      free_buffer_bindings: Vec::new()
     }
   }
 }
@@ -145,10 +144,14 @@ impl Gpu {
   pub fn bind_texture<T>(&self, texture: &T) -> BoundTexture<T> where T: Deref<Target = RawTexture> {
     let mut state = self.gpu_state.borrow_mut();
 
-    let unit = state.texture_units_free.pop().unwrap_or_else(|| state.texture_units.len() as u32);
+    let unit = state.free_texture_units.pop().unwrap_or_else(|| {
+      // no more free units; reserve one
+      let unit = state.next_texture_unit;
+      state.next_texture_unit += 1;
+      unit
+    });
 
     unsafe { bind_texture_at(texture.deref(), unit) };
-    state.texture_units.insert(unit); // reserve the unit
     BoundTexture::new(self.gpu_state.clone(), unit)
   }
 
@@ -156,10 +159,14 @@ impl Gpu {
   pub fn bind_buffer<T>(&self, buffer: &T) -> BoundBuffer<T> where T: Deref<Target = RawBuffer> {
     let mut state = self.gpu_state.borrow_mut();
 
-    let binding = state.buffers_free.pop().unwrap_or_else(|| state.buffers.len() as u32);
+    let binding = state.free_buffer_bindings.pop().unwrap_or_else(|| {
+      // no more free bindings; reserve one
+      let binding = state.next_buffer_binding;
+      state.next_buffer_binding += 1;
+      binding
+    });
 
     unsafe { bind_buffer_at(buffer.deref(), binding) };
-    state.buffers.insert(binding); // reserve the binding
     BoundBuffer::new(self.gpu_state.clone(), binding)
   }
 }
@@ -185,10 +192,8 @@ impl<T> BoundTexture<T> {
 impl<T> Drop for BoundTexture<T> {
   fn drop(&mut self) {
     let mut state = self.gpu_state.borrow_mut();
-    // remove the unit from the in-use units
-    state.texture_units.remove(&self.unit);
     // place the unit into the free list
-    state.texture_units_free.push(self.unit);
+    state.free_texture_units.push(self.unit);
   }
 }
 
@@ -223,10 +228,8 @@ impl<T> BoundBuffer<T> {
 impl<T> Drop for BoundBuffer<T> {
   fn drop(&mut self) {
     let mut state = self.gpu_state.borrow_mut();
-    // remove the binding from the in-use bindings
-    state.buffers.remove(&self.binding);
     // place the binding into the free list
-    state.buffers_free.push(self.binding);
+    state.free_buffer_bindings.push(self.binding);
   }
 }
 
