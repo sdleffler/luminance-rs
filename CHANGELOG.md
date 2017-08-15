@@ -1,3 +1,8 @@
+## 0.22.2
+
+- Enforce lifetimes on `BoundTexture` and `BoundBuffer`. It’s there so that such objects cannot
+  live longer than the references on the `Texture<_>` and `Buffer<_>` they’re based on.
+
 ## 0.22.1
 
 - Better implementation of texture and buffer binding.

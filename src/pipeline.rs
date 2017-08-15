@@ -141,7 +141,7 @@ impl Gpu {
   }
 
   /// Bind a texture and return the bound texture.
-  pub fn bind_texture<T>(&self, texture: &T) -> BoundTexture<T> where T: Deref<Target = RawTexture> {
+  pub fn bind_texture<'a, T>(&self, texture: &'a T) -> BoundTexture<'a, T> where T: Deref<Target = RawTexture> {
     let mut state = self.gpu_state.borrow_mut();
 
     let unit = state.free_texture_units.pop().unwrap_or_else(|| {
@@ -156,7 +156,7 @@ impl Gpu {
   }
 
   /// Bind a buffer and return the bound buffer.
-  pub fn bind_buffer<T>(&self, buffer: &T) -> BoundBuffer<T> where T: Deref<Target = RawBuffer> {
+  pub fn bind_buffer<'a, T>(&self, buffer: &T) -> BoundBuffer<'a, T> where T: Deref<Target = RawBuffer> {
     let mut state = self.gpu_state.borrow_mut();
 
     let binding = state.free_buffer_bindings.pop().unwrap_or_else(|| {
@@ -173,13 +173,13 @@ impl Gpu {
 
 /// An opaque type representing a bound texture in a `Gpu`. You may want to pass such an object to
 /// a shader’s uniform’s update.
-pub struct BoundTexture<T> {
+pub struct BoundTexture<'a, T> where T: 'a {
   unit: u32,
   gpu_state: Rc<RefCell<GpuState>>,
-  _t: PhantomData<*const T>
+  _t: PhantomData<&'a T>
 }
 
-impl<T> BoundTexture<T> {
+impl<'a, T> BoundTexture<'a, T> {
   fn new(gpu_state: Rc<RefCell<GpuState>>, unit: u32) -> Self {
     BoundTexture {
       unit,
@@ -189,7 +189,7 @@ impl<T> BoundTexture<T> {
   }
 }
 
-impl<T> Drop for BoundTexture<T> {
+impl<'a, T> Drop for BoundTexture<'a, T> {
   fn drop(&mut self) {
     let mut state = self.gpu_state.borrow_mut();
     // place the unit into the free list
@@ -197,7 +197,7 @@ impl<T> Drop for BoundTexture<T> {
   }
 }
 
-impl<T> Uniformable for BoundTexture<T> {
+impl<'a, T> Uniformable for BoundTexture<'a, T> {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1i(u.index(), self.unit as GLint) }
   }
@@ -209,13 +209,13 @@ impl<T> Uniformable for BoundTexture<T> {
 
 /// An opaque type representing a bound buffer in a `Gpu`. You may want to pass such an object to
 /// a shader’s uniform’s update.
-pub struct BoundBuffer<T> {
+pub struct BoundBuffer<'a, T> where T: 'a {
   binding: u32,
   gpu_state: Rc<RefCell<GpuState>>,
-  _t: PhantomData<*const T>
+  _t: PhantomData<&'a T>
 }
 
-impl<T> BoundBuffer<T> {
+impl<'a, T> BoundBuffer<'a, T> {
   fn new(gpu_state: Rc<RefCell<GpuState>>, binding: u32) -> Self {
     BoundBuffer {
       binding,
@@ -225,7 +225,7 @@ impl<T> BoundBuffer<T> {
   }
 }
 
-impl<T> Drop for BoundBuffer<T> {
+impl<'a, T> Drop for BoundBuffer<'a, T> {
   fn drop(&mut self) {
     let mut state = self.gpu_state.borrow_mut();
     // place the binding into the free list
@@ -233,7 +233,7 @@ impl<T> Drop for BoundBuffer<T> {
   }
 }
 
-impl<T> Uniformable for BoundBuffer<T> {
+impl<'a, T> Uniformable for BoundBuffer<'a, T> {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::UniformBlockBinding(u.program(), u.index() as GLuint, self.binding as GLuint) }
   }
