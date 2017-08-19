@@ -168,31 +168,6 @@ impl<V> Tess<V> where V: Vertex {
     }
   }
 
-  /// Create a tessellation that will procedurally generate its vertices (i.e. *attribute-less*).
-  ///
-  /// You just have to give the `Mode` to use and the number of vertices the tessellation must
-  /// have. You’ll be handed back a tessellation object that doesn’t actually hold anything. You
-  /// will have to generate the vertices on the fly in your shaders.
-  pub fn attributeless(mode: Mode, vert_nb: usize) -> Self {
-    let mut vao = 0;
-
-    unsafe {
-      gl::GenVertexArrays(1, &mut vao);
-
-      gl::BindVertexArray(vao);
-      gl::BindVertexArray(0);
-
-      Tess {
-        mode: opengl_mode(mode),
-        vert_nb: vert_nb,
-        vao: vao,
-        vbo: None,
-        ibo: None,
-        _v: PhantomData
-      }
-    }
-  }
-
   /// Render the tessellation by providing the number of vertices to pick from it and how many
   /// instances are wished.
   fn render(&self, vert_nb: usize, inst_nb: usize) {
@@ -234,6 +209,33 @@ impl<V> Tess<V> where V: Vertex {
     self.vbo.as_mut()
       .ok_or(TessMapError::ForbiddenAttributelessMapping)
       .and_then(|raw| RawBuffer::as_slice_mut(raw).map_err(TessMapError::VertexBufferMapFailed))
+  }
+}
+
+impl Tess<()> {
+  /// Create a tessellation that will procedurally generate its vertices (i.e. *attribute-less*).
+  ///
+  /// You just have to give the `Mode` to use and the number of vertices the tessellation must
+  /// have. You’ll be handed back a tessellation object that doesn’t actually hold anything. You
+  /// will have to generate the vertices on the fly in your shaders.
+  pub fn attributeless(mode: Mode, vert_nb: usize) -> Self {
+    let mut vao = 0;
+
+    unsafe {
+      gl::GenVertexArrays(1, &mut vao);
+
+      gl::BindVertexArray(vao);
+      gl::BindVertexArray(0);
+
+      Tess {
+        mode: opengl_mode(mode),
+        vert_nb: vert_nb,
+        vao: vao,
+        vbo: None,
+        ibo: None,
+        _v: PhantomData
+      }
+    }
   }
 }
 

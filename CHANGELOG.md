@@ -1,3 +1,7 @@
+## 0.22.3
+
+- Enforce static type of `Tess::attributeless`. It now only works with `Tess<()>`.
+
 ## 0.22.2
 
 - Enforce lifetimes on `BoundTexture` and `BoundBuffer`. It’s there so that such objects cannot
