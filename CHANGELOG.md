@@ -1,3 +1,7 @@
+## 0.22.4
+
+- Added some impl of `RenderablePixel`.
+
 ## 0.22.3
 
 - Enforce static type of `Tess::attributeless`. It now only works with `Tess<()>`.

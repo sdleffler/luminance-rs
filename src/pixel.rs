@@ -92,6 +92,7 @@ impl Pixel for RGB8UI {
 }
 
 impl ColorPixel for RGB8UI {}
+impl RenderablePixel for RGB8UI {}
 
 /// A red, green, blue and alpha 8-bit unsigned pixel format.
 #[derive(Clone, Copy, Debug)]
@@ -128,6 +129,9 @@ impl Pixel for R32F {
   }
 }
 
+impl ColorPixel for R32F {}
+impl RenderablePixel for R32F {}
+
 /// A red, green and blue 32-bit floating pixel format.
 #[derive(Clone, Copy, Debug)]
 pub struct RGB32F;
@@ -145,6 +149,7 @@ impl Pixel for RGB32F {
 }
 
 impl ColorPixel for RGB32F {}
+impl RenderablePixel for RGB32F {}
 
 /// A red, green, blue and alpha 32-bit floating pixel format.
 #[derive(Clone, Copy, Debug)]
