@@ -316,7 +316,7 @@ pub trait Uniformable: Sized {
   /// Update the uniform with a new value.
   fn update(self, u: &Uniform<Self>);
   /// Retrieve the `Type` of the uniform.
-  fn ty() -> Type; // FIXME: call that ty() instead
+  fn ty() -> Type;
   /// Retrieve the `Dim` of the uniform.
   fn dim() -> Dim;
 }

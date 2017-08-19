@@ -399,9 +399,6 @@ impl<L, D, P> Texture<L, D, P>
       gl::BindTexture(target, texture);
     
       create_texture::<L, D>(target, size, mipmaps, P::pixel_format(), sampler)?;
-
-      // FIXME: maybe we can get rid of this
-      gl::BindTexture(target, 0);
     }
 
     Ok(Texture {

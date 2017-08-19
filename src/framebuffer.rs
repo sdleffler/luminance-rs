@@ -125,7 +125,6 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
           D::Size: Copy,
           CS: ColorSlot<L, D>,
           DS: DepthSlot<L, D> {
-  // FIXME: use LinkedList instead of Vec for textures
   /// Create a new farmebuffer.
   pub fn new(size: D::Size, mipmaps: usize) -> Result<Framebuffer<L, D, CS, DS>> {
     let mipmaps = mipmaps + 1;
@@ -133,7 +132,7 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
     let color_formats = CS::color_formats();
     let depth_format = DS::depth_format();
     let target = opengl_target(L::layering(), D::dim());
-    let mut textures: Vec<GLuint> = vec![0; (color_formats.len() + if depth_format.is_some() { 1 } else { 0 })]; // FIXME: remove that (inference)
+    let mut textures = vec![0; (color_formats.len() + if depth_format.is_some() { 1 } else { 0 })];
     let mut depth_texture: Option<GLuint> = None;
     let mut depth_renderbuffer: Option<GLuint> = None;
 

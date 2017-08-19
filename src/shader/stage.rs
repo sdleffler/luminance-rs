@@ -87,11 +87,10 @@ fn glsl_pragma_src(src: &str) -> String {
   pragma
 }
 
-const GLSL_PRAGMA: &'static str = "\
-#version 330 core\n\
-#extension GL_ARB_separate_shader_objects : require\n";
+const GLSL_PRAGMA: &'static str =
+r#"#version 330 core
+#extension GL_ARB_separate_shader_objects : require"#;
 
-// FIXME: check for GL_ARB_tessellation_shader extension if we need tessellation shaders
 fn opengl_shader_type(t: Type) -> GLenum {
   match t {
     Type::TessellationControlShader => gl::TESS_CONTROL_SHADER,
