@@ -126,6 +126,9 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
           CS: ColorSlot<L, D>,
           DS: DepthSlot<L, D> {
   /// Create a new farmebuffer.
+  ///
+  /// You’re always handed at least the base level of the texture. If you require any *additional*
+  /// levels, you can pass the number via the `mipmaps` parameter.
   pub fn new(size: D::Size, mipmaps: usize) -> Result<Framebuffer<L, D, CS, DS>> {
     let mipmaps = mipmaps + 1;
     let mut handle: GLuint = 0;
