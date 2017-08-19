@@ -715,13 +715,20 @@ impl<'a> Uniformable for &'a [[bool; 4]] {
 fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> Option<String> {
   let mut size: GLint = 0;
   let mut typ: GLuint = 0;
+  let c_name = CString::new(name.as_bytes()).unwrap();
 
   unsafe {
+    // get the max length of the returned names
+    let mut max_len = 0;
+    gl::GetProgramiv(program, gl::ACTIVE_UNIFORM_MAX_LENGTH, &mut max_len);
+
     // get the index of the uniform
     let mut index = 0;
-    gl::GetUniformIndices(program, 1, [name.as_ptr() as *const i8].as_ptr(), &mut index);
+    let mut name_ = Vec::<i8>::with_capacity(max_len as usize);
+    gl::GetUniformIndices(program, 1, [c_name.as_ptr() as *const i8].as_ptr(), &mut index);
+
     // get its size and type
-    gl::GetActiveUniform(program, index, 0, null_mut(), &mut size, &mut typ, null_mut());
+    gl::GetActiveUniform(program, index, max_len, null_mut(), &mut size, &mut typ, name_.as_mut_ptr());
   }
 
   // FIXME

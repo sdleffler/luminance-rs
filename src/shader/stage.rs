@@ -87,9 +87,9 @@ fn glsl_pragma_src(src: &str) -> String {
   pragma
 }
 
-const GLSL_PRAGMA: &'static str =
-r#"#version 330 core
-#extension GL_ARB_separate_shader_objects : require"#;
+const GLSL_PRAGMA: &'static str = "\
+#version 330 core\n\
+#extension GL_ARB_separate_shader_objects : require\n";
 
 fn opengl_shader_type(t: Type) -> GLenum {
   match t {
