@@ -1,3 +1,8 @@
+## 0.22.5
+
+- Add the `readme` attribute to `Cargo.toml` so that it gets rendered on
+  [crates.io](https://crates.io).
+
 ## 0.22.4
 
 - Added some impl of `RenderablePixel`.
