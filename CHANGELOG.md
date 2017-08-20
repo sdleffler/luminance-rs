@@ -1,3 +1,8 @@
+## 0.22.6
+
+- Fix MRT with more than two color slots.
+- Fix segfault on uniform introspection on some hardware.
+
 ## 0.22.5
 
 - Add the `readme` attribute to `Cargo.toml` so that it gets rendered on
