@@ -194,7 +194,7 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
         renderbuffer: depth_renderbuffer,
         w: D::width(size),
         h: D::height(size),
-        color_slot: CS::reify_textures(size, mipmaps, &mut textures),
+        color_slot: CS::reify_textures(size, mipmaps, &mut textures.into_iter()),
         depth_slot: DS::reify_texture(size, mipmaps, depth_texture),
         _l: PhantomData,
         _d: PhantomData,
@@ -279,13 +279,13 @@ pub trait ColorSlot<L, D> where L: Layerable, D: Dimensionable, D::Size: Copy {
   /// Turn a color slot into a list of pixel formats.
   fn color_formats() -> Vec<PixelFormat>;
   /// Reify a list of raw textures into a color slot.
-  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self;
+  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint>;
 }
 
 impl<L, D> ColorSlot<L, D> for () where L: Layerable, D: Dimensionable, D::Size: Copy {
   fn color_formats() -> Vec<PixelFormat> { Vec::new() }
 
-  fn reify_textures(_: D::Size, _: usize, _: &mut Vec<GLuint>) -> Self { () }
+  fn reify_textures<I>(_: D::Size, _: usize, _: &mut I) -> Self where I: Iterator<Item = GLuint> { () }
 }
 
 impl<L, D, P> ColorSlot<L, D> for Texture<L, D, P>
@@ -295,8 +295,8 @@ impl<L, D, P> ColorSlot<L, D> for Texture<L, D, P>
           P: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> { vec![P::pixel_format()] }
 
-  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
-    let color_texture = textures.swap_remove(0);
+  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
+    let color_texture = textures.next().unwrap();
 
     unsafe {
       let raw = RawTexture::new(color_texture, opengl_target(L::layering(), D::dim()));
@@ -317,7 +317,7 @@ impl<L, D, P, B> ColorSlot<L, D> for GTup<Texture<L, D, P>, B>
     a
   }
 
-  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
+  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
     let a = Texture::<L, D, P>::reify_textures(size, mipmaps, textures);
     let b = B::reify_textures(size, mipmaps, textures);
 
@@ -335,7 +335,7 @@ impl<L, D, P0, P1> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>)
     GTup::<Texture<L, D, P0>, Texture<L, D, P1>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
+  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
     let GTup(a, b) = GTup::<Texture<L, D, P0>, Texture<L, D, P1>>::reify_textures(size, mipmaps, textures);
     (a, b)
   }
@@ -352,7 +352,7 @@ impl<L, D, P0, P1, P2> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, Texture<L, D, P2>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
+  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
     let GTup(a, GTup(b, c)) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, Texture<L, D, P2>>>::reify_textures(size, mipmaps, textures);
     (a, b, c)
   }
@@ -370,7 +370,7 @@ impl<L, D, P0, P1, P2, P3> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D,
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, Texture<L, D, P3>>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
+  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
     let GTup(a, GTup(b, GTup(c, d))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, Texture<L, D, P3>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d)
   }
@@ -389,7 +389,7 @@ impl<L, D, P0, P1, P2, P3, P4> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, Texture<L, D, P4>>>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
+  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
     let GTup(a, GTup(b, GTup(c, GTup(d, e)))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, Texture<L, D, P4>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e)
   }
@@ -409,7 +409,7 @@ impl<L, D, P0, P1, P2, P3, P4, P5> ColorSlot<L, D> for (Texture<L, D, P0>, Textu
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, Texture<L, D, P5>>>>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
+  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
     let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, f))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, Texture<L, D, P5>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f)
   }
@@ -430,7 +430,7 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6> ColorSlot<L, D> for (Texture<L, D, P0>, T
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, Texture<L, D, P6>>>>>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
+  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
     let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, g)))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, Texture<L, D, P6>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g)
   }
@@ -452,7 +452,7 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7> ColorSlot<L, D> for (Texture<L, D, P0
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, Texture<L, D, P7>>>>>>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
+  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
     let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, GTup(g, h))))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, Texture<L, D, P7>>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g, h)
   }
@@ -475,7 +475,7 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8> ColorSlot<L, D> for (Texture<L, D
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, Texture<L, D, P8>>>>>>>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
+  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
     let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, GTup(g, GTup(h, i)))))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, Texture< L, D, P8>>>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g, h, i)
   }
@@ -499,7 +499,7 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8, P9> ColorSlot<L, D> for (Texture<
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, GTup<Texture<L, D, P8>, Texture<L, D, P9>>>>>>>>>>::color_formats()
   }
 
-  fn reify_textures(size: D::Size, mipmaps: usize, textures: &mut Vec<GLuint>) -> Self {
+  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
     let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, GTup(g, GTup(h, GTup(i, j))))))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, GTup<Texture<L, D, P8>, Texture<L, D, P9>>>>>>>>>>::reify_textures(size, mipmaps, textures);
     (a, b, c, d, e, f, g, h, i, j)
   }
