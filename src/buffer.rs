@@ -218,17 +218,6 @@ impl<T> Buffer<T> {
     let _ = self.write_whole(values);
   }
 
-  /// Create a new buffer from its raw representation.
-  ///
-  /// This function is unsafe becomes it assumes that the representation is compliant to the type
-  /// you want it to be.
-  pub(crate) unsafe fn from_raw(raw: RawBuffer) -> Self {
-    Buffer {
-      raw: raw,
-      _t: PhantomData
-    }
-  }
-
   /// Convert a buffer to its raw representation.
   pub fn to_raw(self) -> RawBuffer {
     let raw = RawBuffer {
