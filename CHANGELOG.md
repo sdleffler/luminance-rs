@@ -1,3 +1,9 @@
+## 0.22.7
+
+- Use the `pub(crate)` construct to hide some `unsafe` functions and remove `unsafe` annotation on
+  some of them. The safety annotation was used so that it discouraged users to use the functions.
+  Now that we have a proper way to express access-control, we can remove `unsafe`.
+
 ## 0.22.6
 
 - Fix MRT with more than two color slots.
