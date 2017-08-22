@@ -295,7 +295,7 @@ impl ShadingGate {
       _v: PhantomData,
     };
 
-    let uni_iface = unsafe { program.uniform_interface() };
+    let uni_iface = program.uniform_interface();
     f(&render_gate, uni_iface);
   }
 }

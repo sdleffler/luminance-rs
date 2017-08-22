@@ -333,7 +333,7 @@ pub struct RawTexture {
 }
 
 impl RawTexture {
-  pub unsafe fn new(handle: GLuint, target: GLenum) -> Self {
+  pub(crate) unsafe fn new(handle: GLuint, target: GLenum) -> Self {
     RawTexture {
       handle: handle,
       target: target
@@ -341,12 +341,12 @@ impl RawTexture {
   }
 
   #[inline]
-  pub unsafe fn handle(&self) -> GLuint {
+  pub(crate) fn handle(&self) -> GLuint {
     self.handle
   }
 
   #[inline]
-  pub unsafe fn target(&self) -> GLenum {
+  pub(crate) fn target(&self) -> GLenum {
     self.target
   }
 }
@@ -414,7 +414,7 @@ impl<L, D, P> Texture<L, D, P>
   }
 
   /// Create a texture from its backend representation.
-  pub unsafe fn from_raw(raw: RawTexture, size: D::Size, mipmaps: usize) -> Self {
+  pub(crate) unsafe fn from_raw(raw: RawTexture, size: D::Size, mipmaps: usize) -> Self {
     Texture {
       raw: raw,
       size: size,
@@ -562,7 +562,7 @@ pub fn opengl_target(l: Layering, d: Dim) -> GLenum {
   }
 }
 
-pub unsafe fn create_texture<L, D>(target: GLenum, size: D::Size, mipmaps: usize, pf: PixelFormat, sampler: &Sampler) -> Result<()>
+pub(crate) unsafe fn create_texture<L, D>(target: GLenum, size: D::Size, mipmaps: usize, pf: PixelFormat, sampler: &Sampler) -> Result<()>
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy {

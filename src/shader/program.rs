@@ -96,7 +96,7 @@ impl RawProgram {
   }
 
   #[inline]
-  pub unsafe fn handle(&self) -> GLuint {
+  pub(crate) fn handle(&self) -> GLuint {
     self.handle
   }
 }
@@ -140,11 +140,8 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface
     Ok((program, warnings))
   }
 
-  // TODO: hide that from the public interface when pub(crate) is available
   /// Get the uniform interface associated with this program.
-  ///
-  /// > Note: please do not use that function as it’s unsafe and for internal use only.
-  pub unsafe fn uniform_interface(&self) -> &Uni {
+  pub(crate) fn uniform_interface(&self) -> &Uni {
     &self.uni_iface
   }
 }
@@ -271,11 +268,11 @@ impl<T> Uniform<T> where T: Uniformable {
     }
   }
 
-  pub unsafe fn program(&self) -> GLuint {
+  pub(crate) fn program(&self) -> GLuint {
     self.program
   }
 
-  pub unsafe fn index(&self) -> GLint {
+  pub(crate) fn index(&self) -> GLint {
     self.index
   }
 

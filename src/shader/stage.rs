@@ -61,7 +61,7 @@ impl Stage {
   }
 
   #[inline]
-  pub unsafe fn handle(&self) -> GLuint {
+  pub(crate) fn handle(&self) -> GLuint {
     self.handle
   }
 }

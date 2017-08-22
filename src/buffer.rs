@@ -222,7 +222,7 @@ impl<T> Buffer<T> {
   ///
   /// This function is unsafe becomes it assumes that the representation is compliant to the type
   /// you want it to be.
-  pub unsafe fn from_raw(raw: RawBuffer) -> Self {
+  pub(crate) unsafe fn from_raw(raw: RawBuffer) -> Self {
     Buffer {
       raw: raw,
       _t: PhantomData
@@ -315,7 +315,7 @@ impl RawBuffer {
     }
   }
 
-  pub unsafe fn handle(&self) -> GLuint {
+  pub(crate) fn handle(&self) -> GLuint {
     self.handle
   }
 }

@@ -231,7 +231,7 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
   }
 
   #[inline]
-  pub unsafe fn handle(&self) -> GLuint {
+  pub(crate) fn handle(&self) -> GLuint {
     self.handle
   }
 
