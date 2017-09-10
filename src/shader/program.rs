@@ -41,7 +41,9 @@ use vertex::Vertex;
 
 pub type Result<A> = ::std::result::Result<A, ProgramError>;
 
-/// A shader program.
+/// A raw shader program.
+///
+/// This is a type-erased version of a `Program`.
 #[derive(Debug)]
 pub struct RawProgram {
   handle: GLuint
@@ -49,7 +51,7 @@ pub struct RawProgram {
 
 impl RawProgram {
   /// Create a new program by linking shader stages.
-  pub fn new<'a, T, G>(tess: T,
+  fn new<'a, T, G>(tess: T,
                        vertex: &Stage,
                        geometry: G,
                        fragment: &Stage)
@@ -111,7 +113,7 @@ impl Drop for RawProgram {
 ///
 /// Typed shader programs represent their inputs, outputs and environment (uniforms) directly in
 /// their types. This is very interesting as it adds more static safety and enables such programs
-/// to *“store”* information like uniform variables and such.
+/// to *“store”* information like the uniform interface and such.
 pub struct Program<In, Out, Uni> {
   raw: RawProgram,
   uni_iface: Uni,
@@ -120,11 +122,12 @@ pub struct Program<In, Out, Uni> {
 }
 
 impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface {
-  pub fn new<'a, T, G>(tess: T,
-                       vertex: &Stage,
-                       geometry: G,
-                       fragment: &Stage)
-                       -> Result<(Self, Vec<UniformWarning>)>
+  /// Create a new program by consuming `Stage`s.
+  pub fn from_stages<'a, T, G>(tess: T,
+                               vertex: &Stage,
+                               geometry: G,
+                               fragment: &Stage)
+                               -> Result<(Self, Vec<UniformWarning>)>
       where T: Into<Option<(&'a Stage, &'a Stage)>>,
             G: Into<Option<&'a Stage>> {
     let raw = RawProgram::new(tess, vertex, geometry, fragment)?;
@@ -140,6 +143,8 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface
     Ok((program, warnings))
   }
 
+  // TODO: from_strings
+
   /// Get the uniform interface associated with this program.
   pub(crate) fn uniform_interface(&self) -> &Uni {
     &self.uni_iface
@@ -154,6 +159,11 @@ impl<In, Out, Uni> Deref for Program<In, Out, Uni> {
   }
 }
 
+/// Class of types that can act as uniform interfaces in typed programs.
+///
+/// A uniform interface is a value that contains uniforms. The purpose of a uniform interface is to
+/// be stored in a typed program and handed back to the programmer when the program is available in
+/// a pipeline.
 pub trait UniformInterface: Sized {
   /// Build the uniform interface.
   ///
@@ -168,6 +178,7 @@ impl UniformInterface for () {
   }
 }
 
+/// Build uniforms to fold them to a uniform interface.
 pub struct UniformBuilder<'a> {
   raw: &'a RawProgram
 }
@@ -179,17 +190,18 @@ impl<'a> UniformBuilder<'a> {
     }
   }
 
+  /// Have the builder hand you a `Uniform` of the type of your choice. Keep in mind that it’s
+  /// possible that this function fails if you ask for a type that is not the one defined in the
+  /// shader.
   pub fn ask<T>(&self, name: &str) -> ::std::result::Result<Uniform<T>, UniformWarning> where T: Uniformable {
     let uniform = match T::ty() {
       Type::BufferBinding => self.ask_uniform_block(name)?,
       _ => self.ask_uniform(name)?
     };
 
-    if let Some(err) = uniform_type_match(self.raw.handle, name, T::ty(), T::dim()) {
-      Err(UniformWarning::TypeMismatch(name.to_owned(), err))
-    } else {
-      Ok(uniform)
-    }
+    uniform_type_match(self.raw.handle, name, T::ty(), T::dim()).map_err(|err| UniformWarning::TypeMismatch(name.to_owned(), err))?;
+
+    Ok(uniform)
   }
 
   fn ask_uniform<T>(&self, name: &str) -> ::std::result::Result<Uniform<T>, UniformWarning> where T: Uniformable {
@@ -214,6 +226,10 @@ impl<'a> UniformBuilder<'a> {
     }
   }
 
+  /// Special uniform that won’t do anything.
+  ///
+  /// Use that function when you need a uniform to complete a uniform interface but you’re sure you
+  /// won’t use it.
   pub fn unbound<T>(&self) -> Uniform<T> where T: Uniformable {
     Uniform::unbound(self.raw.handle)
   }
@@ -259,7 +275,6 @@ impl<T> Uniform<T> where T: Uniformable {
     }
   }
 
-  /// Create a new unbound uniform.
   fn unbound(program: GLuint) -> Self {
     Uniform {
       program: program,
@@ -276,8 +291,6 @@ impl<T> Uniform<T> where T: Uniformable {
     self.index
   }
 
-  // TODO: state whether it should be mutable or not – feels like a RefCell to me.
-  // TODO: redesign the whole Uniformable + Uniform.update thing
   /// Update the value pointed by this uniform.
   pub fn update(&self, x: T) {
     x.update(self);
@@ -708,8 +721,7 @@ impl<'a> Uniformable for &'a [[bool; 4]] {
   fn dim() -> Dim { Dim::Dim4 }
 }
 
-// Return something if no match can be established.
-fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> Option<String> {
+fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> ::std::result::Result<(), String> {
   let mut size: GLint = 0;
   let mut typ: GLuint = 0;
   let c_name = CString::new(name.as_bytes()).unwrap();
@@ -731,29 +743,29 @@ fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> Option
   // FIXME
   // early-return if array – we don’t support them yet
   if size != 1 {
-    return None;
+    return Ok(());
   }
 
   match (ty, dim) {
-    (Type::Integral, Dim::Dim1) if typ != gl::INT => Some("requested int doesn't match".to_owned()),
-    (Type::Integral, Dim::Dim2) if typ != gl::INT_VEC2 => Some("requested ivec2 doesn't match".to_owned()),
-    (Type::Integral, Dim::Dim3) if typ != gl::INT_VEC3 => Some("requested ivec3 doesn't match".to_owned()),
-    (Type::Integral, Dim::Dim4) if typ != gl::INT_VEC4 => Some("requested ivec4 doesn't match".to_owned()),
-    (Type::Unsigned, Dim::Dim1) if typ != gl::UNSIGNED_INT => Some("requested uint doesn't match".to_owned()),
-    (Type::Unsigned, Dim::Dim2) if typ != gl::UNSIGNED_INT_VEC2 => Some("requested uvec2 doesn't match".to_owned()),
-    (Type::Unsigned, Dim::Dim3) if typ != gl::UNSIGNED_INT_VEC3 => Some("requested uvec3 doesn't match".to_owned()),
-    (Type::Unsigned, Dim::Dim4) if typ != gl::UNSIGNED_INT_VEC4 => Some("requested uvec4 doesn't match".to_owned()),
-    (Type::Floating, Dim::Dim1) if typ != gl::FLOAT => Some("requested float doesn't match".to_owned()),
-    (Type::Floating, Dim::Dim2) if typ != gl::FLOAT_VEC2 => Some("requested vec2 doesn't match".to_owned()),
-    (Type::Floating, Dim::Dim3) if typ != gl::FLOAT_VEC3 => Some("requested vec3 doesn't match".to_owned()),
-    (Type::Floating, Dim::Dim4) if typ != gl::FLOAT_VEC4 => Some("requested vec4 doesn't match".to_owned()),
-    (Type::Floating, Dim::Dim22) if typ != gl::FLOAT_MAT2 => Some("requested mat2 doesn't match".to_owned()),
-    (Type::Floating, Dim::Dim33) if typ != gl::FLOAT_MAT3 => Some("requested mat3 doesn't match".to_owned()),
-    (Type::Floating, Dim::Dim44) if typ != gl::FLOAT_MAT4 => Some("requested mat4 doesn't match".to_owned()),
-    (Type::Boolean, Dim::Dim1) if typ != gl::BOOL => Some("requested bool doesn't match".to_owned()),
-    (Type::Boolean, Dim::Dim2) if typ != gl::BOOL_VEC2 => Some("requested bvec2 doesn't match".to_owned()),
-    (Type::Boolean, Dim::Dim3) if typ != gl::BOOL_VEC3 => Some("requested bvec3 doesn't match".to_owned()),
-    (Type::Boolean, Dim::Dim4) if typ != gl::BOOL_VEC4 => Some("requested bvec4 doesn't match".to_owned()),
-    _ => None
+    (Type::Integral, Dim::Dim1) if typ != gl::INT => Err("requested int doesn't match".to_owned()),
+    (Type::Integral, Dim::Dim2) if typ != gl::INT_VEC2 => Err("requested ivec2 doesn't match".to_owned()),
+    (Type::Integral, Dim::Dim3) if typ != gl::INT_VEC3 => Err("requested ivec3 doesn't match".to_owned()),
+    (Type::Integral, Dim::Dim4) if typ != gl::INT_VEC4 => Err("requested ivec4 doesn't match".to_owned()),
+    (Type::Unsigned, Dim::Dim1) if typ != gl::UNSIGNED_INT => Err("requested uint doesn't match".to_owned()),
+    (Type::Unsigned, Dim::Dim2) if typ != gl::UNSIGNED_INT_VEC2 => Err("requested uvec2 doesn't match".to_owned()),
+    (Type::Unsigned, Dim::Dim3) if typ != gl::UNSIGNED_INT_VEC3 => Err("requested uvec3 doesn't match".to_owned()),
+    (Type::Unsigned, Dim::Dim4) if typ != gl::UNSIGNED_INT_VEC4 => Err("requested uvec4 doesn't match".to_owned()),
+    (Type::Floating, Dim::Dim1) if typ != gl::FLOAT => Err("requested float doesn't match".to_owned()),
+    (Type::Floating, Dim::Dim2) if typ != gl::FLOAT_VEC2 => Err("requested vec2 doesn't match".to_owned()),
+    (Type::Floating, Dim::Dim3) if typ != gl::FLOAT_VEC3 => Err("requested vec3 doesn't match".to_owned()),
+    (Type::Floating, Dim::Dim4) if typ != gl::FLOAT_VEC4 => Err("requested vec4 doesn't match".to_owned()),
+    (Type::Floating, Dim::Dim22) if typ != gl::FLOAT_MAT2 => Err("requested mat2 doesn't match".to_owned()),
+    (Type::Floating, Dim::Dim33) if typ != gl::FLOAT_MAT3 => Err("requested mat3 doesn't match".to_owned()),
+    (Type::Floating, Dim::Dim44) if typ != gl::FLOAT_MAT4 => Err("requested mat4 doesn't match".to_owned()),
+    (Type::Boolean, Dim::Dim1) if typ != gl::BOOL => Err("requested bool doesn't match".to_owned()),
+    (Type::Boolean, Dim::Dim2) if typ != gl::BOOL_VEC2 => Err("requested bvec2 doesn't match".to_owned()),
+    (Type::Boolean, Dim::Dim3) if typ != gl::BOOL_VEC3 => Err("requested bvec3 doesn't match".to_owned()),
+    (Type::Boolean, Dim::Dim4) if typ != gl::BOOL_VEC4 => Err("requested bvec4 doesn't match".to_owned()),
+    _ => Ok(())
   }
 }
