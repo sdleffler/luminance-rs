@@ -36,7 +36,7 @@ use std::ops::Deref;
 use std::ptr::null_mut;
 
 use linear::{M22, M33, M44};
-use shader::stage::Stage;
+use shader::stage::{self, Stage, StageError};
 use vertex::Vertex;
 
 pub type Result<A> = ::std::result::Result<A, ProgramError>;
@@ -128,8 +128,8 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface
                                geometry: G,
                                fragment: &Stage)
                                -> Result<(Self, Vec<UniformWarning>)>
-      where T: Into<Option<(&'a Stage, &'a Stage)>>,
-            G: Into<Option<&'a Stage>> {
+                               where T: Into<Option<(&'a Stage, &'a Stage)>>,
+                                     G: Into<Option<&'a Stage>> {
     let raw = RawProgram::new(tess, vertex, geometry, fragment)?;
     let (iface, warnings) = Uni::uniform_interface(UniformBuilder::new(&raw))?;
 
@@ -143,7 +143,33 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface
     Ok((program, warnings))
   }
 
-  // TODO: from_strings
+  /// Create a new program by consuming strings.
+  pub fn from_strings<'a, T, G>(tess: T,
+                                vertex: &str,
+                                geometry: G,
+                                fragment: &str)
+                                -> Result<(Self, Vec<UniformWarning>)>
+                                where T: Into<Option<(&'a str, &'a str)>>,
+                                      G: Into<Option<&'a str>> {
+    let tess = match tess.into() {
+      Some((tcs_str, tes_str)) => {
+        let tcs = Stage::new(stage::Type::TessellationControlShader, tcs_str).map_err(ProgramError::StageError)?;
+        let tes = Stage::new(stage::Type::TessellationControlShader, tes_str).map_err(ProgramError::StageError)?;
+        Some((tcs, tes))
+      },
+      None => None
+    };
+
+    let gs = match geometry.into() {
+      Some(gs_str) => Some(Stage::new(stage::Type::GeometryShader, gs_str).map_err(ProgramError::StageError)?),
+      None => None
+    };
+
+    let vs = Stage::new(stage::Type::VertexShader, vertex).map_err(ProgramError::StageError)?;
+    let fs = Stage::new(stage::Type::FragmentShader, fragment).map_err(ProgramError::StageError)?;
+
+    Self::from_stages(tess.as_ref().map(|&(ref tcs, ref tes)| (tcs, tes)), &vs, gs.as_ref(), &fs)
+  }
 
   /// Get the uniform interface associated with this program.
   pub(crate) fn uniform_interface(&self) -> &Uni {
@@ -238,6 +264,7 @@ impl<'a> UniformBuilder<'a> {
 /// Errors that a `Program` can generate.
 #[derive(Clone, Debug)]
 pub enum ProgramError {
+  StageError(StageError),
   /// Program link failed. You can inspect the reason by looking at the contained `String`.
   LinkFailed(String),
   /// Some uniform configuration is ill-formed. It can be a problem of inactive uniform, mismatch
