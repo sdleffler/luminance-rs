@@ -1,3 +1,11 @@
+## 0.23.0
+
+> September 10th 2017
+
+- Add `Program::from_strings`.
+- Patch: internal function that used `Option` to express an error via `Some(err)` replaced by
+  `Result<(), _>` and the more appropriate `Err(err)`.
+
 ## 0.22.7
 
 - Use the `pub(crate)` construct to hide some `unsafe` functions and remove `unsafe` annotation on
@@ -31,7 +39,7 @@
 
 - Better implementation of texture and buffer binding.
 
-# 0.22
+# 0.22.0
 
 - Added the `Gpu` type, handling stateful operations on the GPU.
 - Rework of the `pipeline` module. It might change a lot in the near future.
