@@ -2,6 +2,7 @@
 
 [![Build Status](https://travis-ci.org/phaazon/luminance-rs.svg?branch=master)](https://travis-ci.org/phaazon/luminance-rs)
 [![crates.io](https://img.shields.io/crates/v/luminance.svg)](https://crates.io/crates/luminance)
+[![docs.rs](https://docs.rs/luminance/badge.svg)](https://docs.rs/luminance/)
 ![License](https://img.shields.io/badge/license-BSD3-blue.svg?style=flat)
 
 `luminance` is an effort to make graphics rendering simple and elegant. The aims of `luminance` are:
@@ -68,7 +69,7 @@ purpose.
 
 # How to dig in?
 
-`luminance` is written to be fairly simple. The documentation is very transparent about what the
-library does and several articles will appear as the development goes on. Keep tuned! Online
-documentation is planned but in the waiting, feel free to generate the documentation on local and
-browse it with the projects you’re linking `luminance` against! (`cargo doc`).
+`luminance` is written to be fairly simple. [The documentation](https://docs.rs/luminance/) is very
+transparent about what the library does and several articles will appear as the development goes on.
+Keep tuned! Feel free to generate the documentation on local and browse it with the projects you’re
+linking `luminance` against! (`cargo doc`).
