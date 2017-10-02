@@ -1,3 +1,9 @@
+### 0.23.1
+
+> Monday, 2nd of October, 2017
+
+- Implement `Display` and `Error` for error types.
+
 ## 0.23.0
 
 > September 10th 2017
@@ -6,64 +12,64 @@
 - Patch: internal function that used `Option` to express an error via `Some(err)` replaced by
   `Result<(), _>` and the more appropriate `Err(err)`.
 
-## 0.22.7
+### 0.22.7
 
 - Use the `pub(crate)` construct to hide some `unsafe` functions and remove `unsafe` annotation on
   some of them. The safety annotation was used so that it discouraged users to use the functions.
   Now that we have a proper way to express access-control, we can remove `unsafe`.
 
-## 0.22.6
+### 0.22.6
 
 - Fix MRT with more than two color slots.
 - Fix segfault on uniform introspection on some hardware.
 
-## 0.22.5
+### 0.22.5
 
 - Add the `readme` attribute to `Cargo.toml` so that it gets rendered on
   [crates.io](https://crates.io).
 
-## 0.22.4
+### 0.22.4
 
 - Added some impl of `RenderablePixel`.
 
-## 0.22.3
+### 0.22.3
 
 - Enforce static type of `Tess::attributeless`. It now only works with `Tess<()>`.
 
-## 0.22.2
+### 0.22.2
 
 - Enforce lifetimes on `BoundTexture` and `BoundBuffer`. It’s there so that such objects cannot
   live longer than the references on the `Texture<_>` and `Buffer<_>` they’re based on.
 
-## 0.22.1
+### 0.22.1
 
 - Better implementation of texture and buffer binding.
 
-# 0.22.0
+## 0.22
 
 - Added the `Gpu` type, handling stateful operations on the GPU.
 - Rework of the `pipeline` module. It might change a lot in the near future.
 
-## 0.21.3
+### 0.21.3
 
 - Some `tess` and `buffer` types now implement some standard traits (`Debug`, `Eq`, `PartialEq`).
 
-## 0.21.2
+### 0.21.2
 
 - Updated the documentation.
 
-## 0.21.1
+### 0.21.1
 
 - `Tess::as_slice{,_mut}` now don’t need type annotations anymore and provide slices typed by `V`.
 - Added `as_slice{,_mut}` to `Buffer` directly, setting the phantom type to what the `Buffer<_>`
  holds – it’s safer and will remove type annotations in client code, much cool!
 
-# 0.21.0
+## 0.21.0
 
 - Renamed `Chain` into `GTup` and added some macros.
 - Made `Framebuffer::{color,depth}_slot` private and provided accessors.
 
-# 0.20.0
+## 0.20.0
 
 - Typed shader programs are re-introduced. They now accept three type variables: the input of the
   shader program, its output and its uniform interface. The output is currently unused. A lot of
@@ -73,22 +79,22 @@
   having more than the required set of vertex components is used and must adapt to the shader input.
 - `Texture::Dim` is now (mostly) an array instead of a tuple.
 
-# 0.19.0
+## 0.19.0
 
 - `Into<Option<_>>` elegancy additions.
 - Changed the whole pipeline system. It’s now a traversal-like system.
 
-## 0.18.2
+### 0.18.2
 
 - Fixed some internal code about pipelines.
 - Fixed some internal code about texture set binding.
 - `RenderCommand::new` is now polymorphic in its blending argument.
 
-## 0.18.1
+### 0.18.1
 
 - Support for the latest `gl` crate.
 
-# 0.18.0
+## 0.18.0
 
 - `TessRender` now implements `From` for basic cases.
 - All pipeline types now implement `Clone`.
@@ -96,16 +102,16 @@
   is a very important change made so that we can have more sharing and then expect a performance
   boost.
 
-## 0.17.2
+### 0.17.2
 
 - Fixed variance of `BufferSlice*`.
 
-## 0.17.1
+### 0.17.1
 
 - Enhanced the interface of pipes.
 - Rewrote the documentation.
 
-# 0.17.0
+## 0.17.0
 
 - Added mipmap texture filtering to `texture::MagFilter`.
 - Splitted `texture::Filter` into `texture::MinFilter` and `texture::MagFilter` for a better static
@@ -142,7 +148,7 @@
   also has an important impact on the design of the higher level API – to, actually, take advantage
   of it and keep performance as high as possible. Thank you for your attention.
 
-# 0.16.0
+## 0.16.0
 
 - `BufferSlice{,Mut}` now implements `IntoIterator`.
 - Some internal changes.
@@ -159,7 +165,7 @@
 - Added some more types to `UniformBlock`. This trait is not very useful yet, but it’s required to
   make a `Buffer` readable from GLSL.
 
-# 0.15.0
+## 0.15.0
 
 - Texture and framebuffers have several functions that can fail with new errors.
 - Added buffer mapping. See `BufferSlice` and `BufferSliceMut` for further details.
@@ -168,7 +174,7 @@
 - The `Vertex` trait now accepts a lot more of new types (among changes, added support for
   non-32-bit vertex components).
 
-# 0.14.0
+## 0.14.0
 
 - `UniformWarning::TypeMismatch` now includes the name of the uniform which type mismatches with the
   requested on.
@@ -176,27 +182,27 @@
 - `Uniform::sem` doesn’t require `&self` anymore.
 - `Uniform::new` is now a const fn.
 
-## 0.13.1
+### 0.13.1
 
 - Added `Uniform::sem()` function to create `Sem` out of `Uniform<C, T>` in a simpler way.
 
-# 0.13.0
+## 0.13.0
 
 - Changed the pipeline workflow by introducing `Pipe` objects.
 - Removed strong typing in shader programs (`Program<C, T>` is now `Program<C>`).
 - Removed strong typing in shader stages (`Stage<C, T>` is now `Stage<C>`).
 
-## 0.12.1
+### 0.12.1
 
 - Added `Binding` and `Unit` in the default export-list.
 
-# 0.12.0
+## 0.12.0
 
 - Added attribute-less tessellations.
 - Enhanced shader-related documentation.
 - Removed `Slot`.
 
-# 0.11.0
+## 0.11.0
 
 - Added the first, constraint-only, `UniformBlock` trait. Used to restrict types that can be passed
   around in uniform buffers.
@@ -212,49 +218,49 @@
 - Cleaned up documentation.
 - Fixed internal bugs.
 
-# 0.10.0
+## 0.10.0
 
 - Fixed the type of the uniform errors in the uniform interface builder function.
 
-## 0.9.1
+### 0.9.1
 
 - Documentation updates.
 
-# 0.9.0
+## 0.9.0
 
 - Several textures can now be passed as uniforms to shaders. The interface is pretty instable as it
   might change in the future, because for now, the user has to pass the texture units each textures
   should be bound to.
 
-# 0.8.0
+## 0.8.0
 
 - Documentation is now available on docs.rs.
 - Replaced references to `Vec` by slices.
 
-# 0.7.0
+## 0.7.0
 
 - Uniforms have new semantics; mapping them cannot fail anymore but it can be emitted warnings.
 
-## 0.6.4
+### 0.6.4
 
 - Backends now have more information to work with about uniforms. That enables using reification
   techniques to validate types, dimensions, sizes, etc…
 
-## 0.6.3
+### 0.6.3
 
 - Added `get_raw_texels` to `Texture`.
 
-## 0.6.2
+### 0.6.2
 
 - Added `upload_part_raw` and `upload_raw` to `Texture`, enabling to upload raw texels instead of
   texels directly.
 - Added `RawEncoding` to `Pixel`.
 
-## 0.6.1
+### 0.6.1
 
 - Added documentation field in Cargo.toml.
 
-# 0.6.0
+## 0.6.0
 
 - Removed `Default` implementation for `Framebuffer` and added a new `default()` method, taking the
   size of the `Framebuffer`.
@@ -269,22 +275,22 @@
 - Using `usize` instead of `u32` for mipmaps.
 - Added `Dimensionable` and `Layerable` in the interface.
 
-## 0.5.3
+### 0.5.3
 
 - Added `update_textures` into `HasUniform`.
 - Fixed signature of `UniformUpdate::update`.
 - Fixed trait bound on `UniformUpdate::{contramap, update}`.
 
-## 0.5.2
+### 0.5.2
 
 - Added `UniformUpdate`.
 - Added `Uniformable` in the public interfarce shortcut.
 
-## 0.5.1
+### 0.5.1
 
 - Removed `run_pipeline` and added `Pipeline::run`.
 
-# 0.5.0
+## 0.5.0
 
 - Fixed uniform interfaces in `ShadingCommand` and `RenderCommand` with existential quantification.
 - Renamed `FrameCommand` into `Pipeline`.
@@ -292,7 +298,7 @@
 - Added travis CI support.
 - Added documentation for `Program`.
 
-# 0.4.0
+## 0.4.0
 
 - Changed the whole `Program` API to make it safer. Now, it closely looks like the Haskell version
   of `luminance`. The idea is that the user cannot have `Uniform`s around anymore as they’re held by
@@ -300,20 +306,20 @@
   **“rank-2 types”** mechanism as Haskell, `ProgramProxy` is introduced to emulate such a behavior.
 - Added a bit of documentation for shader programs.
 
-## 0.3.1
+### 0.3.1
 
 - Removed `rw`.
 
-# 0.3.0
+## 0.3.0
 
 - Removed A type parameter form `Buffer`. It was unnecessary safety that was never actually used.
 - Added documentation around.
 
-## 0.2.1
+### 0.2.1
 
 - Exposed `Vertex` directly in `luminance`.
 
-# 0.2.0
+## 0.2.0
 
 - Changed `Negative*` blending factors to `*Complement`.
 

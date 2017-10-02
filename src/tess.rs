@@ -34,11 +34,13 @@
 
 use gl;
 use gl::types::*;
+use std::error::Error;
+use std::fmt;
 use std::marker::PhantomData;
 use std::ptr;
 
 use buffer::{Buffer, BufferError, BufferSlice, BufferSliceMut, RawBuffer};
-use vertex::{Dim, Type, Vertex, VertexComponentFormat, VertexFormat};
+use vertex::{Dim, Type, Vertex, VertexComponentFormat};
 
 /// Vertices can be connected via several modes.
 #[derive(Copy, Clone, Debug)]
@@ -60,9 +62,30 @@ pub enum Mode {
 /// Error that can occur while trying to map GPU tessellation to host code.
 #[derive(Debug, Eq, PartialEq)]
 pub enum TessMapError {
-  MismatchVertexFormat(VertexFormat, VertexFormat),
   VertexBufferMapFailed(BufferError),
   ForbiddenAttributelessMapping
+}
+
+impl fmt::Display for TessMapError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    f.write_str(self.description())
+  }
+}
+
+impl Error for TessMapError {
+  fn description(&self) -> &str {
+    match *self {
+      TessMapError::VertexBufferMapFailed(_) => "vertex buffer map failed",
+      TessMapError::ForbiddenAttributelessMapping => "cannot map an attributeless buffer"
+    }
+  }
+
+  fn cause(&self) -> Option<&Error> {
+    match *self {
+      TessMapError::VertexBufferMapFailed(ref e) => Some(e),
+      _ => None
+    }
+  }
 }
 
 /// Accepted vertices for building tessellations.
