@@ -1,6 +1,8 @@
 use gl;
 use gl::types::*;
+use std::error::Error;
 use std::ffi::CString;
+use std::fmt;
 use std::ptr::{null, null_mut};
 
 type Result<A> = ::std::result::Result<A, StageError>;
@@ -79,6 +81,21 @@ pub enum StageError {
   CompilationFailed(Type, String),
   /// Occurs when you try to create a shader which type is not supported on the current hardware.
   UnsupportedType(Type)
+}
+
+impl fmt::Display for StageError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+    f.write_str(self.description())
+  }
+}
+
+impl Error for StageError {
+  fn description(&self) -> &str {
+    match *self {
+      StageError::CompilationFailed(..) => "compilation failed",
+      StageError::UnsupportedType(_) => "unsupported type"
+    }
+  }
 }
 
 fn glsl_pragma_src(src: &str) -> String {

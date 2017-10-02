@@ -30,6 +30,8 @@
 
 use gl;
 use gl::types::*;
+use std::error::Error;
+use std::fmt;
 use std::marker::PhantomData;
 
 use gtup::GTup;
@@ -47,6 +49,28 @@ pub enum FramebufferError {
   Incomplete(IncompleteReason)
 }
 
+impl fmt::Display for FramebufferError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+    f.write_str(self.description())
+  }
+}
+
+impl Error for FramebufferError {
+  fn description(&self) -> &str {
+    match *self {
+      FramebufferError::TextureError(_) => "framebuffer texture error",
+      FramebufferError::Incomplete(_) => "incomplete framebuffer"
+    }
+  }
+
+  fn cause(&self) -> Option<&Error> {
+    Some(match *self {
+      FramebufferError::TextureError(ref e) => e,
+      FramebufferError::Incomplete(ref e) => e
+    })
+  }
+}
+
 /// Reason a framebuffer is incomplete.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum IncompleteReason {
@@ -58,6 +82,27 @@ pub enum IncompleteReason {
   Unsupported,
   IncompleteMultisample,
   IncompleteLayerTargets,
+}
+
+impl fmt::Display for IncompleteReason {
+  fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+    f.write_str(self.description())
+  }
+}
+
+impl Error for IncompleteReason {
+  fn description(&self) -> &str {
+    match *self {
+      IncompleteReason::Undefined => "incomplete reason",
+      IncompleteReason::IncompleteAttachment => "incomplete attachment",
+      IncompleteReason::MissingAttachment => "missing attachment",
+      IncompleteReason::IncompleteDrawBuffer => "incomplete draw buffer",
+      IncompleteReason::IncompleteReadBuffer => "incomplete read buffer",
+      IncompleteReason::Unsupported => "unsupported",
+      IncompleteReason::IncompleteMultisample => "incomplete multisample",
+      IncompleteReason::IncompleteLayerTargets => "incomplete layer targets"
+    }
+  }
 }
 
 pub type Result<T> = ::std::result::Result<T, FramebufferError>;

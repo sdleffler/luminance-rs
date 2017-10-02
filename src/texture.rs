@@ -70,6 +70,8 @@
 
 use gl;
 use gl::types::*;
+use std::error::Error;
+use std::fmt;
 use std::marker::PhantomData;
 use std::mem;
 use std::os::raw::c_void;
@@ -769,8 +771,21 @@ impl Default for Sampler {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TextureError {
-  TextureCreationFailed(String),
   TextureStorageCreationFailed(String),
+}
+
+impl fmt::Display for TextureError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+    f.write_str(self.description())
+  }
+}
+
+impl Error for TextureError {
+  fn description(&self) -> &str {
+    match *self {
+      TextureError::TextureStorageCreationFailed(ref s) => &s
+    }
+  }
 }
 
 pub type Result<T> = ::std::result::Result<T, TextureError>;

@@ -30,7 +30,9 @@
 
 use gl;
 use gl::types::*;
+use std::error::Error;
 use std::ffi::CString;
+use std::fmt;
 use std::marker::PhantomData;
 use std::ops::Deref;
 use std::ptr::null_mut;
@@ -272,6 +274,30 @@ pub enum ProgramError {
   UniformWarning(UniformWarning)
 }
 
+impl fmt::Display for ProgramError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+    f.write_str(self.description())
+  }
+}
+
+impl Error for ProgramError {
+  fn description(&self) -> &str {
+    match *self {
+      ProgramError::StageError(_) => "stage error",
+      ProgramError::LinkFailed(ref s) => &s,
+      ProgramError::UniformWarning(_) => "uniform warning"
+    }
+  }
+
+  fn cause(&self) -> Option<&Error> {
+    match *self {
+      ProgramError::StageError(ref e) => Some(e),
+      ProgramError::UniformWarning(ref e) => Some(e),
+      _ => None
+    }
+  }
+}
+
 /// Warnings related to uniform issues.
 #[derive(Clone, Debug)]
 pub enum UniformWarning {
@@ -282,6 +308,21 @@ pub enum UniformWarning {
   ///
   /// The first `String` is the name of the uniform; the second one gives the type mismatch.
   TypeMismatch(String, String)
+}
+
+impl fmt::Display for UniformWarning {
+  fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+    f.write_str(self.description())
+  }
+}
+
+impl Error for UniformWarning {
+  fn description(&self) -> &str {
+    match *self {
+      UniformWarning::Inactive(ref s) => &s,
+      UniformWarning::TypeMismatch(..) => "type mismatch"
+    }
+  }
 }
 
 /// A shader uniform. `Uniform<T>` doesn’t hold any value. It’s more like a mapping between the

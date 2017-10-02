@@ -64,6 +64,8 @@
 use gl;
 use gl::types::*;
 use std::cmp::Ordering;
+use std::error::Error;
+use std::fmt;
 use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
@@ -81,6 +83,23 @@ pub enum BufferError {
   TooFewValues,
   TooManyValues,
   MapFailed
+}
+
+impl Error for BufferError {
+  fn description(&self) -> &str {
+    match *self {
+      BufferError::Overflow => "buffer overflow",
+      BufferError::TooFewValues => "too few values",
+      BufferError::TooManyValues => "too many values",
+      BufferError::MapFailed => "map failed"
+    }
+  }
+}
+
+impl fmt::Display for BufferError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    f.write_str(self.description())
+  }
 }
 
 /// A `Buffer` is a GPU region you can picture as an array. It has a static size and cannot be
