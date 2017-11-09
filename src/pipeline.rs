@@ -367,7 +367,7 @@ impl Default for RenderState {
     RenderState {
       blending: None,
       depth_test: DepthTest::Enabled,
-      face_culling: Some(FaceCulling::new(FaceCullingOrder::CCW, FaceCullingMode::Back))
+      face_culling: Some(FaceCulling::default())
     }
   }
 }
@@ -387,6 +387,12 @@ pub struct FaceCulling {
 impl FaceCulling {
   pub fn new(order: FaceCullingOrder, mode: FaceCullingMode) -> Self {
     FaceCulling { order, mode }
+  }
+}
+
+impl Default for FaceCulling {
+  fn default() -> Self {
+    FaceCulling::new(FaceCullingOrder::CCW, FaceCullingMode::Back)
   }
 }
 
