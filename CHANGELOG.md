@@ -1,3 +1,10 @@
+## 0.24.0
+
+> Thursday, 9th of November, 2017
+
+- Add support for *face culling*.
+- Enhance the interface of render gates with `RenderState`.
+
 ### 0.23.1
 
 > Monday, 2nd of October, 2017

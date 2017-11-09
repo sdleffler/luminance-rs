@@ -305,7 +305,7 @@ pub struct RenderGate<V> {
 }
 
 impl<V> RenderGate<V> {
-  pub fn render<B, F>(&self, rdr_st: RenderState, f: F) where F: FnOnce(&TessGate<V>) {
+  pub fn render<F>(&self, rdr_st: RenderState, f: F) where F: FnOnce(&TessGate<V>) {
     unsafe {
       set_blending(rdr_st.blending);
       set_depth_test(rdr_st.depth_test);
