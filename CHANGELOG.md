@@ -1,3 +1,9 @@
+## 0.24.1
+
+> Monday, 11th of December, 2017
+
+- Add more color and renderable pixel formats (all sized supported).
+
 ## 0.24.0
 
 > Thursday, 9th of November, 2017
