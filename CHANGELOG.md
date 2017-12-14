@@ -1,3 +1,10 @@
+# 0.25.0
+
+> Thursday, 14th of December, 2017
+
+- Replace the `Uniformable` implementation for `pipeline::Bound*` to `&pipeline::Bound*`. This
+  enables sharing of bound resources instead of dropping and re-binding the resources.
+
 ## 0.24.1
 
 > Monday, 11th of December, 2017

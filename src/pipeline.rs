@@ -197,7 +197,7 @@ impl<'a, T> Drop for BoundTexture<'a, T> {
   }
 }
 
-impl<'a, T> Uniformable for BoundTexture<'a, T> {
+impl<'a, 'b, T> Uniformable for &'b BoundTexture<'a, T> {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1i(u.index(), self.unit as GLint) }
   }
@@ -233,7 +233,7 @@ impl<'a, T> Drop for BoundBuffer<'a, T> {
   }
 }
 
-impl<'a, T> Uniformable for BoundBuffer<'a, T> {
+impl<'a, 'b, T> Uniformable for &'b BoundBuffer<'a, T> {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::UniformBlockBinding(u.program(), u.index() as GLuint, self.binding as GLuint) }
   }
