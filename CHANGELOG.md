@@ -1,3 +1,7 @@
+## 0.25.1
+
+- Fix the pixel formats support on the OpenGL side.
+
 # 0.25.0
 
 > Thursday, 14th of December, 2017

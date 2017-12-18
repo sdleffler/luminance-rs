@@ -367,12 +367,40 @@ impl_DepthPixel!(Depth32F);
 // OpenGL format, internal sized-format and type.
 pub fn opengl_pixel_format(pf: PixelFormat) -> Option<(GLenum, GLenum, GLenum)> {
   match (pf.format, pf.encoding) {
+    (Format::R(8), Type::Integral) => Some((gl::RED_INTEGER, gl::R8I, gl::BYTE)),
+    (Format::R(8), Type::Unsigned) => Some((gl::RED_INTEGER, gl::R8UI, gl::UNSIGNED_BYTE)),
+    (Format::R(16), Type::Integral) => Some((gl::RED_INTEGER, gl::R16I, gl::SHORT)),
+    (Format::R(16), Type::Unsigned) => Some((gl::RED_INTEGER, gl::R16UI, gl::UNSIGNED_SHORT)),
+    (Format::R(32), Type::Integral) => Some((gl::RED_INTEGER, gl::R32I, gl::INT)),
+    (Format::R(32), Type::Unsigned) => Some((gl::RED_INTEGER, gl::R32UI, gl::UNSIGNED_INT)),
     (Format::R(32), Type::Floating) => Some((gl::RED, gl::R32F, gl::FLOAT)),
+
+    (Format::RG(8, 8), Type::Integral) => Some((gl::RG_INTEGER, gl::RG8I, gl::BYTE)),
+    (Format::RG(8, 8), Type::Unsigned) => Some((gl::RG_INTEGER, gl::RG8UI, gl::UNSIGNED_BYTE)),
+    (Format::RG(16, 16), Type::Integral) => Some((gl::RG_INTEGER, gl::RG16I, gl::SHORT)),
+    (Format::RG(16, 16), Type::Unsigned) => Some((gl::RG_INTEGER, gl::RG16UI, gl::UNSIGNED_SHORT)),
+    (Format::RG(32, 32), Type::Integral) => Some((gl::RG_INTEGER, gl::RG32I, gl::INT)),
+    (Format::RG(32, 32), Type::Unsigned) => Some((gl::RG_INTEGER, gl::RG32UI, gl::UNSIGNED_INT)),
+    (Format::RG(32, 32), Type::Floating) => Some((gl::RG, gl::RG32F, gl::FLOAT)),
+
+    (Format::RGB(8, 8, 8), Type::Integral) => Some((gl::RGB_INTEGER, gl::RGB8I, gl::BYTE)),
     (Format::RGB(8, 8, 8), Type::Unsigned) => Some((gl::RGB_INTEGER, gl::RGB8UI, gl::UNSIGNED_BYTE)),
-    (Format::RGBA(8, 8, 8, 8), Type::Unsigned) => Some((gl::RGBA_INTEGER, gl::RGBA8UI, gl::UNSIGNED_BYTE)),
+    (Format::RGB(16, 16, 16), Type::Integral) => Some((gl::RGB_INTEGER, gl::RGB16I, gl::SHORT)),
+    (Format::RGB(16, 16, 16), Type::Unsigned) => Some((gl::RGB_INTEGER, gl::RGB16UI, gl::UNSIGNED_SHORT)),
+    (Format::RGB(32, 32, 32), Type::Integral) => Some((gl::RGB_INTEGER, gl::RGB32I, gl::INT)),
+    (Format::RGB(32, 32, 32), Type::Unsigned) => Some((gl::RGB_INTEGER, gl::RGB32UI, gl::UNSIGNED_INT)),
     (Format::RGB(32, 32, 32), Type::Floating) => Some((gl::RGB, gl::RGB32F, gl::FLOAT)),
+
+    (Format::RGBA(8, 8, 8, 8), Type::Integral) => Some((gl::RGBA_INTEGER, gl::RGBA8I, gl::BYTE)),
+    (Format::RGBA(8, 8, 8, 8), Type::Unsigned) => Some((gl::RGBA_INTEGER, gl::RGBA8UI, gl::UNSIGNED_BYTE)),
+    (Format::RGBA(16, 16, 16, 16), Type::Integral) => Some((gl::RGBA_INTEGER, gl::RGBA16I, gl::SHORT)),
+    (Format::RGBA(16, 16, 16, 16), Type::Unsigned) => Some((gl::RGBA_INTEGER, gl::RGBA16UI, gl::UNSIGNED_SHORT)),
+    (Format::RGBA(32, 32, 32, 32), Type::Integral) => Some((gl::RGBA_INTEGER, gl::RGBA32I, gl::INT)),
+    (Format::RGBA(32, 32, 32, 32), Type::Unsigned) => Some((gl::RGBA_INTEGER, gl::RGBA32UI, gl::UNSIGNED_INT)),
     (Format::RGBA(32, 32, 32, 32), Type::Floating) => Some((gl::RGBA, gl::RGBA32F, gl::FLOAT)),
+
     (Format::Depth(32), Type::Floating) => Some((gl::DEPTH_COMPONENT, gl::DEPTH_COMPONENT32F, gl::FLOAT)),
+
     _ => panic!("unsupported pixel format {:?}", pf)
   }
 }
