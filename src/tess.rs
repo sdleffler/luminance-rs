@@ -37,6 +37,7 @@ use gl::types::*;
 use std::error::Error;
 use std::fmt;
 use std::marker::PhantomData;
+use std::os::raw::c_void;
 use std::ptr;
 
 use buffer::{Buffer, BufferError, BufferSlice, BufferSliceMut, RawBuffer};
@@ -341,12 +342,12 @@ fn set_component_format(i: u32, stride: GLsizei, off: usize, f: &VertexComponent
   match f.comp_type {
     Type::Floating => {
       unsafe {
-        gl::VertexAttribPointer(i as GLuint, dim_as_size(&f.dim), opengl_sized_type(&f), gl::FALSE, stride, ptr::null().offset(off as isize));
+        gl::VertexAttribPointer(i as GLuint, dim_as_size(&f.dim), opengl_sized_type(&f), gl::FALSE, stride, ptr::null::<c_void>().offset(off as isize));
       }
     },
     Type::Integral | Type::Unsigned | Type::Boolean => {
       unsafe {
-        gl::VertexAttribIPointer(i as GLuint, dim_as_size(&f.dim), opengl_sized_type(&f), stride, ptr::null().offset(off as isize));
+        gl::VertexAttribIPointer(i as GLuint, dim_as_size(&f.dim), opengl_sized_type(&f), stride, ptr::null::<c_void>().offset(off as isize));
       }
     }
   }
