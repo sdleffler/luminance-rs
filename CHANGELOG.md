@@ -1,3 +1,13 @@
+## 0.25.2
+
+> Sunday, 11th of February, 2018
+
+- Add a `uniform_interface!` macro. That enables to create a new `struct` type and have inspection
+  of its fields at compile-time so that a `UniformInterface impl` is automatically generated. This
+  is a kind of _custom auto derive_ without depending on proc-macro. Feel free to use it as it’ll
+  remove a lot of boilerplate from your code.
+- Cleanup of internal code.
+
 ## 0.25.1
 
 - Fix the pixel formats support on the OpenGL side.

@@ -838,6 +838,65 @@ fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> ::std:
   }
 }
 
+/// Create a new `struct` that represents a *uniform interface* and automatically derive the
+/// `impl for UniformInterface`.
+///
+/// The macro is very simple to use. You declare a struct as you would normally do:
+///
+/// ```
+/// uniform_interface! {
+///   struct MyIface {
+///     time: f32,
+///     resolution: [f32; 4]
+///   }
+/// }
+/// ```
+///
+/// The effect of this declaration is declaring the `MyIface` struct along with an effective
+/// implementation of `UniformInterface` that will try to get the `"time"` and `"resolution"`
+/// uniforms in the corresponding shader program. If any of the two uniforms fails to map (inactive
+/// uniform, for instance), the whole struct cannot be generated, and an error is arisen (see
+/// `UniformInterface::uniform_interface`’s documentation for further details.
+///
+/// If you don’t use a paramater in your shader, you might not want the whole interface to fail
+/// building if that parameter cannot be mapped. You can do that via the `#[unbound]` field
+/// attribute:
+///
+/// ```
+/// uniform_interface! {
+///   struct MyIface {
+///     #[unbound]
+///     time: f32, // if you this field cannot be mapped, it’ll be ignored
+///     resolution: [f32; 4]
+///   }
+/// }
+/// ```
+///
+/// You can also change the default mapping with the `#[as(string_mapping)]` attribute. This changes
+/// the name that must be queried from the shader program for the mapping to be complete:
+///
+/// ```
+/// uniform_interface! {
+///   struct MyIface {
+///     time: f32,
+///     #[as("res")]
+///     resolution: [f32; 4] // must map "res" from the shader program
+///   }
+/// }
+/// ```
+///
+/// Finally, you can mix both attributes if you want to change the mapping and have un unbound
+/// uniform if it cannot be mapped:
+///
+/// ```
+/// uniform_interface! {
+///   struct MyIface {
+///     time: f32,
+///     #[as("res"), unbound]
+///     resolution: [f32; 4] // must map "res" from the shader program and ignored otherwise
+///   }
+/// }
+/// ```
 #[macro_export]
 macro_rules! uniform_interface {
   (struct $struct_name:ident { $($fields:tt)* }) => {
