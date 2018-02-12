@@ -1,3 +1,9 @@
+## 0.25.4
+
+> Monday, 12th of February, 2018
+
+- Support visibility in `uniform_interface!`.
+
 ## 0.25.3
 
 > Monday, 12th of February, 2018

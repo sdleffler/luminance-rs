@@ -900,15 +900,25 @@ fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> ::std:
 #[macro_export]
 macro_rules! uniform_interface {
   (struct $struct_name:ident { $($fields:tt)* }) => {
-    uniform_interface_build_struct!($struct_name, $($fields)*);
+    uniform_interface_build_struct!([], $struct_name, $($fields)*);
     uniform_interface_impl_trait!($struct_name, $($fields)*);
-  }
+  };
+
+  (pub struct $struct_name:ident { $($fields:tt)* }) => {
+    uniform_interface_build_struct!([pub], $struct_name, $($fields)*);
+    uniform_interface_impl_trait!($struct_name, $($fields)*);
+  };
+
+  (pub($visibility:tt) struct $struct_name:ident { $($fields:tt)* }) => {
+    uniform_interface_build_struct!([pub($visibility)], $struct_name, $($fields)*);
+    uniform_interface_impl_trait!($struct_name, $($fields)*);
+  };
 }
 
 #[macro_export]
 macro_rules! uniform_interface_build_struct {
-  ($struct_name:ident, $($(#[$($field_attrs:tt)*])* $field_name:ident : $field_ty:ty),+) => {
-    struct $struct_name {
+  ([$($visibility:tt)*], $struct_name:ident, $($(#[$($field_attrs:tt)*])* $field_name:ident : $field_ty:ty),+) => {
+    $($visibility)* struct $struct_name {
       $(
         $field_name: $crate::shader::program::Uniform<$field_ty>
       ),+
