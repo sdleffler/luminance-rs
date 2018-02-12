@@ -1,3 +1,9 @@
+## 0.25.3
+
+> Monday, 12th of February, 2018
+
+- Fix some doc’s typo.
+
 ## 0.25.2
 
 > Sunday, 11th of February, 2018

@@ -856,9 +856,9 @@ fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> ::std:
 /// implementation of `UniformInterface` that will try to get the `"time"` and `"resolution"`
 /// uniforms in the corresponding shader program. If any of the two uniforms fails to map (inactive
 /// uniform, for instance), the whole struct cannot be generated, and an error is arisen (see
-/// `UniformInterface::uniform_interface`’s documentation for further details.
+/// `UniformInterface::uniform_interface`’s documentation for further details).
 ///
-/// If you don’t use a paramater in your shader, you might not want the whole interface to fail
+/// If you don’t use a parameter in your shader, you might not want the whole interface to fail
 /// building if that parameter cannot be mapped. You can do that via the `#[unbound]` field
 /// attribute:
 ///
@@ -866,7 +866,7 @@ fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> ::std:
 /// uniform_interface! {
 ///   struct MyIface {
 ///     #[unbound]
-///     time: f32, // if you this field cannot be mapped, it’ll be ignored
+///     time: f32, // if this field cannot be mapped, it’ll be ignored
 ///     resolution: [f32; 4]
 ///   }
 /// }
@@ -885,7 +885,7 @@ fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> ::std:
 /// }
 /// ```
 ///
-/// Finally, you can mix both attributes if you want to change the mapping and have un unbound
+/// Finally, you can mix both attributes if you want to change the mapping and have an unbound
 /// uniform if it cannot be mapped:
 ///
 /// ```
