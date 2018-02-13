@@ -1,3 +1,9 @@
+## 0.25.5
+
+> Tuesday, 13th of February, 2018
+
+- Support for `gl-0.10`.
+
 ## 0.25.4
 
 > Monday, 12th of February, 2018
