@@ -180,7 +180,7 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
     let color_formats = CS::color_formats();
     let depth_format = DS::depth_format();
     let target = opengl_target(L::layering(), D::dim());
-    let mut textures = vec![0; (color_formats.len() + if depth_format.is_some() { 1 } else { 0 })];
+    let mut textures = vec![0; color_formats.len() + if depth_format.is_some() { 1 } else { 0 }];
     let mut depth_texture: Option<GLuint> = None;
     let mut depth_renderbuffer: Option<GLuint> = None;
 
