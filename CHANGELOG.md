@@ -1,3 +1,9 @@
+## 0.25.6
+
+> Sunday, 18th of March, 2018
+
+- Added the `TessRender::one_slice` function.
+
 ## 0.25.5
 
 > Tuesday, 13th of February, 2018
@@ -14,13 +20,13 @@
 
 > Monday, 12th of February, 2018
 
-- Fix some doc’s typo.
+- Fixed some doc’s typo.
 
 ## 0.25.2
 
 > Sunday, 11th of February, 2018
 
-- Add a `uniform_interface!` macro. That enables to create a new `struct` type and have inspection
+- Added a `uniform_interface!` macro. That enables to create a new `struct` type and have inspection
   of its fields at compile-time so that a `UniformInterface impl` is automatically generated. This
   is a kind of _custom auto derive_ without depending on proc-macro. Feel free to use it as it’ll
   remove a lot of boilerplate from your code.
@@ -28,39 +34,39 @@
 
 ## 0.25.1
 
-- Fix the pixel formats support on the OpenGL side.
+- Fixed the pixel formats support on the OpenGL side.
 
 # 0.25.0
 
 > Thursday, 14th of December, 2017
 
-- Replace the `Uniformable` implementation for `pipeline::Bound*` to `&pipeline::Bound*`. This
+- Replaced the `Uniformable` implementation for `pipeline::Bound*` to `&pipeline::Bound*`. This
   enables sharing of bound resources instead of dropping and re-binding the resources.
 
 ## 0.24.1
 
 > Monday, 11th of December, 2017
 
-- Add more color and renderable pixel formats (all sized supported).
+- Added more color and renderable pixel formats (all sized supported).
 
 ## 0.24.0
 
 > Thursday, 9th of November, 2017
 
-- Add support for *face culling*.
-- Enhance the interface of render gates with `RenderState`.
+- Added support for *face culling*.
+- Enhanced the interface of render gates with `RenderState`.
 
 ### 0.23.1
 
 > Monday, 2nd of October, 2017
 
-- Implement `Display` and `Error` for error types.
+- Implemented `Display` and `Error` for error types.
 
 ## 0.23.0
 
 > September 10th 2017
 
-- Add `Program::from_strings`.
+- Added `Program::from_strings`.
 - Patch: internal function that used `Option` to express an error via `Some(err)` replaced by
   `Result<(), _>` and the more appropriate `Err(err)`.
 
@@ -72,12 +78,12 @@
 
 ### 0.22.6
 
-- Fix MRT with more than two color slots.
-- Fix segfault on uniform introspection on some hardware.
+- Fixed MRT with more than two color slots.
+- Fixed segfault on uniform introspection on some hardware.
 
 ### 0.22.5
 
-- Add the `readme` attribute to `Cargo.toml` so that it gets rendered on
+- Added the `readme` attribute to `Cargo.toml` so that it gets rendered on
   [crates.io](https://crates.io).
 
 ### 0.22.4
