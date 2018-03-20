@@ -238,7 +238,7 @@ impl<'a, 'b, T> Uniformable for &'b BoundBuffer<'a, T> {
     unsafe { gl::UniformBlockBinding(u.program(), u.index() as GLuint, self.binding as GLuint) }
   }
 
-  fn ty() -> Type { Type::TextureUnit }
+  fn ty() -> Type { Type::BufferBinding }
 
   fn dim() -> Dim { Dim::Dim1 }
 }
