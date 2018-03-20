@@ -1,3 +1,9 @@
+## 0.25.7
+
+> Tuesday, 20th of March, 2018
+
+- Fix `BoundBuffer` type reification in `Uniformable`.
+
 ## 0.25.6
 
 > Sunday, 18th of March, 2018
