@@ -80,6 +80,9 @@ extern crate gl;
 
 pub mod blending;
 pub mod buffer;
+pub mod context;
+pub mod depth_test;
+pub mod face_culling;
 #[macro_use]
 pub mod framebuffer;
 #[macro_use]
@@ -88,6 +91,7 @@ pub mod linear;
 pub mod pipeline;
 pub mod pixel;
 pub mod shader;
+pub mod state;
 pub mod tess;
 pub mod texture;
 pub mod vertex;

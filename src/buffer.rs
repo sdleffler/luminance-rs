@@ -134,6 +134,7 @@ impl<T> Buffer<T> {
   }
 
   /// Get the length of the buffer.
+  #[inline(always)]
   pub fn len(&self) -> usize {
     self.len
   }

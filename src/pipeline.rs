@@ -105,6 +105,7 @@ use std::rc::Rc;
 use buffer::RawBuffer;
 use blending::{Equation, Factor};
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer};
+use depth_test::DepthTest;
 use shader::program::{Dim, Program, Type, Uniform, Uniformable, UniformInterface};
 use tess::TessRender;
 use texture::{Dimensionable, Layerable, RawTexture};
@@ -308,7 +309,7 @@ impl<V> RenderGate<V> {
   pub fn render<F>(&self, rdr_st: RenderState, f: F) where F: FnOnce(&TessGate<V>) {
     unsafe {
       set_blending(rdr_st.blending);
-      set_depth_test(rdr_st.depth_test);
+      //set_depth_test(rdr_st.depth_test); // FIXME
       set_face_culling(rdr_st.face_culling);
     }
 
@@ -370,12 +371,6 @@ impl Default for RenderState {
       face_culling: Some(FaceCulling::default())
     }
   }
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum DepthTest {
-  Enabled,
-  Disabled
 }
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
@@ -441,14 +436,6 @@ unsafe fn set_blending(blending: Option<(Equation, Factor, Factor)>) {
     None => {
       gl::Disable(gl::BLEND);
     }
-  }
-}
-
-#[inline]
-unsafe fn set_depth_test(test: DepthTest) {
-  match test {
-    DepthTest::Enabled => gl::Enable(gl::DEPTH_TEST),
-    DepthTest::Disabled => gl::Disable(gl::DEPTH_TEST)
   }
 }
 

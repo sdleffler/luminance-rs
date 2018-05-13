@@ -1,3 +1,4 @@
+
 //! That module exports blending-related types and functions.
 //!
 //! Given two pixels *src* and *dst* – source and destination, we associate each pixel a blending
@@ -8,6 +9,15 @@
 //! details.
 //!
 //! The factors are encoded with `Factor`.
+
+use gl;
+use gl::types::*;
+
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) enum BlendingState {
+  Enabled,
+  Disabled
+}
 
 /// Blending equation. Used to state how blending factors and pixel data should be blended.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
