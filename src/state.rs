@@ -28,8 +28,17 @@ pub struct GraphicsState {
   face_culling_order: FaceCullingOrder,
   face_culling_mode: FaceCullingMode,
 
-  //// texture
-  //next_texture_unit: GLenum
+  // texture
+  current_texture_unit: GLenum,
+  bound_texture_1d: GLuint,
+  bound_texture_2d: GLuint,
+  bound_texture_3d: GLuint,
+  bound_texture_1d_array: GLuint,
+  bound_texture_2d_array: GLuint,
+  bound_texture_rectangle: GLuint,
+  bound_texture_cubemap: GLuint,
+  bound_texture_2d_multisample: GLuint,
+  bound_texture_2d_multisample_array: GLuint,
 }
 
 impl GraphicsState {
@@ -43,7 +52,16 @@ impl GraphicsState {
       let face_culling_state = get_ctx_face_culling_state()?;
       let face_culling_order = get_ctx_face_culling_order()?;
       let face_culling_mode = get_ctx_face_culling_mode()?;
-      //let next_texture_unit = get_ctx_next_texture_unit();
+      let current_texture_unit = get_ctx_current_texture_unit()?;
+      let bound_texture_1d = get_ctx_bound_texture(gl::TEXTURE_BINDING_1D)?;
+      let bound_texture_2d = get_ctx_bound_texture(gl::TEXTURE_BINDING_2D)?;
+      let bound_texture_3d = get_ctx_bound_texture(gl::TEXTURE_BINDING_3D)?;
+      let bound_texture_1d_array = get_ctx_bound_texture(gl::TEXTURE_BINDING_1D_ARRAY)?;
+      let bound_texture_2d_array = get_ctx_bound_texture(gl::TEXTURE_BINDING_2D_ARRAY)?;
+      let bound_texture_rectangle = get_ctx_bound_texture(gl::TEXTURE_BINDING_RECTANGLE)?;
+      let bound_texture_cubemap = get_ctx_bound_texture(gl::TEXTURE_BINDING_CUBE_MAP)?;
+      let bound_texture_2d_multisample = get_ctx_bound_texture(gl::TEXTURE_BINDING_2D_MULTISAMPLE)?;
+      let bound_texture_2d_multisample_array = get_ctx_bound_texture(gl::TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY)?;
 
       Ok(GraphicsState {
         _a: PhantomData,
@@ -54,6 +72,16 @@ impl GraphicsState {
         face_culling_state,
         face_culling_order,
         face_culling_mode,
+        current_texture_unit,
+        bound_texture_1d,
+        bound_texture_2d,
+        bound_texture_3d,
+        bound_texture_1d_array,
+        bound_texture_2d_array,
+        bound_texture_rectangle,
+        bound_texture_cubemap,
+        bound_texture_2d_multisample,
+        bound_texture_2d_multisample_array,
       })
     }
   }
@@ -137,6 +165,14 @@ impl GraphicsState {
       }
 
       self.face_culling_mode = mode;
+    }
+  }
+
+  #[inline(always)]
+  pub(crate) unsafe fn set_texture_unit(&mut self, unit: u32) {
+    if self.current_texture_unit != unit {
+      gl::ActiveTexture(gl::TEXTURE0 + unit as GLenum);
+      self.current_texture_unit = unit;
     }
   }
 }
@@ -281,4 +317,16 @@ unsafe fn get_ctx_face_culling_mode() -> Result<FaceCullingMode, StateQueryError
     gl::FRONT_AND_BACK => Ok(FaceCullingMode::Both),
     _ => Err(StateQueryError::UnknownFaceCullingMode(mode))
   }
+}
+
+unsafe fn get_ctx_current_texture_unit() -> Result<GLenum, StateQueryError> {
+  let mut active_texture = gl::TEXTURE0 as GLint;
+  gl::GetIntegerv(gl::ACTIVE_TEXTURE, &mut active_texture);
+  Ok(active_texture as GLenum)
+}
+
+unsafe fn get_ctx_bound_texture(target: GLenum) -> Result<GLuint, StateQueryError> {
+  let mut bound = 0 as GLint;
+  gl::GetIntegerv(target, &mut bound);
+  Ok(bound as GLuint)
 }
