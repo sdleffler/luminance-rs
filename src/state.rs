@@ -166,13 +166,12 @@ fn from_blending_factor(factor: Factor) -> GLenum {
 }
 
 unsafe fn get_ctx_blending_state() -> BlendingState {
-  let mut data = gl::FALSE;
-  gl::GetBooleanv(gl::BLEND, &mut data);
+  let state = gl::IsEnabled(gl::BLEND);
 
-  match data {
+  match state {
     gl::TRUE => BlendingState::Enabled,
     gl::FALSE => BlendingState::Disabled,
-    _ => panic!("unknown blending state: {}", data)
+    _ => panic!("unknown blending state: {}", state)
   }
 }
 
@@ -219,24 +218,22 @@ fn from_gl_blending_factor(factor: GLenum) -> Factor {
 }
 
 unsafe fn get_ctx_depth_test() -> DepthTest {
-  let mut data = gl::FALSE;
-  gl::GetBooleanv(gl::DEPTH_TEST, &mut data);
+  let state = gl::IsEnabled(gl::DEPTH_TEST);
 
-  match data {
+  match state {
     gl::TRUE => DepthTest::Enabled,
     gl::FALSE => DepthTest::Disabled,
-    _ => panic!("unknown depth test: {}", data)
+    _ => panic!("unknown depth test: {}", state)
   }
 }
 
 unsafe fn get_ctx_face_culling_state() -> FaceCullingState {
-  let mut data = gl::FALSE;
-  gl::GetBooleanv(gl::CULL_FACE, &mut data);
+  let state = gl::IsEnabled(gl::CULL_FACE);
 
-  match data {
+  match state {
     gl::TRUE => FaceCullingState::Enabled,
     gl::FALSE => FaceCullingState::Disabled,
-    _ => panic!("unknown face culling state: {}", data)
+    _ => panic!("unknown face culling state: {}", state)
   }
 }
 
