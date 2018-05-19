@@ -21,7 +21,7 @@
 
 use std::cell::RefCell;
 
-use state::GraphicsState;
+use state::{GraphicsState, StateQueryError};
 
 /// Class of graphics context.
 ///
@@ -46,7 +46,7 @@ pub trait WithGraphicsState {
 
   /// Call the builder and consume it. You’re handed a function that gives you a `GraphicsState` in
   /// order to return it in your object.
-  fn call_once<F>(self, f: F) -> Self::Output where F: FnOnce() -> GraphicsState;
+  fn call_once<F>(self, f: F) -> Self::Output where F: FnOnce() -> Result<GraphicsState, StateQueryError>;
 }
 
 /// Acquire a context per-thread (if none was previously initialized yet).

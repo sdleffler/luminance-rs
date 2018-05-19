@@ -27,21 +27,25 @@ pub struct GraphicsState {
   face_culling_state: FaceCullingState,
   face_culling_order: FaceCullingOrder,
   face_culling_mode: FaceCullingMode,
+
+  //// texture
+  //next_texture_unit: GLenum
 }
 
 impl GraphicsState {
   /// Get a `GraphicsContext` from the current OpenGL context.
-  pub(crate) fn get_from_context() -> Self {
+  pub(crate) fn get_from_context() -> Result<Self, StateQueryError> {
     unsafe {
-      let blending_state = get_ctx_blending_state();
-      let blending_equation = get_ctx_blending_equation();
-      let blending_func = get_ctx_blending_factors();
-      let depth_test = get_ctx_depth_test();
-      let face_culling_state = get_ctx_face_culling_state();
-      let face_culling_order = get_ctx_face_culling_order();
-      let face_culling_mode = get_ctx_face_culling_mode();
+      let blending_state = get_ctx_blending_state()?;
+      let blending_equation = get_ctx_blending_equation()?;
+      let blending_func = get_ctx_blending_factors()?;
+      let depth_test = get_ctx_depth_test()?;
+      let face_culling_state = get_ctx_face_culling_state()?;
+      let face_culling_order = get_ctx_face_culling_order()?;
+      let face_culling_mode = get_ctx_face_culling_mode()?;
+      //let next_texture_unit = get_ctx_next_texture_unit();
 
-      GraphicsState {
+      Ok(GraphicsState {
         _a: PhantomData,
         blending_state,
         blending_equation,
@@ -50,7 +54,7 @@ impl GraphicsState {
         face_culling_state,
         face_culling_order,
         face_culling_mode,
-      }
+      })
     }
   }
 
@@ -165,97 +169,116 @@ fn from_blending_factor(factor: Factor) -> GLenum {
   }
 }
 
-unsafe fn get_ctx_blending_state() -> BlendingState {
+/// An error that might happen when the context is queried.
+#[derive(Debug)]
+pub enum StateQueryError {
+  UnknownBlendingState(GLboolean),
+  UnknownBlendingEquation(GLenum),
+  UnknownBlendingSrcFactor(GLenum),
+  UnknownBlendingDstFactor(GLenum),
+  UnknownDepthTestState(GLboolean),
+  UnknownFaceCullingState(GLboolean),
+  UnknownFaceCullingOrder(GLenum),
+  UnknownFaceCullingMode(GLenum),
+}
+
+unsafe fn get_ctx_blending_state() -> Result<BlendingState, StateQueryError> {
   let state = gl::IsEnabled(gl::BLEND);
 
   match state {
-    gl::TRUE => BlendingState::Enabled,
-    gl::FALSE => BlendingState::Disabled,
-    _ => panic!("unknown blending state: {}", state)
+    gl::TRUE => Ok(BlendingState::Enabled),
+    gl::FALSE => Ok(BlendingState::Disabled),
+    _ => Err(StateQueryError::UnknownBlendingState(state))
   }
 }
 
-unsafe fn get_ctx_blending_equation() -> Equation {
+unsafe fn get_ctx_blending_equation() -> Result<Equation, StateQueryError> {
   let mut data = gl::FUNC_ADD as GLint;
   gl::GetIntegerv(gl::BLEND_EQUATION_RGB, &mut data);
 
-  match data as GLenum {
-    gl::FUNC_ADD => Equation::Additive,
-    gl::FUNC_SUBTRACT => Equation::Subtract,
-    gl::FUNC_REVERSE_SUBTRACT => Equation::ReverseSubtract,
-    gl::MIN => Equation::Min,
-    gl::MAX => Equation::Max,
-    _ => panic!("unknown blending equation: {}", data)
+  let data = data as GLenum;
+  match data {
+    gl::FUNC_ADD => Ok(Equation::Additive),
+    gl::FUNC_SUBTRACT => Ok(Equation::Subtract),
+    gl::FUNC_REVERSE_SUBTRACT => Ok(Equation::ReverseSubtract),
+    gl::MIN => Ok(Equation::Min),
+    gl::MAX => Ok(Equation::Max),
+    _ => Err(StateQueryError::UnknownBlendingEquation(data))
   }
 }
 
-unsafe fn get_ctx_blending_factors() -> (Factor, Factor) {
+unsafe fn get_ctx_blending_factors() -> Result<(Factor, Factor), StateQueryError> {
   let mut src = gl::ONE as GLint;
   let mut dst = gl::ZERO as GLint;
 
   gl::GetIntegerv(gl::BLEND_SRC_RGB, &mut src);
   gl::GetIntegerv(gl::BLEND_DST_RGB, &mut dst);
 
-  (from_gl_blending_factor(src as GLenum), from_gl_blending_factor(dst as GLenum))
+  let src_k = from_gl_blending_factor(src as GLenum).map_err(StateQueryError::UnknownBlendingSrcFactor)?;
+  let dst_k = from_gl_blending_factor(dst as GLenum).map_err(StateQueryError::UnknownBlendingDstFactor)?;
+
+  Ok((src_k, dst_k))
 }
 
 #[inline]
-fn from_gl_blending_factor(factor: GLenum) -> Factor {
+fn from_gl_blending_factor(factor: GLenum) -> Result<Factor, GLenum> {
   match factor {
-    gl::ONE => Factor::One,
-    gl::ZERO => Factor::Zero,
-    gl::SRC_COLOR => Factor::SrcColor,
-    gl::ONE_MINUS_SRC_COLOR => Factor::SrcColorComplement,
-    gl::DST_COLOR => Factor::DestColor,
-    gl::ONE_MINUS_DST_COLOR => Factor::DestColorComplement,
-    gl::SRC_ALPHA => Factor::SrcAlpha,
-    gl::ONE_MINUS_SRC_ALPHA => Factor::SrcAlphaComplement,
-    gl::DST_ALPHA => Factor::DstAlpha,
-    gl::ONE_MINUS_DST_ALPHA => Factor::DstAlphaComplement,
-    gl::SRC_ALPHA_SATURATE => Factor::SrcAlphaSaturate,
-    _ => panic!("unknown blending factor: {}", factor)
+    gl::ONE => Ok(Factor::One),
+    gl::ZERO => Ok(Factor::Zero),
+    gl::SRC_COLOR => Ok(Factor::SrcColor),
+    gl::ONE_MINUS_SRC_COLOR => Ok(Factor::SrcColorComplement),
+    gl::DST_COLOR => Ok(Factor::DestColor),
+    gl::ONE_MINUS_DST_COLOR => Ok(Factor::DestColorComplement),
+    gl::SRC_ALPHA => Ok(Factor::SrcAlpha),
+    gl::ONE_MINUS_SRC_ALPHA => Ok(Factor::SrcAlphaComplement),
+    gl::DST_ALPHA => Ok(Factor::DstAlpha),
+    gl::ONE_MINUS_DST_ALPHA => Ok(Factor::DstAlphaComplement),
+    gl::SRC_ALPHA_SATURATE => Ok(Factor::SrcAlphaSaturate),
+    _ => Err(factor)
   }
 }
 
-unsafe fn get_ctx_depth_test() -> DepthTest {
+unsafe fn get_ctx_depth_test() -> Result<DepthTest, StateQueryError> {
   let state = gl::IsEnabled(gl::DEPTH_TEST);
 
   match state {
-    gl::TRUE => DepthTest::Enabled,
-    gl::FALSE => DepthTest::Disabled,
-    _ => panic!("unknown depth test: {}", state)
+    gl::TRUE => Ok(DepthTest::Enabled),
+    gl::FALSE => Ok(DepthTest::Disabled),
+    _ => Err(StateQueryError::UnknownDepthTestState(state))
   }
 }
 
-unsafe fn get_ctx_face_culling_state() -> FaceCullingState {
+unsafe fn get_ctx_face_culling_state() -> Result<FaceCullingState, StateQueryError> {
   let state = gl::IsEnabled(gl::CULL_FACE);
 
   match state {
-    gl::TRUE => FaceCullingState::Enabled,
-    gl::FALSE => FaceCullingState::Disabled,
-    _ => panic!("unknown face culling state: {}", state)
+    gl::TRUE => Ok(FaceCullingState::Enabled),
+    gl::FALSE => Ok(FaceCullingState::Disabled),
+    _ => Err(StateQueryError::UnknownFaceCullingState(state))
   }
 }
 
-unsafe fn get_ctx_face_culling_order() -> FaceCullingOrder {
-  let mut data = gl::CCW as GLint;
-  gl::GetIntegerv(gl::FRONT_FACE, &mut data);
+unsafe fn get_ctx_face_culling_order() -> Result<FaceCullingOrder, StateQueryError> {
+  let mut order = gl::CCW as GLint;
+  gl::GetIntegerv(gl::FRONT_FACE, &mut order);
 
-  match data as GLenum {
-    gl::CCW => FaceCullingOrder::CCW,
-    gl::CW => FaceCullingOrder::CW,
-    _ => panic!("unknown face culling order: {}", data)
+  let order = order as GLenum;
+  match order {
+    gl::CCW => Ok(FaceCullingOrder::CCW),
+    gl::CW => Ok(FaceCullingOrder::CW),
+    _ => Err(StateQueryError::UnknownFaceCullingOrder(order))
   }
 }
 
-unsafe fn get_ctx_face_culling_mode() -> FaceCullingMode {
-  let mut data = gl::BACK as GLint;
-  gl::GetIntegerv(gl::CULL_FACE_MODE, &mut data);
+unsafe fn get_ctx_face_culling_mode() -> Result<FaceCullingMode, StateQueryError> {
+  let mut mode = gl::BACK as GLint;
+  gl::GetIntegerv(gl::CULL_FACE_MODE, &mut mode);
 
-  match data as GLenum {
-    gl::FRONT => FaceCullingMode::Front,
-    gl::BACK => FaceCullingMode::Back,
-    gl::FRONT_AND_BACK => FaceCullingMode::Both,
-    _ => panic!("unknown face culling mode: {}", data)
+  let mode = mode as GLenum;
+  match mode {
+    gl::FRONT => Ok(FaceCullingMode::Front),
+    gl::BACK => Ok(FaceCullingMode::Back),
+    gl::FRONT_AND_BACK => Ok(FaceCullingMode::Both),
+    _ => Err(StateQueryError::UnknownFaceCullingMode(mode))
   }
 }
