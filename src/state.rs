@@ -5,13 +5,14 @@ use std::marker::PhantomData;
 use blending::{BlendingState, Equation, Factor};
 use depth_test::DepthTest;
 use face_culling::{FaceCullingMode, FaceCullingOrder, FaceCullingState};
+use texture::RawTexture;
 
 /// The graphics state.
 ///
 /// This type represents the current state of a given graphics context. It acts
 /// as a forward-gate to all the exposed features from the low-level API but
-/// adds a small cache layer over it to prevent from issuing twiche the same API
-/// call (with the same parameters).
+/// adds a small cache layer over it to prevent from issuing the same API call (with
+/// the same parameters).
 pub struct GraphicsState {
   _a: PhantomData<*const ()>, // !Send and !Sync
   
@@ -174,6 +175,16 @@ impl GraphicsState {
       gl::ActiveTexture(gl::TEXTURE0 + unit as GLenum);
       self.current_texture_unit = unit;
     }
+  }
+
+  // FIXME: this is not ideal because of the branching
+  #[inline(always)]
+  pub(crate) unsafe fn bind_texture(&mut self, tex: &RawTexture) {
+    let target = tex.target();
+    let handle = tex.handle();
+
+    // TODO: implement the actual caching
+    gl::BindTexture(target, handle);
   }
 }
 

@@ -547,7 +547,7 @@ impl<L, D, P> Texture<L, D, P>
   }
 }
 
-pub fn opengl_target(l: Layering, d: Dim) -> GLenum {
+pub(crate) fn opengl_target(l: Layering, d: Dim) -> GLenum {
   match l {
     Layering::Flat => match d {
       Dim::Dim1 => gl::TEXTURE_1D,
