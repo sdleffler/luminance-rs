@@ -30,12 +30,15 @@ pub struct GraphicsState {
   face_culling_order: FaceCullingOrder,
   face_culling_mode: FaceCullingMode,
 
-  // texture binding
+  // texture
   current_texture_unit: GLenum,
   bound_textures: Vec<(GLenum, GLuint)>,
 
-  // uniform buffer binding
-  bound_uniform_buffers: Vec<GLuint>
+  // uniform buffer
+  bound_uniform_buffers: Vec<GLuint>,
+
+  // array buffer
+  bound_array_buffer: GLuint
 }
 
 impl GraphicsState {
@@ -52,6 +55,7 @@ impl GraphicsState {
       let current_texture_unit = get_ctx_current_texture_unit()?;
       let bound_textures = vec![(gl::TEXTURE_2D, 0); 48]; // 48 is the platform minimal requirement
       let bound_uniform_buffers = vec![0; 36]; // 36 is the platform minimal requirement
+      let bound_array_buffer = 0;
 
       Ok(GraphicsState {
         _a: PhantomData,
@@ -65,6 +69,7 @@ impl GraphicsState {
         current_texture_unit,
         bound_textures,
         bound_uniform_buffers,
+        bound_array_buffer,
       })
     }
   }
@@ -192,6 +197,15 @@ impl GraphicsState {
       }
 
       _ => () // cached
+    }
+  }
+
+  pub(crate) unsafe fn bind_array_buffer(&mut self, buf: &RawBuffer) {
+    let handle = buf.handle();
+
+    if self.bound_array_buffer != handle {
+      gl::BindBuffer(gl::ARRAY_BUFFER, handle);
+      self.bound_array_buffer = handle;
     }
   }
 }
