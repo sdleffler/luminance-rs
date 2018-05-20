@@ -3,6 +3,7 @@ use gl::types::*;
 use std::marker::PhantomData;
 
 use blending::{BlendingState, Equation, Factor};
+use buffer::RawBuffer;
 use depth_test::DepthTest;
 use face_culling::{FaceCullingMode, FaceCullingOrder, FaceCullingState};
 use texture::RawTexture;
@@ -29,9 +30,12 @@ pub struct GraphicsState {
   face_culling_order: FaceCullingOrder,
   face_culling_mode: FaceCullingMode,
 
-  // texture
+  // texture binding
   current_texture_unit: GLenum,
-  bound_textures: Vec<(GLenum, GLuint)>
+  bound_textures: Vec<(GLenum, GLuint)>,
+
+  // uniform buffer binding
+  bound_uniform_buffers: Vec<GLuint>
 }
 
 impl GraphicsState {
@@ -46,7 +50,8 @@ impl GraphicsState {
       let face_culling_order = get_ctx_face_culling_order()?;
       let face_culling_mode = get_ctx_face_culling_mode()?;
       let current_texture_unit = get_ctx_current_texture_unit()?;
-      let bound_textures = Vec::with_capacity(48); // 48 is the platform minimal requirement
+      let bound_textures = vec![(gl::TEXTURE_2D, 0); 48]; // 48 is the platform minimal requirement
+      let bound_uniform_buffers = vec![0; 36]; // 36 is the platform minimal requirement
 
       Ok(GraphicsState {
         _a: PhantomData,
@@ -59,12 +64,11 @@ impl GraphicsState {
         face_culling_mode,
         current_texture_unit,
         bound_textures,
+        bound_uniform_buffers,
       })
     }
   }
 
-  // blending
-  #[inline(always)]
   pub(crate) unsafe fn set_blending_state(&mut self, state: BlendingState) {
     if self.blending_state != state {
       match state {
@@ -76,7 +80,6 @@ impl GraphicsState {
     }
   }
 
-  #[inline(always)]
   pub(crate) unsafe fn set_blending_equation(&mut self, equation: Equation) {
     if self.blending_equation != equation {
       gl::BlendEquation(from_blending_equation(equation));
@@ -84,7 +87,6 @@ impl GraphicsState {
     }
   }
 
-  #[inline(always)]
   pub(crate) unsafe fn set_blending_func(
     &mut self,
     src: Factor,
@@ -96,7 +98,6 @@ impl GraphicsState {
     }
   }
 
-  #[inline(always)]
   pub(crate) unsafe fn set_depth_test(&mut self, depth_test: DepthTest) {
     if self.depth_test != depth_test {
       match depth_test {
@@ -108,7 +109,6 @@ impl GraphicsState {
     }
   }
 
-  #[inline(always)]
   pub(crate) unsafe fn set_face_culling_state(&mut self, state: FaceCullingState) {
     if self.face_culling_state != state {
       match state {
@@ -120,7 +120,6 @@ impl GraphicsState {
     }
   }
 
-  #[inline(always)]
   pub(crate) unsafe fn set_face_culling_order(&mut self, order: FaceCullingOrder) {
     if self.face_culling_order != order {
       match order {
@@ -132,7 +131,6 @@ impl GraphicsState {
     }
   }
 
-  #[inline(always)]
   pub(crate) unsafe fn set_face_culling_mode(&mut self, mode: FaceCullingMode) {
     if self.face_culling_mode != mode {
       match mode {
@@ -145,7 +143,6 @@ impl GraphicsState {
     }
   }
 
-  #[inline(always)]
   pub(crate) unsafe fn set_texture_unit(&mut self, unit: u32) {
     if self.current_texture_unit != unit {
       gl::ActiveTexture(gl::TEXTURE0 + unit as GLenum);
@@ -153,7 +150,6 @@ impl GraphicsState {
     }
   }
 
-  #[inline(always)]
   pub(crate) unsafe fn bind_texture(&mut self, tex: &RawTexture) {
     let target = tex.target();
     let handle = tex.handle();
@@ -171,6 +167,28 @@ impl GraphicsState {
         // not enough registered texture units; let’s grow a bit more
         self.bound_textures.resize(unit + 1, (gl::TEXTURE_2D, 0));
         self.bound_textures[unit] = (target, handle);
+      }
+
+      _ => () // cached
+    }
+  }
+
+  pub(crate) unsafe fn bind_buffer_base(&mut self, buf: &RawBuffer, binding: u32) {
+    let handle = buf.handle();
+    let binding_ = binding as usize;
+
+    match self.bound_uniform_buffers.get(binding_).cloned() {
+      Some(handle_) if handle != handle_ => {
+        gl::BindBufferBase(gl::UNIFORM_BUFFER, binding as GLuint, handle);
+        self.bound_uniform_buffers[binding_] = handle;
+      }
+
+      None => {
+        gl::BindBufferBase(gl::UNIFORM_BUFFER, binding as GLuint, handle);
+
+        // not enough registered buffer bindings; let’s grow a bit more
+        self.bound_uniform_buffers.resize(binding_ + 1, 0);
+        self.bound_uniform_buffers[binding_] = handle;
       }
 
       _ => () // cached
