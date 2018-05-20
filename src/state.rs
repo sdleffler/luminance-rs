@@ -31,15 +31,7 @@ pub struct GraphicsState {
 
   // texture
   current_texture_unit: GLenum,
-  bound_texture_1d: GLuint,
-  bound_texture_2d: GLuint,
-  bound_texture_3d: GLuint,
-  bound_texture_1d_array: GLuint,
-  bound_texture_2d_array: GLuint,
-  bound_texture_rectangle: GLuint,
-  bound_texture_cubemap: GLuint,
-  bound_texture_2d_multisample: GLuint,
-  bound_texture_2d_multisample_array: GLuint,
+  bound_textures: Vec<(GLenum, GLuint)>
 }
 
 impl GraphicsState {
@@ -54,15 +46,7 @@ impl GraphicsState {
       let face_culling_order = get_ctx_face_culling_order()?;
       let face_culling_mode = get_ctx_face_culling_mode()?;
       let current_texture_unit = get_ctx_current_texture_unit()?;
-      let bound_texture_1d = get_ctx_bound_texture(gl::TEXTURE_BINDING_1D)?;
-      let bound_texture_2d = get_ctx_bound_texture(gl::TEXTURE_BINDING_2D)?;
-      let bound_texture_3d = get_ctx_bound_texture(gl::TEXTURE_BINDING_3D)?;
-      let bound_texture_1d_array = get_ctx_bound_texture(gl::TEXTURE_BINDING_1D_ARRAY)?;
-      let bound_texture_2d_array = get_ctx_bound_texture(gl::TEXTURE_BINDING_2D_ARRAY)?;
-      let bound_texture_rectangle = get_ctx_bound_texture(gl::TEXTURE_BINDING_RECTANGLE)?;
-      let bound_texture_cubemap = get_ctx_bound_texture(gl::TEXTURE_BINDING_CUBE_MAP)?;
-      let bound_texture_2d_multisample = get_ctx_bound_texture(gl::TEXTURE_BINDING_2D_MULTISAMPLE)?;
-      let bound_texture_2d_multisample_array = get_ctx_bound_texture(gl::TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY)?;
+      let bound_textures = Vec::with_capacity(48); // 48 is the platform minimal requirement
 
       Ok(GraphicsState {
         _a: PhantomData,
@@ -74,15 +58,7 @@ impl GraphicsState {
         face_culling_order,
         face_culling_mode,
         current_texture_unit,
-        bound_texture_1d,
-        bound_texture_2d,
-        bound_texture_3d,
-        bound_texture_1d_array,
-        bound_texture_2d_array,
-        bound_texture_rectangle,
-        bound_texture_cubemap,
-        bound_texture_2d_multisample,
-        bound_texture_2d_multisample_array,
+        bound_textures,
       })
     }
   }
@@ -177,14 +153,28 @@ impl GraphicsState {
     }
   }
 
-  // FIXME: this is not ideal because of the branching
   #[inline(always)]
   pub(crate) unsafe fn bind_texture(&mut self, tex: &RawTexture) {
     let target = tex.target();
     let handle = tex.handle();
+    let unit = self.current_texture_unit as usize;
 
-    // TODO: implement the actual caching
-    gl::BindTexture(target, handle);
+    match self.bound_textures.get(unit).cloned() {
+      Some((target_, handle_)) if target != target_ || handle != handle_ => {
+        gl::BindTexture(target, handle);
+        self.bound_textures[unit] = (target, handle);
+      }
+
+      None => {
+        gl::BindTexture(target, handle);
+
+        // not enough registered texture units; let’s grow a bit more
+        self.bound_textures.resize(unit + 1, (gl::TEXTURE_2D, 0));
+        self.bound_textures[unit] = (target, handle);
+      }
+
+      _ => () // cached
+    }
   }
 }
 
@@ -334,10 +324,4 @@ unsafe fn get_ctx_current_texture_unit() -> Result<GLenum, StateQueryError> {
   let mut active_texture = gl::TEXTURE0 as GLint;
   gl::GetIntegerv(gl::ACTIVE_TEXTURE, &mut active_texture);
   Ok(active_texture as GLenum)
-}
-
-unsafe fn get_ctx_bound_texture(target: GLenum) -> Result<GLuint, StateQueryError> {
-  let mut bound = 0 as GLint;
-  gl::GetIntegerv(target, &mut bound);
-  Ok(bound as GLuint)
 }
