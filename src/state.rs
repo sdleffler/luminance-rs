@@ -3,10 +3,8 @@ use gl::types::*;
 use std::marker::PhantomData;
 
 use blending::{BlendingState, Equation, Factor};
-use buffer::RawBuffer;
 use depth_test::DepthTest;
 use face_culling::{FaceCullingMode, FaceCullingOrder, FaceCullingState};
-use texture::RawTexture;
 
 /// The graphics state.
 ///
@@ -155,9 +153,7 @@ impl GraphicsState {
     }
   }
 
-  pub(crate) unsafe fn bind_texture(&mut self, tex: &RawTexture) {
-    let target = tex.target();
-    let handle = tex.handle();
+  pub(crate) unsafe fn bind_texture(&mut self, target: GLenum, handle: GLuint) {
     let unit = self.current_texture_unit as usize;
 
     match self.bound_textures.get(unit).cloned() {
@@ -178,8 +174,7 @@ impl GraphicsState {
     }
   }
 
-  pub(crate) unsafe fn bind_buffer_base(&mut self, buf: &RawBuffer, binding: u32) {
-    let handle = buf.handle();
+  pub(crate) unsafe fn bind_buffer_base(&mut self, handle: GLuint, binding: u32) {
     let binding_ = binding as usize;
 
     match self.bound_uniform_buffers.get(binding_).cloned() {
@@ -200,9 +195,7 @@ impl GraphicsState {
     }
   }
 
-  pub(crate) unsafe fn bind_array_buffer(&mut self, buf: &RawBuffer) {
-    let handle = buf.handle();
-
+  pub(crate) unsafe fn bind_array_buffer(&mut self, handle: GLuint) {
     if self.bound_array_buffer != handle {
       gl::BindBuffer(gl::ARRAY_BUFFER, handle);
       self.bound_array_buffer = handle;
