@@ -42,6 +42,7 @@ use std::os::raw::c_void;
 use std::ptr;
 
 use buffer::{Buffer, BufferError, BufferSlice, BufferSliceMut, RawBuffer};
+use context::GraphicsContext;
 use vertex::{Dim, Type, Vertex, VertexComponentFormat};
 
 /// Vertices can be connected via several modes.
@@ -127,8 +128,9 @@ impl<V> Tess<V> where V: Vertex {
   /// The `mode` argument gives the type of the primitives and how to interpret the `vertices` and
   /// `indices` slices. If `indices` is set to `None`, the tessellation will use the `vertices`
   /// as-is.
-  pub fn new<'a, W, I>(mode: Mode, vertices: W, indices: I) -> Self
-      where TessVertices<'a, V>: From<W>,
+  pub fn new<'a, C, W, I>(ctx: &mut C, mode: Mode, vertices: W, indices: I) -> Self
+      where C: GraphicsContext,
+            TessVertices<'a, V>: From<W>,
             V: 'a + Vertex,
             I: Into<Option<&'a[u32]>> {
     let vertices = vertices.into();
@@ -145,11 +147,11 @@ impl<V> Tess<V> where V: Vertex {
       gl::BindVertexArray(vao);
 
       // vertex buffer
-      let vertex_buffer = Buffer::new(vert_nb);
+      let vertex_buffer = Buffer::new(ctx, vert_nb);
 
       // fill the buffer with vertices only if asked by the user
       if let TessVertices::Fill(verts) = vertices {
-        vertex_buffer.fill(verts);
+        vertex_buffer.fill(ctx, verts);
       }
 
       let raw_vbo = vertex_buffer.to_raw();
@@ -161,8 +163,8 @@ impl<V> Tess<V> where V: Vertex {
       // in case of indexed render, create an index buffer
       if let Some(indices) = indices.into() {
         let ind_nb = indices.len();
-        let index_buffer = Buffer::new(ind_nb);
-        index_buffer.fill(indices);
+        let index_buffer = Buffer::new(ctx, ind_nb);
+        index_buffer.fill(ctx, indices);
 
         let raw_ibo = index_buffer.to_raw();
 
@@ -227,17 +229,25 @@ impl<V> Tess<V> where V: Vertex {
   }
 
   /// Get an immutable slice over the vertices stored on GPU.
-  pub fn as_slice(&self) -> Result<BufferSlice<V>, TessMapError> {
+  pub fn as_slice<C>(
+    &self,
+    ctx: &mut C
+  ) -> Result<BufferSlice<V>, TessMapError>
+  where C: GraphicsContext {
     self.vbo.as_ref()
       .ok_or(TessMapError::ForbiddenAttributelessMapping)
-      .and_then(|raw| RawBuffer::as_slice(raw).map_err(TessMapError::VertexBufferMapFailed))
+      .and_then(|raw| RawBuffer::as_slice(raw, ctx).map_err(TessMapError::VertexBufferMapFailed))
   }
 
   /// Get a mutable slice over the vertices stored on GPU.
-  pub fn as_slice_mut(&mut self) -> Result<BufferSliceMut<V>, TessMapError> {
+  pub fn as_slice_mut<C>(
+    &mut self,
+    ctx: &mut C
+  ) -> Result<BufferSliceMut<V>, TessMapError>
+  where C: GraphicsContext {
     self.vbo.as_mut()
       .ok_or(TessMapError::ForbiddenAttributelessMapping)
-      .and_then(|raw| RawBuffer::as_slice_mut(raw).map_err(TessMapError::VertexBufferMapFailed))
+      .and_then(|raw| RawBuffer::as_slice_mut(raw, ctx).map_err(TessMapError::VertexBufferMapFailed))
   }
 }
 

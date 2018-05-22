@@ -29,7 +29,7 @@ use state::{GraphicsState, StateQueryError};
 /// threads in any way (move / borrow).
 pub unsafe trait GraphicsContext {
   /// Get access to the graphics state of this context.
-  fn graphics_state(&mut self) -> &mut GraphicsState;
+  fn state(&mut self) -> &mut GraphicsState;
 
   /// Swap the back and front buffers.
   fn swap_buffers(&mut self);
