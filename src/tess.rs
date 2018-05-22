@@ -112,7 +112,6 @@ impl<'a, T> From<&'a [T]> for TessVertices<'a, T> where T: 'a + Vertex {
 /// GPU typed tessellation.
 ///
 /// The tessellation is typed with the vertex type.
-#[derive(Debug, Eq, PartialEq)]
 pub struct Tess<V> {
   mode: GLenum,
   vert_nb: usize,
@@ -151,7 +150,7 @@ impl<V> Tess<V> where V: Vertex {
 
       // fill the buffer with vertices only if asked by the user
       if let TessVertices::Fill(verts) = vertices {
-        vertex_buffer.fill(ctx, verts);
+        vertex_buffer.fill(verts);
       }
 
       let raw_vbo = vertex_buffer.to_raw();
@@ -164,7 +163,7 @@ impl<V> Tess<V> where V: Vertex {
       if let Some(indices) = indices.into() {
         let ind_nb = indices.len();
         let index_buffer = Buffer::new(ctx, ind_nb);
-        index_buffer.fill(ctx, indices);
+        index_buffer.fill(indices);
 
         let raw_ibo = index_buffer.to_raw();
 
@@ -229,25 +228,17 @@ impl<V> Tess<V> where V: Vertex {
   }
 
   /// Get an immutable slice over the vertices stored on GPU.
-  pub fn as_slice<C>(
-    &self,
-    ctx: &mut C
-  ) -> Result<BufferSlice<V>, TessMapError>
-  where C: GraphicsContext {
+  pub fn as_slice(&self) -> Result<BufferSlice<V>, TessMapError> {
     self.vbo.as_ref()
       .ok_or(TessMapError::ForbiddenAttributelessMapping)
-      .and_then(|raw| RawBuffer::as_slice(raw, ctx).map_err(TessMapError::VertexBufferMapFailed))
+      .and_then(|raw| RawBuffer::as_slice(raw).map_err(TessMapError::VertexBufferMapFailed))
   }
 
   /// Get a mutable slice over the vertices stored on GPU.
-  pub fn as_slice_mut<C>(
-    &mut self,
-    ctx: &mut C
-  ) -> Result<BufferSliceMut<V>, TessMapError>
-  where C: GraphicsContext {
+  pub fn as_slice_mut<C>(&mut self) -> Result<BufferSliceMut<V>, TessMapError> {
     self.vbo.as_mut()
       .ok_or(TessMapError::ForbiddenAttributelessMapping)
-      .and_then(|raw| RawBuffer::as_slice_mut(raw, ctx).map_err(TessMapError::VertexBufferMapFailed))
+      .and_then(|raw| RawBuffer::as_slice_mut(raw).map_err(TessMapError::VertexBufferMapFailed))
   }
 }
 

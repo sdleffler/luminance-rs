@@ -20,6 +20,7 @@
 //! dynamic branches in the implementation and reduce the number of required safety checks.
 
 use std::cell::RefCell;
+use std::rc::Rc;
 
 use state::{GraphicsState, StateQueryError};
 
@@ -29,7 +30,10 @@ use state::{GraphicsState, StateQueryError};
 /// threads in any way (move / borrow).
 pub unsafe trait GraphicsContext {
   /// Get access to the graphics state of this context.
-  fn state(&mut self) -> &mut GraphicsState;
+  ///
+  /// This must return a `Rc<RefCell<GraphicsState>>` because the state will be shared by OpenGL
+  /// objects to ensure consistency with its state.
+  fn state(&mut self) -> &Rc<RefCell<GraphicsState>>;
 
   /// Swap the back and front buffers.
   fn swap_buffers(&mut self);
