@@ -34,6 +34,7 @@ use std::error::Error;
 use std::fmt;
 use std::marker::PhantomData;
 
+use context::GraphicsContext;
 use gtup::GTup;
 use pixel::{ColorPixel, DepthPixel, PixelFormat, RenderablePixel};
 use texture::{Dim2, Dimensionable, Flat, Layerable, RawTexture, Texture, TextureError,
@@ -174,7 +175,13 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
   ///
   /// You’re always handed at least the base level of the texture. If you require any *additional*
   /// levels, you can pass the number via the `mipmaps` parameter.
-  pub fn new(size: D::Size, mipmaps: usize) -> Result<Framebuffer<L, D, CS, DS>> {
+  pub fn new<C>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize
+  ) -> Result<Framebuffer<L, D, CS, DS>>
+  where C: GraphicsContext {
+    let mut gfx_state = ctx.state().borrow_mut();
     let mipmaps = mipmaps + 1;
     let mut handle: GLuint = 0;
     let color_formats = CS::color_formats();
@@ -187,7 +194,7 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
     unsafe {
       gl::GenFramebuffers(1, &mut handle);
 
-      gl::BindFramebuffer(gl::FRAMEBUFFER, handle);
+      gfx_state.bind_draw_framebuffer(handle);
 
       // generate all the required textures once; the textures vec will be reduced and dispatched
       // into other containers afterwards (in ColorSlot::reify_textures)
@@ -198,7 +205,7 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
         gl::DrawBuffer(gl::NONE);
       } else {
         for (i, (format, texture)) in color_formats.iter().zip(&textures).enumerate() {
-          gl::BindTexture(target, *texture);
+          gfx_state.bind_texture(target, *texture);
           create_texture::<L, D>(target, size, mipmaps, *format, &Default::default()).map_err(FramebufferError::TextureError)?;
           gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0 + i as GLenum, *texture, 0);
         }
@@ -214,7 +221,7 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
       if let Some(format) = depth_format {
         let texture = textures.pop().unwrap();
 
-        gl::BindTexture(target, texture);
+        gfx_state.bind_texture(target, texture);
         create_texture::<L, D>(target, size, mipmaps, format, &Default::default()).map_err(FramebufferError::TextureError)?;
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, texture, 0);
 
@@ -225,14 +232,14 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
         gl::GenRenderbuffers(1, &mut renderbuffer);
         gl::BindRenderbuffer(gl::RENDERBUFFER, renderbuffer);
         gl::RenderbufferStorage(gl::RENDERBUFFER, gl::DEPTH_COMPONENT32F, D::width(size) as GLsizei, D::height(size) as GLsizei);
-        gl::BindRenderbuffer(gl::RENDERBUFFER, 0);
+        gl::BindRenderbuffer(gl::RENDERBUFFER, 0); // FIXME: see whether really needed
 
         gl::FramebufferRenderbuffer(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, gl::RENDERBUFFER, renderbuffer);
 
         depth_renderbuffer = Some(renderbuffer);
       }
 
-      gl::BindTexture(target, 0);
+      gfx_state.bind_texture(target, 0); // FIXME: see whether really needed
 
       let framebuffer = Framebuffer {
         handle: handle,
@@ -247,12 +254,12 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
 
       match get_status() {
         Ok(_) => {
-          gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+          gfx_state.bind_draw_framebuffer(0); // FIXME: see whether really needed
 
           Ok(framebuffer)
         },
         Err(reason) => {
-          gl::BindFramebuffer(gl::FRAMEBUFFER, 0);
+          gfx_state.bind_draw_framebuffer(0); // FIXME: see whether really needed
 
           Self::destroy(&framebuffer);
 
