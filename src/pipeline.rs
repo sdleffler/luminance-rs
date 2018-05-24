@@ -104,6 +104,7 @@ use std::rc::Rc;
 
 use buffer::RawBuffer;
 use blending::{Equation, Factor};
+use context::GraphicsContext;
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer};
 use depth_test::DepthTest;
 use shader::program::{Dim, Program, Type, Uniform, Uniformable, UniformInterface};
@@ -409,8 +410,12 @@ pub struct TessGate<V> {
 }
 
 impl<V> TessGate<V> where V: Vertex {
-  pub fn render<W>(&self, tess: TessRender<W>) where W: CompatibleVertex<V> {
-    tess.render();
+  pub fn render<C, W>(
+    &self,
+    ctx: &mut C,
+    tess: TessRender<W>
+  ) where C: GraphicsContext, W: CompatibleVertex<V> {
+    tess.render(ctx);
   }
 }
 

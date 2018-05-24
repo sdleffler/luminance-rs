@@ -41,6 +41,9 @@ pub struct GraphicsState {
   // framebuffer
   bound_read_framebuffer: GLuint,
   bound_draw_framebuffer: GLuint,
+
+  // vertex array
+  bound_vertex_array: GLuint,
 }
 
 impl GraphicsState {
@@ -60,6 +63,7 @@ impl GraphicsState {
       let bound_array_buffer = 0;
       let bound_read_framebuffer = get_ctx_bound_read_framebuffer()?;
       let bound_draw_framebuffer = get_ctx_bound_draw_framebuffer()?;
+      let bound_vertex_array = get_ctx_bound_vertex_array()?;
 
       Ok(GraphicsState {
         _a: PhantomData,
@@ -76,6 +80,7 @@ impl GraphicsState {
         bound_array_buffer,
         bound_read_framebuffer,
         bound_draw_framebuffer,
+        bound_vertex_array,
       })
     }
   }
@@ -221,6 +226,13 @@ impl GraphicsState {
     if self.bound_draw_framebuffer != handle {
       gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, handle);
       self.bound_draw_framebuffer = handle;
+    }
+  }
+
+  pub(crate) unsafe fn bind_vertex_array(&mut self, handle: GLuint) {
+    if self.bound_vertex_array != handle {
+      gl::BindVertexArray(handle);
+      self.bound_vertex_array = handle;
     }
   }
 }
@@ -382,5 +394,11 @@ unsafe fn get_ctx_bound_read_framebuffer() -> Result<GLuint, StateQueryError> {
 unsafe fn get_ctx_bound_draw_framebuffer() -> Result<GLuint, StateQueryError> {
   let mut bound = 0 as GLint;
   gl::GetIntegerv(gl::DRAW_FRAMEBUFFER_BINDING, &mut bound);
+  Ok(bound as GLuint)
+}
+
+unsafe fn get_ctx_bound_vertex_array() -> Result<GLuint, StateQueryError> {
+  let mut bound = 0 as GLint;
+  gl::GetIntegerv(gl::VERTEX_ARRAY_BINDING, &mut bound);
   Ok(bound as GLuint)
 }

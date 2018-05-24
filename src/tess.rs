@@ -143,7 +143,7 @@ impl<V> Tess<V> where V: Vertex {
     unsafe {
       gl::GenVertexArrays(1, &mut vao);
 
-      gl::BindVertexArray(vao);
+      ctx.state().borrow_mut().bind_vertex_array(vao);
 
       // vertex buffer
       let vertex_buffer = Buffer::new(ctx, vert_nb);
@@ -155,7 +155,7 @@ impl<V> Tess<V> where V: Vertex {
 
       let raw_vbo = vertex_buffer.to_raw();
 
-      gl::BindBuffer(gl::ARRAY_BUFFER, raw_vbo.handle());
+      ctx.state().borrow_mut().bind_array_buffer(raw_vbo.handle()); // FIXME: issue the call whatever the caching result
       set_vertex_pointers(&V::vertex_format());
 
       // TODO: refactor this schiesse
@@ -169,7 +169,7 @@ impl<V> Tess<V> where V: Vertex {
 
         gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, raw_ibo.handle());
 
-        gl::BindVertexArray(0);
+        ctx.state().borrow_mut().bind_vertex_array(vao);
 
         Tess {
           mode: opengl_mode(mode),
@@ -180,7 +180,7 @@ impl<V> Tess<V> where V: Vertex {
           _v: PhantomData
         }
       } else {
-        gl::BindVertexArray(0);
+        ctx.state().borrow_mut().bind_vertex_array(vao);
 
         Tess {
           mode: opengl_mode(mode),
@@ -196,12 +196,19 @@ impl<V> Tess<V> where V: Vertex {
 
   /// Render the tessellation by providing the number of vertices to pick from it and how many
   /// instances are wished.
-  fn render(&self, start_index: usize, vert_nb: usize, inst_nb: usize) {
+  fn render<C>(
+    &self,
+    ctx: &mut C,
+    start_index: usize,
+    vert_nb: usize,
+    inst_nb: usize
+  )
+  where C: GraphicsContext {
     let vert_nb = vert_nb as GLsizei;
     let inst_nb = inst_nb as GLsizei;
 
     unsafe {
-      gl::BindVertexArray(self.vao);
+      ctx.state().borrow_mut().bind_vertex_array(self.vao);
 
       if self.ibo.is_some() { // indexed render
         let first = (size_of::<u32>() * start_index) as *const c_void;
@@ -248,14 +255,20 @@ impl Tess<()> {
   /// You just have to give the `Mode` to use and the number of vertices the tessellation must
   /// have. You’ll be handed back a tessellation object that doesn’t actually hold anything. You
   /// will have to generate the vertices on the fly in your shaders.
-  pub fn attributeless(mode: Mode, vert_nb: usize) -> Self {
+  pub fn attributeless<C>(
+    ctx: &mut C,
+    mode: Mode,
+    vert_nb: usize
+  ) -> Self
+  where C: GraphicsContext {
+    let mut gfx_state = ctx.state().borrow_mut();
     let mut vao = 0;
 
     unsafe {
       gl::GenVertexArrays(1, &mut vao);
 
-      gl::BindVertexArray(vao);
-      gl::BindVertexArray(0);
+      gfx_state.bind_vertex_array(vao);
+      gfx_state.bind_vertex_array(0);
 
       Tess {
         mode: opengl_mode(mode),
@@ -464,8 +477,8 @@ impl<'a, V> TessRender<'a, V> {
   }
 
   /// Render a tessellation.
-  pub fn render(&self) where V: Vertex {
-    self.tess.render(self.start_index, self.vert_nb, self.inst_nb);
+  pub fn render<C>(&self, ctx: &mut C) where C: GraphicsContext, V: Vertex {
+    self.tess.render(ctx, self.start_index, self.vert_nb, self.inst_nb);
   }
 }
 
