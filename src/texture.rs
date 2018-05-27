@@ -151,29 +151,29 @@ pub enum DepthComparison {
 
 /// Reify a type into a `Dim`.
 pub trait Dimensionable {
-  type Size;
-  type Offset;
+  type Size: Copy;
+  type Offset: Copy;
 
   /// Dimension.
   fn dim() -> Dim;
   /// Width of the associated `Size`.
-  fn width(size: Self::Size) -> u32 where Self::Size: Copy;
+  fn width(size: Self::Size) -> u32;
   /// Height of the associated `Size`. If it doesn’t have one, set it to 1.
-  fn height(_: Self::Size) -> u32 where Self::Size: Copy { 1 }
+  fn height(_: Self::Size) -> u32 { 1 }
   /// Depth of the associated `Size`. If it doesn’t have one, set it to 1.
-  fn depth(_: Self::Size) -> u32 where Self::Size: Copy { 1 }
+  fn depth(_: Self::Size) -> u32 { 1 }
   /// X offset.
-  fn x_offset(offset: Self::Offset) -> u32 where Self::Offset: Copy;
+  fn x_offset(offset: Self::Offset) -> u32;
   /// Y offset. If it doesn’t have one, set it to 0.
-  fn y_offset(_: Self::Offset) -> u32 where Self::Offset: Copy { 1 }
+  fn y_offset(_: Self::Offset) -> u32 { 1 }
   /// Z offset. If it doesn’t have one, set it to 0.
-  fn z_offset(_: Self::Offset) -> u32 where Self::Offset: Copy { 1 }
+  fn z_offset(_: Self::Offset) -> u32 { 1 }
   /// Zero offset.
   fn zero_offset() -> Self::Offset;
 }
 
 /// Capacity of the dimension, which is the product of the width, height and depth.
-pub fn dim_capacity<D>(size: D::Size) -> u32 where D: Dimensionable, D::Size: Copy {
+pub fn dim_capacity<D>(size: D::Size) -> u32 where D: Dimensionable {
   D::width(size) * D::height(size) * D::depth(size)
 }
 
@@ -389,7 +389,6 @@ impl<L, D, P> Drop for Texture<L, D, P> where L: Layerable, D: Dimensionable, P:
 impl<L, D, P> Texture<L, D, P>
     where L: Layerable,
           D: Dimensionable,
-          D::Size: Copy,
           P: Pixel {
   pub fn new(size: D::Size, mipmaps: usize, sampler: &Sampler) -> Result<Self> {
     let mipmaps = mipmaps + 1; // + 1 prevent having 0 mipmaps
@@ -444,17 +443,13 @@ impl<L, D, P> Texture<L, D, P>
   /// left-upper corner and the `size` gives the dimension of the rectangle. All the covered texels
   /// by this rectangle will be cleared to the `pixel` value.
   pub fn clear_part(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, pixel: P::Encoding)
-      where D::Offset: Copy,
-            D::Size: Copy,
-            P::Encoding: Copy {
+      where P::Encoding: Copy {
     self.upload_part(gen_mipmaps, offset, size, &vec![pixel; dim_capacity::<D>(size) as usize])
   }
 
   /// Clear a whole texture with a `pixel` value.
   pub fn clear(&self, gen_mipmaps: bool, pixel: P::Encoding)
-      where D::Offset: Copy,
-            D::Size: Copy,
-            P::Encoding: Copy {
+      where P::Encoding: Copy {
     self.clear_part(gen_mipmaps, D::zero_offset(), self.size, pixel)
   }
 
@@ -463,9 +458,13 @@ impl<L, D, P> Texture<L, D, P>
   /// The part being updated is defined by a rectangle in which the `offset` represents the
   /// left-upper corner and the `size` gives the dimension of the rectangle. All the covered texels
   /// by this rectangle will be updated by the `texels` slice.
-  pub fn upload_part(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &[P::Encoding])
-      where D::Offset: Copy,
-            D::Size: Copy {
+  pub fn upload_part(
+    &self,
+    gen_mipmaps: bool, // TODO: proper typing instead of bool
+    offset: D::Offset,
+    size: D::Size,
+    texels: &[P::Encoding]
+  ) {
     unsafe {
       gl::BindTexture(self.target, self.handle);
 
@@ -480,9 +479,11 @@ impl<L, D, P> Texture<L, D, P>
   }
 
   /// Upload `texels` to the whole texture.
-  pub fn upload(&self, gen_mipmaps: bool, texels: &[P::Encoding])
-      where D::Offset: Copy,
-            D::Size: Copy {
+  pub fn upload(
+    &self,
+    gen_mipmaps: bool, // FIXME: bool typing
+    texels: &[P::Encoding]
+  ) {
     self.upload_part(gen_mipmaps, D::zero_offset(), self.size, texels)
   }
 
@@ -491,9 +492,13 @@ impl<L, D, P> Texture<L, D, P>
   /// This function is similar to `upload_part` but it works on `P::RawEncoding` instead of
   /// `P::Encoding`. This useful when the texels are represented as a contiguous array of raw
   /// components of the texels.
-  pub fn upload_part_raw(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, texels: &[P::RawEncoding])
-      where D::Offset: Copy,
-            D::Size: Copy {
+  pub fn upload_part_raw(
+    &self,
+    gen_mipmaps: bool,
+    offset: D::Offset,
+    size: D::Size,
+    texels: &[P::RawEncoding]
+  ) {
     unsafe {
       gl::BindTexture(self.target, self.handle);
 
@@ -508,9 +513,7 @@ impl<L, D, P> Texture<L, D, P>
   }
 
   /// Upload raw `texels` to the whole texture.
-  pub fn upload_raw(&self, gen_mipmaps: bool, texels: &[P::RawEncoding])
-      where D::Offset: Copy,
-            D::Size: Copy {
+  pub fn upload_raw(&self, gen_mipmaps: bool, texels: &[P::RawEncoding]) {
     self.upload_part_raw(gen_mipmaps, D::zero_offset(), self.size, texels)
   }
 
@@ -566,8 +569,7 @@ pub(crate) fn opengl_target(l: Layering, d: Dim) -> GLenum {
 
 pub(crate) unsafe fn create_texture<L, D>(target: GLenum, size: D::Size, mipmaps: usize, pf: PixelFormat, sampler: &Sampler) -> Result<()>
     where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy {
+          D: Dimensionable {
   set_texture_levels(target, mipmaps);
   apply_sampler_to_texture(target, sampler);
   create_texture_storage::<L, D>(size, mipmaps, pf)
@@ -575,8 +577,7 @@ pub(crate) unsafe fn create_texture<L, D>(target: GLenum, size: D::Size, mipmaps
 
 fn create_texture_storage<L, D>(size: D::Size, mipmaps: usize, pf: PixelFormat) -> Result<()>
     where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy {
+          D: Dimensionable {
   match opengl_pixel_format(pf) {
     Some(glf) => {
       let (format, iformat, encoding) = glf;
@@ -715,8 +716,6 @@ fn opengl_depth_comparison(fun: DepthComparison) -> GLenum {
 fn upload_texels<L, D, P, T>(target: GLenum, off: D::Offset, size: D::Size, texels: &[T])
     where L: Layerable,
           D: Dimensionable,
-          D::Offset: Copy,
-          D::Size: Copy,
           P: Pixel {
   let pf = P::pixel_format();
 

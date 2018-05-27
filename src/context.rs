@@ -22,6 +22,7 @@
 use std::cell::RefCell;
 use std::rc::Rc;
 
+use pipeline::Builder;
 use state::{GraphicsState, StateQueryError};
 
 /// Class of graphics context.
@@ -33,7 +34,14 @@ pub unsafe trait GraphicsContext {
   ///
   /// This must return a `Rc<RefCell<GraphicsState>>` because the state will be shared by OpenGL
   /// objects to ensure consistency with its state.
-  fn state(&mut self) -> &Rc<RefCell<GraphicsState>>;
+  fn state(&self) -> &Rc<RefCell<GraphicsState>>;
+
+  /// Create a new pipeline builder.
+  ///
+  /// A pipeline builder is the only way to create new pipelines and issue draws.
+  fn pipeline_builder(&self) -> Builder {
+    Builder::new(self.state().clone())
+  }
 
   /// Swap the back and front buffers.
   fn swap_buffers(&mut self);

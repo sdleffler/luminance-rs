@@ -39,11 +39,13 @@ pub struct GraphicsState {
   bound_array_buffer: GLuint,
 
   // framebuffer
-  bound_read_framebuffer: GLuint,
   bound_draw_framebuffer: GLuint,
 
   // vertex array
   bound_vertex_array: GLuint,
+
+  // shader program
+  current_program: GLuint
 }
 
 impl GraphicsState {
@@ -61,9 +63,9 @@ impl GraphicsState {
       let bound_textures = vec![(gl::TEXTURE_2D, 0); 48]; // 48 is the platform minimal requirement
       let bound_uniform_buffers = vec![0; 36]; // 36 is the platform minimal requirement
       let bound_array_buffer = 0;
-      let bound_read_framebuffer = get_ctx_bound_read_framebuffer()?;
       let bound_draw_framebuffer = get_ctx_bound_draw_framebuffer()?;
       let bound_vertex_array = get_ctx_bound_vertex_array()?;
+      let current_program = get_ctx_current_program()?;
 
       Ok(GraphicsState {
         _a: PhantomData,
@@ -78,9 +80,9 @@ impl GraphicsState {
         bound_textures,
         bound_uniform_buffers,
         bound_array_buffer,
-        bound_read_framebuffer,
         bound_draw_framebuffer,
         bound_vertex_array,
+        current_program,
       })
     }
   }
@@ -215,13 +217,6 @@ impl GraphicsState {
     }
   }
 
-  pub(crate) unsafe fn bind_read_framebuffer(&mut self, handle: GLuint) {
-    if self.bound_read_framebuffer != handle {
-      gl::BindFramebuffer(gl::READ_FRAMEBUFFER, handle);
-      self.bound_read_framebuffer = handle;
-    }
-  }
-
   pub(crate) unsafe fn bind_draw_framebuffer(&mut self, handle: GLuint) {
     if self.bound_draw_framebuffer != handle {
       gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, handle);
@@ -233,6 +228,13 @@ impl GraphicsState {
     if self.bound_vertex_array != handle {
       gl::BindVertexArray(handle);
       self.bound_vertex_array = handle;
+    }
+  }
+
+  pub(crate) unsafe fn use_program(&mut self, handle: GLuint) {
+    if self.current_program != handle {
+      gl::UseProgram(handle);
+      self.current_program = handle;
     }
   }
 }
@@ -385,12 +387,6 @@ unsafe fn get_ctx_current_texture_unit() -> Result<GLenum, StateQueryError> {
   Ok(active_texture as GLenum)
 }
 
-unsafe fn get_ctx_bound_read_framebuffer() -> Result<GLuint, StateQueryError> {
-  let mut bound = 0 as GLint;
-  gl::GetIntegerv(gl::READ_FRAMEBUFFER_BINDING, &mut bound);
-  Ok(bound as GLuint)
-}
-
 unsafe fn get_ctx_bound_draw_framebuffer() -> Result<GLuint, StateQueryError> {
   let mut bound = 0 as GLint;
   gl::GetIntegerv(gl::DRAW_FRAMEBUFFER_BINDING, &mut bound);
@@ -401,4 +397,10 @@ unsafe fn get_ctx_bound_vertex_array() -> Result<GLuint, StateQueryError> {
   let mut bound = 0 as GLint;
   gl::GetIntegerv(gl::VERTEX_ARRAY_BINDING, &mut bound);
   Ok(bound as GLuint)
+}
+
+unsafe fn get_ctx_current_program() -> Result<GLuint, StateQueryError> {
+  let mut used = 0 as GLint;
+  gl::GetIntegerv(gl::CURRENT_PROGRAM, &mut used);
+  Ok(used as GLuint)
 }

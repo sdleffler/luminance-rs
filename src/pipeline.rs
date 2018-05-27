@@ -4,7 +4,7 @@
 //! pipeline represents a functional stream that consumes geometric data and rasterizes them.
 //!
 //! When you want to build a render, the main entry point is the `entry` function. It gives you a
-//! `Gpu` object that enables you to perform stateful graphics operations.
+//! `Builder` object that enables you to perform stateful graphics operations.
 //!
 //! # Key concepts
 //!
@@ -103,25 +103,35 @@ use std::ops::Deref;
 use std::rc::Rc;
 
 use buffer::RawBuffer;
-use blending::{Equation, Factor};
+use blending::BlendingState;
 use context::GraphicsContext;
+use face_culling::FaceCullingState;
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer};
-use depth_test::DepthTest;
+use render_state::RenderState;
 use shader::program::{Dim, Program, Type, Uniform, Uniformable, UniformInterface};
+use state::GraphicsState;
 use tess::TessRender;
 use texture::{Dimensionable, Layerable, RawTexture};
 use vertex::{CompatibleVertex, Vertex};
 
-struct GpuState {
+/// A stack of bindings.
+///
+/// This type implements a stacking system for effective resource bindings by allocating new
+/// bindings points only when no recycled resource is available. It helps have a better memory
+/// footprint in the resource space.
+struct BindingStack {
+  gfx_state: Rc<RefCell<GraphicsState>>,
   next_texture_unit: u32,
   free_texture_units: Vec<u32>,
   next_buffer_binding: u32,
   free_buffer_bindings: Vec<u32>
 }
 
-impl GpuState {
-  fn new() -> Self {
-    GpuState {
+impl BindingStack {
+  /// Create a new, empty binding stack.
+  fn new(gfx_state: Rc<RefCell<GraphicsState>>) -> Self {
+    BindingStack {
+      gfx_state,
       next_texture_unit: 0,
       free_texture_units: Vec::new(),
       next_buffer_binding: 0,
@@ -130,62 +140,118 @@ impl GpuState {
   }
 }
 
-/// An opaque type representing the GPU. You can perform stateful operations on it.
-pub struct Gpu {
-  gpu_state: Rc<RefCell<GpuState>>
+/// An opaque type used to create pipelines.
+pub struct Builder {
+  binding_stack: Rc<RefCell<BindingStack>>
 }
 
-impl Gpu {
-  fn new() -> Self {
-    Gpu {
-      gpu_state: Rc::new(RefCell::new(GpuState::new()))
+impl Builder {
+  /// Create a new `Builder`.
+  pub fn new(gfx_state: Rc<RefCell<GraphicsState>>) -> Self {
+    Builder {
+      binding_stack: Rc::new(RefCell::new(BindingStack::new(gfx_state))),
     }
   }
 
-  /// Bind a texture and return the bound texture.
-  pub fn bind_texture<'a, T>(&self, texture: &'a T) -> BoundTexture<'a, T> where T: Deref<Target = RawTexture> {
-    let mut state = self.gpu_state.borrow_mut();
+  /// Create a new `Pipeline` and consume it immediately.
+  ///
+  /// A dynamic rendering pipeline is responsible of rendering into a `Framebuffer`.
+  ///
+  /// `L` refers to the `Layering` of the underlying `Framebuffer`.
+  ///
+  /// `D` refers to the `Dim` of the underlying `Framebuffer`.
+  ///
+  /// `CS` and `DS` are – respectively – the *color* and *depth* `Slot`(s) of the underlying
+  /// `Framebuffer`.
+  ///
+  /// Pipelines also have several transient objects:
+  ///
+  /// - a *clear color*, used to clear the framebuffer
+  /// - a *texture set*, used to make textures available in subsequent structures
+  /// - a *buffer set*, used to make uniform buffers available in subsequent structures
+  pub fn pipeline<'a, L, D, CS, DS, F>(
+    &self,
+    framebuffer: &Framebuffer<L, D, CS, DS>,
+    clear_color: [f32; 4],
+    f: F
+  )
+  where L: Layerable,
+        D: Dimensionable,
+        CS: ColorSlot<L, D>,
+        DS: DepthSlot<L, D>,
+        F: FnOnce(Pipeline, ShadingGate) {
+    unsafe {
+      gl::BindFramebuffer(gl::FRAMEBUFFER, framebuffer.handle());
+      gl::Viewport(0, 0, framebuffer.width() as GLint, framebuffer.height() as GLint);
+      gl::ClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
+      gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+    }
 
-    let unit = state.free_texture_units.pop().unwrap_or_else(|| {
+    let binding_stack = &self.binding_stack;
+    let p = Pipeline { binding_stack };
+    let shd_gt = ShadingGate { binding_stack };
+
+    f(p, shd_gt);
+  }
+}
+
+pub struct Pipeline<'a> {
+  binding_stack: &'a Rc<RefCell<BindingStack>>
+}
+
+impl<'a> Pipeline<'a> {
+  /// Bind a texture and return the bound texture.
+  pub fn bind_texture<T>(&'a self, texture: &'a T) -> BoundTexture<'a, T> where T: Deref<Target = RawTexture> {
+    let mut bstack = self.binding_stack.borrow_mut();
+
+    let unit = bstack.free_texture_units.pop().unwrap_or_else(|| {
       // no more free units; reserve one
-      let unit = state.next_texture_unit;
-      state.next_texture_unit += 1;
+      let unit = bstack.next_texture_unit;
+      bstack.next_texture_unit += 1;
       unit
     });
 
-    unsafe { bind_texture_at(texture.deref(), unit) };
-    BoundTexture::new(self.gpu_state.clone(), unit)
+    unsafe {
+      let mut state = bstack.gfx_state.borrow_mut();
+      state.set_texture_unit(unit);
+      state.bind_texture(texture.target(), texture.handle());
+    }
+
+    BoundTexture::new(self.binding_stack, unit)
   }
 
   /// Bind a buffer and return the bound buffer.
-  pub fn bind_buffer<'a, T>(&self, buffer: &T) -> BoundBuffer<'a, T> where T: Deref<Target = RawBuffer> {
-    let mut state = self.gpu_state.borrow_mut();
+  pub fn bind_buffer<T>(&'a self, buffer: &'a T) -> BoundBuffer<'a, T> where T: Deref<Target = RawBuffer> {
+    let mut bstack = self.binding_stack.borrow_mut();
 
-    let binding = state.free_buffer_bindings.pop().unwrap_or_else(|| {
+    let binding = bstack.free_buffer_bindings.pop().unwrap_or_else(|| {
       // no more free bindings; reserve one
-      let binding = state.next_buffer_binding;
-      state.next_buffer_binding += 1;
+      let binding = bstack.next_buffer_binding;
+      bstack.next_buffer_binding += 1;
       binding
     });
 
-    unsafe { bind_buffer_at(buffer.deref(), binding) };
-    BoundBuffer::new(self.gpu_state.clone(), binding)
+    unsafe {
+      bstack.gfx_state.borrow_mut().bind_buffer_base(buffer.handle(), binding);
+    }
+
+    BoundBuffer::new(self.binding_stack, binding)
   }
 }
 
-/// An opaque type representing a bound texture in a `Gpu`. You may want to pass such an object to
+/// An opaque type representing a bound texture in a `Builder`. You may want to pass such an object to
 /// a shader’s uniform’s update.
 pub struct BoundTexture<'a, T> where T: 'a {
   unit: u32,
-  gpu_state: Rc<RefCell<GpuState>>,
-  _t: PhantomData<&'a T>
+  binding_stack: &'a Rc<RefCell<BindingStack>>,
+  _t: PhantomData<&'a T>,
 }
 
 impl<'a, T> BoundTexture<'a, T> {
-  fn new(gpu_state: Rc<RefCell<GpuState>>, unit: u32) -> Self {
+  fn new(binding_stack: &'a Rc<RefCell<BindingStack>>, unit: u32) -> Self {
     BoundTexture {
       unit,
-      gpu_state,
+      binding_stack,
       _t: PhantomData
     }
   }
@@ -193,9 +259,9 @@ impl<'a, T> BoundTexture<'a, T> {
 
 impl<'a, T> Drop for BoundTexture<'a, T> {
   fn drop(&mut self) {
-    let mut state = self.gpu_state.borrow_mut();
+    let mut bstack = self.binding_stack.borrow_mut();
     // place the unit into the free list
-    state.free_texture_units.push(self.unit);
+    bstack.free_texture_units.push(self.unit);
   }
 }
 
@@ -209,19 +275,19 @@ impl<'a, 'b, T> Uniformable for &'b BoundTexture<'a, T> {
   fn dim() -> Dim { Dim::Dim1 }
 }
 
-/// An opaque type representing a bound buffer in a `Gpu`. You may want to pass such an object to
+/// An opaque type representing a bound buffer in a `Builder`. You may want to pass such an object to
 /// a shader’s uniform’s update.
 pub struct BoundBuffer<'a, T> where T: 'a {
   binding: u32,
-  gpu_state: Rc<RefCell<GpuState>>,
+  binding_stack: &'a Rc<RefCell<BindingStack>>,
   _t: PhantomData<&'a T>
 }
 
 impl<'a, T> BoundBuffer<'a, T> {
-  fn new(gpu_state: Rc<RefCell<GpuState>>, binding: u32) -> Self {
+  fn new(binding_stack: &'a Rc<RefCell<BindingStack>>, binding: u32) -> Self {
     BoundBuffer {
       binding,
-      gpu_state,
+      binding_stack,
       _t: PhantomData
     }
   }
@@ -229,9 +295,9 @@ impl<'a, T> BoundBuffer<'a, T> {
 
 impl<'a, T> Drop for BoundBuffer<'a, T> {
   fn drop(&mut self) {
-    let mut state = self.gpu_state.borrow_mut();
+    let mut bstack = self.binding_stack.borrow_mut();
     // place the binding into the free list
-    state.free_buffer_bindings.push(self.binding);
+    bstack.free_buffer_bindings.push(self.binding);
   }
 }
 
@@ -245,55 +311,26 @@ impl<'a, 'b, T> Uniformable for &'b BoundBuffer<'a, T> {
   fn dim() -> Dim { Dim::Dim1 }
 }
 
-/// This is the entry point of a render.
-///
-/// You’re handed a `Gpu` object that allows you to perform stateful operations on the GPU. For
-/// instance, you can bind textures and buffers to use them in shaders.
-pub fn entry<F>(f: F) where F: FnOnce(Gpu) {
-  let gpu = Gpu::new();
-  f(gpu);
-}
-
-/// A dynamic rendering pipeline. A *pipeline* is responsible of rendering into a `Framebuffer`.
-///
-/// `L` refers to the `Layering` of the underlying `Framebuffer`.
-///
-/// `D` refers to the `Dim` of the underlying `Framebuffer`.
-///
-/// `CS` and `DS` are – respectively – the *color* and *depth* `Slot`(s) of the underlying
-/// `Framebuffer`.
-///
-/// Pipelines also have several transient objects:
-///
-/// - a *clear color*, used to clear the framebuffer
-/// - a *texture set*, used to make textures available in subsequent structures
-/// - a *buffer set*, used to make uniform buffers available in subsequent structures
-pub fn pipeline<L, D, CS, DS, F>(framebuffer: &Framebuffer<L, D, CS, DS>, clear_color: [f32; 4], f: F)
-    where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          CS: ColorSlot<L, D>,
-          DS: DepthSlot<L, D>,
-          F: FnOnce(&ShadingGate) {
-  unsafe {
-    gl::BindFramebuffer(gl::FRAMEBUFFER, framebuffer.handle());
-    gl::Viewport(0, 0, framebuffer.width() as GLint, framebuffer.height() as GLint);
-    gl::ClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
-    gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
-  }
-
-  f(&ShadingGate);
-}
-
 /// An object created only via `pipeline` and that gives you shading features.
-pub struct ShadingGate;
+pub struct ShadingGate<'a> {
+  binding_stack: &'a Rc<RefCell<BindingStack>>
+}
 
-impl ShadingGate {
-  pub fn shade<In, Out, Uni, F>(&self, program: &Program<In, Out, Uni>, f: F)
-      where In: Vertex, Uni: UniformInterface, F: FnOnce(&RenderGate<In>, &Uni) {
-    unsafe { gl::UseProgram(program.handle()) };
+impl<'a> ShadingGate<'a> {
+  pub fn shade<In, Out, Uni, F>(
+    &self,
+    program: &Program<In, Out, Uni>,
+    f: F
+  ) where In: Vertex,
+          Uni: UniformInterface,
+          F: FnOnce(&RenderGate<In>, &Uni) {
+    unsafe {
+      let bstack = self.binding_stack.borrow_mut();
+      bstack.gfx_state.borrow_mut().use_program(program.handle());
+    };
 
     let render_gate = RenderGate {
+      binding_stack: self.binding_stack,
       _v: PhantomData,
     };
 
@@ -302,16 +339,40 @@ impl ShadingGate {
   }
 }
 
-pub struct RenderGate<V> {
+pub struct RenderGate<'a, V> {
+  binding_stack: &'a Rc<RefCell<BindingStack>>,
   _v: PhantomData<*const V>
 }
 
-impl<V> RenderGate<V> {
+impl<'a, V> RenderGate<'a, V> {
   pub fn render<F>(&self, rdr_st: RenderState, f: F) where F: FnOnce(&TessGate<V>) {
     unsafe {
-      set_blending(rdr_st.blending);
-      //set_depth_test(rdr_st.depth_test); // FIXME
-      set_face_culling(rdr_st.face_culling);
+      let bstack = self.binding_stack.borrow_mut();
+      let mut gfx_state = bstack.gfx_state.borrow_mut();
+
+      match rdr_st.blending {
+        Some((equation, src_factor, dst_factor)) => {
+          gfx_state.set_blending_state(BlendingState::Enabled);
+          gfx_state.set_blending_equation(equation);
+          gfx_state.set_blending_func(src_factor, dst_factor);
+        },
+        None => {
+          gfx_state.set_blending_state(BlendingState::Disabled);
+        }
+      }
+
+      gfx_state.set_depth_test(rdr_st.depth_test);
+
+      match rdr_st.face_culling {
+        Some(face_culling) => {
+          gfx_state.set_face_culling_state(FaceCullingState::Enabled);
+          gfx_state.set_face_culling_order(face_culling.order);
+          gfx_state.set_face_culling_mode(face_culling.mode);
+        },
+        None => {
+          gfx_state.set_face_culling_state(FaceCullingState::Disabled);
+        }
+      }
     }
 
     let tess_gate = TessGate {
@@ -320,89 +381,6 @@ impl<V> RenderGate<V> {
 
     f(&tess_gate);
   }
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct RenderState {
-  blending: Option<(Equation, Factor, Factor)>,
-  depth_test: DepthTest,
-  face_culling: Option<FaceCulling>
-}
-
-impl RenderState {
-  pub fn set_blending<B>(self, blending: B) -> Self where B: Into<Option<(Equation, Factor, Factor)>> {
-    RenderState {
-      blending: blending.into(),
-      .. self
-    }
-  }
-
-  pub fn blending(&self) -> Option<(Equation, Factor, Factor)> {
-    self.blending
-  }
-
-  pub fn set_depth_test(self, depth_test: DepthTest) -> Self {
-    RenderState {
-      depth_test,
-      .. self
-    }
-  }
-
-  pub fn depth_test(&self) -> DepthTest {
-    self.depth_test
-  }
-
-  pub fn set_face_culling<FC>(self, face_culling: FC) -> Self where FC: Into<Option<FaceCulling>> {
-    RenderState {
-      face_culling: face_culling.into(),
-      .. self
-    }
-  }
-
-  pub fn face_culling(&self) -> Option<FaceCulling> {
-    self.face_culling
-  }
-}
-
-impl Default for RenderState {
-  fn default() -> Self {
-    RenderState {
-      blending: None,
-      depth_test: DepthTest::Enabled,
-      face_culling: Some(FaceCulling::default())
-    }
-  }
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub struct FaceCulling {
-  order: FaceCullingOrder,
-  mode: FaceCullingMode
-}
-
-impl FaceCulling {
-  pub fn new(order: FaceCullingOrder, mode: FaceCullingMode) -> Self {
-    FaceCulling { order, mode }
-  }
-}
-
-impl Default for FaceCulling {
-  fn default() -> Self {
-    FaceCulling::new(FaceCullingOrder::CCW, FaceCullingMode::Back)
-  }
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum FaceCullingOrder {
-  CW,
-  CCW
-}
-
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum FaceCullingMode {
-  Front,
-  Back,
-  Both
 }
 
 pub struct TessGate<V> {
@@ -416,89 +394,5 @@ impl<V> TessGate<V> where V: Vertex {
     tess: TessRender<W>
   ) where C: GraphicsContext, W: CompatibleVertex<V> {
     tess.render(ctx);
-  }
-}
-
-#[inline]
-unsafe fn bind_buffer_at(buf: &RawBuffer, binding: u32) {
-  gl::BindBufferBase(gl::UNIFORM_BUFFER, binding as GLuint, buf.handle());
-}
-
-#[inline]
-unsafe fn bind_texture_at(tex: &RawTexture, unit: u32) {
-  gl::ActiveTexture(gl::TEXTURE0 + unit as GLenum);
-  gl::BindTexture(tex.target(), tex.handle());
-}
-
-#[inline]
-unsafe fn set_blending(blending: Option<(Equation, Factor, Factor)>) {
-  match blending {
-    Some((equation, src_factor, dest_factor)) => {
-      gl::Enable(gl::BLEND);
-      gl::BlendEquation(blending_equation(equation));
-      gl::BlendFunc(blending_factor(src_factor), blending_factor(dest_factor));
-    },
-    None => {
-      gl::Disable(gl::BLEND);
-    }
-  }
-}
-
-#[inline]
-unsafe fn set_face_culling(face_culling: Option<FaceCulling>) {
-  match face_culling {
-    Some(face_culling) => {
-      gl::Enable(gl::CULL_FACE);
-      gl::FrontFace(face_culling_order(face_culling.order));
-      gl::CullFace(face_culling_mode(face_culling.mode));
-    },
-    None => {
-      gl::Disable(gl::CULL_FACE);
-    }
-  }
-}
-
-#[inline]
-fn blending_equation(equation: Equation) -> GLenum {
-  match equation {
-    Equation::Additive => gl::FUNC_ADD,
-    Equation::Subtract => gl::FUNC_SUBTRACT,
-    Equation::ReverseSubtract => gl::FUNC_REVERSE_SUBTRACT,
-    Equation::Min => gl::MIN,
-    Equation::Max => gl::MAX
-  }
-}
-
-#[inline]
-fn blending_factor(factor: Factor) -> GLenum {
-  match factor {
-    Factor::One => gl::ONE,
-    Factor::Zero => gl::ZERO,
-    Factor::SrcColor => gl::SRC_COLOR,
-    Factor::SrcColorComplement => gl::ONE_MINUS_SRC_COLOR,
-    Factor::DestColor => gl::DST_COLOR,
-    Factor::DestColorComplement => gl::ONE_MINUS_DST_COLOR,
-    Factor::SrcAlpha => gl::SRC_ALPHA,
-    Factor::SrcAlphaComplement => gl::ONE_MINUS_SRC_ALPHA,
-    Factor::DstAlpha => gl::DST_ALPHA,
-    Factor::DstAlphaComplement => gl::ONE_MINUS_DST_ALPHA,
-    Factor::SrcAlphaSaturate => gl::SRC_ALPHA_SATURATE
-  }
-}
-
-#[inline]
-fn face_culling_order(order: FaceCullingOrder) -> GLenum {
-  match order {
-    FaceCullingOrder::CW => gl::CW,
-    FaceCullingOrder::CCW => gl::CCW
-  }
-}
-
-#[inline]
-fn face_culling_mode(mode: FaceCullingMode) -> GLenum {
-  match mode {
-    FaceCullingMode::Front => gl::FRONT,
-    FaceCullingMode::Back => gl::BACK,
-    FaceCullingMode::Both => gl::FRONT_AND_BACK,
   }
 }

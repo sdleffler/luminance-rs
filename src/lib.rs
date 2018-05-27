@@ -90,6 +90,7 @@ pub mod gtup;
 pub mod linear;
 pub mod pipeline;
 pub mod pixel;
+pub mod render_state;
 pub mod shader;
 pub mod state;
 pub mod tess;

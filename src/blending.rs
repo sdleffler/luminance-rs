@@ -10,9 +10,6 @@
 //!
 //! The factors are encoded with `Factor`.
 
-use gl;
-use gl::types::*;
-
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) enum BlendingState {
   Enabled,
