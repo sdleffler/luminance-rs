@@ -23,7 +23,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 use pipeline::Builder;
-use state::{GraphicsState, StateQueryError};
+use state::GraphicsState;
 
 /// Class of graphics context.
 ///
@@ -36,50 +36,13 @@ pub unsafe trait GraphicsContext {
   /// objects to ensure consistency with its state.
   fn state(&self) -> &Rc<RefCell<GraphicsState>>;
 
+  /// Swap the back and front buffers.
+  fn swap_buffers(&mut self);
+
   /// Create a new pipeline builder.
   ///
   /// A pipeline builder is the only way to create new pipelines and issue draws.
   fn pipeline_builder(&self) -> Builder {
     Builder::new(self.state().clone())
   }
-
-  /// Swap the back and front buffers.
-  fn swap_buffers(&mut self);
-}
-
-thread_local!(static TLS_ACQUIRE_CONTEXT: RefCell<Option<()>> = RefCell::new(Some(())));
-
-/// Class of `GraphicsContext` builders.
-///
-/// This trait must be implemented in order to generate graphics contexts.
-pub trait WithGraphicsState {
-  /// The custom 'GraphicsContext' to return.
-  type Output: GraphicsContext;
-
-  /// Call the builder and consume it. You’re handed a function that gives you a `GraphicsState` in
-  /// order to return it in your object.
-  fn call_once<F>(self, f: F) -> Self::Output where F: FnOnce() -> Result<GraphicsState, StateQueryError>;
-}
-
-/// Acquire a context per-thread (if none was previously initialized yet).
-///
-/// This function must be called by any implementor of `GraphicsContext` in order to generate the
-/// context object. This prevents from having two contexts allocated at the same time on the same
-/// thread.
-///
-/// Called in a thread, this will lazily evaluate the closure passed as argument only if no call to
-/// this function was made prior to the current call.
-pub fn thread_acquire_context<F>(f: F) -> Option<F::Output> where F: WithGraphicsState {
-  TLS_ACQUIRE_CONTEXT.with(|rc| {
-    let mut inner = rc.borrow_mut();
-
-    match *inner {
-      Some(_) => {
-        inner.take();
-        Some(f.call_once(GraphicsState::get_from_context))
-      },
-
-      None => None
-    }
-  })
 }

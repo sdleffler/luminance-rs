@@ -1,10 +1,16 @@
 use gl;
 use gl::types::*;
+use std::cell::RefCell;
+use std::error::Error;
+use std::fmt;
 use std::marker::PhantomData;
 
 use blending::{BlendingState, Equation, Factor};
 use depth_test::DepthTest;
 use face_culling::{FaceCullingMode, FaceCullingOrder, FaceCullingState};
+
+/// TLS synchronization barrier for `GraphicsState`.
+thread_local!(static TLS_ACQUIRE_GFX_STATE: RefCell<Option<()>> = RefCell::new(Some(())));
 
 /// The graphics state.
 ///
@@ -49,6 +55,24 @@ pub struct GraphicsState {
 }
 
 impl GraphicsState {
+  /// Create a new `GraphicsState`.
+  /// 
+  /// Keep in mind you can create only one per thread.
+  pub fn new() -> Result<Self, StateQueryError> {
+    TLS_ACQUIRE_GFX_STATE.with(|rc| {
+      let mut inner = rc.borrow_mut();
+
+      match *inner {
+        Some(_) => {
+          inner.take();
+          Self::get_from_context()
+        }
+
+        None => Err(StateQueryError::UnavailableGraphicsState)
+      }
+    })
+  }
+
   /// Get a `GraphicsContext` from the current OpenGL context.
   pub(crate) fn get_from_context() -> Result<Self, StateQueryError> {
     unsafe {
@@ -270,6 +294,7 @@ fn from_blending_factor(factor: Factor) -> GLenum {
 /// An error that might happen when the context is queried.
 #[derive(Debug)]
 pub enum StateQueryError {
+  UnavailableGraphicsState,
   UnknownBlendingState(GLboolean),
   UnknownBlendingEquation(GLenum),
   UnknownBlendingSrcFactor(GLenum),
@@ -278,6 +303,38 @@ pub enum StateQueryError {
   UnknownFaceCullingState(GLboolean),
   UnknownFaceCullingOrder(GLenum),
   UnknownFaceCullingMode(GLenum),
+}
+
+impl fmt::Display for StateQueryError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    match *self {
+      StateQueryError::UnavailableGraphicsState => write!(f, "unavailable graphics state"),
+      StateQueryError::UnknownBlendingState(ref s) => write!(f, "unknown blending state: {}", s),
+      StateQueryError::UnknownBlendingEquation(ref e) => write!(f, "unknown blending equation: {}", e),
+      StateQueryError::UnknownBlendingSrcFactor(ref k) => write!(f, "unknown blending source factor: {}", k),
+      StateQueryError::UnknownBlendingDstFactor(ref k) => write!(f, "unknown blending destination factor: {}", k),
+      StateQueryError::UnknownDepthTestState(ref s) => write!(f, "unknown depth test state: {}", s),
+      StateQueryError::UnknownFaceCullingState(ref s) => write!(f, "unknown face culling state: {}", s),
+      StateQueryError::UnknownFaceCullingOrder(ref o) => write!(f, "unknown face culling order: {}", o),
+      StateQueryError::UnknownFaceCullingMode(ref m) => write!(f, "unknown face culling mode: {}", m)
+    }
+  }
+}
+
+impl Error for StateQueryError {
+  fn description(&self) -> &str {
+    match *self {
+      StateQueryError::UnavailableGraphicsState => "unavailable graphics state",
+      StateQueryError::UnknownBlendingState(_) => "unknown blending state",
+      StateQueryError::UnknownBlendingEquation(_) => "unknown blending equation",
+      StateQueryError::UnknownBlendingSrcFactor(_) => "unknown blending source factor",
+      StateQueryError::UnknownBlendingDstFactor(_) => "unknown blending destination factor",
+      StateQueryError::UnknownDepthTestState(_) => "unknown depth test state",
+      StateQueryError::UnknownFaceCullingState(_) => "unknown face culling state",
+      StateQueryError::UnknownFaceCullingOrder(_) => "unknown face culling order",
+      StateQueryError::UnknownFaceCullingMode(_) => "unknown face culling mode",
+    }
+  }
 }
 
 unsafe fn get_ctx_blending_state() -> Result<BlendingState, StateQueryError> {
