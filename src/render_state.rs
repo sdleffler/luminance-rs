@@ -1,7 +1,16 @@
+//! GPU render state.
+//!
+//! Such a state controls how the GPU must operate some fixed pipeline functionality, such as the
+//! blending, depth test or face culling operations.
+
 use blending::{Equation, Factor};
 use depth_test::DepthTest;
 use face_culling::FaceCulling;
 
+/// GPU render state.
+///
+/// You can get a default value with `RenderState::default` and set the operations you want with the
+/// various `RenderState::set_*` methods.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct RenderState {
   pub(crate) blending: Option<(Equation, Factor, Factor)>,

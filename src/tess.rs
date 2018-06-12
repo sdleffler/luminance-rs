@@ -194,8 +194,8 @@ impl<V> Tess<V> where V: Vertex {
     }
   }
 
-  /// Render the tessellation by providing the number of vertices to pick from it and how many
-  /// instances are wished.
+  // Render the tessellation by providing the number of vertices to pick from it and how many
+  // instances are wished.
   fn render<C>(
     &self,
     ctx: &mut C,
@@ -253,8 +253,8 @@ impl Tess<()> {
   /// Create a tessellation that will procedurally generate its vertices (i.e. *attribute-less*).
   ///
   /// You just have to give the `Mode` to use and the number of vertices the tessellation must
-  /// have. You’ll be handed back a tessellation object that doesn’t actually hold anything. You
-  /// will have to generate the vertices on the fly in your shaders.
+  /// generate. You’ll be handed back a tessellation object that doesn’t actually hold anything.
+  /// You will have to generate the vertices on the fly in your shaders.
   pub fn attributeless<C>(
     ctx: &mut C,
     mode: Mode,
@@ -392,6 +392,8 @@ fn opengl_mode(mode: Mode) -> GLenum {
 }
 
 /// Tessellation render.
+///
+/// This type enables slicing a tessellation on the fly so that we can render patches of it.
 #[derive(Clone)]
 pub struct TessRender<'a, V> where V: 'a {
   /// Tessellation to render.

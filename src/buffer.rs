@@ -3,39 +3,40 @@
 //! A GPU buffer is a typed continuous region of data. It has a size and can hold several elements.
 //!
 //! Buffers are created with the `new` associated function. You pass in the number of elements you
-//! want in the buffer.
+//! want in the buffer along with the `GraphicsContext` to create the buffer in.
 //!
+//! ```ignore
+//! let buffer: Buffer<f32> = Buffer::new(&mut ctx, 5);
 //! ```
-//! let buffer: Buffer<f32> = Buffer::new(5);
-//! ```
+//!
 //! Once the buffer is created, you can perform several operations on them:
 //!
-//! - writing to them ;
-//! - reading from them ;
-//! - passing them around as uniforms ;
-//! - etc.
+//! - Writing to them.
+//! - Reading from them.
+//! - Passing them around as uniforms.
+//! - Etc.
 //!
-//! However, you cannot change their size.
+//! However, you cannot change their size at runtime.
 //!
 //! # Writing to a buffer
 //!
 //! `Buffer`s support several write methods. The simple one is *clearing*. That is, replacing the
 //! whole content of the buffer with a single value. Use the `clear` function to do so.
 //!
-//! ```
+//! ```ignore
 //! buffer.clear(0.);
 //! ```
 //!
 //! If you want to clear the buffer by providing a value for each elements, you want *filling*. Use
 //! the `fill` function:
 //!
-//! ```
-//! buffer.fill([1, 2, 3, 4, 5]);
+//! ```ignore
+//! buffer.fill([1., 2., 3., 4., 5.]);
 //! ```
 //!
-//! If you want to change a value at a given index, you can use the `set` function.
+//! You want to change a value at a given index? Easy, you can use the `set` function:
 //!
-//! ```
+//! ```ignore
 //! buffer.set(3, 3.14);
 //! ```
 //!
@@ -43,10 +44,10 @@
 //!
 //! You can either retrieve the `whole` content of the `Buffer` or `get` a value with an index.
 //!
-//! ```
+//! ```ignore
 //! // get the whole content
 //! let all_elems = buffer.whole();
-//! assert_eq!(all_elems, vec![1, 2, 3, 3.14, 5]); // admit floating equalities
+//! assert_eq!(all_elems, vec![1., 2., 3., 3.14, 5.]); // admit floating equalities
 //!
 //! // get the element at index 3
 //! assert_eq!(buffer.at(3), Some(3.14));
@@ -83,18 +84,28 @@ use state::GraphicsState;
 /// Buffer errors.
 #[derive(Debug, Eq, PartialEq)]
 pub enum BufferError {
-  Overflow,
-  TooFewValues,
-  TooManyValues,
+  /// Overflow when setting a value with a specific index.
+  ///
+  /// Contains the index and the size of the buffer.
+  Overflow(usize, usize),
+  /// Too few values were passed to fill a buffer.
+  ///
+  /// Contains the number of passed value and the size of the buffer.
+  TooFewValues(usize, usize),
+  /// Too many values were passed to fill a buffer.
+  ///
+  /// Contains the number of passed value and the size of the buffer.
+  TooManyValues(usize, usize),
+  /// Mapping the buffer failed.
   MapFailed
 }
 
 impl Error for BufferError {
   fn description(&self) -> &str {
     match *self {
-      BufferError::Overflow => "buffer overflow",
-      BufferError::TooFewValues => "too few values",
-      BufferError::TooManyValues => "too many values",
+      BufferError::Overflow(..) => "buffer overflow",
+      BufferError::TooFewValues(..) => "too few values",
+      BufferError::TooManyValues(..) => "too many values",
       BufferError::MapFailed => "map failed"
     }
   }
@@ -107,7 +118,7 @@ impl fmt::Display for BufferError {
 }
 
 /// A `Buffer` is a GPU region you can picture as an array. It has a static size and cannot be
-/// resized. The size is expressed in number of elements lying in the buffer, not in bytes.
+/// resized. The size is expressed in number of elements lying in the buffer – not in bytes.
 pub struct Buffer<T> {
   raw: RawBuffer,
   _t: PhantomData<T>
@@ -181,7 +192,7 @@ impl<T> Buffer<T> {
   /// Checks boundaries.
   pub fn set(&mut self, i: usize, x: T) -> Result<(), BufferError> where T: Copy {
     if i >= self.len {
-      return Err(BufferError::Overflow);
+      return Err(BufferError::Overflow(i, self.len));
     }
 
     unsafe {
@@ -198,18 +209,19 @@ impl<T> Buffer<T> {
 
   /// Write a whole slice into a buffer.
   ///
-  /// If the slice you pass in as less items than the length of the buffer, you’ll get a
-  /// `BufferError::TooFewValues`. If it has more, you’ll get `BufferError::TooManyValues`.
+  /// If the slice you pass in has less items than the length of the buffer, you’ll get a
+  /// `BufferError::TooFewValues` error. If it has more, you’ll get `BufferError::TooManyValues`.
   ///
-  /// In all cases, the copy will be performed and clamped to reasonable length.
+  /// This function won’t write anything on any error.
   pub fn write_whole(&self, values: &[T]) -> Result<(), BufferError> {
-    let in_bytes = values.len() * mem::size_of::<T>();
+    let len = values.len();
+    let in_bytes = len * mem::size_of::<T>();
 
     // generate warning and recompute the proper number of bytes to copy
-    let (warning, real_bytes) = match in_bytes.cmp(&self.bytes) {
-      Ordering::Less => (Some(BufferError::TooFewValues), in_bytes),
-      Ordering::Greater => (Some(BufferError::TooManyValues), self.bytes),
-      _ => (None, in_bytes)
+    let real_bytes = match in_bytes.cmp(&self.bytes) {
+      Ordering::Less => return Err(BufferError::TooFewValues(len, self.len)),
+      Ordering::Greater => return Err(BufferError::TooManyValues(len, self.len)),
+      _ => in_bytes
     };
 
     unsafe {
@@ -221,23 +233,22 @@ impl<T> Buffer<T> {
       let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
     }
 
-    match warning {
-      Some(w) => Err(w),
-      None => Ok(())
-    }
+    Ok(())
   }
 
   /// Fill the `Buffer` with a single value.
-  pub fn clear(&self, x: T) where T: Copy {
-    let _ = self.write_whole(&vec![x; self.len]);
+  pub fn clear(&self, x: T) -> Result<(), BufferError> where T: Copy {
+    self.write_whole(&vec![x; self.len])
   }
 
   /// Fill the whole buffer with an array.
-  pub fn fill(&self, values: &[T]) {
-    let _ = self.write_whole(values);
+  pub fn fill(&self, values: &[T]) -> Result<(), BufferError> {
+    self.write_whole(values)
   }
 
   /// Convert a buffer to its raw representation.
+  ///
+  /// Becareful: once you have called this function, it is not possible to go back to a `Buffer<_>`.
   pub fn to_raw(self) -> RawBuffer {
     let raw = RawBuffer {
       handle: self.raw.handle,
@@ -299,8 +310,7 @@ impl RawBuffer {
 
       Ok(BufferSlice {
         raw: self,
-        ptr: ptr,
-        _t: PhantomData
+        ptr
       })
     }
   }
@@ -318,12 +328,12 @@ impl RawBuffer {
 
       Ok(BufferSliceMut {
         raw: self,
-        ptr: ptr,
-        _t: PhantomData
+        ptr
       })
     }
   }
 
+  // Get the underlying GPU handle.
   pub(crate) fn handle(&self) -> GLuint {
     self.handle
   }
@@ -343,11 +353,10 @@ impl<T> From<Buffer<T>> for RawBuffer {
 
 /// A buffer slice mapped into GPU memory.
 pub struct BufferSlice<'a, T> where T: 'a {
-  /// Borrowed raw buffer.
+  // Borrowed raw buffer.
   raw: &'a RawBuffer,
-  /// Raw pointer into the GPU memory.
-  ptr: *const T,
-  _t: PhantomData<&'a T>
+  // Raw pointer into the GPU memory.
+  ptr: *const T
 }
 
 impl<'a, T> Drop for BufferSlice<'a, T> where T: 'a {
@@ -378,11 +387,10 @@ impl<'a, 'b, T> IntoIterator for &'b BufferSlice<'a, T> where T: 'a {
 
 /// A buffer mutable slice into GPU memory.
 pub struct BufferSliceMut<'a, T> where T: 'a {
-  /// Borrowed buffer.
+  // Borrowed buffer.
   raw: &'a RawBuffer,
-  /// Raw pointer into the GPU memory.
-  ptr: *mut T,
-  _t: PhantomData<&'a mut T>
+  // Raw pointer into the GPU memory.
+  ptr: *mut T
 }
 
 impl<'a, T> Drop for BufferSliceMut<'a, T> where T: 'a {

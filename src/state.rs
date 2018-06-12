@@ -9,7 +9,7 @@ use blending::{BlendingState, Equation, Factor};
 use depth_test::DepthTest;
 use face_culling::{FaceCullingMode, FaceCullingOrder, FaceCullingState};
 
-/// TLS synchronization barrier for `GraphicsState`.
+// TLS synchronization barrier for `GraphicsState`.
 thread_local!(static TLS_ACQUIRE_GFX_STATE: RefCell<Option<()>> = RefCell::new(Some(())));
 
 /// The graphics state.

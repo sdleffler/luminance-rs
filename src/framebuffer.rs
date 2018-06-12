@@ -1,18 +1,18 @@
 //! Framebuffers and utility types and functions.
 //!
-//! Framebuffers are at the core of rendering. They’re the support of rendering operation and can
+//! Framebuffers are at the core of rendering. They’re the support of rendering operations and can
 //! be used to highly enhance the visual aspect of a render. You’re always provided with at least
-//! one framebuffer, `default_framebuffer()`. That function returns a framebuffer that represents –
-//! for short – your screen’s back framebuffer. You can render to that framebuffer and when you
-//! *swap* the window’s buffers, your render appears at the screen.
+//! one framebuffer, `Framebuffer::default`. That function returns a framebuffer that represents –
+//! for short – the current back framebuffer. You can render to that framebuffer and when you
+//! *swap* the buffers, your render appears in the front framebuffer (likely your screen).
 //!
 //! # Framebuffers
 //!
-//! A framebuffer is an object maintaining the required GPU state to hold images your render to.
-//! It gathers two important concepts:
+//! A framebuffer is an object maintaining the required GPU state to hold images you render to. It
+//! gathers two important concepts:
 //!
-//! - *color buffers*;
-//! - *depth buffers*.
+//!   - *Color buffers*.
+//!   - *Depth buffers*.
 //!
 //! The *color buffers* hold the color images you render to. A framebuffer can hold several of them
 //! with different color formats. The *depth buffers* hold the depth images you render to.
@@ -41,9 +41,6 @@ use texture::{Dim2, Dimensionable, Flat, Layerable, RawTexture, Texture, Texture
               create_texture, opengl_target};
 
 /// Framebuffer error.
-///
-/// `Incomplete(reason)` occurs at framebuffer creation and `reason` gives a `String` explaination
-/// of the failure.
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum FramebufferError {
   TextureError(TextureError),

@@ -1,34 +1,35 @@
 //! Dynamic rendering pipelines.
 //!
-//! This module gives you types and functions to build *dynamic* rendering **pipelines**. A
+//! This module gives you types and functions to build *dynamic* rendering *pipelines*. A
 //! pipeline represents a functional stream that consumes geometric data and rasterizes them.
 //!
-//! When you want to build a render, the main entry point is the `entry` function. It gives you a
-//! `Builder` object that enables you to perform stateful graphics operations.
+//! When you want to build a render, the main entry point is the `Builder` type. It enables you to
+//! create dynamic `Pipeline` objects.
 //!
 //! # Key concepts
 //!
 //! luminance exposes several concepts you have to be familiar with:
 //!
-//! - render buffers;
-//! - blending;
-//! - shaders;
-//! - tessellations;
-//! - gates;
-//! - render commands;
-//! - shading commands;
-//! - pipelines;
+//!   - Render buffers.
+//!   - Blending.
+//!   - Shaders.
+//!   - Tessellations.
+//!   - Gates.
+//!   - Render commands.
+//!   - Shading commands.
+//!   - Pipelines.
 //!
 //! # Render buffers
 //!
 //! The render buffers are GPU-allocated memory regions used while rendering images into
 //! framebuffers. Typically, a framebuffer has at least three buffers:
 //!
-//! - a *color buffer*, that will receive texels (akin to pixels, but for textures/buffers);
-//! - a *depth buffer*, a special buffer mostly used to determine whether a fragment (pixel) is
-//!   behind something that was previously rendered – it’s a simple solution to discard render that
-//!   won’t be visible anyway;
-//! - a *stencil buffer*, which often acts as a mask to create interesting effects to your renders.
+//!   - A *color buffer*, that will receive texels (akin to pixels, but for textures/buffers).
+//!   - A *depth buffer*, a special buffer mostly used to determine whether a fragment (pixel) is
+//!     behind something that was previously rendered – it’s a simple solution to discard render
+//!     that won’t be visible anyway.
+//!   - A *stencil buffer*, which often acts as a mask to create interesting effects to your
+//!     renders.
 //!
 //! luminance gives you access to the first two – the stencil buffer will be added in a future
 //! release.
@@ -49,12 +50,12 @@
 //!
 //! When you render a fragment A at a position P in a framebuffer, there are several configurations:
 //!
-//! - you have a depth buffer and the depth test is enabled: in that case, no blending will happen
-//!   as either the already in-place fragment will be chosen or the new one you try to write,
-//!   depending on the result of the depth test;
-//! - the depth test is disabled: in that case, each time a fragment is to be written to a place in
-//!   a buffer, its output will be blended with the color already present according to a *blending
-//!   equation* and two *blending factors*.
+//!   - You have a depth buffer and the depth test is enabled: in that case, no blending will happen
+//!     as either the already in-place fragment will be chosen or the new one you try to write,
+//!     depending on the result of the depth test.
+//!   - The depth test is disabled: in that case, each time a fragment is to be written to a place
+//!     in a buffer, its output will be blended with the color already present according to a
+//!     *blending equation* and two *blending factors*.
 //!
 //! # Shaders
 //!
@@ -92,7 +93,8 @@
 //!
 //! # Pipelines
 //!
-//! A pipeline is just an aggregation of shadings commands with a few extra information.
+//! A pipeline is just an aggregation of shadings commands with a few extra information. It
+//! especially gives you the power to scope-bind GPU resources.
 
 use gl;
 use gl::types::*;
@@ -114,11 +116,11 @@ use tess::TessRender;
 use texture::{Dimensionable, Layerable, RawTexture};
 use vertex::{CompatibleVertex, Vertex};
 
-/// A stack of bindings.
-///
-/// This type implements a stacking system for effective resource bindings by allocating new
-/// bindings points only when no recycled resource is available. It helps have a better memory
-/// footprint in the resource space.
+// A stack of bindings.
+//
+// This type implements a stacking system for effective resource bindings by allocating new
+// bindings points only when no recycled resource is available. It helps have a better memory
+// footprint in the resource space.
 struct BindingStack {
   gfx_state: Rc<RefCell<GraphicsState>>,
   next_texture_unit: u32,
@@ -128,7 +130,7 @@ struct BindingStack {
 }
 
 impl BindingStack {
-  /// Create a new, empty binding stack.
+  // Create a new, empty binding stack.
   fn new(gfx_state: Rc<RefCell<GraphicsState>>) -> Self {
     BindingStack {
       gfx_state,
@@ -147,6 +149,9 @@ pub struct Builder {
 
 impl Builder {
   /// Create a new `Builder`.
+  ///
+  /// Even though you call this function by yourself, you’re likely to prefer using
+  /// `GraphicsContext::pipeline_builder` instead.
   pub fn new(gfx_state: Rc<RefCell<GraphicsState>>) -> Self {
     Builder {
       binding_stack: Rc::new(RefCell::new(BindingStack::new(gfx_state))),
@@ -195,12 +200,18 @@ impl Builder {
   }
 }
 
+/// A dynamic pipeline.
+///
+/// Such a pipeline enables you to call shading commands, bind textures, bind uniform buffers, etc.
+/// in a scoped-binding way.
 pub struct Pipeline<'a> {
   binding_stack: &'a Rc<RefCell<BindingStack>>
 }
 
 impl<'a> Pipeline<'a> {
   /// Bind a texture and return the bound texture.
+  ///
+  /// The texture remains bound as long as the return value lives.
   pub fn bind_texture<T>(&'a self, texture: &'a T) -> BoundTexture<'a, T> where T: Deref<Target = RawTexture> {
     let mut bstack = self.binding_stack.borrow_mut();
 
@@ -221,6 +232,8 @@ impl<'a> Pipeline<'a> {
   }
 
   /// Bind a buffer and return the bound buffer.
+  ///
+  /// The buffer remains bound as long as the return value lives.
   pub fn bind_buffer<T>(&'a self, buffer: &'a T) -> BoundBuffer<'a, T> where T: Deref<Target = RawBuffer> {
     let mut bstack = self.binding_stack.borrow_mut();
 
@@ -311,12 +324,13 @@ impl<'a, 'b, T> Uniformable for &'b BoundBuffer<'a, T> {
   fn dim() -> Dim { Dim::Dim1 }
 }
 
-/// An object created only via `pipeline` and that gives you shading features.
+/// A shading gate provides you with a way to run shaders on rendering commands.
 pub struct ShadingGate<'a> {
   binding_stack: &'a Rc<RefCell<BindingStack>>
 }
 
 impl<'a> ShadingGate<'a> {
+  /// Run a shader on a set of rendering commands.
   pub fn shade<In, Out, Uni, F>(
     &self,
     program: &Program<In, Out, Uni>,
@@ -339,12 +353,14 @@ impl<'a> ShadingGate<'a> {
   }
 }
 
+/// Render gate, allowing you to alter the render state and render tessellations.
 pub struct RenderGate<'a, V> {
   binding_stack: &'a Rc<RefCell<BindingStack>>,
   _v: PhantomData<*const V>
 }
 
 impl<'a, V> RenderGate<'a, V> {
+  /// Alter the render state and draw tessellations.
   pub fn render<F>(&self, rdr_st: RenderState, f: F) where F: FnOnce(&TessGate<V>) {
     unsafe {
       let bstack = self.binding_stack.borrow_mut();
@@ -383,11 +399,13 @@ impl<'a, V> RenderGate<'a, V> {
   }
 }
 
+/// Render tessellations.
 pub struct TessGate<V> {
   _v: PhantomData<*const V>
 }
 
 impl<V> TessGate<V> where V: Vertex {
+  /// Render a tessellation.
   pub fn render<C, W>(
     &self,
     ctx: &mut C,

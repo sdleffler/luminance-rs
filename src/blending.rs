@@ -1,4 +1,3 @@
-
 //! That module exports blending-related types and functions.
 //!
 //! Given two pixels *src* and *dst* – source and destination, we associate each pixel a blending
