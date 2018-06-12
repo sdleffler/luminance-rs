@@ -329,7 +329,7 @@ impl RawBuffer {
   }
 }
 
-impl<T> Drop for Buffer<T> {
+impl Drop for RawBuffer {
   fn drop(&mut self) {
     unsafe { gl::DeleteBuffers(1, &self.handle) }
   }
