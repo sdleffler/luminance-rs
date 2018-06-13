@@ -150,7 +150,7 @@ impl<V> Tess<V> where V: Vertex {
 
       // fill the buffer with vertices only if asked by the user
       if let TessVertices::Fill(verts) = vertices {
-        vertex_buffer.fill(verts);
+        vertex_buffer.fill(verts).unwrap();
       }
 
       let raw_vbo = vertex_buffer.to_raw();
@@ -163,7 +163,7 @@ impl<V> Tess<V> where V: Vertex {
       if let Some(indices) = indices.into() {
         let ind_nb = indices.len();
         let index_buffer = Buffer::new(ctx, ind_nb);
-        index_buffer.fill(indices);
+        index_buffer.fill(indices).unwrap();
 
         let raw_ibo = index_buffer.to_raw();
 
@@ -284,17 +284,8 @@ impl Tess<()> {
 
 impl<V> Drop for Tess<V> {
   fn drop(&mut self) {
-    // delete the vertex array and all bound buffers
     unsafe {
       gl::DeleteVertexArrays(1, &self.vao);
-
-      if let &Some(ref vbo) = &self.vbo {
-        gl::DeleteBuffers(1, &vbo.handle());
-      }
-
-      if let &Some(ref ibo) = &self.ibo {
-        gl::DeleteBuffers(1, &ibo.handle());
-      }
     }
   }
 }
