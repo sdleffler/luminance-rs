@@ -178,7 +178,6 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
     mipmaps: usize
   ) -> Result<Framebuffer<L, D, CS, DS>>
   where C: GraphicsContext {
-    let mut gfx_state = ctx.state().borrow_mut();
     let mipmaps = mipmaps + 1;
     let mut handle: GLuint = 0;
     let color_formats = CS::color_formats();
@@ -191,7 +190,7 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
     unsafe {
       gl::GenFramebuffers(1, &mut handle);
 
-      gfx_state.bind_draw_framebuffer(handle);
+      ctx.state().borrow_mut().bind_draw_framebuffer(handle);
 
       // generate all the required textures once; the textures vec will be reduced and dispatched
       // into other containers afterwards (in ColorSlot::reify_textures)
@@ -202,7 +201,7 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
         gl::DrawBuffer(gl::NONE);
       } else {
         for (i, (format, texture)) in color_formats.iter().zip(&textures).enumerate() {
-          gfx_state.bind_texture(target, *texture);
+          ctx.state().borrow_mut().bind_texture(target, *texture);
           create_texture::<L, D>(target, size, mipmaps, *format, &Default::default()).map_err(FramebufferError::TextureError)?;
           gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0 + i as GLenum, *texture, 0);
         }
@@ -218,7 +217,7 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
       if let Some(format) = depth_format {
         let texture = textures.pop().unwrap();
 
-        gfx_state.bind_texture(target, texture);
+        ctx.state().borrow_mut().bind_texture(target, texture);
         create_texture::<L, D>(target, size, mipmaps, format, &Default::default()).map_err(FramebufferError::TextureError)?;
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, texture, 0);
 
@@ -236,27 +235,27 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
         depth_renderbuffer = Some(renderbuffer);
       }
 
-      gfx_state.bind_texture(target, 0); // FIXME: see whether really needed
+      ctx.state().borrow_mut().bind_texture(target, 0); // FIXME: see whether really needed
 
       let framebuffer = Framebuffer {
         handle: handle,
         renderbuffer: depth_renderbuffer,
         w: D::width(size),
         h: D::height(size),
-        color_slot: CS::reify_textures(size, mipmaps, &mut textures.into_iter()),
-        depth_slot: DS::reify_texture(size, mipmaps, depth_texture),
+        color_slot: CS::reify_textures(ctx, size, mipmaps, &mut textures.into_iter()),
+        depth_slot: DS::reify_texture(ctx, size, mipmaps, depth_texture),
         _l: PhantomData,
         _d: PhantomData,
       };
 
       match get_status() {
         Ok(_) => {
-          gfx_state.bind_draw_framebuffer(0); // FIXME: see whether really needed
+          ctx.state().borrow_mut().bind_draw_framebuffer(0); // FIXME: see whether really needed
 
           Ok(framebuffer)
         },
         Err(reason) => {
-          gfx_state.bind_draw_framebuffer(0); // FIXME: see whether really needed
+          ctx.state().borrow_mut().bind_draw_framebuffer(0); // FIXME: see whether really needed
 
           Self::destroy(&framebuffer);
 
@@ -328,13 +327,24 @@ pub trait ColorSlot<L, D> where L: Layerable, D: Dimensionable, D::Size: Copy {
   /// Turn a color slot into a list of pixel formats.
   fn color_formats() -> Vec<PixelFormat>;
   /// Reify a list of raw textures into a color slot.
-  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint>;
+  fn reify_textures<C, I>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize,
+    textures: &mut I
+  ) -> Self
+  where C: GraphicsContext, I: Iterator<Item = GLuint>;
 }
 
 impl<L, D> ColorSlot<L, D> for () where L: Layerable, D: Dimensionable, D::Size: Copy {
   fn color_formats() -> Vec<PixelFormat> { Vec::new() }
 
-  fn reify_textures<I>(_: D::Size, _: usize, _: &mut I) -> Self where I: Iterator<Item = GLuint> { () }
+  fn reify_textures<C, I>(
+    _: &mut C,
+    _: D::Size,
+    _: usize,
+    _: &mut I
+  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> { () }
 }
 
 impl<L, D, P> ColorSlot<L, D> for Texture<L, D, P>
@@ -344,11 +354,16 @@ impl<L, D, P> ColorSlot<L, D> for Texture<L, D, P>
           P: ColorPixel + RenderablePixel {
   fn color_formats() -> Vec<PixelFormat> { vec![P::pixel_format()] }
 
-  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
+  fn reify_textures<C, I>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize,
+    textures: &mut I
+  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
     let color_texture = textures.next().unwrap();
 
     unsafe {
-      let raw = RawTexture::new(color_texture, opengl_target(L::layering(), D::dim()));
+      let raw = RawTexture::new(ctx.state().clone(), color_texture, opengl_target(L::layering(), D::dim()));
       Texture::from_raw(raw, size, mipmaps)
     }
   }
@@ -366,9 +381,14 @@ impl<L, D, P, B> ColorSlot<L, D> for GTup<Texture<L, D, P>, B>
     a
   }
 
-  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
-    let a = Texture::<L, D, P>::reify_textures(size, mipmaps, textures);
-    let b = B::reify_textures(size, mipmaps, textures);
+  fn reify_textures<C, I>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize,
+    textures: &mut I
+  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
+    let a = Texture::<L, D, P>::reify_textures(ctx, size, mipmaps, textures);
+    let b = B::reify_textures(ctx, size, mipmaps, textures);
 
     GTup(a, b)
   }
@@ -384,8 +404,13 @@ impl<L, D, P0, P1> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>)
     GTup::<Texture<L, D, P0>, Texture<L, D, P1>>::color_formats()
   }
 
-  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
-    let GTup(a, b) = GTup::<Texture<L, D, P0>, Texture<L, D, P1>>::reify_textures(size, mipmaps, textures);
+  fn reify_textures<C, I>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize,
+    textures: &mut I
+  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
+    let GTup(a, b) = GTup::<Texture<L, D, P0>, Texture<L, D, P1>>::reify_textures(ctx, size, mipmaps, textures);
     (a, b)
   }
 }
@@ -401,8 +426,13 @@ impl<L, D, P0, P1, P2> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, Texture<L, D, P2>>>::color_formats()
   }
 
-  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, c)) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, Texture<L, D, P2>>>::reify_textures(size, mipmaps, textures);
+  fn reify_textures<C, I>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize,
+    textures: &mut I
+  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
+    let GTup(a, GTup(b, c)) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, Texture<L, D, P2>>>::reify_textures(ctx, size, mipmaps, textures);
     (a, b, c)
   }
 }
@@ -419,8 +449,13 @@ impl<L, D, P0, P1, P2, P3> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D,
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, Texture<L, D, P3>>>>::color_formats()
   }
 
-  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, GTup(c, d))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, Texture<L, D, P3>>>>::reify_textures(size, mipmaps, textures);
+  fn reify_textures<C, I>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize,
+    textures: &mut I
+  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
+    let GTup(a, GTup(b, GTup(c, d))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, Texture<L, D, P3>>>>::reify_textures(ctx, size, mipmaps, textures);
     (a, b, c, d)
   }
 }
@@ -438,8 +473,13 @@ impl<L, D, P0, P1, P2, P3, P4> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, Texture<L, D, P4>>>>>::color_formats()
   }
 
-  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, GTup(c, GTup(d, e)))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, Texture<L, D, P4>>>>>::reify_textures(size, mipmaps, textures);
+  fn reify_textures<C, I>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize,
+    textures: &mut I
+  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
+    let GTup(a, GTup(b, GTup(c, GTup(d, e)))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, Texture<L, D, P4>>>>>::reify_textures(ctx, size, mipmaps, textures);
     (a, b, c, d, e)
   }
 }
@@ -458,8 +498,13 @@ impl<L, D, P0, P1, P2, P3, P4, P5> ColorSlot<L, D> for (Texture<L, D, P0>, Textu
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, Texture<L, D, P5>>>>>>::color_formats()
   }
 
-  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, f))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, Texture<L, D, P5>>>>>>::reify_textures(size, mipmaps, textures);
+  fn reify_textures<C, I>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize,
+    textures: &mut I
+  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
+    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, f))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, Texture<L, D, P5>>>>>>::reify_textures(ctx, size, mipmaps, textures);
     (a, b, c, d, e, f)
   }
 }
@@ -479,8 +524,13 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6> ColorSlot<L, D> for (Texture<L, D, P0>, T
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, Texture<L, D, P6>>>>>>>::color_formats()
   }
 
-  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, g)))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, Texture<L, D, P6>>>>>>>::reify_textures(size, mipmaps, textures);
+  fn reify_textures<C, I>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize,
+    textures: &mut I
+  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
+    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, g)))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, Texture<L, D, P6>>>>>>>::reify_textures(ctx, size, mipmaps, textures);
     (a, b, c, d, e, f, g)
   }
 }
@@ -501,8 +551,13 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7> ColorSlot<L, D> for (Texture<L, D, P0
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, Texture<L, D, P7>>>>>>>>::color_formats()
   }
 
-  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, GTup(g, h))))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, Texture<L, D, P7>>>>>>>>::reify_textures(size, mipmaps, textures);
+  fn reify_textures<C, I>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize,
+    textures: &mut I
+  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
+    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, GTup(g, h))))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, Texture<L, D, P7>>>>>>>>::reify_textures(ctx, size, mipmaps, textures);
     (a, b, c, d, e, f, g, h)
   }
 }
@@ -524,8 +579,13 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8> ColorSlot<L, D> for (Texture<L, D
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, Texture<L, D, P8>>>>>>>>>::color_formats()
   }
 
-  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, GTup(g, GTup(h, i)))))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, Texture< L, D, P8>>>>>>>>>::reify_textures(size, mipmaps, textures);
+  fn reify_textures<C, I>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize,
+    textures: &mut I
+  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
+    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, GTup(g, GTup(h, i)))))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, Texture< L, D, P8>>>>>>>>>::reify_textures(ctx, size, mipmaps, textures);
     (a, b, c, d, e, f, g, h, i)
   }
 }
@@ -548,8 +608,13 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8, P9> ColorSlot<L, D> for (Texture<
     GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, GTup<Texture<L, D, P8>, Texture<L, D, P9>>>>>>>>>>::color_formats()
   }
 
-  fn reify_textures<I>(size: D::Size, mipmaps: usize, textures: &mut I) -> Self where I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, GTup(g, GTup(h, GTup(i, j))))))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, GTup<Texture<L, D, P8>, Texture<L, D, P9>>>>>>>>>>::reify_textures(size, mipmaps, textures);
+  fn reify_textures<C, I>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize,
+    textures: &mut I
+  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
+    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, GTup(g, GTup(h, GTup(i, j))))))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, GTup<Texture<L, D, P8>, Texture<L, D, P9>>>>>>>>>>::reify_textures(ctx, size, mipmaps, textures);
     (a, b, c, d, e, f, g, h, i, j)
   }
 }
@@ -560,12 +625,25 @@ pub trait DepthSlot<L, D> where L: Layerable, D: Dimensionable, D::Size: Copy {
   /// Turn a depth slot into a pixel format.
   fn depth_format() -> Option<PixelFormat>;
   /// Reify a raw textures into a depth slot.
-  fn reify_texture<T>(size: D::Size, mipmaps: usize, texture: T) -> Self where T: Into<Option<GLuint>>; }
+  fn reify_texture<C, T>(
+    ctx: &mut C,
+    size: D::Size, 
+    mipmaps: usize, 
+    texture: T
+  ) -> Self where C: GraphicsContext, T: Into<Option<GLuint>>;
+}
 
 impl<L, D> DepthSlot<L, D> for () where L: Layerable, D: Dimensionable, D::Size: Copy {
   fn depth_format() -> Option<PixelFormat> { None }
 
-  fn reify_texture<T>(_: D::Size, _: usize, _: T) -> Self where T: Into<Option<GLuint>> { () }
+  fn reify_texture<C, T>(
+    _: &mut C,
+    _: D::Size, 
+    _: usize, 
+    _: T
+  ) -> Self where C: GraphicsContext, T: Into<Option<GLuint>> {
+    ()
+  }
 }
 
 impl<L, D, P> DepthSlot<L, D> for Texture<L, D, P>
@@ -575,9 +653,14 @@ impl<L, D, P> DepthSlot<L, D> for Texture<L, D, P>
           P: DepthPixel {
   fn depth_format() -> Option<PixelFormat> { Some(P::pixel_format()) }
 
-  fn reify_texture<T>(size: D::Size, mipmaps: usize, texture: T) -> Self where T: Into<Option<GLuint>> {
+  fn reify_texture<C, T>(
+    ctx: &mut C,
+    size: D::Size, 
+    mipmaps: usize, 
+    texture: T
+  ) -> Self where C: GraphicsContext, T: Into<Option<GLuint>> {
     unsafe {
-      let raw = RawTexture::new(texture.into().unwrap(), opengl_target(L::layering(), D::dim()));
+      let raw = RawTexture::new(ctx.state().clone(), texture.into().unwrap(), opengl_target(L::layering(), D::dim()));
       Texture::from_raw(raw, size, mipmaps)
     }
   }

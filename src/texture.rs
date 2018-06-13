@@ -70,6 +70,7 @@
 
 use gl;
 use gl::types::*;
+use std::cell::RefCell;
 use std::error::Error;
 use std::fmt;
 use std::marker::PhantomData;
@@ -77,8 +78,11 @@ use std::mem;
 use std::os::raw::c_void;
 use std::ops::{Deref, DerefMut};
 use std::ptr;
+use std::rc::Rc;
 
+use context::GraphicsContext;
 use pixel::{Pixel, PixelFormat, opengl_pixel_format, pixel_components};
+use state::GraphicsState;
 
 /// How to wrap texture coordinates while sampling textures?
 #[derive(Clone, Copy, Debug)]
@@ -328,17 +332,18 @@ impl Layerable for Layered { fn layering() -> Layering { Layering::Layered } }
 
 /// Raw buffer. Any buffer can be converted to that type. However, keep in mind that even though
 /// type erasure is safe, creating a buffer from a raw buffer is not.
-#[derive(Debug)]
 pub struct RawTexture {
   handle: GLuint, // handle to the GPU texture object
   target: GLenum, // “type” of the texture; used for bindings
+  state: Rc<RefCell<GraphicsState>>
 }
 
 impl RawTexture {
-  pub(crate) unsafe fn new(handle: GLuint, target: GLenum) -> Self {
+  pub(crate) unsafe fn new(state: Rc<RefCell<GraphicsState>>, handle: GLuint, target: GLenum) -> Self {
     RawTexture {
-      handle: handle,
-      target: target
+      handle,
+      target,
+      state
     }
   }
 
@@ -357,7 +362,6 @@ impl RawTexture {
 ///
 /// `L` refers to the layering type; `D` refers to the dimension; `P` is the pixel format for the
 /// texels.
-#[derive(Debug)]
 pub struct Texture<L, D, P> where L: Layerable, D: Dimensionable, P: Pixel {
   raw: RawTexture,
   size: D::Size,
@@ -390,35 +394,40 @@ impl<L, D, P> Texture<L, D, P>
     where L: Layerable,
           D: Dimensionable,
           P: Pixel {
-  pub fn new(size: D::Size, mipmaps: usize, sampler: &Sampler) -> Result<Self> {
+  pub fn new<C>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize,
+    sampler: &Sampler
+  ) -> Result<Self>
+  where C: GraphicsContext {
     let mipmaps = mipmaps + 1; // + 1 prevent having 0 mipmaps
     let mut texture = 0;
     let target = opengl_target(L::layering(), D::dim());
 
     unsafe {
       gl::GenTextures(1, &mut texture);
-      gl::BindTexture(target, texture);
+      ctx.state().borrow_mut().bind_texture(target, texture);
     
       create_texture::<L, D>(target, size, mipmaps, P::pixel_format(), sampler)?;
-    }
 
-    Ok(Texture {
-      raw: RawTexture {
-        handle: texture,
-        target: target
-      },
-      size: size,
-      mipmaps: mipmaps,
-      _l: PhantomData,
-      _p: PhantomData
-    })
+      let raw = RawTexture::new(ctx.state().clone(), texture, target);
+
+      Ok(Texture {
+        raw,
+        size,
+        mipmaps,
+        _l: PhantomData,
+        _p: PhantomData
+      })
+    }
   }
 
   /// Create a texture from its backend representation.
   pub(crate) unsafe fn from_raw(raw: RawTexture, size: D::Size, mipmaps: usize) -> Self {
     Texture {
-      raw: raw,
-      size: size,
+      raw,
+      size,
       mipmaps: mipmaps + 1,
       _l: PhantomData,
       _p: PhantomData
@@ -426,15 +435,18 @@ impl<L, D, P> Texture<L, D, P>
   }
 
   /// Convert a texture to its raw representation.
-  pub fn to_raw(self) -> RawTexture {
-    let raw = RawTexture {
-      handle: self.handle,
-      target: self.target
-    };
+  pub fn to_raw(mut self) -> RawTexture {
+    let raw = mem::replace(&mut self.raw, unsafe { mem::uninitialized() });
 
     // forget self so that we don’t call drop on it after the function has returned
     mem::forget(self);
     raw
+  }
+
+  /// Number of mipmaps in the texture.
+  #[inline(always)]
+  pub fn mipmaps(&self) -> usize {
+    self.mipmaps
   }
 
   /// Clear a part of a texture.
@@ -466,7 +478,9 @@ impl<L, D, P> Texture<L, D, P>
     texels: &[P::Encoding]
   ) {
     unsafe {
-      gl::BindTexture(self.target, self.handle);
+      let mut gfx_state = self.state.borrow_mut();
+
+      gfx_state.bind_texture(self.target, self.handle);
 
       upload_texels::<L, D, P, P::Encoding>(self.target, offset, size, texels);
 
@@ -474,7 +488,7 @@ impl<L, D, P> Texture<L, D, P>
         gl::GenerateMipmap(self.target);
       }
 
-      gl::BindTexture(self.target, 0);
+      gfx_state.bind_texture(self.target, 0);
     }
   }
 
@@ -500,7 +514,9 @@ impl<L, D, P> Texture<L, D, P>
     texels: &[P::RawEncoding]
   ) {
     unsafe {
-      gl::BindTexture(self.target, self.handle);
+      let mut gfx_state = self.state.borrow_mut();
+
+      gfx_state.bind_texture(self.target, self.handle);
 
       upload_texels::<L, D, P, P::RawEncoding>(self.target, offset, size, texels);
 
@@ -508,7 +524,7 @@ impl<L, D, P> Texture<L, D, P>
         gl::GenerateMipmap(self.target);
       }
 
-      gl::BindTexture(self.target, 0);
+      gfx_state.bind_texture(self.target, 0);
     }
   }
 
@@ -528,7 +544,8 @@ impl<L, D, P> Texture<L, D, P>
       let mut w = 0;
       let mut h = 0;
 
-      gl::BindTexture(self.target, self.handle);
+      let mut gfx_state = self.state.borrow_mut();
+      gfx_state.bind_texture(self.target, self.handle);
 
       // retrieve the size of the texture (w and h)
       gl::GetTexLevelParameteriv(self.target, 0, gl::TEXTURE_WIDTH, &mut w);
@@ -539,7 +556,7 @@ impl<L, D, P> Texture<L, D, P>
 
       gl::GetTexImage(self.target, 0, format, ty, texels.as_mut_ptr() as *mut c_void);
 
-      gl::BindTexture(self.target, 0);
+      gfx_state.bind_texture(self.target, 0);
     }
 
     texels
