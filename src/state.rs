@@ -1,3 +1,5 @@
+//! Graphics state.
+
 use gl;
 use gl::types::*;
 use std::cell::RefCell;

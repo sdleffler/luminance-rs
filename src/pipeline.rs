@@ -169,11 +169,7 @@ impl Builder {
   /// `CS` and `DS` are – respectively – the *color* and *depth* `Slot`(s) of the underlying
   /// `Framebuffer`.
   ///
-  /// Pipelines also have several transient objects:
-  ///
-  /// - a *clear color*, used to clear the framebuffer
-  /// - a *texture set*, used to make textures available in subsequent structures
-  /// - a *buffer set*, used to make uniform buffers available in subsequent structures
+  /// Pipelines also have a *clear color*, used to clear the framebuffer.
   pub fn pipeline<'a, L, D, CS, DS, F>(
     &self,
     framebuffer: &Framebuffer<L, D, CS, DS>,
