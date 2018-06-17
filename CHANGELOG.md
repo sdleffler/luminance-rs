@@ -1,7 +1,8 @@
 # 0.26.0
 
-> ?
+> Sunday, 17th of June, 2018
 
+  - Enhanced the overall documentation.
   - Fix a (GPU) memory leak in `RawBuffer` when dropping the object. The memory leak is not present
     if you never convert a `Buffer<_>` into `RawBuffer` because the GPU resource is correctly
     dropped when the `Buffer<_>` is dropped. Thus, if you don’t use `Buffer::to_raw`, you never had
