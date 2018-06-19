@@ -3,4 +3,5 @@
 members = [
   "01-hello-world",
   "02-render-state",
+  "03-sliced-tess",
 ]

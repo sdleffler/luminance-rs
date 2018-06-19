@@ -11,3 +11,5 @@ Eache example comes in with a few explanations and how to use them at the top of
     colors (comes in *direct* and *indexed* geometry versions).
   - [02-render-state](./02-render-state): learn how to change the render state to change the way the
     triangles are rendered or how fragment blending happens.
+  - [03-sliced-tess](./03-sliced-tess): learn how to slice a single GPU geometry to dynamically
+    select contiguous regions of it to render!
