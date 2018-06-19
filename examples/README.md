@@ -3,7 +3,7 @@
 This directory holds several examples you can use to learn how to use luminance. They are sorted
 following a specific order that will help you learn from basics to more advanced features.
 
-Eache example comes in with a few explanations and how to use them at the top of the `main.rs` file.
+Each example comes in with a few explanations and how to use them at the top of the `main.rs` file.
 
 > Have fun!
 
