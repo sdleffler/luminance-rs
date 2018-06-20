@@ -13,3 +13,5 @@ Each example comes in with a few explanations and how to use them at the top of 
     triangles are rendered or how fragment blending happens.
   - [03-sliced-tess](./03-sliced-tess): learn how to slice a single GPU geometry to dynamically
     select contiguous regions of it to render!
+  - [04-shader-uniforms](./04-shader-uniforms): send colors and position information to the GPU to
+    add interaction with a simple yet colorful triangle!
