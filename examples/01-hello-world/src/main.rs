@@ -12,13 +12,11 @@ extern crate luminance;
 extern crate luminance_glfw;
 
 use luminance::framebuffer::Framebuffer;
-
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, Tess};
 use luminance::render_state::RenderState;
 use luminance_glfw::event::{Action, Key, WindowEvent};
 use luminance_glfw::surface::{GlfwSurface, Surface, WindowDim, WindowOpt};
-
 use luminance::context::GraphicsContext;
 
 // we get the shader at compile time from ./vs.glsl and ./fs.glsl

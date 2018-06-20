@@ -18,24 +18,18 @@ extern crate luminance;
 extern crate luminance_glfw;
 
 use luminance::framebuffer::Framebuffer;
-
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, Tess, TessRender};
 use luminance::render_state::RenderState;
 use luminance_glfw::event::{Action, Key, WindowEvent};
 use luminance_glfw::surface::{GlfwSurface, Surface, WindowDim, WindowOpt};
-
 use luminance::context::GraphicsContext;
 
-// we get the shader at compile time from ./vs.glsl and ./fs.glsl
 const VS: &'static str = include_str!("vs.glsl");
 const FS: &'static str = include_str!("fs.glsl");
 
-// type of the vertices of our triangles; here we use a 2D position ([f32; 2]) and a RGB color
-// ([f32; 3]).
 type Vertex = ([f32; 2], [f32; 3]);
 
-// The vertices. We define two triangles.
 const TRI_VERTICES: [Vertex; 6] = [
   // first triangle – a red one
   ([ 0.5, -0.5], [1., 0., 0.]),
