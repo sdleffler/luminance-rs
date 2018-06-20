@@ -5,4 +5,6 @@ members = [
   "02-render-state",
   "03-sliced-tess",
   "04-shader-uniforms",
+  "05-attributeless",
+  "06-texture",
 ]

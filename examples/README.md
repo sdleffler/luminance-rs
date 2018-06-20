@@ -15,3 +15,5 @@ Each example comes in with a few explanations and how to use them at the top of 
     select contiguous regions of it to render!
   - [04-shader-uniforms](./04-shader-uniforms): send colors and position information to the GPU to
     add interaction with a simple yet colorful triangle!
+  - [05-attributeless](./05-attributeless): render a triangle without sending any vertex data to the
+    GPU!
