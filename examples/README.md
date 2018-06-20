@@ -17,3 +17,4 @@ Each example comes in with a few explanations and how to use them at the top of 
     add interaction with a simple yet colorful triangle!
   - [05-attributeless](./05-attributeless): render a triangle without sending any vertex data to the
     GPU!
+  - [06-texture](./06-texture): learn how to use a loaded image as a luminance texture on the GPU!
