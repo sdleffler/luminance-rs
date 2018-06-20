@@ -118,7 +118,7 @@ fn main() {
       shd_gate.shade(&program, |rdr_gate, _| {
         // start rendering things with the default render state provided by luminance
         rdr_gate.render(RenderState::default(), |tess_gate| {
-          // pick the right tessellation to use depending on the mode choosen
+          // pick the right tessellation to use depending on the mode chosen
           let tess = match demo {
             TessMethod::Direct => &direct_triangles,
             TessMethod::Indexed => &indexed_triangles
