@@ -8,3 +8,6 @@ members = [
   "05-attributeless",
   "06-texture",
 ]
+
+[patch.crates-io]
+luminance = { path = ".." }
