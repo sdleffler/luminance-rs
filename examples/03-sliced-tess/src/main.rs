@@ -41,7 +41,7 @@ const TRI_VERTICES: [Vertex; 6] = [
   ([ 0.5,  0.5], [0., 0., 1.])
 ];
 
-// Convenience type to demonstrate how the depth test influences the rendering of two triangles.
+// Convenience type to select which slice to render.
 #[derive(Copy, Clone, Debug)]
 enum SliceMethod { 
   Red, // draw the red triangle
