@@ -43,7 +43,7 @@ uniform_interface! {
   struct ShaderInterface {
     // we only need the source texture (from the framebuffer) to fetch from
     #[unbound, as("source_texture")]
-    texture: &'static BoundTexture<'static, Texture<Flat, Dim2, RGBA32F>>
+    texture: &'static BoundTexture<'static, Flat, Dim2, RGBA32F>
   }
 }
 

@@ -34,7 +34,7 @@ fn main() {
   if let Some(texture_path) = env::args().skip(1).next() {
     run(Path::new(&texture_path));
   } else {
-    eprintln!("missing first argument (path to the texture to load");
+    eprintln!("missing first argument (path to the texture to load)");
   }
 }
 
@@ -43,7 +43,7 @@ uniform_interface! {
   struct ShaderInterface {
     // the 'static lifetime acts as “anything” here
     #[unbound]
-    tex: &'static BoundTexture<'static, Texture<Flat, Dim2, RGB32F>>
+    tex: &'static BoundTexture<'static, Flat, Dim2, RGB32F>
   }
 }
 

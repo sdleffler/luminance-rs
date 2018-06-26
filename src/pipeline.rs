@@ -104,16 +104,17 @@ use std::marker::PhantomData;
 use std::ops::Deref;
 use std::rc::Rc;
 
-use buffer::RawBuffer;
+use buffer::{Buffer, RawBuffer};
 use blending::BlendingState;
 use context::GraphicsContext;
 use face_culling::FaceCullingState;
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer};
+use pixel::Pixel;
 use render_state::RenderState;
 use shader::program::{Dim, Program, Type, Uniform, Uniformable, UniformInterface};
 use state::GraphicsState;
 use tess::TessSlice;
-use texture::{Dimensionable, Layerable, RawTexture};
+use texture::{Dimensionable, Layerable, Texture};
 use vertex::{CompatibleVertex, Vertex};
 
 // A stack of bindings.
@@ -208,7 +209,13 @@ impl<'a> Pipeline<'a> {
   /// Bind a texture and return the bound texture.
   ///
   /// The texture remains bound as long as the return value lives.
-  pub fn bind_texture<T>(&'a self, texture: &'a T) -> BoundTexture<'a, T> where T: Deref<Target = RawTexture> {
+  pub fn bind_texture<L, D, P>(
+    &'a self,
+    texture: &'a Texture<L, D, P>
+  ) -> BoundTexture<'a, L, D, P>
+  where L: 'a + Layerable,
+        D: 'a + Dimensionable,
+        P: 'a + Pixel {
     let mut bstack = self.binding_stack.borrow_mut();
 
     let unit = bstack.free_texture_units.pop().unwrap_or_else(|| {
@@ -248,15 +255,21 @@ impl<'a> Pipeline<'a> {
   }
 }
 
-/// An opaque type representing a bound texture in a `Builder`. You may want to pass such an object to
-/// a shader’s uniform’s update.
-pub struct BoundTexture<'a, T> where T: 'a {
+/// An opaque type representing a bound texture in a `Builder`. You may want to pass such an object
+/// to a shader’s uniform’s update.
+pub struct BoundTexture<'a, L, D, P>
+where L: 'a + Layerable,
+      D: 'a + Dimensionable,
+      P: 'a + Pixel {
   unit: u32,
   binding_stack: &'a Rc<RefCell<BindingStack>>,
-  _t: PhantomData<&'a T>,
+  _t: PhantomData<&'a Texture<L, D, P>>,
 }
 
-impl<'a, T> BoundTexture<'a, T> {
+impl<'a, L, D, P> BoundTexture<'a, L, D, P>
+where L: 'a + Layerable,
+      D: 'a + Dimensionable,
+      P: 'a + Pixel {
   fn new(binding_stack: &'a Rc<RefCell<BindingStack>>, unit: u32) -> Self {
     BoundTexture {
       unit,
@@ -266,7 +279,10 @@ impl<'a, T> BoundTexture<'a, T> {
   }
 }
 
-impl<'a, T> Drop for BoundTexture<'a, T> {
+impl<'a, L, D, P> Drop for BoundTexture<'a, L, D, P>
+where L: 'a + Layerable,
+      D: 'a + Dimensionable,
+      P: 'a + Pixel {
   fn drop(&mut self) {
     let mut bstack = self.binding_stack.borrow_mut();
     // place the unit into the free list
@@ -274,7 +290,10 @@ impl<'a, T> Drop for BoundTexture<'a, T> {
   }
 }
 
-impl<'a, 'b, T> Uniformable for &'b BoundTexture<'a, T> {
+impl<'a, 'b, L, D, P> Uniformable for &'b BoundTexture<'a, L, D, P>
+where L: 'a + Layerable,
+      D: 'a + Dimensionable,
+      P: 'a + Pixel {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1i(u.index(), self.unit as GLint) }
   }
@@ -284,12 +303,12 @@ impl<'a, 'b, T> Uniformable for &'b BoundTexture<'a, T> {
   fn dim() -> Dim { Dim::Dim1 }
 }
 
-/// An opaque type representing a bound buffer in a `Builder`. You may want to pass such an object to
-/// a shader’s uniform’s update.
+/// An opaque type representing a bound buffer in a `Builder`. You may want to pass such an object
+/// to a shader’s uniform’s update.
 pub struct BoundBuffer<'a, T> where T: 'a {
   binding: u32,
   binding_stack: &'a Rc<RefCell<BindingStack>>,
-  _t: PhantomData<&'a T>
+  _t: PhantomData<&'a Buffer<T>>
 }
 
 impl<'a, T> BoundBuffer<'a, T> {
