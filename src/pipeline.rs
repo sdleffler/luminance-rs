@@ -182,14 +182,17 @@ impl Builder {
         CS: ColorSlot<L, D>,
         DS: DepthSlot<L, D>,
         F: FnOnce(Pipeline, ShadingGate) {
+    let binding_stack = &self.binding_stack;
+
     unsafe {
-      gl::BindFramebuffer(gl::FRAMEBUFFER, framebuffer.handle());
+      let bs = binding_stack.borrow();
+      bs.gfx_state.borrow_mut().bind_draw_framebuffer(framebuffer.handle());
+
       gl::Viewport(0, 0, framebuffer.width() as GLint, framebuffer.height() as GLint);
       gl::ClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
       gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
     }
 
-    let binding_stack = &self.binding_stack;
     let p = Pipeline { binding_stack };
     let shd_gt = ShadingGate { binding_stack };
 
