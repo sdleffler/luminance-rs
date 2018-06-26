@@ -100,20 +100,27 @@ pub enum BufferError {
   MapFailed
 }
 
-impl Error for BufferError {
-  fn description(&self) -> &str {
-    match *self {
-      BufferError::Overflow(..) => "buffer overflow",
-      BufferError::TooFewValues(..) => "too few values",
-      BufferError::TooManyValues(..) => "too many values",
-      BufferError::MapFailed => "map failed"
-    }
-  }
-}
+impl Error for BufferError {}
 
 impl fmt::Display for BufferError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-    f.write_str(self.description())
+    match *self {
+      BufferError::Overflow(i, size) => {
+        write!(f, "buffer overflow (index = {}, size = {})", i, size)
+      }
+
+      BufferError::TooFewValues(nb, size) => {
+        write!(f, "too few values passed to the buffer (nb = {}, size = {})", nb, size)
+      }
+
+      BufferError::TooManyValues(nb, size) => {
+        write!(f, "too many values passed to the buffer (nb = {}, size = {})", nb, size)
+      }
+
+      BufferError::MapFailed => {
+        write!(f, "buffer mapping failed")
+      }
+    }
   }
 }
 

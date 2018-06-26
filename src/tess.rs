@@ -72,18 +72,19 @@ pub enum TessMapError {
 
 impl fmt::Display for TessMapError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-    f.write_str(self.description())
+    match *self {
+      TessMapError::VertexBufferMapFailed(ref e) => {
+        write!(f, "cannot map tessallation buffer: {}", e)
+      }
+
+      TessMapError::ForbiddenAttributelessMapping => {
+        f.write_str("cannot map an attributeless buffer")
+      }
+    }
   }
 }
 
 impl Error for TessMapError {
-  fn description(&self) -> &str {
-    match *self {
-      TessMapError::VertexBufferMapFailed(_) => "vertex buffer map failed",
-      TessMapError::ForbiddenAttributelessMapping => "cannot map an attributeless buffer"
-    }
-  }
-
   fn cause(&self) -> Option<&Error> {
     match *self {
       TessMapError::VertexBufferMapFailed(ref e) => Some(e),

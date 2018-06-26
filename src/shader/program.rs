@@ -276,19 +276,23 @@ pub enum ProgramError {
 
 impl fmt::Display for ProgramError {
   fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
-    f.write_str(self.description())
+    match *self {
+      ProgramError::StageError(ref e) => {
+        write!(f, "shader program has stage error: {}", e)
+      }
+
+      ProgramError::LinkFailed(ref s) => {
+        write!(f, "shader program failed to link: {}", s)
+      }
+
+      ProgramError::UniformWarning(ref e) => {
+        write!(f, "shader program contains warning(s): {}", e)
+      }
+    }
   }
 }
 
 impl Error for ProgramError {
-  fn description(&self) -> &str {
-    match *self {
-      ProgramError::StageError(_) => "stage error",
-      ProgramError::LinkFailed(ref s) => &s,
-      ProgramError::UniformWarning(_) => "uniform warning"
-    }
-  }
-
   fn cause(&self) -> Option<&Error> {
     match *self {
       ProgramError::StageError(ref e) => Some(e),
@@ -312,18 +316,19 @@ pub enum UniformWarning {
 
 impl fmt::Display for UniformWarning {
   fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
-    f.write_str(self.description())
-  }
-}
-
-impl Error for UniformWarning {
-  fn description(&self) -> &str {
     match *self {
-      UniformWarning::Inactive(ref s) => &s,
-      UniformWarning::TypeMismatch(..) => "type mismatch"
+      UniformWarning::Inactive(ref s) => {
+        write!(f, "inactive {} uniform", s)
+      }
+
+      UniformWarning::TypeMismatch(ref n, ref t) => {
+        write!(f, "type mismatch for uniform {}: {}", n, t)
+      }
     }
   }
 }
+
+impl Error for UniformWarning {}
 
 /// A shader uniform. `Uniform<T>` doesn’t hold any value. It’s more like a mapping between the
 /// host code and the shader the uniform was retrieved from.

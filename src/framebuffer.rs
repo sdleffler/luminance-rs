@@ -49,18 +49,19 @@ pub enum FramebufferError {
 
 impl fmt::Display for FramebufferError {
   fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
-    f.write_str(self.description())
+    match *self {
+      FramebufferError::TextureError(ref e) => {
+        write!(f, "framebuffer texture error: {}", e)
+      }
+
+      FramebufferError::Incomplete(ref e) => {
+        write!(f, "incomplete framebuffer: {}", e)
+      }
+    }
   }
 }
 
 impl Error for FramebufferError {
-  fn description(&self) -> &str {
-    match *self {
-      FramebufferError::TextureError(_) => "framebuffer texture error",
-      FramebufferError::Incomplete(_) => "incomplete framebuffer"
-    }
-  }
-
   fn cause(&self) -> Option<&Error> {
     Some(match *self {
       FramebufferError::TextureError(ref e) => e,
@@ -84,24 +85,20 @@ pub enum IncompleteReason {
 
 impl fmt::Display for IncompleteReason {
   fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
-    f.write_str(self.description())
-  }
-}
-
-impl Error for IncompleteReason {
-  fn description(&self) -> &str {
     match *self {
-      IncompleteReason::Undefined => "incomplete reason",
-      IncompleteReason::IncompleteAttachment => "incomplete attachment",
-      IncompleteReason::MissingAttachment => "missing attachment",
-      IncompleteReason::IncompleteDrawBuffer => "incomplete draw buffer",
-      IncompleteReason::IncompleteReadBuffer => "incomplete read buffer",
-      IncompleteReason::Unsupported => "unsupported",
-      IncompleteReason::IncompleteMultisample => "incomplete multisample",
-      IncompleteReason::IncompleteLayerTargets => "incomplete layer targets"
+      IncompleteReason::Undefined => write!(f, "incomplete reason"),
+      IncompleteReason::IncompleteAttachment => write!(f, "incomplete attachment"),
+      IncompleteReason::MissingAttachment => write!(f, "missing attachment"),
+      IncompleteReason::IncompleteDrawBuffer => write!(f, "incomplete draw buffer"),
+      IncompleteReason::IncompleteReadBuffer => write!(f, "incomplete read buffer"),
+      IncompleteReason::Unsupported => write!(f, "unsupported"),
+      IncompleteReason::IncompleteMultisample => write!(f, "incomplete multisample"),
+      IncompleteReason::IncompleteLayerTargets => write!(f, "incomplete layer targets")
     }
   }
 }
+
+impl Error for IncompleteReason {}
 
 pub type Result<T> = ::std::result::Result<T, FramebufferError>;
 

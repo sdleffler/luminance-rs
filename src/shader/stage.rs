@@ -17,6 +17,18 @@ pub enum Type {
   FragmentShader
 }
 
+impl fmt::Display for Type {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    match *self {
+      Type::TessellationControlShader => f.write_str("tessellation control shader"),
+      Type::TessellationEvaluationShader => f.write_str("tessellation evaluation shader"),
+      Type::VertexShader => f.write_str("vertex shader"),
+      Type::GeometryShader => f.write_str("geometry shader"),
+      Type::FragmentShader => f.write_str("fragment shader")
+    }
+  }
+}
+
 /// A shader stage.
 #[derive(Debug)]
 pub struct Stage {
@@ -26,7 +38,7 @@ pub struct Stage {
 
 impl Stage {
   /// Create a new shader stage.
-  pub fn new(ty: Type, src: &str) -> Result<Self> {
+  pub fn new(ty: Type, src: &str) -> Result<Self, StageError> {
     unsafe {
       let src = CString::new(glsl_pragma_src(src).as_bytes()).unwrap();
       let handle = gl::CreateShader(opengl_shader_type(ty));
@@ -84,19 +96,20 @@ pub enum StageError {
 }
 
 impl fmt::Display for StageError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
-    f.write_str(self.description())
-  }
-}
-
-impl Error for StageError {
-  fn description(&self) -> &str {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
-      StageError::CompilationFailed(..) => "compilation failed",
-      StageError::UnsupportedType(_) => "unsupported type"
+      StageError::CompilationFailed(ref ty, ref r) => {
+        write!(f, "{} compilation error: {}", ty, r)
+      }
+
+      StageError::UnsupportedType(ty) => {
+        write!(f, "unsupported {}", ty)
+      }
     }
   }
 }
+
+impl Error for StageError {}
 
 fn glsl_pragma_src(src: &str) -> String {
   let mut pragma = String::from(GLSL_PRAGMA);

@@ -792,16 +792,14 @@ pub enum TextureError {
 
 impl fmt::Display for TextureError {
   fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
-    f.write_str(self.description())
-  }
-}
-
-impl Error for TextureError {
-  fn description(&self) -> &str {
     match *self {
-      TextureError::TextureStorageCreationFailed(ref s) => &s
+      TextureError::TextureStorageCreationFailed(ref e) => {
+        write!(f, "texture storage creation failed: {}", e)
+      }
     }
   }
 }
+
+impl Error for TextureError {}
 
 pub type Result<T> = ::std::result::Result<T, TextureError>;

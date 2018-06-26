@@ -323,21 +323,7 @@ impl fmt::Display for StateQueryError {
   }
 }
 
-impl Error for StateQueryError {
-  fn description(&self) -> &str {
-    match *self {
-      StateQueryError::UnavailableGraphicsState => "unavailable graphics state",
-      StateQueryError::UnknownBlendingState(_) => "unknown blending state",
-      StateQueryError::UnknownBlendingEquation(_) => "unknown blending equation",
-      StateQueryError::UnknownBlendingSrcFactor(_) => "unknown blending source factor",
-      StateQueryError::UnknownBlendingDstFactor(_) => "unknown blending destination factor",
-      StateQueryError::UnknownDepthTestState(_) => "unknown depth test state",
-      StateQueryError::UnknownFaceCullingState(_) => "unknown face culling state",
-      StateQueryError::UnknownFaceCullingOrder(_) => "unknown face culling order",
-      StateQueryError::UnknownFaceCullingMode(_) => "unknown face culling mode",
-    }
-  }
-}
+impl Error for StateQueryError {}
 
 unsafe fn get_ctx_blending_state() -> Result<BlendingState, StateQueryError> {
   let state = gl::IsEnabled(gl::BLEND);
