@@ -54,11 +54,16 @@ impl RenderState {
 }
 
 impl Default for RenderState {
+  /// The default `RenderState`.
+  ///
+  ///   - `blending`: `None`
+  ///   - `depth_test`: `DepthTest::Enabled`
+  ///   - `face_culling`: `None`
   fn default() -> Self {
     RenderState {
       blending: None,
       depth_test: DepthTest::Enabled,
-      face_culling: Some(FaceCulling::default())
+      face_culling: None,
     }
   }
 }
