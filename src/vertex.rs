@@ -51,11 +51,6 @@ use gtup::GTup;
 /// A `VertexFormat` is a list of `VertexComponentFormat`s.
 pub type VertexFormat = Vec<VertexComponentFormat>;
 
-/// Retrieve the number of components in a `VertexFormat`.
-pub fn vertex_format_size(vf: &[VertexComponentFormat]) -> usize {
-  vf.len()
-}
-
 /// Vertex component format. It gives information on how vertices should be passed to the GPU and
 /// optimized in buffers.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

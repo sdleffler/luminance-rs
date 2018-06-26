@@ -176,8 +176,8 @@ pub trait Dimensionable {
   fn zero_offset() -> Self::Offset;
 }
 
-/// Capacity of the dimension, which is the product of the width, height and depth.
-pub fn dim_capacity<D>(size: D::Size) -> u32 where D: Dimensionable {
+// Capacity of the dimension, which is the product of the width, height and depth.
+fn dim_capacity<D>(size: D::Size) -> u32 where D: Dimensionable {
   D::width(size) * D::height(size) * D::depth(size)
 }
 

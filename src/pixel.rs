@@ -365,7 +365,7 @@ impl_Pixel!(Depth32F, f32, f32, Type::Floating, Format::Depth(32));
 impl_DepthPixel!(Depth32F);
 
 // OpenGL format, internal sized-format and type.
-pub fn opengl_pixel_format(pf: PixelFormat) -> Option<(GLenum, GLenum, GLenum)> {
+pub(crate) fn opengl_pixel_format(pf: PixelFormat) -> Option<(GLenum, GLenum, GLenum)> {
   match (pf.format, pf.encoding) {
     (Format::R(8), Type::Integral) => Some((gl::RED_INTEGER, gl::R8I, gl::BYTE)),
     (Format::R(8), Type::Unsigned) => Some((gl::RED_INTEGER, gl::R8UI, gl::UNSIGNED_BYTE)),
@@ -406,7 +406,7 @@ pub fn opengl_pixel_format(pf: PixelFormat) -> Option<(GLenum, GLenum, GLenum)> 
 }
 
 // Return the number of components.
-pub fn pixel_components(pf: PixelFormat) -> usize {
+pub(crate) fn pixel_components(pf: PixelFormat) -> usize {
   match pf.format {
     Format::RGB(_, _, _) => 3,
     Format::RGBA(_, _, _, _) => 4,
