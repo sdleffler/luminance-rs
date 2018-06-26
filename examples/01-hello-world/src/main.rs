@@ -81,7 +81,7 @@ fn main() {
 
   // the back buffer, which we will make our render into (we make it mutable so that we can change
   // it whenever the window dimensions change)
-  let mut back_buffer = Framebuffer::default(surface.size());
+  let mut back_buffer = Framebuffer::back_buffer(surface.size());
 
   let mut demo = TessMethod::Direct;
   println!("now rendering {:?}", demo);
@@ -104,7 +104,7 @@ fn main() {
         // handle window resizing
         WindowEvent::FramebufferSize(width, height) => {
           // simply ask another backbuffer at the right dimension (no allocation / reallocation)
-          back_buffer = Framebuffer::default([width as u32, height as u32]);
+          back_buffer = Framebuffer::back_buffer([width as u32, height as u32]);
         }
 
         _ => ()

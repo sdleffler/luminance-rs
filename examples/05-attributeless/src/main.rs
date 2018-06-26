@@ -32,7 +32,7 @@ fn main() {
   // attributes / data); in our case, we’ll just render a triangle, which has three vertices
   let tess = Tess::attributeless(&mut surface, Mode::Triangle, 3);
 
-  let mut back_buffer = Framebuffer::default(surface.size());
+  let mut back_buffer = Framebuffer::back_buffer(surface.size());
 
   'app: loop {
     for event in surface.poll_events() {
@@ -42,7 +42,7 @@ fn main() {
         }
 
         WindowEvent::FramebufferSize(width, height) => {
-          back_buffer = Framebuffer::default([width as u32, height as u32]);
+          back_buffer = Framebuffer::back_buffer([width as u32, height as u32]);
         }
 
         _ => ()

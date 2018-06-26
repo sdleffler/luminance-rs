@@ -2,7 +2,7 @@
 //!
 //! Framebuffers are at the core of rendering. They’re the support of rendering operations and can
 //! be used to highly enhance the visual aspect of a render. You’re always provided with at least
-//! one framebuffer, `Framebuffer::default`. That function returns a framebuffer that represents –
+//! one framebuffer, `Framebuffer::back_buffer`. That function returns a framebuffer that represents –
 //! for short – the current back framebuffer. You can render to that framebuffer and when you
 //! *swap* the buffers, your render appears in the front framebuffer (likely your screen).
 //!
@@ -137,7 +137,8 @@ pub struct Framebuffer<L, D, CS, DS>
 }
 
 impl Framebuffer<Flat, Dim2, (), ()> {
-  pub fn default(size: <Dim2 as Dimensionable>::Size) -> Self {
+  /// Get the back buffer with the given dimension.
+  pub fn back_buffer(size: <Dim2 as Dimensionable>::Size) -> Self {
     Framebuffer {
       handle: 0,
       renderbuffer: None,

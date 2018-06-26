@@ -71,7 +71,7 @@ fn main() {
   let red_triangle = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[0..3], None);
   let blue_triangle = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[3..6], None);
 
-  let mut back_buffer = Framebuffer::default(surface.size());
+  let mut back_buffer = Framebuffer::back_buffer(surface.size());
 
   let mut blending = None;
   let mut depth_method = DepthMethod::Under;
@@ -95,7 +95,7 @@ fn main() {
         }
 
         WindowEvent::FramebufferSize(width, height) => {
-          back_buffer = Framebuffer::default([width as u32, height as u32]);
+          back_buffer = Framebuffer::back_buffer([width as u32, height as u32]);
         }
 
         _ => ()

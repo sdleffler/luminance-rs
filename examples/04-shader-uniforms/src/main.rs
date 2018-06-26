@@ -56,7 +56,7 @@ fn main() {
 
   let triangle = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[..], None);
 
-  let mut back_buffer = Framebuffer::default(surface.size());
+  let mut back_buffer = Framebuffer::back_buffer(surface.size());
 
   // position of the triangle
   let mut triangle_pos = [0., 0.];
@@ -88,7 +88,7 @@ fn main() {
         }
 
         WindowEvent::FramebufferSize(width, height) => {
-          back_buffer = Framebuffer::default([width as u32, height as u32]);
+          back_buffer = Framebuffer::back_buffer([width as u32, height as u32]);
         }
 
         _ => ()

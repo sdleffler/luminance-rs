@@ -60,7 +60,7 @@ fn run(texture_path: &Path) {
   // TriangleFan creates triangles by connecting the third (and next) vertex to the first one
   let tess = Tess::attributeless(&mut surface, Mode::TriangleFan, 4);
 
-  let mut back_buffer = Framebuffer::default(surface.size());
+  let mut back_buffer = Framebuffer::back_buffer(surface.size());
 
   println!("rendering!");
 
@@ -72,7 +72,7 @@ fn run(texture_path: &Path) {
         }
 
         WindowEvent::FramebufferSize(width, height) => {
-          back_buffer = Framebuffer::default([width as u32, height as u32]);
+          back_buffer = Framebuffer::back_buffer([width as u32, height as u32]);
         }
 
         _ => ()

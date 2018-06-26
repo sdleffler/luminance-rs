@@ -63,7 +63,7 @@ fn main() {
 
   let surf_size = surface.size();
   // “screen“ we want to render into our offscreen render
-  let mut back_buffer = Framebuffer::default(surf_size); 
+  let mut back_buffer = Framebuffer::back_buffer(surf_size); 
   // offscreen buffer that we will render in the first place
   let mut offscreen_buffer =
     Framebuffer::<Flat, Dim2, Texture<Flat, Dim2, RGBA32F>, ()>::new(&mut surface, surf_size, 0).expect("framebuffer creation");
@@ -91,7 +91,7 @@ fn main() {
     // if the window got resized
     if let Some(size) = update_offscreen_buffer {
       // simply ask another backbuffer at the right dimension (no allocation / reallocation)
-      back_buffer = Framebuffer::default(size);
+      back_buffer = Framebuffer::back_buffer(size);
       // ditto for the offscreen framebuffer
       offscreen_buffer = Framebuffer::new(&mut surface, size, 0).expect("framebuffer recreation");
 

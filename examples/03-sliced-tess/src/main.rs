@@ -67,7 +67,7 @@ fn main() {
   // create a single GPU tessellation that holds both the triangles (like in 01-hello-world)
   let triangles = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[..], None);
 
-  let mut back_buffer = Framebuffer::default(surface.size());
+  let mut back_buffer = Framebuffer::back_buffer(surface.size());
 
   let mut slice_method = SliceMethod::Red;
   println!("now rendering slice {:?}", slice_method);
@@ -85,7 +85,7 @@ fn main() {
         }
 
         WindowEvent::FramebufferSize(width, height) => {
-          back_buffer = Framebuffer::default([width as u32, height as u32]);
+          back_buffer = Framebuffer::back_buffer([width as u32, height as u32]);
         }
 
         _ => ()
