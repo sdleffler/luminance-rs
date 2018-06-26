@@ -399,7 +399,8 @@ impl<L, D, P> Texture<L, D, P>
     size: D::Size,
     mipmaps: usize,
     sampler: &Sampler
-  ) -> Result<Self>
+  ) -> Result<Self, TextureError>
+
   where C: GraphicsContext {
     let mipmaps = mipmaps + 1; // + 1 prevent having 0 mipmaps
     let mut texture = 0;
@@ -584,17 +585,27 @@ pub(crate) fn opengl_target(l: Layering, d: Dim) -> GLenum {
   }
 }
 
-pub(crate) unsafe fn create_texture<L, D>(target: GLenum, size: D::Size, mipmaps: usize, pf: PixelFormat, sampler: &Sampler) -> Result<()>
-    where L: Layerable,
-          D: Dimensionable {
+pub(crate) unsafe fn create_texture<L, D>(
+  target: GLenum,
+  size: D::Size,
+  mipmaps: usize,
+  pf: PixelFormat,
+  sampler: &Sampler
+) -> Result<(), TextureError>
+where L: Layerable,
+      D: Dimensionable {
   set_texture_levels(target, mipmaps);
   apply_sampler_to_texture(target, sampler);
   create_texture_storage::<L, D>(size, mipmaps, pf)
 }
 
-fn create_texture_storage<L, D>(size: D::Size, mipmaps: usize, pf: PixelFormat) -> Result<()>
-    where L: Layerable,
-          D: Dimensionable {
+fn create_texture_storage<L, D>(
+  size: D::Size,
+  mipmaps: usize,
+  pf: PixelFormat
+) -> Result<(), TextureError>
+where L: Layerable,
+      D: Dimensionable {
   match opengl_pixel_format(pf) {
     Some(glf) => {
       let (format, iformat, encoding) = glf;
@@ -791,7 +802,7 @@ pub enum TextureError {
 }
 
 impl fmt::Display for TextureError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
       TextureError::TextureStorageCreationFailed(ref e) => {
         write!(f, "texture storage creation failed: {}", e)
@@ -802,4 +813,3 @@ impl fmt::Display for TextureError {
 
 impl Error for TextureError {}
 
-pub type Result<T> = ::std::result::Result<T, TextureError>;

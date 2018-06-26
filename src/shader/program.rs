@@ -41,8 +41,6 @@ use linear::{M22, M33, M44};
 use shader::stage::{self, Stage, StageError};
 use vertex::Vertex;
 
-pub type Result<A> = ::std::result::Result<A, ProgramError>;
-
 /// A raw shader program.
 ///
 /// This is a type-erased version of a `Program`.
@@ -57,7 +55,7 @@ impl RawProgram {
                        vertex: &Stage,
                        geometry: G,
                        fragment: &Stage)
-                       -> Result<Self>
+                       -> Result<Self, ProgramError>
       where T: Into<Option<(&'a Stage, &'a Stage)>>,
             G: Into<Option<&'a Stage>> {
     unsafe {
@@ -125,13 +123,14 @@ pub struct Program<In, Out, Uni> {
 
 impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface {
   /// Create a new program by consuming `Stage`s.
-  pub fn from_stages<'a, T, G>(tess: T,
-                               vertex: &Stage,
-                               geometry: G,
-                               fragment: &Stage)
-                               -> Result<(Self, Vec<UniformWarning>)>
-                               where T: Into<Option<(&'a Stage, &'a Stage)>>,
-                                     G: Into<Option<&'a Stage>> {
+  pub fn from_stages<'a, T, G>(
+    tess: T,
+    vertex: &Stage,
+    geometry: G,
+    fragment: &Stage)
+  -> Result<(Self, Vec<UniformWarning>), ProgramError>
+  where T: Into<Option<(&'a Stage, &'a Stage)>>,
+        G: Into<Option<&'a Stage>> {
     let raw = RawProgram::new(tess, vertex, geometry, fragment)?;
     let (iface, warnings) = Uni::uniform_interface(UniformBuilder::new(&raw))?;
 
@@ -146,13 +145,14 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface
   }
 
   /// Create a new program by consuming strings.
-  pub fn from_strings<'a, T, G>(tess: T,
-                                vertex: &str,
-                                geometry: G,
-                                fragment: &str)
-                                -> Result<(Self, Vec<UniformWarning>)>
-                                where T: Into<Option<(&'a str, &'a str)>>,
-                                      G: Into<Option<&'a str>> {
+  pub fn from_strings<'a, T, G>(
+    tess: T,
+    vertex: &str,
+    geometry: G,
+    fragment: &str)
+  -> Result<(Self, Vec<UniformWarning>), ProgramError>
+  where T: Into<Option<(&'a str, &'a str)>>,
+        G: Into<Option<&'a str>> {
     let tess = match tess.into() {
       Some((tcs_str, tes_str)) => {
         let tcs = Stage::new(stage::Type::TessellationControlShader, tcs_str).map_err(ProgramError::StageError)?;
@@ -197,11 +197,15 @@ pub trait UniformInterface: Sized {
   ///
   /// When mapping a uniform, if you want to accept failures, you can discard the error and use
   /// `UniformBuilder::unbound` to let the uniform pass through, and collect the uniform warning.
-  fn uniform_interface<'a>(builder: UniformBuilder<'a>) -> Result<(Self, Vec<UniformWarning>)>;
+  fn uniform_interface<'a>(
+    builder: UniformBuilder<'a>
+  ) -> Result<(Self, Vec<UniformWarning>), ProgramError>;
 }
 
 impl UniformInterface for () {
-  fn uniform_interface<'a>(_: UniformBuilder<'a>) -> Result<(Self, Vec<UniformWarning>)> {
+  fn uniform_interface<'a>(
+    _: UniformBuilder<'a>
+  ) -> Result<(Self, Vec<UniformWarning>), ProgramError> {
     Ok(((), Vec::new()))
   }
 }
@@ -221,7 +225,7 @@ impl<'a> UniformBuilder<'a> {
   /// Have the builder hand you a `Uniform` of the type of your choice. Keep in mind that it’s
   /// possible that this function fails if you ask for a type that is not the one defined in the
   /// shader.
-  pub fn ask<T>(&self, name: &str) -> ::std::result::Result<Uniform<T>, UniformWarning> where T: Uniformable {
+  pub fn ask<T>(&self, name: &str) -> Result<Uniform<T>, UniformWarning> where T: Uniformable {
     let uniform = match T::ty() {
       Type::BufferBinding => self.ask_uniform_block(name)?,
       _ => self.ask_uniform(name)?
@@ -232,7 +236,7 @@ impl<'a> UniformBuilder<'a> {
     Ok(uniform)
   }
 
-  fn ask_uniform<T>(&self, name: &str) -> ::std::result::Result<Uniform<T>, UniformWarning> where T: Uniformable {
+  fn ask_uniform<T>(&self, name: &str) -> Result<Uniform<T>, UniformWarning> where T: Uniformable {
     let c_name = CString::new(name.as_bytes()).unwrap();
     let location = unsafe { gl::GetUniformLocation(self.raw.handle, c_name.as_ptr() as *const GLchar) };
 
@@ -243,7 +247,7 @@ impl<'a> UniformBuilder<'a> {
     }
   }
 
-  fn ask_uniform_block<T>(&self, name: &str) -> ::std::result::Result<Uniform<T>, UniformWarning> where T: Uniformable {
+  fn ask_uniform_block<T>(&self, name: &str) -> Result<Uniform<T>, UniformWarning> where T: Uniformable {
     let c_name = CString::new(name.as_bytes()).unwrap();
     let location = unsafe { gl::GetUniformBlockIndex(self.raw.handle, c_name.as_ptr() as *const GLchar) };
 
@@ -275,7 +279,7 @@ pub enum ProgramError {
 }
 
 impl fmt::Display for ProgramError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
       ProgramError::StageError(ref e) => {
         write!(f, "shader program has stage error: {}", e)
@@ -315,7 +319,7 @@ pub enum UniformWarning {
 }
 
 impl fmt::Display for UniformWarning {
-  fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
       UniformWarning::Inactive(ref s) => {
         write!(f, "inactive {} uniform", s)
@@ -794,7 +798,7 @@ impl<'a> Uniformable for &'a [[bool; 4]] {
   fn dim() -> Dim { Dim::Dim4 }
 }
 
-fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> ::std::result::Result<(), String> {
+fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> Result<(), String> {
   let mut size: GLint = 0;
   let mut typ: GLuint = 0;
   let c_name = CString::new(name.as_bytes()).unwrap();
@@ -937,7 +941,7 @@ macro_rules! uniform_interface_impl_trait {
     impl $crate::shader::program::UniformInterface for $struct_name {
       fn uniform_interface(
         builder: $crate::shader::program::UniformBuilder
-      ) -> ::std::result::Result<(Self, Vec<$crate::shader::program::UniformWarning>), $crate::shader::program::ProgramError> {
+      ) -> Result<(Self, Vec<$crate::shader::program::UniformWarning>), $crate::shader::program::ProgramError> {
         #[allow(unused_mut)]
         let mut warnings = Vec::new();
 

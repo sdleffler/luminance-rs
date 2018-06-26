@@ -5,8 +5,6 @@ use std::ffi::CString;
 use std::fmt;
 use std::ptr::{null, null_mut};
 
-type Result<A> = ::std::result::Result<A, StageError>;
-
 /// A shader stage type.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Type {

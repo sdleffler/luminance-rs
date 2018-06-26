@@ -48,7 +48,7 @@ pub enum FramebufferError {
 }
 
 impl fmt::Display for FramebufferError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
       FramebufferError::TextureError(ref e) => {
         write!(f, "framebuffer texture error: {}", e)
@@ -84,7 +84,7 @@ pub enum IncompleteReason {
 }
 
 impl fmt::Display for IncompleteReason {
-  fn fmt(&self, f: &mut fmt::Formatter) -> ::std::result::Result<(), fmt::Error> {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
       IncompleteReason::Undefined => write!(f, "incomplete reason"),
       IncompleteReason::IncompleteAttachment => write!(f, "incomplete attachment"),
@@ -99,8 +99,6 @@ impl fmt::Display for IncompleteReason {
 }
 
 impl Error for IncompleteReason {}
-
-pub type Result<T> = ::std::result::Result<T, FramebufferError>;
 
 /// Framebuffer with static layering, dimension, access and slots formats.
 ///
@@ -174,7 +172,7 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
     ctx: &mut C,
     size: D::Size,
     mipmaps: usize
-  ) -> Result<Framebuffer<L, D, CS, DS>>
+  ) -> Result<Framebuffer<L, D, CS, DS>, FramebufferError>
   where C: GraphicsContext {
     let mipmaps = mipmaps + 1;
     let mut handle: GLuint = 0;
@@ -302,7 +300,7 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
   }
 }
 
-fn get_status() -> ::std::result::Result<(), IncompleteReason> {
+fn get_status() -> Result<(), IncompleteReason> {
   let status = unsafe { gl::CheckFramebufferStatus(gl::FRAMEBUFFER) };
 
   match status {
