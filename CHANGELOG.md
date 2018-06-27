@@ -1,3 +1,33 @@
+# 0.27.0
+
+> Thursday, 28th of June, 2018
+
+  - Tag some unsafe traits with the `unsafe` keyword. Those traits are not supposed to be
+    implemented by end-users but if they do, they might break the internal behavior of the crate, so
+    the unsafety tag is necessary.
+  - Use an algebraic type for encoding pixel channel size instead of `u8`.
+  - Remove the `Result` type aliases used pretty much everywhere. Even though you can find them in
+    `std::*`, those are considered of bad taste and lead to confusion.
+  - Fix `std::error::Error` implementors. Especially, the `description` methode implementation was
+    removed.
+  - Disable face culling by default. This default choice was motivated by #60: people didn’t see the
+    triangle they specified and thought of a bug.
+  - Rename `Framebuffer::default` into `Framebuffer::back_buffer`. Again, this is motivated by a
+    user incomprehension about the behavior (see #65).
+  - Some internal change to boost and take advantage of the use of the GPU state tracking.
+  - Clean up the interface.
+  - Made `BoundBuffer` and `BoundTexture` types easier to use. Especially, you’re not supposed to
+    pass `Buffer<_>` nor `Texture<_, _, _>` anymore as it’s automatically inferred.
+  - Replace `TessRender` with `TessSlice` and use the `Index<_>` notation to create such objects.
+    This is a simple yet great change as you don’t have to tweak around `&TessRender` anymore and
+    can directly use the `.slice(_)` method.
+  - Enhance the overall documentation once again.
+  - Add a bunch of examples. You can find them in the directory [examples](./examples). They consist
+    of a cargo workspace with one cargo project per example. Feel free to read the top documentation
+    and in-code documentation of each `main.rs` for further information. Also, if you would like to
+    learn something new (or if you think an example is missing to understand something), feel free
+    to open a PR / issue; any kind of contribution is warmly welcomed!
+
 # 0.26.0
 
 > Sunday, 17th of June, 2018
@@ -49,9 +79,9 @@
 > Sunday, 11th of February, 2018
 
   - Added a `uniform_interface!` macro. That enables to create a new `struct` type and have inspection
-  of its fields at compile-time so that a `UniformInterface impl` is automatically generated. This
-  is a kind of _custom auto derive_ without depending on proc-macro. Feel free to use it as it’ll
-  remove a lot of boilerplate from your code.
+    of its fields at compile-time so that a `UniformInterface impl` is automatically generated. This
+    is a kind of _custom auto derive_ without depending on proc-macro. Feel free to use it as it’ll
+    remove a lot of boilerplate from your code.
   - Cleanup of internal code.
 
 ## 0.25.1
@@ -63,7 +93,7 @@
 > Thursday, 14th of December, 2017
 
   - Replaced the `Uniformable` implementation for `pipeline::Bound*` to `&pipeline::Bound*`. This
-  enables sharing of bound resources instead of dropping and re-binding the resources.
+    enables sharing of bound resources instead of dropping and re-binding the resources.
 
 ## 0.24.1
 
@@ -90,13 +120,13 @@
 
   - Added `Program::from_strings`.
   - Patch: internal function that used `Option` to express an error via `Some(err)` replaced by
-  `Result<(), _>` and the more appropriate `Err(err)`.
+    `Result<(), _>` and the more appropriate `Err(err)`.
 
 ### 0.22.7
 
   - Use the `pub(crate)` construct to hide some `unsafe` functions and remove `unsafe` annotation on
-  some of them. The safety annotation was used so that it discouraged users to use the functions.
-  Now that we have a proper way to express access-control, we can remove `unsafe`.
+    some of them. The safety annotation was used so that it discouraged users to use the functions.
+    Now that we have a proper way to express access-control, we can remove `unsafe`.
 
 ### 0.22.6
 
@@ -119,7 +149,7 @@
 ### 0.22.2
 
   - Enforce lifetimes on `BoundTexture` and `BoundBuffer`. It’s there so that such objects cannot
-  live longer than the references on the `Texture<_>` and `Buffer<_>` they’re based on.
+    live longer than the references on the `Texture<_>` and `Buffer<_>` they’re based on.
 
 ### 0.22.1
 
@@ -142,7 +172,7 @@
 
   - `Tess::as_slice{,_mut}` now don’t need type annotations anymore and provide slices typed by `V`.
   - Added `as_slice{,_mut}` to `Buffer` directly, setting the phantom type to what the `Buffer<_>`
- holds – it’s safer and will remove type annotations in client code, much cool!
+    holds – it’s safer and will remove type annotations in client code, much cool!
 
 ## 0.21.0
 
