@@ -1,4 +1,3 @@
-
 //! Pixel formats types and function manipulation.
 //!
 //! The `Pixel` trait is used to reify a pixel type at runtime via `PixelFormat`.
@@ -6,7 +5,7 @@
 use gl;
 use gl::types::*;
 
-/// Reify a static pixel format to runtime.
+/// Reify a static pixel format at runtime.
 pub trait Pixel {
   /// Encoding of a single pixel. It should match the `PixelFormat` mapping.
   type Encoding;
@@ -28,7 +27,7 @@ pub trait DepthPixel: Pixel {}
 pub trait RenderablePixel: Pixel {}
 
 /// A `PixelFormat` gathers a `Type` along with a `Format`.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub struct PixelFormat {
   /// Encoding type of the pixel format.
   pub encoding: Type,
@@ -37,7 +36,7 @@ pub struct PixelFormat {
 }
 
 /// Pixel type.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Type {
   Integral,
   Unsigned,
@@ -46,20 +45,28 @@ pub enum Type {
 
 /// Format of a pixel.
 ///
-/// Whichever the constructor you choose, the carried `u8`s represents how many bytes are used to
+/// Whichever the constructor you choose, the carried `Size`s represents how many bits are used to
 /// represent each channel.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Format {
     /// Holds a red-only channel.
-  R(u8),
+  R(Size),
     /// Holds red and green channels.
-  RG(u8, u8),
+  RG(Size, Size),
   /// Holds red, green and blue channels.
-  RGB(u8, u8, u8),
+  RGB(Size, Size, Size),
   /// Holds red, green, blue and alpha channels.
-  RGBA(u8, u8, u8, u8),
+  RGBA(Size, Size, Size, Size),
   /// Holds a depth channel.
-  Depth(u8)
+  Depth(Size)
+}
+
+/// Size in bits a pixel channel can be.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Size {
+  Eight,
+  Sixteen,
+  ThirtyTwo
 }
 
 /// Does a `PixelFormat` represent a color?
@@ -113,7 +120,7 @@ macro_rules! impl_RenderablePixel {
 #[derive(Clone, Copy, Debug)]
 pub struct R8I;
 
-impl_Pixel!(R8I, i8, i8, Type::Integral, Format::R(8));
+impl_Pixel!(R8I, i8, i8, Type::Integral, Format::R(Size::Eight));
 impl_ColorPixel!(R8I);
 impl_RenderablePixel!(R8I);
 
@@ -121,7 +128,7 @@ impl_RenderablePixel!(R8I);
 #[derive(Clone, Copy, Debug)]
 pub struct R8UI;
 
-impl_Pixel!(R8UI, u8, u8, Type::Unsigned, Format::R(8));
+impl_Pixel!(R8UI, u8, u8, Type::Unsigned, Format::R(Size::Eight));
 impl_ColorPixel!(R8UI);
 impl_RenderablePixel!(R8UI);
 
@@ -131,7 +138,7 @@ impl_RenderablePixel!(R8UI);
 #[derive(Clone, Copy, Debug)]
 pub struct R16I;
 
-impl_Pixel!(R16I, i16, i16, Type::Integral, Format::R(16));
+impl_Pixel!(R16I, i16, i16, Type::Integral, Format::R(Size::Sixteen));
 impl_ColorPixel!(R16I);
 impl_RenderablePixel!(R16I);
 
@@ -139,7 +146,7 @@ impl_RenderablePixel!(R16I);
 #[derive(Clone, Copy, Debug)]
 pub struct R16UI;
 
-impl_Pixel!(R16UI, u16, u16, Type::Unsigned, Format::R(16));
+impl_Pixel!(R16UI, u16, u16, Type::Unsigned, Format::R(Size::Sixteen));
 impl_ColorPixel!(R16UI);
 impl_RenderablePixel!(R16UI);
 
@@ -149,7 +156,7 @@ impl_RenderablePixel!(R16UI);
 #[derive(Clone, Copy, Debug)]
 pub struct R32I;
 
-impl_Pixel!(R32I, i32, i32, Type::Integral, Format::R(32));
+impl_Pixel!(R32I, i32, i32, Type::Integral, Format::R(Size::ThirtyTwo));
 impl_ColorPixel!(R32I);
 impl_RenderablePixel!(R32I);
 
@@ -157,7 +164,7 @@ impl_RenderablePixel!(R32I);
 #[derive(Clone, Copy, Debug)]
 pub struct R32UI;
 
-impl_Pixel!(R32UI, u32, u32, Type::Unsigned, Format::R(32));
+impl_Pixel!(R32UI, u32, u32, Type::Unsigned, Format::R(Size::ThirtyTwo));
 impl_ColorPixel!(R32UI);
 impl_RenderablePixel!(R32UI);
 
@@ -165,7 +172,7 @@ impl_RenderablePixel!(R32UI);
 #[derive(Clone, Copy, Debug)]
 pub struct R32F;
 
-impl_Pixel!(R32F, f32, f32, Type::Floating, Format::R(32));
+impl_Pixel!(R32F, f32, f32, Type::Floating, Format::R(Size::ThirtyTwo));
 impl_ColorPixel!(R32F);
 impl_RenderablePixel!(R32F);
 
@@ -175,7 +182,7 @@ impl_RenderablePixel!(R32F);
 #[derive(Clone, Copy, Debug)]
 pub struct RG8I;
 
-impl_Pixel!(RG8I, (i8, i8), i8, Type::Integral, Format::RG(8, 8));
+impl_Pixel!(RG8I, (i8, i8), i8, Type::Integral, Format::RG(Size::Eight, Size::Eight));
 impl_ColorPixel!(RG8I);
 impl_RenderablePixel!(RG8I);
 
@@ -183,7 +190,7 @@ impl_RenderablePixel!(RG8I);
 #[derive(Clone, Copy, Debug)]
 pub struct RG8UI;
 
-impl_Pixel!(RG8UI, (u8, u8), u8, Type::Unsigned, Format::RG(8, 8));
+impl_Pixel!(RG8UI, (u8, u8), u8, Type::Unsigned, Format::RG(Size::Eight, Size::Eight));
 impl_ColorPixel!(RG8UI);
 impl_RenderablePixel!(RG8UI);
 
@@ -193,7 +200,7 @@ impl_RenderablePixel!(RG8UI);
 #[derive(Clone, Copy, Debug)]
 pub struct RG16I;
 
-impl_Pixel!(RG16I, (i16, i16), i16, Type::Integral, Format::RG(16, 16));
+impl_Pixel!(RG16I, (i16, i16), i16, Type::Integral, Format::RG(Size::Sixteen, Size::Sixteen));
 impl_ColorPixel!(RG16I);
 impl_RenderablePixel!(RG16I);
 
@@ -201,7 +208,7 @@ impl_RenderablePixel!(RG16I);
 #[derive(Clone, Copy, Debug)]
 pub struct RG16UI;
 
-impl_Pixel!(RG16UI, (u16, u16), u16, Type::Unsigned, Format::RG(16, 16));
+impl_Pixel!(RG16UI, (u16, u16), u16, Type::Unsigned, Format::RG(Size::Sixteen, Size::Sixteen));
 impl_ColorPixel!(RG16UI);
 impl_RenderablePixel!(RG16UI);
 
@@ -211,7 +218,7 @@ impl_RenderablePixel!(RG16UI);
 #[derive(Clone, Copy, Debug)]
 pub struct RG32I;
 
-impl_Pixel!(RG32I, (i32, i32), i32, Type::Integral, Format::RG(32, 32));
+impl_Pixel!(RG32I, (i32, i32), i32, Type::Integral, Format::RG(Size::ThirtyTwo, Size::ThirtyTwo));
 impl_ColorPixel!(RG32I);
 impl_RenderablePixel!(RG32I);
 
@@ -219,7 +226,7 @@ impl_RenderablePixel!(RG32I);
 #[derive(Clone, Copy, Debug)]
 pub struct RG32UI;
 
-impl_Pixel!(RG32UI, (u32, u32), u32, Type::Unsigned, Format::RG(32, 32));
+impl_Pixel!(RG32UI, (u32, u32), u32, Type::Unsigned, Format::RG(Size::ThirtyTwo, Size::ThirtyTwo));
 impl_ColorPixel!(RG32UI);
 impl_RenderablePixel!(RG32UI);
 
@@ -227,7 +234,7 @@ impl_RenderablePixel!(RG32UI);
 #[derive(Clone, Copy, Debug)]
 pub struct RG32F;
 
-impl_Pixel!(RG32F, (f32, f32), f32, Type::Floating, Format::RG(32, 32));
+impl_Pixel!(RG32F, (f32, f32), f32, Type::Floating, Format::RG(Size::ThirtyTwo, Size::ThirtyTwo));
 impl_ColorPixel!(RG32F);
 impl_RenderablePixel!(RG32F);
 
@@ -237,7 +244,7 @@ impl_RenderablePixel!(RG32F);
 #[derive(Clone, Copy, Debug)]
 pub struct RGB8I;
 
-impl_Pixel!(RGB8I, (i8, i8, i8), i8, Type::Integral, Format::RGB(8, 8, 8));
+impl_Pixel!(RGB8I, (i8, i8, i8), i8, Type::Integral, Format::RGB(Size::Eight, Size::Eight, Size::Eight));
 impl_ColorPixel!(RGB8I);
 impl_RenderablePixel!(RGB8I);
 
@@ -245,7 +252,7 @@ impl_RenderablePixel!(RGB8I);
 #[derive(Clone, Copy, Debug)]
 pub struct RGB8UI;
 
-impl_Pixel!(RGB8UI, (u8, u8, u8), u8, Type::Unsigned, Format::RGB(8, 8, 8));
+impl_Pixel!(RGB8UI, (u8, u8, u8), u8, Type::Unsigned, Format::RGB(Size::Eight, Size::Eight, Size::Eight));
 impl_ColorPixel!(RGB8UI);
 impl_RenderablePixel!(RGB8UI);
 
@@ -255,7 +262,7 @@ impl_RenderablePixel!(RGB8UI);
 #[derive(Clone, Copy, Debug)]
 pub struct RGB16I;
 
-impl_Pixel!(RGB16I, (i16, i16, i16), i16, Type::Integral, Format::RGB(16, 16, 16));
+impl_Pixel!(RGB16I, (i16, i16, i16), i16, Type::Integral, Format::RGB(Size::Sixteen, Size::Sixteen, Size::Sixteen));
 impl_ColorPixel!(RGB16I);
 impl_RenderablePixel!(RGB16I);
 
@@ -263,7 +270,7 @@ impl_RenderablePixel!(RGB16I);
 #[derive(Clone, Copy, Debug)]
 pub struct RGB16UI;
 
-impl_Pixel!(RGB16UI, (u16, u16, u16), u16, Type::Unsigned, Format::RGB(16, 16, 16));
+impl_Pixel!(RGB16UI, (u16, u16, u16), u16, Type::Unsigned, Format::RGB(Size::Sixteen, Size::Sixteen, Size::Sixteen));
 impl_ColorPixel!(RGB16UI);
 impl_RenderablePixel!(RGB16UI);
 
@@ -273,7 +280,7 @@ impl_RenderablePixel!(RGB16UI);
 #[derive(Clone, Copy, Debug)]
 pub struct RGB32I;
 
-impl_Pixel!(RGB32I, (i32, i32, i32), i32, Type::Integral, Format::RGB(32, 32, 32));
+impl_Pixel!(RGB32I, (i32, i32, i32), i32, Type::Integral, Format::RGB(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo));
 impl_ColorPixel!(RGB32I);
 impl_RenderablePixel!(RGB32I);
 
@@ -281,7 +288,7 @@ impl_RenderablePixel!(RGB32I);
 #[derive(Clone, Copy, Debug)]
 pub struct RGB32UI;
 
-impl_Pixel!(RGB32UI, (u32, u32, u32), u32, Type::Unsigned, Format::RGB(32, 32, 32));
+impl_Pixel!(RGB32UI, (u32, u32, u32), u32, Type::Unsigned, Format::RGB(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo));
 impl_ColorPixel!(RGB32UI);
 impl_RenderablePixel!(RGB32UI);
 
@@ -289,7 +296,7 @@ impl_RenderablePixel!(RGB32UI);
 #[derive(Clone, Copy, Debug)]
 pub struct RGB32F;
 
-impl_Pixel!(RGB32F, (f32, f32, f32), f32, Type::Floating, Format::RGB(32, 32, 32));
+impl_Pixel!(RGB32F, (f32, f32, f32), f32, Type::Floating, Format::RGB(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo));
 impl_ColorPixel!(RGB32F);
 impl_RenderablePixel!(RGB32F);
 
@@ -299,7 +306,7 @@ impl_RenderablePixel!(RGB32F);
 #[derive(Clone, Copy, Debug)]
 pub struct RGBA8I;
 
-impl_Pixel!(RGBA8I, (i8, i8, i8, i8), i8, Type::Integral, Format::RGBA(8, 8, 8, 8));
+impl_Pixel!(RGBA8I, (i8, i8, i8, i8), i8, Type::Integral, Format::RGBA(Size::Eight, Size::Eight, Size::Eight, Size::Eight));
 impl_ColorPixel!(RGBA8I);
 impl_RenderablePixel!(RGBA8I);
 
@@ -307,7 +314,7 @@ impl_RenderablePixel!(RGBA8I);
 #[derive(Clone, Copy, Debug)]
 pub struct RGBA8UI;
 
-impl_Pixel!(RGBA8UI, (u8, u8, u8, u8), u8, Type::Unsigned, Format::RGBA(8, 8, 8, 8));
+impl_Pixel!(RGBA8UI, (u8, u8, u8, u8), u8, Type::Unsigned, Format::RGBA(Size::Eight, Size::Eight, Size::Eight, Size::Eight));
 impl_ColorPixel!(RGBA8UI);
 impl_RenderablePixel!(RGBA8UI);
 
@@ -317,7 +324,7 @@ impl_RenderablePixel!(RGBA8UI);
 #[derive(Clone, Copy, Debug)]
 pub struct RGBA16I;
 
-impl_Pixel!(RGBA16I, (i16, i16, i16, i16), i16, Type::Integral, Format::RGBA(16, 16, 16, 16));
+impl_Pixel!(RGBA16I, (i16, i16, i16, i16), i16, Type::Integral, Format::RGBA(Size::Sixteen, Size::Sixteen, Size::Sixteen, Size::Sixteen));
 impl_ColorPixel!(RGBA16I);
 impl_RenderablePixel!(RGBA16I);
 
@@ -325,7 +332,7 @@ impl_RenderablePixel!(RGBA16I);
 #[derive(Clone, Copy, Debug)]
 pub struct RGBA16UI;
 
-impl_Pixel!(RGBA16UI, (u16, u16, u16, u16), u16, Type::Unsigned, Format::RGBA(16, 16, 16, 16));
+impl_Pixel!(RGBA16UI, (u16, u16, u16, u16), u16, Type::Unsigned, Format::RGBA(Size::Sixteen, Size::Sixteen, Size::Sixteen, Size::Sixteen));
 impl_ColorPixel!(RGBA16UI);
 impl_RenderablePixel!(RGBA16UI);
 
@@ -335,7 +342,7 @@ impl_RenderablePixel!(RGBA16UI);
 #[derive(Clone, Copy, Debug)]
 pub struct RGBA32I;
 
-impl_Pixel!(RGBA32I, (i32, i32, i32, i32), i32, Type::Integral, Format::RGBA(32, 32, 32, 32));
+impl_Pixel!(RGBA32I, (i32, i32, i32, i32), i32, Type::Integral, Format::RGBA(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo));
 impl_ColorPixel!(RGBA32I);
 impl_RenderablePixel!(RGBA32I);
 
@@ -343,7 +350,7 @@ impl_RenderablePixel!(RGBA32I);
 #[derive(Clone, Copy, Debug)]
 pub struct RGBA32UI;
 
-impl_Pixel!(RGBA32UI, (u32, u32, u32, u32), u32, Type::Unsigned, Format::RGBA(32, 32, 32, 32));
+impl_Pixel!(RGBA32UI, (u32, u32, u32, u32), u32, Type::Unsigned, Format::RGBA(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo));
 impl_ColorPixel!(RGBA32UI);
 impl_RenderablePixel!(RGBA32UI);
 
@@ -351,7 +358,7 @@ impl_RenderablePixel!(RGBA32UI);
 #[derive(Clone, Copy, Debug)]
 pub struct RGBA32F;
 
-impl_Pixel!(RGBA32F, (f32, f32, f32, f32), f32, Type::Floating, Format::RGBA(32, 32, 32, 32));
+impl_Pixel!(RGBA32F, (f32, f32, f32, f32), f32, Type::Floating, Format::RGBA(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo));
 impl_ColorPixel!(RGBA32F);
 impl_RenderablePixel!(RGBA32F);
 
@@ -361,45 +368,45 @@ impl_RenderablePixel!(RGBA32F);
 #[derive(Clone, Copy, Debug)]
 pub struct Depth32F;
 
-impl_Pixel!(Depth32F, f32, f32, Type::Floating, Format::Depth(32));
+impl_Pixel!(Depth32F, f32, f32, Type::Floating, Format::Depth(Size::ThirtyTwo));
 impl_DepthPixel!(Depth32F);
 
 // OpenGL format, internal sized-format and type.
 pub(crate) fn opengl_pixel_format(pf: PixelFormat) -> Option<(GLenum, GLenum, GLenum)> {
   match (pf.format, pf.encoding) {
-    (Format::R(8), Type::Integral) => Some((gl::RED_INTEGER, gl::R8I, gl::BYTE)),
-    (Format::R(8), Type::Unsigned) => Some((gl::RED_INTEGER, gl::R8UI, gl::UNSIGNED_BYTE)),
-    (Format::R(16), Type::Integral) => Some((gl::RED_INTEGER, gl::R16I, gl::SHORT)),
-    (Format::R(16), Type::Unsigned) => Some((gl::RED_INTEGER, gl::R16UI, gl::UNSIGNED_SHORT)),
-    (Format::R(32), Type::Integral) => Some((gl::RED_INTEGER, gl::R32I, gl::INT)),
-    (Format::R(32), Type::Unsigned) => Some((gl::RED_INTEGER, gl::R32UI, gl::UNSIGNED_INT)),
-    (Format::R(32), Type::Floating) => Some((gl::RED, gl::R32F, gl::FLOAT)),
+    (Format::R(Size::Eight), Type::Integral) => Some((gl::RED_INTEGER, gl::R8I, gl::BYTE)),
+    (Format::R(Size::Eight), Type::Unsigned) => Some((gl::RED_INTEGER, gl::R8UI, gl::UNSIGNED_BYTE)),
+    (Format::R(Size::Sixteen), Type::Integral) => Some((gl::RED_INTEGER, gl::R16I, gl::SHORT)),
+    (Format::R(Size::Sixteen), Type::Unsigned) => Some((gl::RED_INTEGER, gl::R16UI, gl::UNSIGNED_SHORT)),
+    (Format::R(Size::ThirtyTwo), Type::Integral) => Some((gl::RED_INTEGER, gl::R32I, gl::INT)),
+    (Format::R(Size::ThirtyTwo), Type::Unsigned) => Some((gl::RED_INTEGER, gl::R32UI, gl::UNSIGNED_INT)),
+    (Format::R(Size::ThirtyTwo), Type::Floating) => Some((gl::RED, gl::R32F, gl::FLOAT)),
 
-    (Format::RG(8, 8), Type::Integral) => Some((gl::RG_INTEGER, gl::RG8I, gl::BYTE)),
-    (Format::RG(8, 8), Type::Unsigned) => Some((gl::RG_INTEGER, gl::RG8UI, gl::UNSIGNED_BYTE)),
-    (Format::RG(16, 16), Type::Integral) => Some((gl::RG_INTEGER, gl::RG16I, gl::SHORT)),
-    (Format::RG(16, 16), Type::Unsigned) => Some((gl::RG_INTEGER, gl::RG16UI, gl::UNSIGNED_SHORT)),
-    (Format::RG(32, 32), Type::Integral) => Some((gl::RG_INTEGER, gl::RG32I, gl::INT)),
-    (Format::RG(32, 32), Type::Unsigned) => Some((gl::RG_INTEGER, gl::RG32UI, gl::UNSIGNED_INT)),
-    (Format::RG(32, 32), Type::Floating) => Some((gl::RG, gl::RG32F, gl::FLOAT)),
+    (Format::RG(Size::Eight, Size::Eight), Type::Integral) => Some((gl::RG_INTEGER, gl::RG8I, gl::BYTE)),
+    (Format::RG(Size::Eight, Size::Eight), Type::Unsigned) => Some((gl::RG_INTEGER, gl::RG8UI, gl::UNSIGNED_BYTE)),
+    (Format::RG(Size::Sixteen, Size::Sixteen), Type::Integral) => Some((gl::RG_INTEGER, gl::RG16I, gl::SHORT)),
+    (Format::RG(Size::Sixteen, Size::Sixteen), Type::Unsigned) => Some((gl::RG_INTEGER, gl::RG16UI, gl::UNSIGNED_SHORT)),
+    (Format::RG(Size::ThirtyTwo, Size::ThirtyTwo), Type::Integral) => Some((gl::RG_INTEGER, gl::RG32I, gl::INT)),
+    (Format::RG(Size::ThirtyTwo, Size::ThirtyTwo), Type::Unsigned) => Some((gl::RG_INTEGER, gl::RG32UI, gl::UNSIGNED_INT)),
+    (Format::RG(Size::ThirtyTwo, Size::ThirtyTwo), Type::Floating) => Some((gl::RG, gl::RG32F, gl::FLOAT)),
 
-    (Format::RGB(8, 8, 8), Type::Integral) => Some((gl::RGB_INTEGER, gl::RGB8I, gl::BYTE)),
-    (Format::RGB(8, 8, 8), Type::Unsigned) => Some((gl::RGB_INTEGER, gl::RGB8UI, gl::UNSIGNED_BYTE)),
-    (Format::RGB(16, 16, 16), Type::Integral) => Some((gl::RGB_INTEGER, gl::RGB16I, gl::SHORT)),
-    (Format::RGB(16, 16, 16), Type::Unsigned) => Some((gl::RGB_INTEGER, gl::RGB16UI, gl::UNSIGNED_SHORT)),
-    (Format::RGB(32, 32, 32), Type::Integral) => Some((gl::RGB_INTEGER, gl::RGB32I, gl::INT)),
-    (Format::RGB(32, 32, 32), Type::Unsigned) => Some((gl::RGB_INTEGER, gl::RGB32UI, gl::UNSIGNED_INT)),
-    (Format::RGB(32, 32, 32), Type::Floating) => Some((gl::RGB, gl::RGB32F, gl::FLOAT)),
+    (Format::RGB(Size::Eight, Size::Eight, Size::Eight), Type::Integral) => Some((gl::RGB_INTEGER, gl::RGB8I, gl::BYTE)),
+    (Format::RGB(Size::Eight, Size::Eight, Size::Eight), Type::Unsigned) => Some((gl::RGB_INTEGER, gl::RGB8UI, gl::UNSIGNED_BYTE)),
+    (Format::RGB(Size::Sixteen, Size::Sixteen, Size::Sixteen), Type::Integral) => Some((gl::RGB_INTEGER, gl::RGB16I, gl::SHORT)),
+    (Format::RGB(Size::Sixteen, Size::Sixteen, Size::Sixteen), Type::Unsigned) => Some((gl::RGB_INTEGER, gl::RGB16UI, gl::UNSIGNED_SHORT)),
+    (Format::RGB(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo), Type::Integral) => Some((gl::RGB_INTEGER, gl::RGB32I, gl::INT)),
+    (Format::RGB(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo), Type::Unsigned) => Some((gl::RGB_INTEGER, gl::RGB32UI, gl::UNSIGNED_INT)),
+    (Format::RGB(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo), Type::Floating) => Some((gl::RGB, gl::RGB32F, gl::FLOAT)),
 
-    (Format::RGBA(8, 8, 8, 8), Type::Integral) => Some((gl::RGBA_INTEGER, gl::RGBA8I, gl::BYTE)),
-    (Format::RGBA(8, 8, 8, 8), Type::Unsigned) => Some((gl::RGBA_INTEGER, gl::RGBA8UI, gl::UNSIGNED_BYTE)),
-    (Format::RGBA(16, 16, 16, 16), Type::Integral) => Some((gl::RGBA_INTEGER, gl::RGBA16I, gl::SHORT)),
-    (Format::RGBA(16, 16, 16, 16), Type::Unsigned) => Some((gl::RGBA_INTEGER, gl::RGBA16UI, gl::UNSIGNED_SHORT)),
-    (Format::RGBA(32, 32, 32, 32), Type::Integral) => Some((gl::RGBA_INTEGER, gl::RGBA32I, gl::INT)),
-    (Format::RGBA(32, 32, 32, 32), Type::Unsigned) => Some((gl::RGBA_INTEGER, gl::RGBA32UI, gl::UNSIGNED_INT)),
-    (Format::RGBA(32, 32, 32, 32), Type::Floating) => Some((gl::RGBA, gl::RGBA32F, gl::FLOAT)),
+    (Format::RGBA(Size::Eight, Size::Eight, Size::Eight, Size::Eight), Type::Integral) => Some((gl::RGBA_INTEGER, gl::RGBA8I, gl::BYTE)),
+    (Format::RGBA(Size::Eight, Size::Eight, Size::Eight, Size::Eight), Type::Unsigned) => Some((gl::RGBA_INTEGER, gl::RGBA8UI, gl::UNSIGNED_BYTE)),
+    (Format::RGBA(Size::Sixteen, Size::Sixteen, Size::Sixteen, Size::Sixteen), Type::Integral) => Some((gl::RGBA_INTEGER, gl::RGBA16I, gl::SHORT)),
+    (Format::RGBA(Size::Sixteen, Size::Sixteen, Size::Sixteen, Size::Sixteen), Type::Unsigned) => Some((gl::RGBA_INTEGER, gl::RGBA16UI, gl::UNSIGNED_SHORT)),
+    (Format::RGBA(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo), Type::Integral) => Some((gl::RGBA_INTEGER, gl::RGBA32I, gl::INT)),
+    (Format::RGBA(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo), Type::Unsigned) => Some((gl::RGBA_INTEGER, gl::RGBA32UI, gl::UNSIGNED_INT)),
+    (Format::RGBA(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo), Type::Floating) => Some((gl::RGBA, gl::RGBA32F, gl::FLOAT)),
 
-    (Format::Depth(32), Type::Floating) => Some((gl::DEPTH_COMPONENT, gl::DEPTH_COMPONENT32F, gl::FLOAT)),
+    (Format::Depth(Size::ThirtyTwo), Type::Floating) => Some((gl::DEPTH_COMPONENT, gl::DEPTH_COMPONENT32F, gl::FLOAT)),
 
     _ => panic!("unsupported pixel format {:?}", pf)
   }
