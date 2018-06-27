@@ -399,7 +399,7 @@ pub enum Dim {
 }
 
 /// Types that can behave as `Uniform`.
-pub trait Uniformable: Sized {
+pub unsafe trait Uniformable: Sized {
   /// Update the uniform with a new value.
   fn update(self, u: &Uniform<Self>);
   /// Retrieve the `Type` of the uniform.
@@ -408,7 +408,7 @@ pub trait Uniformable: Sized {
   fn dim() -> Dim;
 }
 
-impl Uniformable for i32 {
+unsafe impl Uniformable for i32 {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1i(u.index, self) }
   }
@@ -418,7 +418,7 @@ impl Uniformable for i32 {
   fn dim() -> Dim { Dim::Dim1 }
 }
 
-impl Uniformable for [i32; 2] {
+unsafe impl Uniformable for [i32; 2] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform2iv(u.index, 1, &self as *const i32) }
   }
@@ -428,7 +428,7 @@ impl Uniformable for [i32; 2] {
   fn dim() -> Dim { Dim::Dim2 }
 }
 
-impl Uniformable for [i32; 3] {
+unsafe impl Uniformable for [i32; 3] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform3iv(u.index, 1, &self as *const i32) }
   }
@@ -438,7 +438,7 @@ impl Uniformable for [i32; 3] {
   fn dim() -> Dim { Dim::Dim3 }
 }
 
-impl Uniformable for [i32; 4] {
+unsafe impl Uniformable for [i32; 4] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform4iv(u.index, 1, &self as *const i32) }
   }
@@ -448,7 +448,7 @@ impl Uniformable for [i32; 4] {
   fn dim() -> Dim { Dim::Dim4 }
 }
 
-impl<'a> Uniformable for &'a [i32] {
+unsafe impl<'a> Uniformable for &'a [i32] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1iv(u.index, self.len() as GLsizei, self.as_ptr()) }
   }
@@ -458,7 +458,7 @@ impl<'a> Uniformable for &'a [i32] {
   fn dim() -> Dim { Dim::Dim1 }
 }
 
-impl<'a> Uniformable for &'a [[i32; 2]] {
+unsafe impl<'a> Uniformable for &'a [[i32; 2]] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform2iv(u.index, self.len() as GLsizei, self.as_ptr() as *const i32) }
   }
@@ -468,7 +468,7 @@ impl<'a> Uniformable for &'a [[i32; 2]] {
   fn dim() -> Dim { Dim::Dim2 }
 }
 
-impl<'a> Uniformable for &'a [[i32; 3]] {
+unsafe impl<'a> Uniformable for &'a [[i32; 3]] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform3iv(u.index, self.len() as GLsizei, self.as_ptr() as *const i32) }
   }
@@ -478,7 +478,7 @@ impl<'a> Uniformable for &'a [[i32; 3]] {
   fn dim() -> Dim { Dim::Dim3 }
 }
 
-impl<'a> Uniformable for &'a [[i32; 4]] {
+unsafe impl<'a> Uniformable for &'a [[i32; 4]] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform4iv(u.index, self.len() as GLsizei, self.as_ptr() as *const i32) }
   }
@@ -488,7 +488,7 @@ impl<'a> Uniformable for &'a [[i32; 4]] {
   fn dim() -> Dim { Dim::Dim4 }
 }
 
-impl Uniformable for u32 {
+unsafe impl Uniformable for u32 {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1ui(u.index, self) }
   }
@@ -498,7 +498,7 @@ impl Uniformable for u32 {
   fn dim() -> Dim { Dim::Dim1 }
 }
 
-impl Uniformable for [u32; 2] {
+unsafe impl Uniformable for [u32; 2] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform2uiv(u.index, 1, &self as *const u32) }
   }
@@ -508,7 +508,7 @@ impl Uniformable for [u32; 2] {
   fn dim() -> Dim { Dim::Dim2 }
 }
 
-impl Uniformable for [u32; 3] {
+unsafe impl Uniformable for [u32; 3] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform3uiv(u.index, 1, &self as *const u32) }
   }
@@ -518,7 +518,7 @@ impl Uniformable for [u32; 3] {
   fn dim() -> Dim { Dim::Dim3 }
 }
 
-impl Uniformable for [u32; 4] {
+unsafe impl Uniformable for [u32; 4] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform4uiv(u.index, 1, &self as *const u32) }
   }
@@ -528,7 +528,7 @@ impl Uniformable for [u32; 4] {
   fn dim() -> Dim { Dim::Dim4 }
 }
 
-impl<'a> Uniformable for &'a [u32] {
+unsafe impl<'a> Uniformable for &'a [u32] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
@@ -538,7 +538,7 @@ impl<'a> Uniformable for &'a [u32] {
   fn dim() -> Dim { Dim::Dim1 }
 }
 
-impl<'a> Uniformable for &'a [[u32; 2]] {
+unsafe impl<'a> Uniformable for &'a [[u32; 2]] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform2uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
@@ -548,7 +548,7 @@ impl<'a> Uniformable for &'a [[u32; 2]] {
   fn dim() -> Dim { Dim::Dim2 }
 }
 
-impl<'a> Uniformable for &'a [[u32; 3]] {
+unsafe impl<'a> Uniformable for &'a [[u32; 3]] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform3uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
@@ -558,7 +558,7 @@ impl<'a> Uniformable for &'a [[u32; 3]] {
   fn dim() -> Dim { Dim::Dim3 }
 }
 
-impl<'a> Uniformable for &'a [[u32; 4]] {
+unsafe impl<'a> Uniformable for &'a [[u32; 4]] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform4uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
@@ -568,7 +568,7 @@ impl<'a> Uniformable for &'a [[u32; 4]] {
   fn dim() -> Dim { Dim::Dim4 }
 }
 
-impl Uniformable for f32 {
+unsafe impl Uniformable for f32 {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1f(u.index, self) }
   }
@@ -578,7 +578,7 @@ impl Uniformable for f32 {
   fn dim() -> Dim { Dim::Dim1 }
 }
 
-impl Uniformable for [f32; 2] {
+unsafe impl Uniformable for [f32; 2] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform2fv(u.index, 1, &self as *const f32) }
   }
@@ -588,7 +588,7 @@ impl Uniformable for [f32; 2] {
   fn dim() -> Dim { Dim::Dim2 }
 }
 
-impl Uniformable for [f32; 3] {
+unsafe impl Uniformable for [f32; 3] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform3fv(u.index, 1, &self as *const f32) }
   }
@@ -598,7 +598,7 @@ impl Uniformable for [f32; 3] {
   fn dim() -> Dim { Dim::Dim3 }
 }
 
-impl Uniformable for [f32; 4] {
+unsafe impl Uniformable for [f32; 4] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform4fv(u.index, 1, &self as *const f32) }
   }
@@ -608,7 +608,7 @@ impl Uniformable for [f32; 4] {
   fn dim() -> Dim { Dim::Dim4 }
 }
 
-impl<'a> Uniformable for &'a [f32] {
+unsafe impl<'a> Uniformable for &'a [f32] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
@@ -618,7 +618,7 @@ impl<'a> Uniformable for &'a [f32] {
   fn dim() -> Dim { Dim::Dim1 }
 }
 
-impl<'a> Uniformable for &'a [[f32; 2]] {
+unsafe impl<'a> Uniformable for &'a [[f32; 2]] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform2fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
@@ -628,7 +628,7 @@ impl<'a> Uniformable for &'a [[f32; 2]] {
   fn dim() -> Dim { Dim::Dim2 }
 }
 
-impl<'a> Uniformable for &'a [[f32; 3]] {
+unsafe impl<'a> Uniformable for &'a [[f32; 3]] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform3fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
@@ -638,7 +638,7 @@ impl<'a> Uniformable for &'a [[f32; 3]] {
   fn dim() -> Dim { Dim::Dim3 }
 }
 
-impl<'a> Uniformable for &'a [[f32; 4]] {
+unsafe impl<'a> Uniformable for &'a [[f32; 4]] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform4fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
@@ -648,7 +648,7 @@ impl<'a> Uniformable for &'a [[f32; 4]] {
   fn dim() -> Dim { Dim::Dim4 }
 }
 
-impl Uniformable for M22 {
+unsafe impl Uniformable for M22 {
   fn update(self, u: &Uniform<Self>) {
     let v = [self];
     unsafe { gl::UniformMatrix2fv(u.index, 1, gl::FALSE, v.as_ptr() as *const f32) }
@@ -659,7 +659,7 @@ impl Uniformable for M22 {
   fn dim() -> Dim { Dim::Dim22 }
 }
 
-impl Uniformable for M33 {
+unsafe impl Uniformable for M33 {
   fn update(self, u: &Uniform<Self>) {
     let v = [self];
     unsafe { gl::UniformMatrix3fv(u.index, 1, gl::FALSE, v.as_ptr() as *const f32) }
@@ -670,7 +670,7 @@ impl Uniformable for M33 {
   fn dim() -> Dim { Dim::Dim33 }
 }
 
-impl Uniformable for M44 {
+unsafe impl Uniformable for M44 {
   fn update(self, u: &Uniform<Self>) {
     let v = [self];
     unsafe { gl::UniformMatrix4fv(u.index, 1, gl::FALSE, v.as_ptr() as *const f32) }
@@ -681,7 +681,7 @@ impl Uniformable for M44 {
   fn dim() -> Dim { Dim::Dim44 }
 }
 
-impl<'a> Uniformable for &'a [M22] {
+unsafe impl<'a> Uniformable for &'a [M22] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::UniformMatrix2fv(u.index, self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
   }
@@ -691,7 +691,7 @@ impl<'a> Uniformable for &'a [M22] {
   fn dim() -> Dim { Dim::Dim22 }
 }
 
-impl<'a> Uniformable for &'a [M33] {
+unsafe impl<'a> Uniformable for &'a [M33] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::UniformMatrix3fv(u.index, self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
   }
@@ -701,7 +701,7 @@ impl<'a> Uniformable for &'a [M33] {
   fn dim() -> Dim { Dim::Dim33 }
 }
 
-impl<'a> Uniformable for &'a [M44] {
+unsafe impl<'a> Uniformable for &'a [M44] {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::UniformMatrix4fv(u.index, self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
   }
@@ -711,7 +711,7 @@ impl<'a> Uniformable for &'a [M44] {
   fn dim() -> Dim { Dim::Dim44 }
 }
 
-impl Uniformable for bool {
+unsafe impl Uniformable for bool {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1ui(u.index, self as GLuint) }
   }
@@ -721,7 +721,7 @@ impl Uniformable for bool {
   fn dim() -> Dim { Dim::Dim1 }
 }
 
-impl Uniformable for [bool; 2] {
+unsafe impl Uniformable for [bool; 2] {
   fn update(self, u: &Uniform<Self>) {
     let v = [self[0] as u32, self[1] as u32];
     unsafe { gl::Uniform2uiv(u.index, 1, &v as *const u32) }
@@ -732,7 +732,7 @@ impl Uniformable for [bool; 2] {
   fn dim() -> Dim { Dim::Dim2 }
 }
 
-impl Uniformable for [bool; 3] {
+unsafe impl Uniformable for [bool; 3] {
   fn update(self, u: &Uniform<Self>) {
     let v = [self[0] as u32, self[1] as u32, self[2] as u32];
     unsafe { gl::Uniform3uiv(u.index, 1, &v as *const u32) }
@@ -743,7 +743,7 @@ impl Uniformable for [bool; 3] {
   fn dim() -> Dim { Dim::Dim3 }
 }
 
-impl Uniformable for [bool; 4] {
+unsafe impl Uniformable for [bool; 4] {
   fn update(self, u: &Uniform<Self>) {
     let v = [self[0] as u32, self[1] as u32, self[2] as u32, self[3] as u32];
     unsafe { gl::Uniform4uiv(u.index, 1,  &v as *const u32) }
@@ -754,7 +754,7 @@ impl Uniformable for [bool; 4] {
   fn dim() -> Dim { Dim::Dim4 }
 }
 
-impl<'a> Uniformable for &'a [bool] {
+unsafe impl<'a> Uniformable for &'a [bool] {
   fn update(self, u: &Uniform<Self>) {
     let v: Vec<_> = self.iter().map(|x| *x as u32).collect();
     unsafe { gl::Uniform1uiv(u.index, v.len() as GLsizei, v.as_ptr()) }
@@ -765,7 +765,7 @@ impl<'a> Uniformable for &'a [bool] {
   fn dim() -> Dim { Dim::Dim1 }
 }
 
-impl<'a> Uniformable for &'a [[bool; 2]] {
+unsafe impl<'a> Uniformable for &'a [[bool; 2]] {
   fn update(self, u: &Uniform<Self>) {
     let v: Vec<_> = self.iter().map(|x| [x[0] as u32, x[1] as u32]).collect();
     unsafe { gl::Uniform2uiv(u.index, v.len() as GLsizei, v.as_ptr() as *const u32) }
@@ -776,7 +776,7 @@ impl<'a> Uniformable for &'a [[bool; 2]] {
   fn dim() -> Dim { Dim::Dim2 }
 }
 
-impl<'a> Uniformable for &'a [[bool; 3]] {
+unsafe impl<'a> Uniformable for &'a [[bool; 3]] {
   fn update(self, u: &Uniform<Self>) {
     let v: Vec<_> = self.iter().map(|x| [x[0] as u32, x[1] as u32, x[2] as u32]).collect();
     unsafe { gl::Uniform3uiv(u.index, v.len() as GLsizei, v.as_ptr() as *const u32) }
@@ -787,7 +787,7 @@ impl<'a> Uniformable for &'a [[bool; 3]] {
   fn dim() -> Dim { Dim::Dim3 }
 }
 
-impl<'a> Uniformable for &'a [[bool; 4]] {
+unsafe impl<'a> Uniformable for &'a [[bool; 4]] {
   fn update(self, u: &Uniform<Self>) {
     let v: Vec<_> = self.iter().map(|x| [x[0] as u32, x[1] as u32, x[2] as u32, x[3] as u32]).collect();
     unsafe { gl::Uniform4uiv(u.index, v.len() as GLsizei, v.as_ptr() as *const u32) }

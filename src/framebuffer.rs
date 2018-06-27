@@ -319,7 +319,7 @@ fn get_status() -> Result<(), IncompleteReason> {
 
 /// A framebuffer has a color slot. A color slot can either be empty (the *unit* type is used,`()`)
 /// or several color formats.
-pub trait ColorSlot<L, D> where L: Layerable, D: Dimensionable, D::Size: Copy {
+pub unsafe trait ColorSlot<L, D> where L: Layerable, D: Dimensionable, D::Size: Copy {
   /// Turn a color slot into a list of pixel formats.
   fn color_formats() -> Vec<PixelFormat>;
   /// Reify a list of raw textures into a color slot.
@@ -332,7 +332,7 @@ pub trait ColorSlot<L, D> where L: Layerable, D: Dimensionable, D::Size: Copy {
   where C: GraphicsContext, I: Iterator<Item = GLuint>;
 }
 
-impl<L, D> ColorSlot<L, D> for () where L: Layerable, D: Dimensionable, D::Size: Copy {
+unsafe impl<L, D> ColorSlot<L, D> for () where L: Layerable, D: Dimensionable, D::Size: Copy {
   fn color_formats() -> Vec<PixelFormat> { Vec::new() }
 
   fn reify_textures<C, I>(
@@ -343,7 +343,7 @@ impl<L, D> ColorSlot<L, D> for () where L: Layerable, D: Dimensionable, D::Size:
   ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> { () }
 }
 
-impl<L, D, P> ColorSlot<L, D> for Texture<L, D, P>
+unsafe impl<L, D, P> ColorSlot<L, D> for Texture<L, D, P>
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -365,7 +365,7 @@ impl<L, D, P> ColorSlot<L, D> for Texture<L, D, P>
   }
 }
 
-impl<L, D, P, B> ColorSlot<L, D> for GTup<Texture<L, D, P>, B>
+unsafe impl<L, D, P, B> ColorSlot<L, D> for GTup<Texture<L, D, P>, B>
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -390,7 +390,7 @@ impl<L, D, P, B> ColorSlot<L, D> for GTup<Texture<L, D, P>, B>
   }
 }
 
-impl<L, D, P0, P1> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>)
+unsafe impl<L, D, P0, P1> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>)
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -411,7 +411,7 @@ impl<L, D, P0, P1> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>)
   }
 }
 
-impl<L, D, P0, P1, P2> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>)
+unsafe impl<L, D, P0, P1, P2> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>)
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -433,7 +433,7 @@ impl<L, D, P0, P1, P2> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>
   }
 }
 
-impl<L, D, P0, P1, P2, P3> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>)
+unsafe impl<L, D, P0, P1, P2, P3> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>)
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -456,7 +456,7 @@ impl<L, D, P0, P1, P2, P3> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D,
   }
 }
 
-impl<L, D, P0, P1, P2, P3, P4> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>)
+unsafe impl<L, D, P0, P1, P2, P3, P4> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>)
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -480,7 +480,7 @@ impl<L, D, P0, P1, P2, P3, P4> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L
   }
 }
 
-impl<L, D, P0, P1, P2, P3, P4, P5> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>, Texture<L, D, P5>)
+unsafe impl<L, D, P0, P1, P2, P3, P4, P5> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>, Texture<L, D, P5>)
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -505,7 +505,7 @@ impl<L, D, P0, P1, P2, P3, P4, P5> ColorSlot<L, D> for (Texture<L, D, P0>, Textu
   }
 }
 
-impl<L, D, P0, P1, P2, P3, P4, P5, P6> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>, Texture<L, D, P5>, Texture<L, D, P6>)
+unsafe impl<L, D, P0, P1, P2, P3, P4, P5, P6> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>, Texture<L, D, P5>, Texture<L, D, P6>)
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -531,7 +531,7 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6> ColorSlot<L, D> for (Texture<L, D, P0>, T
   }
 }
 
-impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>, Texture<L, D, P5>, Texture<L, D, P6>, Texture<L, D, P7>)
+unsafe impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>, Texture<L, D, P5>, Texture<L, D, P6>, Texture<L, D, P7>)
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -558,7 +558,7 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7> ColorSlot<L, D> for (Texture<L, D, P0
   }
 }
 
-impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>, Texture<L, D, P5>, Texture<L, D, P6>, Texture<L, D, P7>, Texture<L, D, P8>)
+unsafe impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>, Texture<L, D, P5>, Texture<L, D, P6>, Texture<L, D, P7>, Texture<L, D, P8>)
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -586,7 +586,7 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8> ColorSlot<L, D> for (Texture<L, D
   }
 }
 
-impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8, P9> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>, Texture<L, D, P5>, Texture<L, D, P6>, Texture<L, D, P7>, Texture<L, D, P8>, Texture<L, D, P9>)
+unsafe impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8, P9> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>, Texture<L, D, P5>, Texture<L, D, P6>, Texture<L, D, P7>, Texture<L, D, P8>, Texture<L, D, P9>)
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
@@ -617,7 +617,7 @@ impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8, P9> ColorSlot<L, D> for (Texture<
 
 /// A framebuffer has a depth slot. A depth slot can either be empty (the *unit* type is used, `()`)
 /// or a single depth format.
-pub trait DepthSlot<L, D> where L: Layerable, D: Dimensionable, D::Size: Copy {
+pub unsafe trait DepthSlot<L, D> where L: Layerable, D: Dimensionable, D::Size: Copy {
   /// Turn a depth slot into a pixel format.
   fn depth_format() -> Option<PixelFormat>;
   /// Reify a raw textures into a depth slot.
@@ -629,7 +629,7 @@ pub trait DepthSlot<L, D> where L: Layerable, D: Dimensionable, D::Size: Copy {
   ) -> Self where C: GraphicsContext, T: Into<Option<GLuint>>;
 }
 
-impl<L, D> DepthSlot<L, D> for () where L: Layerable, D: Dimensionable, D::Size: Copy {
+unsafe impl<L, D> DepthSlot<L, D> for () where L: Layerable, D: Dimensionable, D::Size: Copy {
   fn depth_format() -> Option<PixelFormat> { None }
 
   fn reify_texture<C, T>(
@@ -642,7 +642,7 @@ impl<L, D> DepthSlot<L, D> for () where L: Layerable, D: Dimensionable, D::Size:
   }
 }
 
-impl<L, D, P> DepthSlot<L, D> for Texture<L, D, P>
+unsafe impl<L, D, P> DepthSlot<L, D> for Texture<L, D, P>
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,

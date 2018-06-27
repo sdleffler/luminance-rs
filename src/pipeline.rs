@@ -293,7 +293,7 @@ where L: 'a + Layerable,
   }
 }
 
-impl<'a, 'b, L, D, P> Uniformable for &'b BoundTexture<'a, L, D, P>
+unsafe impl<'a, 'b, L, D, P> Uniformable for &'b BoundTexture<'a, L, D, P>
 where L: 'a + Layerable,
       D: 'a + Dimensionable,
       P: 'a + Pixel {
@@ -332,7 +332,7 @@ impl<'a, T> Drop for BoundBuffer<'a, T> {
   }
 }
 
-impl<'a, 'b, T> Uniformable for &'b BoundBuffer<'a, T> {
+unsafe impl<'a, 'b, T> Uniformable for &'b BoundBuffer<'a, T> {
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::UniformBlockBinding(u.program(), u.index() as GLuint, self.binding as GLuint) }
   }

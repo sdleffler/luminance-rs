@@ -90,7 +90,7 @@ pub enum Dim {
 ///
 /// If you’re not sure on how to implement that or if you want to use automatic types, feel free
 /// to use the primary supported types and `GTup` or tuples.
-pub trait Vertex {
+pub unsafe trait Vertex {
   fn vertex_format() -> VertexFormat;
 }
 
@@ -101,9 +101,9 @@ pub trait Vertex {
 /// is, if `V1` is a sub-slice of `V0` starting at 0.
 ///
 /// We node that as `V1: CompatibleVertex<V0>`.
-pub trait CompatibleVertex<V>: Vertex where V: Vertex  {}
+pub unsafe trait CompatibleVertex<V>: Vertex where V: Vertex  {}
 
-impl<V> CompatibleVertex<V> for V where V: Vertex {}
+unsafe impl<V> CompatibleVertex<V> for V where V: Vertex {}
 
 /// Macro used to implement the `Vertex` trait.
 ///
@@ -115,7 +115,7 @@ impl<V> CompatibleVertex<V> for V where V: Vertex {}
 /// than theirselves – usually, scalars.
 macro_rules! impl_base {
   ($t:ty, $q:ty, $comp_type:ident, $dim:ident) => {
-    impl Vertex for $t {
+    unsafe impl Vertex for $t {
       fn vertex_format() -> VertexFormat {
         vec![VertexComponentFormat {
           comp_type: Type::$comp_type,
@@ -141,7 +141,7 @@ macro_rules! impl_arr {
   }
 }
 
-impl Vertex for () {
+unsafe impl Vertex for () {
   fn vertex_format() -> VertexFormat {
     Vec::new()
   }
@@ -175,7 +175,7 @@ impl_arr!(f64, Floating);
 
 impl_arr!(bool, Boolean);
 
-impl<A, B> Vertex for GTup<A, B> where A: Vertex, B: Vertex {
+unsafe impl<A, B> Vertex for GTup<A, B> where A: Vertex, B: Vertex {
   fn vertex_format() -> VertexFormat {
     let mut t = A::vertex_format();
     t.extend(B::vertex_format());
@@ -185,7 +185,7 @@ impl<A, B> Vertex for GTup<A, B> where A: Vertex, B: Vertex {
 
 macro_rules! impl_vertex_for_tuple {
   ($($t:tt),+) => {
-    impl<$($t),+> Vertex for ($($t),+) where $($t: Vertex),+ {
+    unsafe impl<$($t),+> Vertex for ($($t),+) where $($t: Vertex),+ {
       fn vertex_format() -> VertexFormat {
         <gtup!(:$($t),+) as Vertex>::vertex_format()
       }

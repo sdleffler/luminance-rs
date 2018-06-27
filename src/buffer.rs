@@ -444,69 +444,69 @@ impl<'a, T> DerefMut for BufferSliceMut<'a, T> where T: 'a {
 /// Typeclass of types that can be used inside a uniform block. You have to be extra careful when
 /// using uniform blocks and ensure you respect the OpenGL *std140* alignment / size rules. This
 /// will be fixed in a future release.
-pub trait UniformBlock {}
+pub unsafe trait UniformBlock {}
 
-impl UniformBlock for u8 {}
-impl UniformBlock for u16 {}
-impl UniformBlock for u32 {}
+unsafe impl UniformBlock for u8 {}
+unsafe impl UniformBlock for u16 {}
+unsafe impl UniformBlock for u32 {}
 
-impl UniformBlock for i8 {}
-impl UniformBlock for i16 {}
-impl UniformBlock for i32 {}
+unsafe impl UniformBlock for i8 {}
+unsafe impl UniformBlock for i16 {}
+unsafe impl UniformBlock for i32 {}
 
-impl UniformBlock for f32 {}
-impl UniformBlock for f64 {}
+unsafe impl UniformBlock for f32 {}
+unsafe impl UniformBlock for f64 {}
 
-impl UniformBlock for bool {}
+unsafe impl UniformBlock for bool {}
 
-impl UniformBlock for M22 {}
-impl UniformBlock for M33 {}
-impl UniformBlock for M44 {}
+unsafe impl UniformBlock for M22 {}
+unsafe impl UniformBlock for M33 {}
+unsafe impl UniformBlock for M44 {}
 
-impl UniformBlock for [u8; 2] {}
-impl UniformBlock for [u16; 2] {}
-impl UniformBlock for [u32; 2] {}
+unsafe impl UniformBlock for [u8; 2] {}
+unsafe impl UniformBlock for [u16; 2] {}
+unsafe impl UniformBlock for [u32; 2] {}
 
-impl UniformBlock for [i8; 2] {}
-impl UniformBlock for [i16; 2] {}
-impl UniformBlock for [i32; 2] {}
+unsafe impl UniformBlock for [i8; 2] {}
+unsafe impl UniformBlock for [i16; 2] {}
+unsafe impl UniformBlock for [i32; 2] {}
 
-impl UniformBlock for [f32; 2] {}
-impl UniformBlock for [f64; 2] {}
+unsafe impl UniformBlock for [f32; 2] {}
+unsafe impl UniformBlock for [f64; 2] {}
 
-impl UniformBlock for [bool; 2] {}
+unsafe impl UniformBlock for [bool; 2] {}
 
-impl UniformBlock for [u8; 3] {}
-impl UniformBlock for [u16; 3] {}
-impl UniformBlock for [u32; 3] {}
+unsafe impl UniformBlock for [u8; 3] {}
+unsafe impl UniformBlock for [u16; 3] {}
+unsafe impl UniformBlock for [u32; 3] {}
 
-impl UniformBlock for [i8; 3] {}
-impl UniformBlock for [i16; 3] {}
-impl UniformBlock for [i32; 3] {}
+unsafe impl UniformBlock for [i8; 3] {}
+unsafe impl UniformBlock for [i16; 3] {}
+unsafe impl UniformBlock for [i32; 3] {}
 
-impl UniformBlock for [f32; 3] {}
-impl UniformBlock for [f64; 3] {}
+unsafe impl UniformBlock for [f32; 3] {}
+unsafe impl UniformBlock for [f64; 3] {}
 
-impl UniformBlock for [bool; 3] {}
+unsafe impl UniformBlock for [bool; 3] {}
 
-impl UniformBlock for [u8; 4] {}
-impl UniformBlock for [u16; 4] {}
-impl UniformBlock for [u32; 4] {}
+unsafe impl UniformBlock for [u8; 4] {}
+unsafe impl UniformBlock for [u16; 4] {}
+unsafe impl UniformBlock for [u32; 4] {}
 
-impl UniformBlock for [i8; 4] {}
-impl UniformBlock for [i16; 4] {}
-impl UniformBlock for [i32; 4] {}
+unsafe impl UniformBlock for [i8; 4] {}
+unsafe impl UniformBlock for [i16; 4] {}
+unsafe impl UniformBlock for [i32; 4] {}
 
-impl UniformBlock for [f32; 4] {}
-impl UniformBlock for [f64; 4] {}
+unsafe impl UniformBlock for [f32; 4] {}
+unsafe impl UniformBlock for [f64; 4] {}
 
-impl UniformBlock for [bool; 4] {}
+unsafe impl UniformBlock for [bool; 4] {}
 
-impl<T> UniformBlock for [T] where T: UniformBlock {}
+unsafe impl<T> UniformBlock for [T] where T: UniformBlock {}
 
 macro_rules! impl_uniform_block_tuple {
   ($( $t:ident ),*) => {
-    impl<$($t),*> UniformBlock for ($($t),*) where $($t: UniformBlock),* {}
+    unsafe impl<$($t),*> UniformBlock for ($($t),*) where $($t: UniformBlock),* {}
   }
 }
 

@@ -6,7 +6,7 @@ use gl;
 use gl::types::*;
 
 /// Reify a static pixel format at runtime.
-pub trait Pixel {
+pub unsafe trait Pixel {
   /// Encoding of a single pixel. It should match the `PixelFormat` mapping.
   type Encoding;
   /// Raw encoding of a single pixel; i.e. that is, encoding of underlying values in contiguous
@@ -18,13 +18,13 @@ pub trait Pixel {
 }
 
 /// Constraint on `Pixel` for color ones.
-pub trait ColorPixel: Pixel {}
+pub unsafe trait ColorPixel: Pixel {}
 
 /// Constraint on `Pixel` for depth ones.
-pub trait DepthPixel: Pixel {}
+pub unsafe trait DepthPixel: Pixel {}
 
 /// Constaint on `Pixel` for renderable ones.
-pub trait RenderablePixel: Pixel {}
+pub unsafe trait RenderablePixel: Pixel {}
 
 /// A `PixelFormat` gathers a `Type` along with a `Format`.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -84,7 +84,7 @@ pub fn is_depth_pixel(f: PixelFormat) -> bool {
 
 macro_rules! impl_Pixel {
   ($t:ty, $encoding:ty, $raw_encoding:ty, $encoding_ty:expr, $format:expr) => {
-    impl Pixel for $t {
+    unsafe impl Pixel for $t {
       type Encoding = $encoding;
       type RawEncoding = $raw_encoding;
     
@@ -100,19 +100,19 @@ macro_rules! impl_Pixel {
 
 macro_rules! impl_ColorPixel {
   ($t:ty) => {
-    impl ColorPixel for $t {}
+    unsafe impl ColorPixel for $t {}
   }
 }
 
 macro_rules! impl_DepthPixel {
   ($t:ty) => {
-    impl DepthPixel for $t {}
+    unsafe impl DepthPixel for $t {}
   }
 }
 
 macro_rules! impl_RenderablePixel {
   ($t:ty) => {
-    impl RenderablePixel for $t {}
+    unsafe impl RenderablePixel for $t {}
   }
 }
 
