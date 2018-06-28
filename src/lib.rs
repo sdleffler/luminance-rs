@@ -1,5 +1,3 @@
-#![feature(const_fn)]
-
 //! # What is this?
 //!
 //! [![crates.io](https://img.shields.io/crates/v/luminance.svg)](https://crates.io/crates/luminance)

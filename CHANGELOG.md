@@ -1,3 +1,10 @@
+## 0.27.2
+
+> Friday, 29th of June, 2018
+
+  - Remove the `const_fn` feature gate, making the crate now completely compile on the *stable*
+    channel!
+
 ## 0.27.1
 
 > Thursday, 28th of June, 2018

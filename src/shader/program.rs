@@ -51,13 +51,14 @@ pub struct RawProgram {
 
 impl RawProgram {
   /// Create a new program by linking shader stages.
-  fn new<'a, T, G>(tess: T,
-                       vertex: &Stage,
-                       geometry: G,
-                       fragment: &Stage)
-                       -> Result<Self, ProgramError>
-      where T: Into<Option<(&'a Stage, &'a Stage)>>,
-            G: Into<Option<&'a Stage>> {
+  fn new<'a, T, G>(
+    tess: T,
+    vertex: &Stage,
+    geometry: G,
+    fragment: &Stage)
+  -> Result<Self, ProgramError>
+  where T: Into<Option<(&'a Stage, &'a Stage)>>,
+        G: Into<Option<&'a Stage>> {
     unsafe {
       let handle = gl::CreateProgram();
 
