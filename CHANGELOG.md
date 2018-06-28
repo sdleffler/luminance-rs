@@ -1,3 +1,9 @@
+## 0.27.1
+
+> Thursday, 28th of June, 2018
+
+  - Fix some `Cargo.toml` metadata.
+
 # 0.27.0
 
 > Thursday, 28th of June, 2018
