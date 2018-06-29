@@ -7,8 +7,5 @@
 [![docs.rs](https://docs.rs/luminance/badge.svg)](https://docs.rs/luminance/)
 ![License](https://img.shields.io/badge/license-BSD3-blue.svg?style=flat)
 
-> Important note: currently, luminance is supposed to be used with a nightly compiler. This will
-> change soon as the unstable features get stabilized. Be patient!
-
 `luminance` is an effort to make graphics rendering simple and elegant. Feel free to dig in the
 online documentation [here](https://docs.rs/luminance).
