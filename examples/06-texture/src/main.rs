@@ -42,7 +42,6 @@ fn main() {
 uniform_interface! {
   struct ShaderInterface {
     // the 'static lifetime acts as “anything” here
-    #[unbound]
     tex: &'static BoundTexture<'static, Flat, Dim2, RGB32F>
   }
 }
