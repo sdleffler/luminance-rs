@@ -49,9 +49,9 @@ pub enum Type {
 /// represent each channel.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Format {
-    /// Holds a red-only channel.
+  /// Holds a red-only channel.
   R(Size),
-    /// Holds red and green channels.
+  /// Holds red and green channels.
   RG(Size, Size),
   /// Holds red, green and blue channels.
   RGB(Size, Size, Size),

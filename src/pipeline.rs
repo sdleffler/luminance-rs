@@ -109,12 +109,12 @@ use blending::BlendingState;
 use context::GraphicsContext;
 use face_culling::FaceCullingState;
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer};
-use pixel::Pixel;
+use pixel::{Pixel, Type as PxType};
 use render_state::RenderState;
-use shader::program::{Dim, Program, Type, Uniform, Uniformable, UniformInterface};
+use shader::program::{Program, Type, Uniform, Uniformable, UniformInterface};
 use state::GraphicsState;
 use tess::TessSlice;
-use texture::{Dimensionable, Layerable, Texture};
+use texture::{Dim, Dimensionable, Layerable, Texture};
 use vertex::{CompatibleVertex, Vertex};
 
 // A stack of bindings.
@@ -301,9 +301,22 @@ where L: 'a + Layerable,
     unsafe { gl::Uniform1i(u.index(), self.unit as GLint) }
   }
 
-  fn ty() -> Type { Type::TextureUnit }
-
-  fn dim() -> Dim { Dim::Dim1 }
+  fn ty() -> Type {
+    match (P::pixel_format().encoding, D::dim()) {
+      (PxType::Integral, Dim::Dim1) => Type::ISampler1D,
+      (PxType::Unsigned, Dim::Dim1) => Type::UISampler1D,
+      (PxType::Floating, Dim::Dim1) => Type::Sampler1D,
+      (PxType::Integral, Dim::Dim2) => Type::ISampler2D,
+      (PxType::Unsigned, Dim::Dim2) => Type::UISampler2D,
+      (PxType::Floating, Dim::Dim2) => Type::Sampler2D,
+      (PxType::Integral, Dim::Dim3) => Type::ISampler3D,
+      (PxType::Unsigned, Dim::Dim3) => Type::UISampler3D,
+      (PxType::Floating, Dim::Dim3) => Type::Sampler3D,
+      (PxType::Integral, Dim::Cubemap) => Type::ICubemap,
+      (PxType::Unsigned, Dim::Cubemap) => Type::UICubemap,
+      (PxType::Floating, Dim::Cubemap) => Type::Cubemap
+    }
+  }
 }
 
 /// An opaque type representing a bound buffer in a `Builder`. You may want to pass such an object
@@ -338,8 +351,6 @@ unsafe impl<'a, 'b, T> Uniformable for &'b BoundBuffer<'a, T> {
   }
 
   fn ty() -> Type { Type::BufferBinding }
-
-  fn dim() -> Dim { Dim::Dim1 }
 }
 
 /// A shading gate provides you with a way to run shaders on rendering commands.

@@ -232,7 +232,7 @@ impl<'a> UniformBuilder<'a> {
       _ => self.ask_uniform(name)?
     };
 
-    uniform_type_match(self.raw.handle, name, T::ty(), T::dim()).map_err(|err| UniformWarning::TypeMismatch(name.to_owned(), err))?;
+    uniform_type_match(self.raw.handle, name, T::ty()).map_err(|err| UniformWarning::TypeMismatch(name.to_owned(), err))?;
 
     Ok(uniform)
   }
@@ -378,25 +378,43 @@ impl<T> Uniform<T> where T: Uniformable {
 /// Type of a uniform.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Type {
-  Integral,
-  Unsigned,
-  Floating,
-  Boolean,
-  TextureUnit,
+  // scalars
+  Int,
+  UInt,
+  Float,
+  Bool,
+  // vectors
+  IVec2,
+  IVec3,
+  IVec4,
+  UIVec2,
+  UIVec3,
+  UIVec4,
+  Vec2,
+  Vec3,
+  Vec4,
+  BVec2,
+  BVec3,
+  BVec4,
+  // matrices
+  M22,
+  M33,
+  M44,
+  // textures
+  ISampler1D,
+  ISampler2D,
+  ISampler3D,
+  UISampler1D,
+  UISampler2D,
+  UISampler3D,
+  Sampler1D,
+  Sampler2D,
+  Sampler3D,
+  ICubemap,
+  UICubemap,
+  Cubemap,
+  // buffer
   BufferBinding
-}
-
-/// Dimension of the uniform.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum Dim {
-  Dim1,
-  Dim2,
-  Dim3,
-  Dim4,
-  Dim22,
-  Dim33,
-  Dim44,
-  Cubemap
 }
 
 /// Types that can behave as `Uniform`.
@@ -405,8 +423,6 @@ pub unsafe trait Uniformable: Sized {
   fn update(self, u: &Uniform<Self>);
   /// Retrieve the `Type` of the uniform.
   fn ty() -> Type;
-  /// Retrieve the `Dim` of the uniform.
-  fn dim() -> Dim;
 }
 
 unsafe impl Uniformable for i32 {
@@ -414,9 +430,7 @@ unsafe impl Uniformable for i32 {
     unsafe { gl::Uniform1i(u.index, self) }
   }
 
-  fn ty() -> Type { Type::Integral }
-
-  fn dim() -> Dim { Dim::Dim1 }
+  fn ty() -> Type { Type::Int }
 }
 
 unsafe impl Uniformable for [i32; 2] {
@@ -424,9 +438,7 @@ unsafe impl Uniformable for [i32; 2] {
     unsafe { gl::Uniform2iv(u.index, 1, &self as *const i32) }
   }
 
-  fn ty() -> Type { Type::Integral }
-
-  fn dim() -> Dim { Dim::Dim2 }
+  fn ty() -> Type { Type::IVec2 }
 }
 
 unsafe impl Uniformable for [i32; 3] {
@@ -434,9 +446,7 @@ unsafe impl Uniformable for [i32; 3] {
     unsafe { gl::Uniform3iv(u.index, 1, &self as *const i32) }
   }
 
-  fn ty() -> Type { Type::Integral }
-
-  fn dim() -> Dim { Dim::Dim3 }
+  fn ty() -> Type { Type::IVec3 }
 }
 
 unsafe impl Uniformable for [i32; 4] {
@@ -444,9 +454,7 @@ unsafe impl Uniformable for [i32; 4] {
     unsafe { gl::Uniform4iv(u.index, 1, &self as *const i32) }
   }
 
-  fn ty() -> Type { Type::Integral }
-
-  fn dim() -> Dim { Dim::Dim4 }
+  fn ty() -> Type { Type::IVec4 }
 }
 
 unsafe impl<'a> Uniformable for &'a [i32] {
@@ -454,9 +462,7 @@ unsafe impl<'a> Uniformable for &'a [i32] {
     unsafe { gl::Uniform1iv(u.index, self.len() as GLsizei, self.as_ptr()) }
   }
 
-  fn ty() -> Type { Type::Integral }
-
-  fn dim() -> Dim { Dim::Dim1 }
+  fn ty() -> Type { Type::Int }
 }
 
 unsafe impl<'a> Uniformable for &'a [[i32; 2]] {
@@ -464,9 +470,7 @@ unsafe impl<'a> Uniformable for &'a [[i32; 2]] {
     unsafe { gl::Uniform2iv(u.index, self.len() as GLsizei, self.as_ptr() as *const i32) }
   }
 
-  fn ty() -> Type { Type::Integral }
-
-  fn dim() -> Dim { Dim::Dim2 }
+  fn ty() -> Type { Type::IVec2 }
 }
 
 unsafe impl<'a> Uniformable for &'a [[i32; 3]] {
@@ -474,9 +478,7 @@ unsafe impl<'a> Uniformable for &'a [[i32; 3]] {
     unsafe { gl::Uniform3iv(u.index, self.len() as GLsizei, self.as_ptr() as *const i32) }
   }
 
-  fn ty() -> Type { Type::Integral }
-
-  fn dim() -> Dim { Dim::Dim3 }
+  fn ty() -> Type { Type::IVec3 }
 }
 
 unsafe impl<'a> Uniformable for &'a [[i32; 4]] {
@@ -484,9 +486,7 @@ unsafe impl<'a> Uniformable for &'a [[i32; 4]] {
     unsafe { gl::Uniform4iv(u.index, self.len() as GLsizei, self.as_ptr() as *const i32) }
   }
 
-  fn ty() -> Type { Type::Integral }
-
-  fn dim() -> Dim { Dim::Dim4 }
+  fn ty() -> Type { Type::IVec4 }
 }
 
 unsafe impl Uniformable for u32 {
@@ -494,9 +494,7 @@ unsafe impl Uniformable for u32 {
     unsafe { gl::Uniform1ui(u.index, self) }
   }
 
-  fn ty() -> Type { Type::Unsigned }
-
-  fn dim() -> Dim { Dim::Dim1 }
+  fn ty() -> Type { Type::UInt }
 }
 
 unsafe impl Uniformable for [u32; 2] {
@@ -504,9 +502,7 @@ unsafe impl Uniformable for [u32; 2] {
     unsafe { gl::Uniform2uiv(u.index, 1, &self as *const u32) }
   }
 
-  fn ty() -> Type { Type::Unsigned }
-
-  fn dim() -> Dim { Dim::Dim2 }
+  fn ty() -> Type { Type::UIVec2 }
 }
 
 unsafe impl Uniformable for [u32; 3] {
@@ -514,9 +510,7 @@ unsafe impl Uniformable for [u32; 3] {
     unsafe { gl::Uniform3uiv(u.index, 1, &self as *const u32) }
   }
 
-  fn ty() -> Type { Type::Unsigned }
-
-  fn dim() -> Dim { Dim::Dim3 }
+  fn ty() -> Type { Type::UIVec3 }
 }
 
 unsafe impl Uniformable for [u32; 4] {
@@ -524,9 +518,7 @@ unsafe impl Uniformable for [u32; 4] {
     unsafe { gl::Uniform4uiv(u.index, 1, &self as *const u32) }
   }
 
-  fn ty() -> Type { Type::Unsigned }
-
-  fn dim() -> Dim { Dim::Dim4 }
+  fn ty() -> Type { Type::UIVec4 }
 }
 
 unsafe impl<'a> Uniformable for &'a [u32] {
@@ -534,9 +526,7 @@ unsafe impl<'a> Uniformable for &'a [u32] {
     unsafe { gl::Uniform1uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
-  fn ty() -> Type { Type::Unsigned }
-
-  fn dim() -> Dim { Dim::Dim1 }
+  fn ty() -> Type { Type::UInt }
 }
 
 unsafe impl<'a> Uniformable for &'a [[u32; 2]] {
@@ -544,9 +534,7 @@ unsafe impl<'a> Uniformable for &'a [[u32; 2]] {
     unsafe { gl::Uniform2uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
-  fn ty() -> Type { Type::Unsigned }
-
-  fn dim() -> Dim { Dim::Dim2 }
+  fn ty() -> Type { Type::UIVec2 }
 }
 
 unsafe impl<'a> Uniformable for &'a [[u32; 3]] {
@@ -554,9 +542,7 @@ unsafe impl<'a> Uniformable for &'a [[u32; 3]] {
     unsafe { gl::Uniform3uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
-  fn ty() -> Type { Type::Unsigned }
-
-  fn dim() -> Dim { Dim::Dim3 }
+  fn ty() -> Type { Type::UIVec3 }
 }
 
 unsafe impl<'a> Uniformable for &'a [[u32; 4]] {
@@ -564,9 +550,7 @@ unsafe impl<'a> Uniformable for &'a [[u32; 4]] {
     unsafe { gl::Uniform4uiv(u.index, self.len() as GLsizei, self.as_ptr() as *const u32) }
   }
 
-  fn ty() -> Type { Type::Unsigned }
-
-  fn dim() -> Dim { Dim::Dim4 }
+  fn ty() -> Type { Type::UIVec4 }
 }
 
 unsafe impl Uniformable for f32 {
@@ -574,9 +558,7 @@ unsafe impl Uniformable for f32 {
     unsafe { gl::Uniform1f(u.index, self) }
   }
 
-  fn ty() -> Type { Type::Floating }
-
-  fn dim() -> Dim { Dim::Dim1 }
+  fn ty() -> Type { Type::Float }
 }
 
 unsafe impl Uniformable for [f32; 2] {
@@ -584,9 +566,7 @@ unsafe impl Uniformable for [f32; 2] {
     unsafe { gl::Uniform2fv(u.index, 1, &self as *const f32) }
   }
 
-  fn ty() -> Type { Type::Floating }
-
-  fn dim() -> Dim { Dim::Dim2 }
+  fn ty() -> Type { Type::Vec2 }
 }
 
 unsafe impl Uniformable for [f32; 3] {
@@ -594,9 +574,7 @@ unsafe impl Uniformable for [f32; 3] {
     unsafe { gl::Uniform3fv(u.index, 1, &self as *const f32) }
   }
 
-  fn ty() -> Type { Type::Floating }
-
-  fn dim() -> Dim { Dim::Dim3 }
+  fn ty() -> Type { Type::Vec3 }
 }
 
 unsafe impl Uniformable for [f32; 4] {
@@ -604,9 +582,7 @@ unsafe impl Uniformable for [f32; 4] {
     unsafe { gl::Uniform4fv(u.index, 1, &self as *const f32) }
   }
 
-  fn ty() -> Type { Type::Floating }
-
-  fn dim() -> Dim { Dim::Dim4 }
+  fn ty() -> Type { Type::Vec4 }
 }
 
 unsafe impl<'a> Uniformable for &'a [f32] {
@@ -614,9 +590,7 @@ unsafe impl<'a> Uniformable for &'a [f32] {
     unsafe { gl::Uniform1fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
-  fn ty() -> Type { Type::Floating }
-
-  fn dim() -> Dim { Dim::Dim1 }
+  fn ty() -> Type { Type::Float }
 }
 
 unsafe impl<'a> Uniformable for &'a [[f32; 2]] {
@@ -624,9 +598,7 @@ unsafe impl<'a> Uniformable for &'a [[f32; 2]] {
     unsafe { gl::Uniform2fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
-  fn ty() -> Type { Type::Floating }
-
-  fn dim() -> Dim { Dim::Dim2 }
+  fn ty() -> Type { Type::Vec2 }
 }
 
 unsafe impl<'a> Uniformable for &'a [[f32; 3]] {
@@ -634,9 +606,7 @@ unsafe impl<'a> Uniformable for &'a [[f32; 3]] {
     unsafe { gl::Uniform3fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
-  fn ty() -> Type { Type::Floating }
-
-  fn dim() -> Dim { Dim::Dim3 }
+  fn ty() -> Type { Type::Vec3 }
 }
 
 unsafe impl<'a> Uniformable for &'a [[f32; 4]] {
@@ -644,9 +614,7 @@ unsafe impl<'a> Uniformable for &'a [[f32; 4]] {
     unsafe { gl::Uniform4fv(u.index, self.len() as GLsizei, self.as_ptr() as *const f32) }
   }
 
-  fn ty() -> Type { Type::Floating }
-
-  fn dim() -> Dim { Dim::Dim4 }
+  fn ty() -> Type { Type::Vec4 }
 }
 
 unsafe impl Uniformable for M22 {
@@ -655,9 +623,7 @@ unsafe impl Uniformable for M22 {
     unsafe { gl::UniformMatrix2fv(u.index, 1, gl::FALSE, v.as_ptr() as *const f32) }
   }
 
-  fn ty() -> Type { Type::Floating }
-
-  fn dim() -> Dim { Dim::Dim22 }
+  fn ty() -> Type { Type::M22 }
 }
 
 unsafe impl Uniformable for M33 {
@@ -666,9 +632,7 @@ unsafe impl Uniformable for M33 {
     unsafe { gl::UniformMatrix3fv(u.index, 1, gl::FALSE, v.as_ptr() as *const f32) }
   }
 
-  fn ty() -> Type { Type::Floating }
-
-  fn dim() -> Dim { Dim::Dim33 }
+  fn ty() -> Type { Type::M33 }
 }
 
 unsafe impl Uniformable for M44 {
@@ -677,9 +641,7 @@ unsafe impl Uniformable for M44 {
     unsafe { gl::UniformMatrix4fv(u.index, 1, gl::FALSE, v.as_ptr() as *const f32) }
   }
 
-  fn ty() -> Type { Type::Floating }
-
-  fn dim() -> Dim { Dim::Dim44 }
+  fn ty() -> Type { Type::M44 }
 }
 
 unsafe impl<'a> Uniformable for &'a [M22] {
@@ -687,9 +649,7 @@ unsafe impl<'a> Uniformable for &'a [M22] {
     unsafe { gl::UniformMatrix2fv(u.index, self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
   }
 
-  fn ty() -> Type { Type::Floating }
-
-  fn dim() -> Dim { Dim::Dim22 }
+  fn ty() -> Type { Type::M22 }
 }
 
 unsafe impl<'a> Uniformable for &'a [M33] {
@@ -697,9 +657,7 @@ unsafe impl<'a> Uniformable for &'a [M33] {
     unsafe { gl::UniformMatrix3fv(u.index, self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
   }
 
-  fn ty() -> Type { Type::Floating }
-
-  fn dim() -> Dim { Dim::Dim33 }
+  fn ty() -> Type { Type::M33 }
 }
 
 unsafe impl<'a> Uniformable for &'a [M44] {
@@ -707,9 +665,7 @@ unsafe impl<'a> Uniformable for &'a [M44] {
     unsafe { gl::UniformMatrix4fv(u.index, self.len() as GLsizei, gl::FALSE, self.as_ptr() as *const f32) }
   }
 
-  fn ty() -> Type { Type::Floating }
-
-  fn dim() -> Dim { Dim::Dim44 }
+  fn ty() -> Type { Type::M44 }
 }
 
 unsafe impl Uniformable for bool {
@@ -717,9 +673,7 @@ unsafe impl Uniformable for bool {
     unsafe { gl::Uniform1ui(u.index, self as GLuint) }
   }
 
-  fn ty() -> Type { Type::Boolean }
-
-  fn dim() -> Dim { Dim::Dim1 }
+  fn ty() -> Type { Type::Bool }
 }
 
 unsafe impl Uniformable for [bool; 2] {
@@ -728,9 +682,7 @@ unsafe impl Uniformable for [bool; 2] {
     unsafe { gl::Uniform2uiv(u.index, 1, &v as *const u32) }
   }
 
-  fn ty() -> Type { Type::Boolean }
-
-  fn dim() -> Dim { Dim::Dim2 }
+  fn ty() -> Type { Type::BVec2 }
 }
 
 unsafe impl Uniformable for [bool; 3] {
@@ -739,9 +691,7 @@ unsafe impl Uniformable for [bool; 3] {
     unsafe { gl::Uniform3uiv(u.index, 1, &v as *const u32) }
   }
 
-  fn ty() -> Type { Type::Boolean }
-
-  fn dim() -> Dim { Dim::Dim3 }
+  fn ty() -> Type { Type::BVec3 }
 }
 
 unsafe impl Uniformable for [bool; 4] {
@@ -750,9 +700,7 @@ unsafe impl Uniformable for [bool; 4] {
     unsafe { gl::Uniform4uiv(u.index, 1,  &v as *const u32) }
   }
 
-  fn ty() -> Type { Type::Boolean }
-
-  fn dim() -> Dim { Dim::Dim4 }
+  fn ty() -> Type { Type::BVec4 }
 }
 
 unsafe impl<'a> Uniformable for &'a [bool] {
@@ -761,9 +709,7 @@ unsafe impl<'a> Uniformable for &'a [bool] {
     unsafe { gl::Uniform1uiv(u.index, v.len() as GLsizei, v.as_ptr()) }
   }
 
-  fn ty() -> Type { Type::Boolean }
-
-  fn dim() -> Dim { Dim::Dim1 }
+  fn ty() -> Type { Type::Bool }
 }
 
 unsafe impl<'a> Uniformable for &'a [[bool; 2]] {
@@ -772,9 +718,7 @@ unsafe impl<'a> Uniformable for &'a [[bool; 2]] {
     unsafe { gl::Uniform2uiv(u.index, v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
-  fn ty() -> Type { Type::Boolean }
-
-  fn dim() -> Dim { Dim::Dim2 }
+  fn ty() -> Type { Type::BVec2 }
 }
 
 unsafe impl<'a> Uniformable for &'a [[bool; 3]] {
@@ -783,9 +727,7 @@ unsafe impl<'a> Uniformable for &'a [[bool; 3]] {
     unsafe { gl::Uniform3uiv(u.index, v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
-  fn ty() -> Type { Type::Boolean }
-
-  fn dim() -> Dim { Dim::Dim3 }
+  fn ty() -> Type { Type::BVec3 }
 }
 
 unsafe impl<'a> Uniformable for &'a [[bool; 4]] {
@@ -794,12 +736,11 @@ unsafe impl<'a> Uniformable for &'a [[bool; 4]] {
     unsafe { gl::Uniform4uiv(u.index, v.len() as GLsizei, v.as_ptr() as *const u32) }
   }
 
-  fn ty() -> Type { Type::Boolean }
-
-  fn dim() -> Dim { Dim::Dim4 }
+  fn ty() -> Type { Type::BVec4 }
 }
 
-fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> Result<(), String> {
+// Check whether a shader program’s uniform type matches the type we have chosen.
+fn uniform_type_match(program: GLuint, name: &str, ty: Type) -> Result<(), String> {
   let mut size: GLint = 0;
   let mut typ: GLuint = 0;
   let c_name = CString::new(name.as_bytes()).unwrap();
@@ -824,26 +765,45 @@ fn uniform_type_match(program: GLuint, name: &str, ty: Type, dim: Dim) -> Result
     return Ok(());
   }
 
-  match (ty, dim) {
-    (Type::Integral, Dim::Dim1) if typ != gl::INT => Err("requested int doesn't match".to_owned()),
-    (Type::Integral, Dim::Dim2) if typ != gl::INT_VEC2 => Err("requested ivec2 doesn't match".to_owned()),
-    (Type::Integral, Dim::Dim3) if typ != gl::INT_VEC3 => Err("requested ivec3 doesn't match".to_owned()),
-    (Type::Integral, Dim::Dim4) if typ != gl::INT_VEC4 => Err("requested ivec4 doesn't match".to_owned()),
-    (Type::Unsigned, Dim::Dim1) if typ != gl::UNSIGNED_INT => Err("requested uint doesn't match".to_owned()),
-    (Type::Unsigned, Dim::Dim2) if typ != gl::UNSIGNED_INT_VEC2 => Err("requested uvec2 doesn't match".to_owned()),
-    (Type::Unsigned, Dim::Dim3) if typ != gl::UNSIGNED_INT_VEC3 => Err("requested uvec3 doesn't match".to_owned()),
-    (Type::Unsigned, Dim::Dim4) if typ != gl::UNSIGNED_INT_VEC4 => Err("requested uvec4 doesn't match".to_owned()),
-    (Type::Floating, Dim::Dim1) if typ != gl::FLOAT => Err("requested float doesn't match".to_owned()),
-    (Type::Floating, Dim::Dim2) if typ != gl::FLOAT_VEC2 => Err("requested vec2 doesn't match".to_owned()),
-    (Type::Floating, Dim::Dim3) if typ != gl::FLOAT_VEC3 => Err("requested vec3 doesn't match".to_owned()),
-    (Type::Floating, Dim::Dim4) if typ != gl::FLOAT_VEC4 => Err("requested vec4 doesn't match".to_owned()),
-    (Type::Floating, Dim::Dim22) if typ != gl::FLOAT_MAT2 => Err("requested mat2 doesn't match".to_owned()),
-    (Type::Floating, Dim::Dim33) if typ != gl::FLOAT_MAT3 => Err("requested mat3 doesn't match".to_owned()),
-    (Type::Floating, Dim::Dim44) if typ != gl::FLOAT_MAT4 => Err("requested mat4 doesn't match".to_owned()),
-    (Type::Boolean, Dim::Dim1) if typ != gl::BOOL => Err("requested bool doesn't match".to_owned()),
-    (Type::Boolean, Dim::Dim2) if typ != gl::BOOL_VEC2 => Err("requested bvec2 doesn't match".to_owned()),
-    (Type::Boolean, Dim::Dim3) if typ != gl::BOOL_VEC3 => Err("requested bvec3 doesn't match".to_owned()),
-    (Type::Boolean, Dim::Dim4) if typ != gl::BOOL_VEC4 => Err("requested bvec4 doesn't match".to_owned()),
+  // helper function for error reporting
+  let type_mismatch = |t| Err(format!("requested {} doesn’t match", t));
+
+  match ty {
+    // scalars
+    Type::Int if typ != gl::INT => type_mismatch("int"),
+    Type::UInt if typ != gl::UNSIGNED_INT => type_mismatch("uint"),
+    Type::Float if typ != gl::FLOAT => type_mismatch("float"),
+    Type::Bool if typ != gl::BOOL => type_mismatch("bool"),
+    // vectors
+    Type::IVec2 if typ != gl::INT_VEC2 => type_mismatch("ivec2"),
+    Type::IVec3 if typ != gl::INT_VEC3 => type_mismatch("ivec3"),
+    Type::IVec4 if typ != gl::INT_VEC4 => type_mismatch("ivec4"),
+    Type::UIVec2 if typ != gl::UNSIGNED_INT_VEC2 => type_mismatch("uvec2"),
+    Type::UIVec3 if typ != gl::UNSIGNED_INT_VEC3 => type_mismatch("uvec3"),
+    Type::UIVec4 if typ != gl::UNSIGNED_INT_VEC4 => type_mismatch("uvec4"),
+    Type::Vec2 if typ != gl::FLOAT_VEC2 => type_mismatch("vec2"),
+    Type::Vec3 if typ != gl::FLOAT_VEC3 => type_mismatch("vec3"),
+    Type::Vec4 if typ != gl::FLOAT_VEC4 => type_mismatch("vec4"),
+    Type::BVec2 if typ != gl::BOOL_VEC2 => type_mismatch("bvec2"),
+    Type::BVec3 if typ != gl::BOOL_VEC3 => type_mismatch("bvec3"),
+    Type::BVec4 if typ != gl::BOOL_VEC4 => type_mismatch("bvec4"),
+    // matrices
+    Type::M22 if typ != gl::FLOAT_MAT2 => type_mismatch("mat2"),
+    Type::M33 if typ != gl::FLOAT_MAT3 => type_mismatch("mat3"),
+    Type::M44 if typ != gl::FLOAT_MAT4 => type_mismatch("mat4"),
+    // textures
+    Type::ISampler1D if typ != gl::INT_SAMPLER_1D => type_mismatch("isampler1D"),
+    Type::ISampler2D if typ != gl::INT_SAMPLER_2D => type_mismatch("isampler2D"),
+    Type::ISampler3D if typ != gl::INT_SAMPLER_3D => type_mismatch("isampler3D"),
+    Type::UISampler1D if typ != gl::UNSIGNED_INT_SAMPLER_1D => type_mismatch("usampler1D"),
+    Type::UISampler2D if typ != gl::UNSIGNED_INT_SAMPLER_2D => type_mismatch("usampler2D"),
+    Type::UISampler3D if typ != gl::UNSIGNED_INT_SAMPLER_3D => type_mismatch("usampler3D"),
+    Type::Sampler1D if typ != gl::SAMPLER_1D => type_mismatch("sampler1D"),
+    Type::Sampler2D if typ != gl::SAMPLER_2D => type_mismatch("sampler2D"),
+    Type::Sampler3D if typ != gl::SAMPLER_3D => type_mismatch("sampler3D"),
+    Type::ICubemap if typ != gl::INT_SAMPLER_CUBE => type_mismatch("isamplerCube"),
+    Type::UICubemap if typ != gl::UNSIGNED_INT_SAMPLER_CUBE => type_mismatch("usamplerCube"),
+    Type::Cubemap if typ != gl::SAMPLER_CUBE => type_mismatch("samplerCube"),
     _ => Ok(())
   }
 }
