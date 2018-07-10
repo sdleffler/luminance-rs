@@ -178,6 +178,39 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface
   pub(crate) fn uniform_interface(&self) -> &Uni {
     &self.uni_iface
   }
+
+  /// Transform the program to adapt the uniform interface.
+  ///
+  /// This function will not re-allocate nor recreate the GPU data. It will try to change the
+  /// uniform interface and if the new uniform interface is correctly generated, return the same
+  /// shader program updated with the new uniform interface. If the generation of the new uniform
+  /// interface fails, this function will return the program with the former uniform interface.
+  pub fn adapt<Q>(self)
+  -> Result<(Program<In, Out, Q>, Vec<UniformWarning>), (ProgramError, Self)>
+  where Q: UniformInterface {
+    // first, try to create the new uniform interface
+    let new_uni_iface = Q::uniform_interface(UniformBuilder::new(&self.raw));
+
+    match new_uni_iface {
+      Ok((uni_iface, warnings)) => {
+        // if we have succeeded, return self with the new uniform interface
+        let program = Program {
+          raw: self.raw,
+          uni_iface,
+          _in: PhantomData,
+          _out: PhantomData
+        };
+
+        Ok((program, warnings))
+      }
+
+      Err(iface_err) => {
+        // we couldn’t generate the new uniform interface; return the error(s) that occurred and the
+        // the untouched former program
+        Err((iface_err, self))
+      }
+    }
+  }
 }
 
 impl<In, Out, Uni> Deref for Program<In, Out, Uni> {
