@@ -936,6 +936,10 @@ fn uniform_type_match(program: GLuint, name: &str, ty: Type) -> Result<(), Strin
 ///   }
 /// }
 /// ```
+///
+/// > Note: this macro doesn’t allow you to do a *value-driven* implementation of
+/// > [`UniformInterface`]. If this is what you want, you’ll need to implement the trait by hand
+/// > and provide an environment type as in `impl UniformInterface<E = YourTypeHere> for …`.
 #[macro_export]
 macro_rules! uniform_interface {
   (struct $struct_name:ident { $($fields:tt)* }) => {
@@ -970,7 +974,8 @@ macro_rules! uniform_interface_impl_trait {
   ($struct_name:ident, $($(#[$($field_attrs:tt)*])* $field_name:ident : $field_ty:ty),+) => {
     impl $crate::shader::program::UniformInterface for $struct_name {
       fn uniform_interface(
-        builder: $crate::shader::program::UniformBuilder
+        builder: $crate::shader::program::UniformBuilder,
+        _: ()
       ) -> Result<(Self, Vec<$crate::shader::program::UniformWarning>), $crate::shader::program::ProgramError> {
         #[allow(unused_mut)]
         let mut warnings = Vec::new();
