@@ -9,11 +9,6 @@ os:
   - linux
   - osx
 
-matrix:
-  allow_failures:
-    - rust: nightly
-    - os: osx
-
 before_install:
   - sudo apt-get update -qq
   - sudo apt-get install -y libxrandr-dev xorg-dev
