@@ -123,6 +123,32 @@ pub struct Program<In, Out, Uni> {
 }
 
 impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex {
+  /// Create a new program by consuming `Stage`s.
+  pub fn from_stages<'a, T, G>(
+    tess: T,
+    vertex: &Stage,
+    geometry: G,
+    fragment: &Stage
+  ) -> Result<(Self, Vec<UniformWarning>), ProgramError>
+  where Uni: UniformInterface,
+        T: Into<Option<(&'a Stage, &'a Stage)>>,
+        G: Into<Option<&'a Stage>> {
+    Self::from_stages_env(tess, vertex, geometry, fragment, ())
+  }
+
+  /// Create a new program by consuming strings.
+  pub fn from_strings<'a, T, G>(
+    tess: T,
+    vertex: &str,
+    geometry: G,
+    fragment: &str
+  ) -> Result<(Self, Vec<UniformWarning>), ProgramError>
+  where Uni: UniformInterface,
+        T: Into<Option<(&'a str, &'a str)>>,
+        G: Into<Option<&'a str>> {
+    Self::from_strings_env(tess, vertex, geometry, fragment, ())
+  }
+
   /// Create a new program by consuming `Stage`s and by looking up an environment.
   pub fn from_stages_env<'a, E, T, G>(
     tess: T,
@@ -178,35 +204,22 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex {
     Self::from_stages_env(tess.as_ref().map(|&(ref tcs, ref tes)| (tcs, tes)), &vs, gs.as_ref(), &fs, env)
   }
 
-  /// Create a new program by consuming `Stage`s.
-  pub fn from_stages<'a, T, G>(
-    tess: T,
-    vertex: &Stage,
-    geometry: G,
-    fragment: &Stage
-  ) -> Result<(Self, Vec<UniformWarning>), ProgramError>
-  where Uni: UniformInterface,
-        T: Into<Option<(&'a Stage, &'a Stage)>>,
-        G: Into<Option<&'a Stage>> {
-    Self::from_stages_env(tess, vertex, geometry, fragment, ())
-  }
-
-  /// Create a new program by consuming strings.
-  pub fn from_strings<'a, T, G>(
-    tess: T,
-    vertex: &str,
-    geometry: G,
-    fragment: &str
-  ) -> Result<(Self, Vec<UniformWarning>), ProgramError>
-  where Uni: UniformInterface,
-        T: Into<Option<(&'a str, &'a str)>>,
-        G: Into<Option<&'a str>> {
-    Self::from_strings_env(tess, vertex, geometry, fragment, ())
-  }
-
   /// Get the uniform interface associated with this program.
   pub(crate) fn uniform_interface(&self) -> &Uni {
     &self.uni_iface
+  }
+
+  /// Transform the program to adapt the uniform interface.
+  ///
+  /// This function will not re-allocate nor recreate the GPU data. It will try to change the
+  /// uniform interface and if the new uniform interface is correctly generated, return the same
+  /// shader program updated with the new uniform interface. If the generation of the new uniform
+  /// interface fails, this function will return the program with the former uniform interface.
+  pub fn adapt<Q>(
+    self
+  ) -> Result<(Program<In, Out, Q>, Vec<UniformWarning>), (ProgramError, Self)>
+  where Q: UniformInterface {
+    self.adapt_env(())
   }
 
   /// Transform the program to adapt the uniform interface by looking up an environment.
@@ -242,19 +255,6 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex {
         Err((iface_err, self))
       }
     }
-  }
-
-  /// Transform the program to adapt the uniform interface.
-  ///
-  /// This function will not re-allocate nor recreate the GPU data. It will try to change the
-  /// uniform interface and if the new uniform interface is correctly generated, return the same
-  /// shader program updated with the new uniform interface. If the generation of the new uniform
-  /// interface fails, this function will return the program with the former uniform interface.
-  pub fn adapt<Q>(
-    self
-  ) -> Result<(Program<In, Out, Q>, Vec<UniformWarning>), (ProgramError, Self)>
-  where Q: UniformInterface {
-    self.adapt_env(())
   }
 
   /// A version of [`Program::adapt_env`] that doesn’t change the uniform interface type.
