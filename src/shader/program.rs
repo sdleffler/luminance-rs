@@ -129,8 +129,8 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex {
     vertex: &Stage,
     geometry: G,
     fragment: &Stage,
-    env: E)
-  -> Result<(Self, Vec<UniformWarning>), ProgramError>
+    env: E
+  ) -> Result<(Self, Vec<UniformWarning>), ProgramError>
   where Uni: UniformInterface<E>,
         T: Into<Option<(&'a Stage, &'a Stage)>>,
         G: Into<Option<&'a Stage>> {
@@ -153,8 +153,8 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex {
     vertex: &str,
     geometry: G,
     fragment: &str,
-    env: E)
-  -> Result<(Self, Vec<UniformWarning>), ProgramError>
+    env: E
+  ) -> Result<(Self, Vec<UniformWarning>), ProgramError>
   where Uni: UniformInterface<E>,
         T: Into<Option<(&'a str, &'a str)>>,
         G: Into<Option<&'a str>> {
@@ -183,8 +183,8 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex {
     tess: T,
     vertex: &Stage,
     geometry: G,
-    fragment: &Stage)
-  -> Result<(Self, Vec<UniformWarning>), ProgramError>
+    fragment: &Stage
+  ) -> Result<(Self, Vec<UniformWarning>), ProgramError>
   where Uni: UniformInterface,
         T: Into<Option<(&'a Stage, &'a Stage)>>,
         G: Into<Option<&'a Stage>> {
@@ -196,8 +196,8 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex {
     tess: T,
     vertex: &str,
     geometry: G,
-    fragment: &str)
-  -> Result<(Self, Vec<UniformWarning>), ProgramError>
+    fragment: &str
+  ) -> Result<(Self, Vec<UniformWarning>), ProgramError>
   where Uni: UniformInterface,
         T: Into<Option<(&'a str, &'a str)>>,
         G: Into<Option<&'a str>> {
@@ -209,17 +209,19 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex {
     &self.uni_iface
   }
 
-  /// Transform the program to adapt the uniform interface.
+  /// Transform the program to adapt the uniform interface by looking up an environment.
   ///
   /// This function will not re-allocate nor recreate the GPU data. It will try to change the
   /// uniform interface and if the new uniform interface is correctly generated, return the same
   /// shader program updated with the new uniform interface. If the generation of the new uniform
   /// interface fails, this function will return the program with the former uniform interface.
-  pub fn adapt<Q>(self)
-  -> Result<(Program<In, Out, Q>, Vec<UniformWarning>), (ProgramError, Self)>
-  where Q: UniformInterface {
+  pub fn adapt_env<Q, E>(
+    self,
+    env: E
+  ) -> Result<(Program<In, Out, Q>, Vec<UniformWarning>), (ProgramError, Self)>
+  where Q: UniformInterface<E> {
     // first, try to create the new uniform interface
-    let new_uni_iface = Q::uniform_interface(UniformBuilder::new(&self.raw), ());
+    let new_uni_iface = Q::uniform_interface(UniformBuilder::new(&self.raw), env);
 
     match new_uni_iface {
       Ok((uni_iface, warnings)) => {
@@ -240,6 +242,29 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex {
         Err((iface_err, self))
       }
     }
+  }
+
+  /// Transform the program to adapt the uniform interface.
+  ///
+  /// This function will not re-allocate nor recreate the GPU data. It will try to change the
+  /// uniform interface and if the new uniform interface is correctly generated, return the same
+  /// shader program updated with the new uniform interface. If the generation of the new uniform
+  /// interface fails, this function will return the program with the former uniform interface.
+  pub fn adapt<Q>(
+    self
+  ) -> Result<(Program<In, Out, Q>, Vec<UniformWarning>), (ProgramError, Self)>
+  where Q: UniformInterface {
+    self.adapt_env(())
+  }
+
+  /// A version of [`Program::adapt_env`] that doesn’t change the uniform interface type.
+  ///
+  /// This function might be needed for when you want to update the uniform interface but still
+  /// enforce that the type must remain the same.
+  pub fn readapt_env<E>(self, env: E)
+  -> Result<(Self, Vec<UniformWarning>), (ProgramError, Self)>
+  where Uni: UniformInterface<E> {
+    self.adapt_env(env)
   }
 }
 
