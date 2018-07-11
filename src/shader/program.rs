@@ -122,18 +122,20 @@ pub struct Program<In, Out, Uni> {
   _out: PhantomData<*const Out>
 }
 
-impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface {
-  /// Create a new program by consuming `Stage`s.
-  pub fn from_stages<'a, T, G>(
+impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex {
+  /// Create a new program by consuming `Stage`s and by looking up an environment.
+  pub fn from_stages_env<'a, E, T, G>(
     tess: T,
     vertex: &Stage,
     geometry: G,
-    fragment: &Stage)
+    fragment: &Stage,
+    env: E)
   -> Result<(Self, Vec<UniformWarning>), ProgramError>
-  where T: Into<Option<(&'a Stage, &'a Stage)>>,
+  where Uni: UniformInterface<E>,
+        T: Into<Option<(&'a Stage, &'a Stage)>>,
         G: Into<Option<&'a Stage>> {
     let raw = RawProgram::new(tess, vertex, geometry, fragment)?;
-    let (iface, warnings) = Uni::uniform_interface(UniformBuilder::new(&raw))?;
+    let (iface, warnings) = Uni::uniform_interface(UniformBuilder::new(&raw), env)?;
 
     let program = Program {
       raw: raw,
@@ -146,13 +148,15 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface
   }
 
   /// Create a new program by consuming strings.
-  pub fn from_strings<'a, T, G>(
+  pub fn from_strings_env<'a, E, T, G>(
     tess: T,
     vertex: &str,
     geometry: G,
-    fragment: &str)
+    fragment: &str,
+    env: E)
   -> Result<(Self, Vec<UniformWarning>), ProgramError>
-  where T: Into<Option<(&'a str, &'a str)>>,
+  where Uni: UniformInterface<E>,
+        T: Into<Option<(&'a str, &'a str)>>,
         G: Into<Option<&'a str>> {
     let tess = match tess.into() {
       Some((tcs_str, tes_str)) => {
@@ -171,7 +175,33 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface
     let vs = Stage::new(stage::Type::VertexShader, vertex).map_err(ProgramError::StageError)?;
     let fs = Stage::new(stage::Type::FragmentShader, fragment).map_err(ProgramError::StageError)?;
 
-    Self::from_stages(tess.as_ref().map(|&(ref tcs, ref tes)| (tcs, tes)), &vs, gs.as_ref(), &fs)
+    Self::from_stages_env(tess.as_ref().map(|&(ref tcs, ref tes)| (tcs, tes)), &vs, gs.as_ref(), &fs, env)
+  }
+
+  /// Create a new program by consuming `Stage`s.
+  pub fn from_stages<'a, T, G>(
+    tess: T,
+    vertex: &Stage,
+    geometry: G,
+    fragment: &Stage)
+  -> Result<(Self, Vec<UniformWarning>), ProgramError>
+  where Uni: UniformInterface,
+        T: Into<Option<(&'a Stage, &'a Stage)>>,
+        G: Into<Option<&'a Stage>> {
+    Self::from_stages_env(tess, vertex, geometry, fragment, ())
+  }
+
+  /// Create a new program by consuming strings.
+  pub fn from_strings<'a, T, G>(
+    tess: T,
+    vertex: &str,
+    geometry: G,
+    fragment: &str)
+  -> Result<(Self, Vec<UniformWarning>), ProgramError>
+  where Uni: UniformInterface,
+        T: Into<Option<(&'a str, &'a str)>>,
+        G: Into<Option<&'a str>> {
+    Self::from_strings_env(tess, vertex, geometry, fragment, ())
   }
 
   /// Get the uniform interface associated with this program.
@@ -189,7 +219,7 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex, Uni: UniformInterface
   -> Result<(Program<In, Out, Q>, Vec<UniformWarning>), (ProgramError, Self)>
   where Q: UniformInterface {
     // first, try to create the new uniform interface
-    let new_uni_iface = Q::uniform_interface(UniformBuilder::new(&self.raw));
+    let new_uni_iface = Q::uniform_interface(UniformBuilder::new(&self.raw), ());
 
     match new_uni_iface {
       Ok((uni_iface, warnings)) => {
@@ -226,19 +256,25 @@ impl<In, Out, Uni> Deref for Program<In, Out, Uni> {
 /// A uniform interface is a value that contains uniforms. The purpose of a uniform interface is to
 /// be stored in a typed program and handed back to the programmer when the program is available in
 /// a pipeline.
-pub trait UniformInterface: Sized {
+///
+/// The `E` type variable represents the environment and might be used to drive the implementation
+/// from a value. It’s defaulted to `()` so that if you don’t use the environment, you don’t have to
+/// worry about that value when creating the shader program.
+pub trait UniformInterface<E = ()>: Sized {
   /// Build the uniform interface.
   ///
   /// When mapping a uniform, if you want to accept failures, you can discard the error and use
   /// `UniformBuilder::unbound` to let the uniform pass through, and collect the uniform warning.
   fn uniform_interface<'a>(
-    builder: UniformBuilder<'a>
+    builder: UniformBuilder<'a>,
+    env: E
   ) -> Result<(Self, Vec<UniformWarning>), ProgramError>;
 }
 
 impl UniformInterface for () {
   fn uniform_interface<'a>(
-    _: UniformBuilder<'a>
+    _: UniformBuilder<'a>,
+    _: ()
   ) -> Result<(Self, Vec<UniformWarning>), ProgramError> {
     Ok(((), Vec::new()))
   }
