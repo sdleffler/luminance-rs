@@ -963,7 +963,7 @@ fn uniform_type_match(program: GLuint, name: &str, ty: Type) -> Result<(), Strin
 /// ```
 ///
 /// > Note: this macro doesn’t allow you to do a *value-driven* implementation of
-/// > [`UniformInterface`]. If this is what you want, you’ll need to implement the trait by hand
+/// > `UniformInterface`. If this is what you want, you’ll need to implement the trait by hand
 /// > and provide an environment type as in `impl UniformInterface<E = YourTypeHere> for …`.
 #[macro_export]
 macro_rules! uniform_interface {
