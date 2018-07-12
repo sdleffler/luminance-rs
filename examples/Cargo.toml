@@ -8,6 +8,7 @@ members = [
   "05-attributeless",
   "06-texture",
   "07-offscreen",
+  "08-shader-uniforms-adapt",
 ]
 
 [patch.crates-io]
