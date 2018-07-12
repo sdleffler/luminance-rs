@@ -1,3 +1,17 @@
+# 0.29
+
+> Thursday, 12th of July, 2018
+
+  - Augment the `UniformInterface` trait with an *environment type variable*. This is used to pass
+    more data when generating the uniform interface and enable *value-driven* implementations. The
+    `UniformInterface::uniform_interface` method receives the environment as a second argument now.
+  - Add `Program::*_env` creation functions to pass an environment value.
+  - Add `Program::adapt`, `Program::adapt_env` to change the type of the uniform interface of a
+    shader program without interacting / deallocating / reallocating anything on the GPU side.
+  - Add `Program::readapt_env` to perform the same thing as `Program::adapt_env` but disallow
+    changing the type of the uniform interface. This is very useful if you need to update any
+    *value-driven* objects in your interface.
+
 # 0.28
 
 > Tuesday, 3rd of July, 2018
