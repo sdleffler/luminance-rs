@@ -3,7 +3,8 @@
 //! whole duration of a call (you typically change it between each draw call to customize each
 //! draw).
 //!
-//! This example shows you how to add the time to change the 
+//! This example shows you how to add the time to your shader to start building moving and animated
+//! effects.
 //!
 //! Press the <a>, <s>, <d>, <z> or the arrow keys to move the triangle on the screen.
 //! Press <escape> to quit or close the window.
