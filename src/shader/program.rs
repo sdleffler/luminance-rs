@@ -307,19 +307,23 @@ impl UniformInterface for () {
 
 /// Build uniforms to fold them to a uniform interface.
 pub struct UniformBuilder<'a> {
-  raw: &'a RawProgram
+  raw: &'a RawProgram,
+  warnings: Vec<UniformWarning>,
 }
 
 impl<'a> UniformBuilder<'a> {
   fn new(raw: &'a RawProgram) -> Self {
     UniformBuilder {
-      raw: raw
+      raw,
+      warnings: Vec::new()
     }
   }
 
-  /// Have the builder hand you a `Uniform` of the type of your choice. Keep in mind that it’s
-  /// possible that this function fails if you ask for a type that is not the one defined in the
-  /// shader.
+  /// Have the builder hand you a `Uniform` of the type of your choice.
+  ///
+  /// Keep in mind that it’s possible that this function fails if you ask for a type for which the
+  /// one defined in the shader doesn’t type match. If you don’t want a failure but an *unbound*
+  /// uniform, head over to the `ask_unbound` function.
   pub fn ask<T>(&self, name: &str) -> Result<Uniform<T>, UniformWarning> where T: Uniformable {
     let uniform = match T::ty() {
       Type::BufferBinding => self.ask_uniform_block(name)?,
@@ -329,6 +333,16 @@ impl<'a> UniformBuilder<'a> {
     uniform_type_match(self.raw.handle, name, T::ty()).map_err(|err| UniformWarning::TypeMismatch(name.to_owned(), err))?;
 
     Ok(uniform)
+  }
+
+  pub fn ask_unbound<T>(&mut self, name: &str) -> Uniform<T> where T: Uniformable {
+    match self.ask(name) {
+      Ok(uniform) => uniform,
+      Err(warning) => {
+        self.warnings.push(warning);
+        self.unbound()
+      }
+    }
   }
 
   fn ask_uniform<T>(&self, name: &str) -> Result<Uniform<T>, UniformWarning> where T: Uniformable {
