@@ -161,11 +161,11 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex {
         T: Into<Option<(&'a Stage, &'a Stage)>>,
         G: Into<Option<&'a Stage>> {
     let raw = RawProgram::new(tess, vertex, geometry, fragment)?;
-    let (iface, warnings) = Uni::uniform_interface(UniformBuilder::new(&raw), env)?;
+    let (uni_iface, warnings) = create_uniform_interface(&raw, env)?;
 
     let program = Program {
-      raw: raw,
-      uni_iface: iface,
+      raw,
+      uni_iface,
       _in: PhantomData,
       _out: PhantomData
     };
@@ -234,7 +234,7 @@ impl<In, Out, Uni> Program<In, Out, Uni> where In: Vertex {
   ) -> Result<(Program<In, Out, Q>, Vec<UniformWarning>), (ProgramError, Self)>
   where Q: UniformInterface<E> {
     // first, try to create the new uniform interface
-    let new_uni_iface = Q::uniform_interface(UniformBuilder::new(&self.raw), env);
+    let new_uni_iface = create_uniform_interface(&self.raw, env);
 
     match new_uni_iface {
       Ok((uni_iface, warnings)) => {
@@ -279,8 +279,7 @@ impl<In, Out, Uni> Deref for Program<In, Out, Uni> {
 /// Class of types that can act as uniform interfaces in typed programs.
 ///
 /// A uniform interface is a value that contains uniforms. The purpose of a uniform interface is to
-/// be stored in a typed program and handed back to the programmer when the program is available in
-/// a pipeline.
+/// be stored in a typed program and handed back when the program is made available in a pipeline.
 ///
 /// The `E` type variable represents the environment and might be used to drive the implementation
 /// from a value. It’s defaulted to `()` so that if you don’t use the environment, you don’t have to
@@ -291,17 +290,17 @@ pub trait UniformInterface<E = ()>: Sized {
   /// When mapping a uniform, if you want to accept failures, you can discard the error and use
   /// `UniformBuilder::unbound` to let the uniform pass through, and collect the uniform warning.
   fn uniform_interface<'a>(
-    builder: UniformBuilder<'a>,
+    builder: &mut UniformBuilder<'a>,
     env: E
-  ) -> Result<(Self, Vec<UniformWarning>), ProgramError>;
+  ) -> Result<Self, ProgramError>;
 }
 
 impl UniformInterface for () {
   fn uniform_interface<'a>(
-    _: UniformBuilder<'a>,
+    _: &mut UniformBuilder<'a>,
     _: ()
-  ) -> Result<(Self, Vec<UniformWarning>), ProgramError> {
-    Ok(((), Vec::new()))
+  ) -> Result<Self, ProgramError> {
+    Ok(())
   }
 }
 
@@ -1028,6 +1027,14 @@ macro_rules! uniform_interface_impl_trait {
       }
     }
   }
+}
+
+// Generate a uniform interface and collect warnings.
+fn create_uniform_interface<Uni, E>(raw: &RawProgram, env: E) -> Result<(Uni, Vec<UniformWarning>), ProgramError>
+where Uni: UniformInterface<E> {
+  let mut builder = UniformBuilder::new(raw);
+  let iface = Uni::uniform_interface(&mut builder, env)?;
+  Ok((iface, builder.warnings))
 }
 
 #[macro_export]
