@@ -1022,7 +1022,7 @@ macro_rules! uniform_interface_impl_trait {
       fn uniform_interface(
         builder: &mut $crate::shader::program::UniformBuilder,
         _: ()
-      ) -> Result<(Self, Vec<$crate::shader::program::UniformWarning>), $crate::shader::program::ProgramError> {
+      ) -> Result<Self, $crate::shader::program::ProgramError> {
         $(
           uniform_interface_impl_trait_map!(builder, $field_name $(#[$($field_attrs)*])*);
         )+
@@ -1039,27 +1039,27 @@ macro_rules! uniform_interface_impl_trait_map {
   // this form authorizes to specify the mapping
   // this form authorizes unmapped uniforms by overriding them with an unbound uniform
   ($builder:ident, $field_name:ident #[as($field_mapping:expr), unbound]) => {
-    let $field_name = $builder.ask_unbound($field_mapping)?;
+    let $field_name = $builder.ask_unbound($field_mapping);
   };
 
   // same form as above but with flipped annotations
-  ($builder:ident, $warnings:ident, $field_name:ident #[unbound, as($field_mapping:expr)]) => {
-    let $field_name = $builder.ask_unbound($field_mapping)?;
+  ($builder:ident, $field_name:ident #[unbound, as($field_mapping:expr)]) => {
+    let $field_name = $builder.ask_unbound($field_mapping);
   };
 
   // this form authorizes to specify the mapping
   // this form will make the whole uniform interface not to build on any error
-  ($builder:ident, $warnings:ident, $field_name:ident #[as($field_mapping:expr)]) => {
+  ($builder:ident, $field_name:ident #[as($field_mapping:expr)]) => {
     let $field_name = $builder.ask($field_mapping).map_err($crate::shader::program::ProgramError::UniformWarning)?;
   };
 
   // this form authorizes unmapped uniforms by overriding them with an unbound uniform
-  ($builder:ident, $warnings:ident, $field_name:ident #[unbound]) => {
-    let $field_name = $builder.ask_unbound(stringify!($field_name))?;
+  ($builder:ident, $field_name:ident #[unbound]) => {
+    let $field_name = $builder.ask_unbound(stringify!($field_name));
   };
 
   // this form will make the whole uniform interface not to build on any error
-  ($builder:ident, $warnings:ident, $field_name:ident) => {
+  ($builder:ident, $field_name:ident) => {
     let $field_name = $builder.ask(stringify!($field_name)).map_err($crate::shader::program::ProgramError::UniformWarning)?;
   }
 }
