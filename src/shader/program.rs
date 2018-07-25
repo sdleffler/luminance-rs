@@ -915,6 +915,14 @@ fn uniform_type_match(program: GLuint, name: &str, ty: Type) -> Result<(), Strin
   }
 }
 
+// Generate a uniform interface and collect warnings.
+fn create_uniform_interface<Uni, E>(raw: &RawProgram, env: E) -> Result<(Uni, Vec<UniformWarning>), ProgramError>
+where Uni: UniformInterface<E> {
+  let mut builder = UniformBuilder::new(raw);
+  let iface = Uni::uniform_interface(&mut builder, env)?;
+  Ok((iface, builder.warnings))
+}
+
 /// Create a new `struct` that represents a *uniform interface* and automatically derive the
 /// `impl for UniformInterface`.
 ///
@@ -1012,48 +1020,31 @@ macro_rules! uniform_interface_impl_trait {
   ($struct_name:ident, $($(#[$($field_attrs:tt)*])* $field_name:ident : $field_ty:ty),+) => {
     impl $crate::shader::program::UniformInterface for $struct_name {
       fn uniform_interface(
-        builder: $crate::shader::program::UniformBuilder,
+        builder: &mut $crate::shader::program::UniformBuilder,
         _: ()
       ) -> Result<(Self, Vec<$crate::shader::program::UniformWarning>), $crate::shader::program::ProgramError> {
-        #[allow(unused_mut)]
-        let mut warnings = Vec::new();
-
         $(
-          uniform_interface_impl_trait_map!(builder, warnings, $field_name $(#[$($field_attrs)*])*);
+          uniform_interface_impl_trait_map!(builder, $field_name $(#[$($field_attrs)*])*);
         )+
 
         let iface = $struct_name { $($field_name),+ };
-        Ok((iface, warnings))
+        Ok(iface)
       }
     }
   }
-}
-
-// Generate a uniform interface and collect warnings.
-fn create_uniform_interface<Uni, E>(raw: &RawProgram, env: E) -> Result<(Uni, Vec<UniformWarning>), ProgramError>
-where Uni: UniformInterface<E> {
-  let mut builder = UniformBuilder::new(raw);
-  let iface = Uni::uniform_interface(&mut builder, env)?;
-  Ok((iface, builder.warnings))
 }
 
 #[macro_export]
 macro_rules! uniform_interface_impl_trait_map {
   // this form authorizes to specify the mapping
   // this form authorizes unmapped uniforms by overriding them with an unbound uniform
-  ($builder:ident, $warnings:ident, $field_name:ident #[as($field_mapping:expr), unbound]) => {
-    let $field_name = $builder.ask($field_mapping).unwrap_or_else(|warning| {
-      $warnings.push(warning);
-      $builder.unbound()
-    });
+  ($builder:ident, $field_name:ident #[as($field_mapping:expr), unbound]) => {
+    let $field_name = $builder.ask_unbound($field_mapping)?;
   };
 
   // same form as above but with flipped annotations
   ($builder:ident, $warnings:ident, $field_name:ident #[unbound, as($field_mapping:expr)]) => {
-    let $field_name = $builder.ask($field_mapping).unwrap_or_else(|warning| {
-      $warnings.push(warning);
-      $builder.unbound()
-    });
+    let $field_name = $builder.ask_unbound($field_mapping)?;
   };
 
   // this form authorizes to specify the mapping
@@ -1064,10 +1055,7 @@ macro_rules! uniform_interface_impl_trait_map {
 
   // this form authorizes unmapped uniforms by overriding them with an unbound uniform
   ($builder:ident, $warnings:ident, $field_name:ident #[unbound]) => {
-    let $field_name = $builder.ask(stringify!($field_name)).unwrap_or_else(|warning| {
-      $warnings.push(warning);
-      $builder.unbound()
-    });
+    let $field_name = $builder.ask_unbound(stringify!($field_name))?;
   };
 
   // this form will make the whole uniform interface not to build on any error
