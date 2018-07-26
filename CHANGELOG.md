@@ -1,3 +1,10 @@
+# 0.30
+
+> Thursday, 26th of July, 2018
+
+  - Change the way uniform interfaces are implemented so that uniform warnings are easier to dea
+    with.
+
 # 0.29
 
 > Thursday, 12th of July, 2018
