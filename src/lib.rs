@@ -114,10 +114,8 @@ pub mod buffer;
 pub mod context;
 pub mod depth_test;
 pub mod face_culling;
-#[macro_use]
-pub mod framebuffer;
-#[macro_use]
-pub mod gtup;
+#[macro_use] pub mod framebuffer;
+#[macro_use] pub mod gtup;
 pub mod linear;
 pub mod pipeline;
 pub mod pixel;
