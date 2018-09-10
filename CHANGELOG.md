@@ -1,3 +1,9 @@
+## 0.30.1
+
+> Monday, 10th of September, 2018
+
+  - Minor enhancement of the documentation (about texture types and GLSL samplers).
+
 # 0.30
 
 > Thursday, 26th of July, 2018
