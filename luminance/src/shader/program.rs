@@ -989,6 +989,8 @@ where Uni: UniformInterface<E> {
 /// The macro is very simple to use. You declare a struct as you would normally do:
 ///
 /// ```
+/// # #[macro_use] extern crate luminance;
+///
 /// uniform_interface! {
 ///   struct MyIface {
 ///     time: f32,
@@ -1008,6 +1010,8 @@ where Uni: UniformInterface<E> {
 /// attribute:
 ///
 /// ```
+/// # #[macro_use] extern crate luminance;
+///
 /// uniform_interface! {
 ///   struct MyIface {
 ///     #[unbound]
@@ -1021,6 +1025,8 @@ where Uni: UniformInterface<E> {
 /// the name that must be queried from the shader program for the mapping to be complete:
 ///
 /// ```
+/// # #[macro_use] extern crate luminance;
+///
 /// uniform_interface! {
 ///   struct MyIface {
 ///     time: f32,
@@ -1034,6 +1040,8 @@ where Uni: UniformInterface<E> {
 /// uniform if it cannot be mapped:
 ///
 /// ```
+/// # #[macro_use] extern crate luminance;
+///
 /// uniform_interface! {
 ///   struct MyIface {
 ///     time: f32,

@@ -139,7 +139,7 @@ pub enum Wrap {
   ClampToEdge,
   /// Textures coordinates are repeated if they lay outside of *[0;1]*. Picture this as:
   ///
-  /// ```
+  /// ```ignore
   /// // given the frac function returning the fractional part of a floating number:
   /// coord_ith = frac(coord_ith); // always between [0;1]
   /// ```

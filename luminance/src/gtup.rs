@@ -15,7 +15,7 @@
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// type Foo = GTup<i32, GTup<bool, f32>>;
 /// type Bar = GTup<GTup<i32, bool>, f32>;
 /// type Zoo = gtup![i32, bool, f32]; // Zoo == Foo
@@ -24,14 +24,14 @@ pub struct GTup<A, B>(pub A, pub B);
 
 #[macro_export]
 macro_rules! gtup_ty {
-    ($t:ty) => { $t };
-    ($a:ty, $($r:tt)*) => { GTup<$a, gtup_ty!($($r)*)> }
+  ($t:ty) => { $t };
+  ($a:ty, $($r:tt)*) => { GTup<$a, gtup_ty!($($r)*)> }
 }
 
 #[macro_export]
 macro_rules! gtup_value {
-    ($t:expr) => { $t };
-    ($a:expr, $($r:tt)*) => { GTup($a, gtup_value!($($r)*)) }
+  ($t:expr) => { $t };
+  ($a:expr, $($r:tt)*) => { GTup($a, gtup_value!($($r)*)) }
 }
 
 /// Generalized free tuple macro.
@@ -43,7 +43,7 @@ macro_rules! gtup_value {
 ///
 /// # Examples
 ///
-/// ```
+/// ```ignore
 /// // type
 /// type Foo = GTup<i32, Chain<bool, f32>>;
 /// type Zoo = gtup!(:i32, bool, f32); // exactly the same type
@@ -53,6 +53,6 @@ macro_rules! gtup_value {
 /// ```
 #[macro_export]
 macro_rules! gtup {
-    (:$($a:tt)*) => { gtup_ty!($($a)*) };
-    ($($a:tt)*) => { gtup_value!($($a)*) }
+  (:$($a:tt)*) => { gtup_ty!($($a)*) };
+  ($($a:tt)*) => { gtup_value!($($a)*) }
 }

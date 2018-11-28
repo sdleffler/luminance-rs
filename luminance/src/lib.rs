@@ -113,13 +113,14 @@
 #[cfg(not(feature = "std"))] #[macro_use(vec)] extern crate alloc;
 #[cfg(feature = "std")] extern crate gl;
 
+#[macro_use] pub mod gtup;
+
 pub mod blending;
 pub mod buffer;
 pub mod context;
 pub mod depth_test;
 pub mod face_culling;
-#[macro_use] pub mod framebuffer;
-#[macro_use] pub mod gtup;
+pub mod framebuffer;
 pub mod linear;
 mod metagl;
 pub mod pipeline;
