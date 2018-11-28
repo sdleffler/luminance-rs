@@ -18,4 +18,4 @@ is-it-maintained-open-issues = { repository = "phaazon/luminance" }
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-luminance = "0.30"
+luminance = { version = "0.30", path = "../luminance" }
