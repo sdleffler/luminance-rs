@@ -438,7 +438,7 @@ macro_rules! impl_color_slot_tuples {
   ($first:ident , $($pf:ident),*) => {
     // implement the current list
     impl_color_slot_tuple!($first, $($pf),*);
-    // and then implement the same list withouth the first type (reduce by one)
+    // and then implement the same list without the first type (reduced by one)
     impl_color_slot_tuples!($($pf),*);
   };
 }
