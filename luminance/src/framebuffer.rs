@@ -116,8 +116,8 @@ pub struct Framebuffer<L, D, CS, DS>
   renderbuffer: Option<GLuint>,
   w: u32,
   h: u32,
-  color_slot: CS,
-  depth_slot: DS,
+  color_slot: CS::ColorTextures,
+  depth_slot: DS::DepthTexture,
   _l: PhantomData<L>,
   _d: PhantomData<D>,
 }
@@ -281,12 +281,12 @@ impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
   }
 
   #[inline]
-  pub fn color_slot(&self) -> &CS {
+  pub fn color_slot(&self) -> &CS::ColorTextures {
     &self.color_slot
   }
 
   #[inline]
-  pub fn depth_slot(&self) -> &DS {
+  pub fn depth_slot(&self) -> &DS::DepthTexture {
     &self.depth_slot
   }
 }
@@ -311,19 +311,26 @@ fn get_status() -> Result<(), IncompleteReason> {
 /// A framebuffer has a color slot. A color slot can either be empty (the *unit* type is used,`()`)
 /// or several color formats.
 pub unsafe trait ColorSlot<L, D> where L: Layerable, D: Dimensionable, D::Size: Copy {
+  /// Textures associated with this color slot.
+  type ColorTextures;
+
   /// Turn a color slot into a list of pixel formats.
   fn color_formats() -> Vec<PixelFormat>;
-  /// Reify a list of raw textures into a color slot.
+
+  /// Reify a list of raw textures.
   fn reify_textures<C, I>(
     ctx: &mut C,
     size: D::Size,
     mipmaps: usize,
     textures: &mut I
-  ) -> Self
-  where C: GraphicsContext, I: Iterator<Item = GLuint>;
+  ) -> Self::ColorTextures
+  where C: GraphicsContext,
+        I: Iterator<Item = GLuint>;
 }
 
 unsafe impl<L, D> ColorSlot<L, D> for () where L: Layerable, D: Dimensionable, D::Size: Copy {
+  type ColorTextures = ();
+
   fn color_formats() -> Vec<PixelFormat> { Vec::new() }
 
   fn reify_textures<C, I>(
@@ -331,14 +338,20 @@ unsafe impl<L, D> ColorSlot<L, D> for () where L: Layerable, D: Dimensionable, D
     _: D::Size,
     _: usize,
     _: &mut I
-  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> { () }
+  ) -> Self::ColorTextures
+  where C: GraphicsContext,
+        I: Iterator<Item = GLuint> {
+    ()
+  }
 }
 
-unsafe impl<L, D, P> ColorSlot<L, D> for Texture<L, D, P>
-    where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          P: ColorPixel + RenderablePixel {
+unsafe impl<L, D, P> ColorSlot<L, D> for P
+where L: Layerable,
+      D: Dimensionable,
+      D::Size: Copy,
+      Self: ColorPixel + RenderablePixel {
+  type ColorTextures = Texture<L, D, P>;
+
   fn color_formats() -> Vec<PixelFormat> { vec![P::pixel_format()] }
 
   fn reify_textures<C, I>(
@@ -346,7 +359,9 @@ unsafe impl<L, D, P> ColorSlot<L, D> for Texture<L, D, P>
     size: D::Size,
     mipmaps: usize,
     textures: &mut I
-  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
+  ) -> Self::ColorTextures
+  where C: GraphicsContext,
+        I: Iterator<Item = GLuint> {
     let color_texture = textures.next().unwrap();
 
     unsafe {
@@ -356,14 +371,16 @@ unsafe impl<L, D, P> ColorSlot<L, D> for Texture<L, D, P>
   }
 }
 
-unsafe impl<L, D, P, B> ColorSlot<L, D> for GTup<Texture<L, D, P>, B>
-    where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          P: ColorPixel + RenderablePixel,
-          B: ColorSlot<L, D> {
+unsafe impl<L, D, P, B> ColorSlot<L, D> for GTup<P, B>
+where L: Layerable,
+      D: Dimensionable,
+      D::Size: Copy,
+      P: ColorPixel + RenderablePixel,
+      B: ColorSlot<L, D> {
+  type ColorTextures = GTup<Texture<L, D, P>, B::ColorTextures>;
+
   fn color_formats() -> Vec<PixelFormat> {
-    let mut a = Texture::<L, D, P>::color_formats();
+    let mut a = <P as ColorSlot<L, D>>::color_formats();
     a.extend(B::color_formats());
     a
   }
@@ -373,254 +390,84 @@ unsafe impl<L, D, P, B> ColorSlot<L, D> for GTup<Texture<L, D, P>, B>
     size: D::Size,
     mipmaps: usize,
     textures: &mut I
-  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
-    let a = Texture::<L, D, P>::reify_textures(ctx, size, mipmaps, textures);
+  ) -> Self::ColorTextures
+  where C: GraphicsContext,
+        I: Iterator<Item = GLuint> {
+    let a = P::reify_textures(ctx, size, mipmaps, textures);
     let b = B::reify_textures(ctx, size, mipmaps, textures);
 
     GTup(a, b)
   }
 }
 
-unsafe impl<L, D, P0, P1> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>)
+macro_rules! impl_color_slot_tuple {
+  ($($pf:ident),*) => {
+    unsafe impl<L, D, $($pf),*> ColorSlot<L, D> for ($($pf),*)
     where L: Layerable,
           D: Dimensionable,
           D::Size: Copy,
-          P0: ColorPixel + RenderablePixel,
-          P1: ColorPixel + RenderablePixel {
-  fn color_formats() -> Vec<PixelFormat> {
-    GTup::<Texture<L, D, P0>, Texture<L, D, P1>>::color_formats()
-  }
+          $(
+            $pf: ColorPixel + RenderablePixel
+          ),* {
+      type ColorTextures = ($(Texture<L, D, $pf>),*);
 
-  fn reify_textures<C, I>(
-    ctx: &mut C,
-    size: D::Size,
-    mipmaps: usize,
-    textures: &mut I
-  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
-    let GTup(a, b) = GTup::<Texture<L, D, P0>, Texture<L, D, P1>>::reify_textures(ctx, size, mipmaps, textures);
-    (a, b)
+      fn color_formats() -> Vec<PixelFormat> {
+        vec![$($pf::pixel_format()),*]
+      }
+
+      fn reify_textures<C, I>(
+        ctx: &mut C,
+        size: D::Size,
+        mipmaps: usize,
+        textures: &mut I
+      ) -> Self::ColorTextures
+        where C: GraphicsContext,
+              I: Iterator<Item = GLuint> {
+        ($($pf::reify_textures(ctx, size, mipmaps, textures)),*)
+      }
+    }
   }
 }
 
-unsafe impl<L, D, P0, P1, P2> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>)
-    where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          P0: ColorPixel + RenderablePixel,
-          P1: ColorPixel + RenderablePixel,
-          P2: ColorPixel + RenderablePixel {
-  fn color_formats() -> Vec<PixelFormat> {
-    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, Texture<L, D, P2>>>::color_formats()
-  }
+macro_rules! impl_color_slot_tuples {
+  ($first:ident , $second:ident) => {
+    // stop at pairs
+    impl_color_slot_tuple!($first, $second);
+  };
 
-  fn reify_textures<C, I>(
-    ctx: &mut C,
-    size: D::Size,
-    mipmaps: usize,
-    textures: &mut I
-  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, c)) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, Texture<L, D, P2>>>::reify_textures(ctx, size, mipmaps, textures);
-    (a, b, c)
-  }
+  ($first:ident , $($pf:ident),*) => {
+    // implement the current list
+    impl_color_slot_tuple!($first, $($pf),*);
+    // and then implement the same list withouth the first type (reduce by one)
+    impl_color_slot_tuples!($($pf),*);
+  };
 }
 
-unsafe impl<L, D, P0, P1, P2, P3> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>)
-    where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          P0: ColorPixel + RenderablePixel,
-          P1: ColorPixel + RenderablePixel,
-          P2: ColorPixel + RenderablePixel,
-          P3: ColorPixel + RenderablePixel {
-  fn color_formats() -> Vec<PixelFormat> {
-    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, Texture<L, D, P3>>>>::color_formats()
-  }
-
-  fn reify_textures<C, I>(
-    ctx: &mut C,
-    size: D::Size,
-    mipmaps: usize,
-    textures: &mut I
-  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, GTup(c, d))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, Texture<L, D, P3>>>>::reify_textures(ctx, size, mipmaps, textures);
-    (a, b, c, d)
-  }
-}
-
-unsafe impl<L, D, P0, P1, P2, P3, P4> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>)
-    where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          P0: ColorPixel + RenderablePixel,
-          P1: ColorPixel + RenderablePixel,
-          P2: ColorPixel + RenderablePixel,
-          P3: ColorPixel + RenderablePixel,
-          P4: ColorPixel + RenderablePixel {
-  fn color_formats() -> Vec<PixelFormat> {
-    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, Texture<L, D, P4>>>>>::color_formats()
-  }
-
-  fn reify_textures<C, I>(
-    ctx: &mut C,
-    size: D::Size,
-    mipmaps: usize,
-    textures: &mut I
-  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, GTup(c, GTup(d, e)))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, Texture<L, D, P4>>>>>::reify_textures(ctx, size, mipmaps, textures);
-    (a, b, c, d, e)
-  }
-}
-
-unsafe impl<L, D, P0, P1, P2, P3, P4, P5> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>, Texture<L, D, P5>)
-    where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          P0: ColorPixel + RenderablePixel,
-          P1: ColorPixel + RenderablePixel,
-          P2: ColorPixel + RenderablePixel,
-          P3: ColorPixel + RenderablePixel,
-          P4: ColorPixel + RenderablePixel,
-          P5: ColorPixel + RenderablePixel {
-  fn color_formats() -> Vec<PixelFormat> {
-    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, Texture<L, D, P5>>>>>>::color_formats()
-  }
-
-  fn reify_textures<C, I>(
-    ctx: &mut C,
-    size: D::Size,
-    mipmaps: usize,
-    textures: &mut I
-  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, f))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, Texture<L, D, P5>>>>>>::reify_textures(ctx, size, mipmaps, textures);
-    (a, b, c, d, e, f)
-  }
-}
-
-unsafe impl<L, D, P0, P1, P2, P3, P4, P5, P6> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>, Texture<L, D, P5>, Texture<L, D, P6>)
-    where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          P0: ColorPixel + RenderablePixel,
-          P1: ColorPixel + RenderablePixel,
-          P2: ColorPixel + RenderablePixel,
-          P3: ColorPixel + RenderablePixel,
-          P4: ColorPixel + RenderablePixel,
-          P5: ColorPixel + RenderablePixel,
-          P6: ColorPixel + RenderablePixel {
-  fn color_formats() -> Vec<PixelFormat> {
-    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, Texture<L, D, P6>>>>>>>::color_formats()
-  }
-
-  fn reify_textures<C, I>(
-    ctx: &mut C,
-    size: D::Size,
-    mipmaps: usize,
-    textures: &mut I
-  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, g)))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, Texture<L, D, P6>>>>>>>::reify_textures(ctx, size, mipmaps, textures);
-    (a, b, c, d, e, f, g)
-  }
-}
-
-unsafe impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>, Texture<L, D, P5>, Texture<L, D, P6>, Texture<L, D, P7>)
-    where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          P0: ColorPixel + RenderablePixel,
-          P1: ColorPixel + RenderablePixel,
-          P2: ColorPixel + RenderablePixel,
-          P3: ColorPixel + RenderablePixel,
-          P4: ColorPixel + RenderablePixel,
-          P5: ColorPixel + RenderablePixel,
-          P6: ColorPixel + RenderablePixel,
-          P7: ColorPixel + RenderablePixel {
-  fn color_formats() -> Vec<PixelFormat> {
-    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, Texture<L, D, P7>>>>>>>>::color_formats()
-  }
-
-  fn reify_textures<C, I>(
-    ctx: &mut C,
-    size: D::Size,
-    mipmaps: usize,
-    textures: &mut I
-  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, GTup(g, h))))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, Texture<L, D, P7>>>>>>>>::reify_textures(ctx, size, mipmaps, textures);
-    (a, b, c, d, e, f, g, h)
-  }
-}
-
-unsafe impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>, Texture<L, D, P5>, Texture<L, D, P6>, Texture<L, D, P7>, Texture<L, D, P8>)
-    where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          P0: ColorPixel + RenderablePixel,
-          P1: ColorPixel + RenderablePixel,
-          P2: ColorPixel + RenderablePixel,
-          P3: ColorPixel + RenderablePixel,
-          P4: ColorPixel + RenderablePixel,
-          P5: ColorPixel + RenderablePixel,
-          P6: ColorPixel + RenderablePixel,
-          P7: ColorPixel + RenderablePixel,
-          P8: ColorPixel + RenderablePixel {
-  fn color_formats() -> Vec<PixelFormat> {
-    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, Texture<L, D, P8>>>>>>>>>::color_formats()
-  }
-
-  fn reify_textures<C, I>(
-    ctx: &mut C,
-    size: D::Size,
-    mipmaps: usize,
-    textures: &mut I
-  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, GTup(g, GTup(h, i)))))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, Texture< L, D, P8>>>>>>>>>::reify_textures(ctx, size, mipmaps, textures);
-    (a, b, c, d, e, f, g, h, i)
-  }
-}
-
-unsafe impl<L, D, P0, P1, P2, P3, P4, P5, P6, P7, P8, P9> ColorSlot<L, D> for (Texture<L, D, P0>, Texture<L, D, P1>, Texture<L, D, P2>, Texture<L, D, P3>, Texture<L, D, P4>, Texture<L, D, P5>, Texture<L, D, P6>, Texture<L, D, P7>, Texture<L, D, P8>, Texture<L, D, P9>)
-    where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          P0: ColorPixel + RenderablePixel,
-          P1: ColorPixel + RenderablePixel,
-          P2: ColorPixel + RenderablePixel,
-          P3: ColorPixel + RenderablePixel,
-          P4: ColorPixel + RenderablePixel,
-          P5: ColorPixel + RenderablePixel,
-          P6: ColorPixel + RenderablePixel,
-          P7: ColorPixel + RenderablePixel,
-          P8: ColorPixel + RenderablePixel,
-          P9: ColorPixel + RenderablePixel {
-  fn color_formats() -> Vec<PixelFormat> {
-    GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, GTup<Texture<L, D, P8>, Texture<L, D, P9>>>>>>>>>>::color_formats()
-  }
-
-  fn reify_textures<C, I>(
-    ctx: &mut C,
-    size: D::Size,
-    mipmaps: usize,
-    textures: &mut I
-  ) -> Self where C: GraphicsContext, I: Iterator<Item = GLuint> {
-    let GTup(a, GTup(b, GTup(c, GTup(d, GTup(e, GTup(f, GTup(g, GTup(h, GTup(i, j))))))))) = GTup::<Texture<L, D, P0>, GTup<Texture<L, D, P1>, GTup<Texture<L, D, P2>, GTup<Texture<L, D, P3>, GTup<Texture<L, D, P4>, GTup<Texture<L, D, P5>, GTup<Texture<L, D, P6>, GTup<Texture<L, D, P7>, GTup<Texture<L, D, P8>, Texture<L, D, P9>>>>>>>>>>::reify_textures(ctx, size, mipmaps, textures);
-    (a, b, c, d, e, f, g, h, i, j)
-  }
-}
+impl_color_slot_tuples!(P0, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11);
 
 /// A framebuffer has a depth slot. A depth slot can either be empty (the *unit* type is used, `()`)
 /// or a single depth format.
 pub unsafe trait DepthSlot<L, D> where L: Layerable, D: Dimensionable, D::Size: Copy {
+  /// Texture associated with this color slot.
+  type DepthTexture;
+
   /// Turn a depth slot into a pixel format.
   fn depth_format() -> Option<PixelFormat>;
+
   /// Reify a raw textures into a depth slot.
   fn reify_texture<C, T>(
     ctx: &mut C,
     size: D::Size, 
     mipmaps: usize, 
     texture: T
-  ) -> Self where C: GraphicsContext, T: Into<Option<GLuint>>;
+  ) -> Self::DepthTexture
+  where C: GraphicsContext,
+        T: Into<Option<GLuint>>;
 }
 
 unsafe impl<L, D> DepthSlot<L, D> for () where L: Layerable, D: Dimensionable, D::Size: Copy {
+  type DepthTexture = ();
+
   fn depth_format() -> Option<PixelFormat> { None }
 
   fn reify_texture<C, T>(
@@ -628,16 +475,19 @@ unsafe impl<L, D> DepthSlot<L, D> for () where L: Layerable, D: Dimensionable, D
     _: D::Size, 
     _: usize, 
     _: T
-  ) -> Self where C: GraphicsContext, T: Into<Option<GLuint>> {
+  ) -> Self::DepthTexture
+  where C: GraphicsContext, T: Into<Option<GLuint>> {
     ()
   }
 }
 
-unsafe impl<L, D, P> DepthSlot<L, D> for Texture<L, D, P>
-    where L: Layerable,
-          D: Dimensionable,
-          D::Size: Copy,
-          P: DepthPixel {
+unsafe impl<L, D, P> DepthSlot<L, D> for P
+where L: Layerable,
+      D: Dimensionable,
+      D::Size: Copy,
+      P: DepthPixel {
+  type DepthTexture = Texture<L, D, P>;
+
   fn depth_format() -> Option<PixelFormat> { Some(P::pixel_format()) }
 
   fn reify_texture<C, T>(
@@ -645,7 +495,9 @@ unsafe impl<L, D, P> DepthSlot<L, D> for Texture<L, D, P>
     size: D::Size, 
     mipmaps: usize, 
     texture: T
-  ) -> Self where C: GraphicsContext, T: Into<Option<GLuint>> {
+  ) -> Self::DepthTexture
+  where C: GraphicsContext,
+        T: Into<Option<GLuint>> {
     unsafe {
       let raw = RawTexture::new(ctx.state().clone(), texture.into().unwrap(), opengl_target(L::layering(), D::dim()));
       Texture::from_raw(raw, size, mipmaps)
