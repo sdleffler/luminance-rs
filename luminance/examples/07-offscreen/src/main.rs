@@ -14,7 +14,7 @@ use luminance::pipeline::BoundTexture;
 use luminance::pixel::RGBA32F;
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, Tess, TessSliceIndex};
-use luminance::texture::{Dim2, Flat, Texture};
+use luminance::texture::{Dim2, Flat};
 use luminance::render_state::RenderState;
 use luminance_glfw::event::{Action, Key, WindowEvent};
 use luminance_glfw::surface::{GlfwSurface, Surface, WindowDim, WindowOpt};
@@ -66,7 +66,7 @@ fn main() {
   let mut back_buffer = Framebuffer::back_buffer(surf_size); 
   // offscreen buffer that we will render in the first place
   let mut offscreen_buffer =
-    Framebuffer::<Flat, Dim2, Texture<Flat, Dim2, RGBA32F>, ()>::new(&mut surface, surf_size, 0).expect("framebuffer creation");
+    Framebuffer::<Flat, Dim2, RGBA32F, ()>::new(&mut surface, surf_size, 0).expect("framebuffer creation");
 
   // hack to update the offscreen buffer if needed; this is needed because we cannot update the
   // offscreen buffer from within the event loop
