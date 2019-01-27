@@ -12,8 +12,8 @@ use std::os::raw::c_void;
 use std::rc::Rc;
 use std::sync::mpsc::Receiver;
 
+pub use error::{GlfwSurfaceError, InitError, StateQueryError};
 pub use event::{Action, Key, MouseButton, WindowEvent};
-pub use error::{InitError, GlfwSurfaceError, StateQueryError};
 
 /// GLFW surface.
 ///
@@ -36,9 +36,8 @@ unsafe impl GraphicsContext for GlfwSurface {
 }
 
 impl Surface for GlfwSurface {
-  type Event = WindowEvent;
-
   type Error = GlfwSurfaceError;
+  type Event = WindowEvent;
 
   fn new(dim: WindowDim, title: &str, win_opt: WindowOpt) -> Result<Self, Self::Error> {
     let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).map_err(GlfwSurfaceError::InitError)?;
@@ -52,33 +51,32 @@ impl Surface for GlfwSurface {
     // open a window in windowed or fullscreen mode
     let (mut window, events_rx) = match dim {
       WindowDim::Windowed(w, h) => {
-        glfw.create_window(w,
-                           h,
-                           title,
-                           WindowMode::Windowed).ok_or(GlfwSurfaceError::WindowCreationFailed)?
-      },
+        glfw
+          .create_window(w, h, title, WindowMode::Windowed)
+          .ok_or(GlfwSurfaceError::WindowCreationFailed)?
+      }
       WindowDim::Fullscreen => {
         glfw.with_primary_monitor(|glfw, monitor| {
           let monitor = monitor.ok_or(GlfwSurfaceError::NoPrimaryMonitor)?;
           let vmode = monitor.get_video_mode().ok_or(GlfwSurfaceError::NoVideoMode)?;
           let (w, h) = (vmode.width, vmode.height);
 
-          Ok(glfw.create_window(w,
-                                h,
-                                title,
-                                WindowMode::FullScreen(monitor)
-                               ).ok_or(GlfwSurfaceError::WindowCreationFailed)?)
+          Ok(
+            glfw
+              .create_window(w, h, title, WindowMode::FullScreen(monitor))
+              .ok_or(GlfwSurfaceError::WindowCreationFailed)?,
+          )
         })?
-      },
+      }
       WindowDim::FullscreenRestricted(w, h) => {
         glfw.with_primary_monitor(|glfw, monitor| {
           let monitor = monitor.ok_or(GlfwSurfaceError::NoPrimaryMonitor)?;
 
-          Ok(glfw.create_window(w,
-                                h,
-                                title,
-                                WindowMode::FullScreen(monitor)
-                               ).ok_or(GlfwSurfaceError::WindowCreationFailed)?)
+          Ok(
+            glfw
+              .create_window(w, h, title, WindowMode::FullScreen(monitor))
+              .ok_or(GlfwSurfaceError::WindowCreationFailed)?,
+          )
         })?
       }
     };

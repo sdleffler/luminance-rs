@@ -12,7 +12,7 @@
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) enum BlendingState {
   Enabled,
-  Disabled
+  Disabled,
 }
 
 /// Blending equation. Used to state how blending factors and pixel data should be blended.
@@ -38,7 +38,7 @@ pub enum Equation {
   /// `Max` represents the following blending equation:
   ///
   /// > `blended = max(src, dst)`
-  Max
+  Max,
 }
 
 /// Blending factors. Pixel data are multiplied by these factors to achieve several effects driven
@@ -65,5 +65,5 @@ pub enum Factor {
   DstAlpha,
   /// `(1 - dstA) * color`
   DstAlphaComplement,
-  SrcAlphaSaturate
+  SrcAlphaSaturate,
 }

@@ -18,13 +18,13 @@
 extern crate luminance;
 extern crate luminance_glfw;
 
+use luminance::context::GraphicsContext;
 use luminance::framebuffer::Framebuffer;
+use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, Tess};
-use luminance::render_state::RenderState;
 use luminance_glfw::event::{Action, Key, WindowEvent};
 use luminance_glfw::surface::{GlfwSurface, Surface, WindowDim, WindowOpt};
-use luminance::context::GraphicsContext;
 use std::time::Instant;
 
 const VS: &'static str = include_str!("vs.glsl");
@@ -34,8 +34,8 @@ type Vertex = ([f32; 2], [f32; 3]);
 
 // Only one triangle this time.
 const TRI_VERTICES: [Vertex; 3] = [
-  ([ 0.5, -0.5], [1., 0., 0.]),
-  ([ 0.0,  0.5], [0., 1., 0.]),
+  ([0.5, -0.5], [1., 0., 0.]),
+  ([0.0, 0.5], [0., 1., 0.]),
   ([-0.5, -0.5], [0., 0., 1.]),
 ];
 
@@ -60,7 +60,7 @@ uniform_interface! {
 // Which interface to use?
 enum ProgramMode {
   First(Program<Vertex, (), ShaderInterface1>),
-  Second(Program<Vertex, (), ShaderInterface2>)
+  Second(Program<Vertex, (), ShaderInterface2>),
 }
 
 impl ProgramMode {
@@ -90,9 +90,18 @@ impl ProgramMode {
 }
 
 fn main() {
-  let mut surface = GlfwSurface::new(WindowDim::Windowed(960, 540), "Hello, world!", WindowOpt::default()).expect("GLFW surface creation");
+  let mut surface = GlfwSurface::new(
+    WindowDim::Windowed(960, 540),
+    "Hello, world!",
+    WindowOpt::default(),
+  )
+  .expect("GLFW surface creation");
 
-  let mut program = ProgramMode::First(Program::<Vertex, (), ShaderInterface1>::from_strings(None, VS, None, FS).expect("program creation").0);
+  let mut program = ProgramMode::First(
+    Program::<Vertex, (), ShaderInterface1>::from_strings(None, VS, None, FS)
+      .expect("program creation")
+      .0,
+  );
 
   let triangle = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[..], None);
 
@@ -105,27 +114,33 @@ fn main() {
   'app: loop {
     for event in surface.poll_events() {
       match event {
-        WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => {
-          break 'app
-        }
+        WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
 
         WindowEvent::Key(Key::Space, _, Action::Release, _) => {
           program = program.toggle();
         }
 
-        WindowEvent::Key(Key::A, _, action, _) | WindowEvent::Key(Key::Left, _, action, _) if action == Action::Press || action == Action::Repeat => {
+        WindowEvent::Key(Key::A, _, action, _) | WindowEvent::Key(Key::Left, _, action, _)
+          if action == Action::Press || action == Action::Repeat =>
+        {
           triangle_pos[0] -= 0.1;
         }
 
-        WindowEvent::Key(Key::D, _, action, _) | WindowEvent::Key(Key::Right, _, action, _) if action == Action::Press || action == Action::Repeat => {
+        WindowEvent::Key(Key::D, _, action, _) | WindowEvent::Key(Key::Right, _, action, _)
+          if action == Action::Press || action == Action::Repeat =>
+        {
           triangle_pos[0] += 0.1;
         }
 
-        WindowEvent::Key(Key::Z, _, action, _) | WindowEvent::Key(Key::Up, _, action, _) if action == Action::Press || action == Action::Repeat => {
+        WindowEvent::Key(Key::Z, _, action, _) | WindowEvent::Key(Key::Up, _, action, _)
+          if action == Action::Press || action == Action::Repeat =>
+        {
           triangle_pos[1] += 0.1;
         }
 
-        WindowEvent::Key(Key::S, _, action, _) | WindowEvent::Key(Key::Down, _, action, _) if action == Action::Press || action == Action::Repeat => {
+        WindowEvent::Key(Key::S, _, action, _) | WindowEvent::Key(Key::Down, _, action, _)
+          if action == Action::Press || action == Action::Repeat =>
+        {
           triangle_pos[1] -= 0.1;
         }
 
@@ -133,7 +148,7 @@ fn main() {
           back_buffer = Framebuffer::back_buffer([width as u32, height as u32]);
         }
 
-        _ => ()
+        _ => (),
       }
     }
 
@@ -141,35 +156,37 @@ fn main() {
     let t64 = elapsed.as_secs() as f64 + (elapsed.subsec_millis() as f64 * 1e-3);
     let t = t64 as f32;
 
-    surface.pipeline_builder().pipeline(&back_buffer, [0., 0., 0., 0.], |_, shd_gate| {
-      match program {
-        // if we use the first interface, we just need to pass the time and the triangle position
-        ProgramMode::First(ref program) => {
-          shd_gate.shade(&program, |rdr_gate, iface| {
-            iface.time.update(t);
-            iface.triangle_pos.update(triangle_pos);
+    surface
+      .pipeline_builder()
+      .pipeline(&back_buffer, [0., 0., 0., 0.], |_, shd_gate| {
+        match program {
+          // if we use the first interface, we just need to pass the time and the triangle position
+          ProgramMode::First(ref program) => {
+            shd_gate.shade(&program, |rdr_gate, iface| {
+              iface.time.update(t);
+              iface.triangle_pos.update(triangle_pos);
 
-            rdr_gate.render(RenderState::default(), |tess_gate| {
-              tess_gate.render(&mut surface, (&triangle).into());
+              rdr_gate.render(RenderState::default(), |tess_gate| {
+                tess_gate.render(&mut surface, (&triangle).into());
+              });
             });
-          });
-        }
+          }
 
-        // if we use the second interface, we just need to pass the time and we will make the size
-        // grow by using the time
-        ProgramMode::Second(ref program) => {
-          shd_gate.shade(&program, |rdr_gate, iface| {
-            iface.time.update(t);
-            //iface.triangle_pos.update(triangle_pos); // uncomment this to see a nice error ;)
-            iface.triangle_size.update(t.cos().powf(2.));
+          // if we use the second interface, we just need to pass the time and we will make the size
+          // grow by using the time
+          ProgramMode::Second(ref program) => {
+            shd_gate.shade(&program, |rdr_gate, iface| {
+              iface.time.update(t);
+              // iface.triangle_pos.update(triangle_pos); // uncomment this to see a nice error ;)
+              iface.triangle_size.update(t.cos().powf(2.));
 
-            rdr_gate.render(RenderState::default(), |tess_gate| {
-              tess_gate.render(&mut surface, (&triangle).into());
+              rdr_gate.render(RenderState::default(), |tess_gate| {
+                tess_gate.render(&mut surface, (&triangle).into());
+              });
             });
-          });
+          }
         }
-      }
-    });
+      });
 
     surface.swap_buffers();
   }

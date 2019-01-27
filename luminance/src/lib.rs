@@ -8,12 +8,12 @@
 //! The aims of `luminance` are:
 //!
 //!   - Making the **unsafe** and **stateful** **OpenGL** API **safe** and **stateless**.
-//!   - Providing a simple and easy interface; that is, exposing core concepts without anything
-//!     extra – just the bare stuff.
+//!   - Providing a simple and easy interface; that is, exposing core concepts without anything extra – just
+//!     the bare stuff.
 //!   - Easy to read with a good documentation and set of tutorials, so that new comers don’t have
-//!     to learn a lot of new concepts to get their feet wet.
-//!   - Need-driven: every piece of code added in the project must come from a real use case. If you
-//!     feel something is missing, feel free to open an issue or even contribute!
+//! to learn a lot of new concepts to get their feet wet.
+//!   - Need-driven: every piece of code added in the project must come from a real use case. If you feel
+//!     something is missing, feel free to open an issue or even contribute!
 //!
 //! # What’s included?
 //!
@@ -26,26 +26,21 @@
 //!
 //! ## Features set
 //!
-//!   - **Buffers**: buffers are way to communicate with the GPU; they represent regions of memory
-//!     you can write to and read from. There’re several kinds of buffers you can create, among
-//!     *vertex and index buffers*, *shader buffers*, *uniform buffers*, and so on and so forth….
-//!   - **Framebuffers**: framebuffers are used to hold renders. Each time you want to perform a
-//!     render, you need to perform it into a framebuffer. Framebuffers can then be combined with
-//!     each other to produce effects.
-//!   - **Shaders**: `luminance` supports five kinds of shader stages:
-//!     + Tessellation control shaders.
-//!     + Tessellation evaluation shaders.
-//!     + Vertex shaders.
-//!     + Geometry shaders.
-//!     + Fragment shaders.
-//!   - **Vertices, indices, primitives and tessellations**: those are used to define a shape you
-//!     can render into a framebuffer.
-//!   - **Textures**: textures represent information packed into arrays on the GPU, and can be used
-//!     to customize a visual aspect or pass information around in shaders.
-//!   - **Blending**: blending is the process of taking two colors from two framebuffers and mixing
-//!     them between each other.
-//!   - And a lot of other cool things like *GPU commands*, *pipelines*, *uniform interfaces* and so
-//!     on…
+//!   - **Buffers**: buffers are way to communicate with the GPU; they represent regions of memory you can
+//!     write to and read from. There’re several kinds of buffers you can create, among *vertex and index
+//!     buffers*, *shader buffers*, *uniform buffers*, and so on and so forth….
+//!   - **Framebuffers**: framebuffers are used to hold renders. Each time you want to perform a render, you
+//!     need to perform it into a framebuffer. Framebuffers can then be combined with each other to produce
+//!     effects.
+//!   - **Shaders**: `luminance` supports five kinds of shader stages: + Tessellation control shaders. +
+//!     Tessellation evaluation shaders. + Vertex shaders. + Geometry shaders. + Fragment shaders.
+//!   - **Vertices, indices, primitives and tessellations**: those are used to define a shape you can render
+//!     into a framebuffer.
+//!   - **Textures**: textures represent information packed into arrays on the GPU, and can be used to
+//!     customize a visual aspect or pass information around in shaders.
+//!   - **Blending**: blending is the process of taking two colors from two framebuffers and mixing them
+//!     between each other.
+//!   - And a lot of other cool things like *GPU commands*, *pipelines*, *uniform interfaces* and so on…
 //!
 //! # How to dig in?
 //!
@@ -99,21 +94,24 @@
 //!
 //! In order to implement `GraphicsContext`, you need to know several points:
 //!
-//!   - You can get a `GraphicsState` with the `GraphicsState::new` function. You **have** to match
-//!     the return value. Depending on whether your implementation is the first asking a
-//!     `GraphicsState` on the current thread, you might get (or not) an `Ok(state)`. If not, a
-//!     descriptive error is returned.
-//!   - You’re advised to `map` and `map_err` over the `GraphicsState::new` returned value to
-//!     implement your own `new` function for your backend type because of the restriction of having
-//!     only one context per thread in `luminance`.
+//!   - You can get a `GraphicsState` with the `GraphicsState::new` function. You **have** to match the return
+//!     value. Depending on whether your implementation is the first asking a `GraphicsState` on the current
+//!     thread, you might get (or not) an `Ok(state)`. If not, a descriptive error is returned.
+//!   - You’re advised to `map` and `map_err` over the `GraphicsState::new` returned value to implement your
+//!     own `new` function for your backend type because of the restriction of having only one context per
+//!     thread in `luminance`.
 
 #![cfg_attr(not(feature = "std"), no_std)]
 #![cfg_attr(not(feature = "std"), feature(alloc))]
 
-#[cfg(not(feature = "std"))] #[macro_use(vec)] extern crate alloc;
-#[cfg(feature = "std")] extern crate gl;
+#[cfg(not(feature = "std"))]
+#[macro_use(vec)]
+extern crate alloc;
+#[cfg(feature = "std")]
+extern crate gl;
 
-#[macro_use] pub mod gtup;
+#[macro_use]
+pub mod gtup;
 
 pub mod blending;
 pub mod buffer;

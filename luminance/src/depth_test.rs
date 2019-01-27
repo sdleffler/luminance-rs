@@ -6,5 +6,5 @@ pub enum DepthTest {
   /// The depth test is enabled.
   Enabled,
   /// The depth test is disabled.
-  Disabled
+  Disabled,
 }

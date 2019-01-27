@@ -1,12 +1,18 @@
 //! Graphics state.
 
-#[cfg(feature = "std")] use std::cell::RefCell;
-#[cfg(feature = "std")] use std::fmt;
-#[cfg(feature = "std")] use std::marker::PhantomData;
+#[cfg(feature = "std")]
+use std::cell::RefCell;
+#[cfg(feature = "std")]
+use std::fmt;
+#[cfg(feature = "std")]
+use std::marker::PhantomData;
 
-#[cfg(not(feature = "std"))] use alloc::vec::Vec;
-#[cfg(not(feature = "std"))] use core::fmt;
-#[cfg(not(feature = "std"))] use core::marker::PhantomData;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+#[cfg(not(feature = "std"))]
+use core::fmt;
+#[cfg(not(feature = "std"))]
+use core::marker::PhantomData;
 
 use blending::{BlendingState, Equation, Factor};
 use depth_test::DepthTest;
@@ -16,7 +22,8 @@ use metagl::*;
 // TLS synchronization barrier for `GraphicsState`.
 //
 // Note: disable on no_std.
-#[cfg(feature = "std")] thread_local!(static TLS_ACQUIRE_GFX_STATE: RefCell<Option<()>> = RefCell::new(Some(())));
+#[cfg(feature = "std")]
+thread_local!(static TLS_ACQUIRE_GFX_STATE: RefCell<Option<()>> = RefCell::new(Some(())));
 
 /// The graphics state.
 ///
@@ -26,7 +33,7 @@ use metagl::*;
 /// the same parameters).
 pub struct GraphicsState {
   _a: PhantomData<*const ()>, // !Send and !Sync
-  
+
   // blending
   blending_state: BlendingState,
   blending_equation: Equation,
@@ -57,12 +64,12 @@ pub struct GraphicsState {
   bound_vertex_array: GLuint,
 
   // shader program
-  current_program: GLuint
+  current_program: GLuint,
 }
 
 impl GraphicsState {
   /// Create a new `GraphicsState`.
-  /// 
+  ///
   /// > Note: keep in mind you can create only one per thread. However, if you’re building without
   /// > standard library, this function will always return successfully. You have to take extra care
   /// > in this case.
@@ -78,7 +85,7 @@ impl GraphicsState {
             Self::get_from_context()
           }
 
-          None => Err(StateQueryError::UnavailableGraphicsState)
+          None => Err(StateQueryError::UnavailableGraphicsState),
         }
       })
     }
@@ -131,7 +138,7 @@ impl GraphicsState {
     if self.blending_state != state {
       match state {
         BlendingState::Enabled => gl::Enable(gl::BLEND),
-        BlendingState::Disabled => gl::Disable(gl::BLEND)
+        BlendingState::Disabled => gl::Disable(gl::BLEND),
       }
 
       self.blending_state = state;
@@ -145,11 +152,7 @@ impl GraphicsState {
     }
   }
 
-  pub(crate) unsafe fn set_blending_func(
-    &mut self,
-    src: Factor,
-    dest: Factor,
-  ) {
+  pub(crate) unsafe fn set_blending_func(&mut self, src: Factor, dest: Factor) {
     if self.blending_func != (src, dest) {
       gl::BlendFunc(from_blending_factor(src), from_blending_factor(dest));
       self.blending_func = (src, dest);
@@ -160,7 +163,7 @@ impl GraphicsState {
     if self.depth_test != depth_test {
       match depth_test {
         DepthTest::Enabled => gl::Enable(gl::DEPTH_TEST),
-        DepthTest::Disabled => gl::Disable(gl::DEPTH_TEST)
+        DepthTest::Disabled => gl::Disable(gl::DEPTH_TEST),
       }
 
       self.depth_test = depth_test;
@@ -171,7 +174,7 @@ impl GraphicsState {
     if self.face_culling_state != state {
       match state {
         FaceCullingState::Enabled => gl::Enable(gl::CULL_FACE),
-        FaceCullingState::Disabled => gl::Disable(gl::CULL_FACE)
+        FaceCullingState::Disabled => gl::Disable(gl::CULL_FACE),
       }
 
       self.face_culling_state = state;
@@ -182,7 +185,7 @@ impl GraphicsState {
     if self.face_culling_order != order {
       match order {
         FaceCullingOrder::CW => gl::FrontFace(gl::CW),
-        FaceCullingOrder::CCW => gl::FrontFace(gl::CCW)
+        FaceCullingOrder::CCW => gl::FrontFace(gl::CCW),
       }
 
       self.face_culling_order = order;
@@ -194,7 +197,7 @@ impl GraphicsState {
       match mode {
         FaceCullingMode::Front => gl::CullFace(gl::FRONT),
         FaceCullingMode::Back => gl::CullFace(gl::BACK),
-        FaceCullingMode::Both => gl::CullFace(gl::FRONT_AND_BACK)
+        FaceCullingMode::Both => gl::CullFace(gl::FRONT_AND_BACK),
       }
 
       self.face_culling_mode = mode;
@@ -225,7 +228,7 @@ impl GraphicsState {
         self.bound_textures[unit] = (target, handle);
       }
 
-      _ => () // cached
+      _ => (), // cached
     }
   }
 
@@ -246,7 +249,7 @@ impl GraphicsState {
         self.bound_uniform_buffers[binding_] = handle;
       }
 
-      _ => () // cached
+      _ => (), // cached
     }
   }
 
@@ -286,7 +289,7 @@ fn from_blending_equation(equation: Equation) -> GLenum {
     Equation::Subtract => gl::FUNC_SUBTRACT,
     Equation::ReverseSubtract => gl::FUNC_REVERSE_SUBTRACT,
     Equation::Min => gl::MIN,
-    Equation::Max => gl::MAX
+    Equation::Max => gl::MAX,
   }
 }
 
@@ -303,7 +306,7 @@ fn from_blending_factor(factor: Factor) -> GLenum {
     Factor::SrcAlphaComplement => gl::ONE_MINUS_SRC_ALPHA,
     Factor::DstAlpha => gl::DST_ALPHA,
     Factor::DstAlphaComplement => gl::ONE_MINUS_DST_ALPHA,
-    Factor::SrcAlphaSaturate => gl::SRC_ALPHA_SATURATE
+    Factor::SrcAlphaSaturate => gl::SRC_ALPHA_SATURATE,
   }
 }
 
@@ -328,11 +331,13 @@ impl fmt::Display for StateQueryError {
       StateQueryError::UnknownBlendingState(ref s) => write!(f, "unknown blending state: {}", s),
       StateQueryError::UnknownBlendingEquation(ref e) => write!(f, "unknown blending equation: {}", e),
       StateQueryError::UnknownBlendingSrcFactor(ref k) => write!(f, "unknown blending source factor: {}", k),
-      StateQueryError::UnknownBlendingDstFactor(ref k) => write!(f, "unknown blending destination factor: {}", k),
+      StateQueryError::UnknownBlendingDstFactor(ref k) => {
+        write!(f, "unknown blending destination factor: {}", k)
+      }
       StateQueryError::UnknownDepthTestState(ref s) => write!(f, "unknown depth test state: {}", s),
       StateQueryError::UnknownFaceCullingState(ref s) => write!(f, "unknown face culling state: {}", s),
       StateQueryError::UnknownFaceCullingOrder(ref o) => write!(f, "unknown face culling order: {}", o),
-      StateQueryError::UnknownFaceCullingMode(ref m) => write!(f, "unknown face culling mode: {}", m)
+      StateQueryError::UnknownFaceCullingMode(ref m) => write!(f, "unknown face culling mode: {}", m),
     }
   }
 }
@@ -343,7 +348,7 @@ unsafe fn get_ctx_blending_state() -> Result<BlendingState, StateQueryError> {
   match state {
     gl::TRUE => Ok(BlendingState::Enabled),
     gl::FALSE => Ok(BlendingState::Disabled),
-    _ => Err(StateQueryError::UnknownBlendingState(state))
+    _ => Err(StateQueryError::UnknownBlendingState(state)),
   }
 }
 
@@ -358,7 +363,7 @@ unsafe fn get_ctx_blending_equation() -> Result<Equation, StateQueryError> {
     gl::FUNC_REVERSE_SUBTRACT => Ok(Equation::ReverseSubtract),
     gl::MIN => Ok(Equation::Min),
     gl::MAX => Ok(Equation::Max),
-    _ => Err(StateQueryError::UnknownBlendingEquation(data))
+    _ => Err(StateQueryError::UnknownBlendingEquation(data)),
   }
 }
 
@@ -389,7 +394,7 @@ fn from_gl_blending_factor(factor: GLenum) -> Result<Factor, GLenum> {
     gl::DST_ALPHA => Ok(Factor::DstAlpha),
     gl::ONE_MINUS_DST_ALPHA => Ok(Factor::DstAlphaComplement),
     gl::SRC_ALPHA_SATURATE => Ok(Factor::SrcAlphaSaturate),
-    _ => Err(factor)
+    _ => Err(factor),
   }
 }
 
@@ -399,7 +404,7 @@ unsafe fn get_ctx_depth_test() -> Result<DepthTest, StateQueryError> {
   match state {
     gl::TRUE => Ok(DepthTest::Enabled),
     gl::FALSE => Ok(DepthTest::Disabled),
-    _ => Err(StateQueryError::UnknownDepthTestState(state))
+    _ => Err(StateQueryError::UnknownDepthTestState(state)),
   }
 }
 
@@ -409,7 +414,7 @@ unsafe fn get_ctx_face_culling_state() -> Result<FaceCullingState, StateQueryErr
   match state {
     gl::TRUE => Ok(FaceCullingState::Enabled),
     gl::FALSE => Ok(FaceCullingState::Disabled),
-    _ => Err(StateQueryError::UnknownFaceCullingState(state))
+    _ => Err(StateQueryError::UnknownFaceCullingState(state)),
   }
 }
 
@@ -421,7 +426,7 @@ unsafe fn get_ctx_face_culling_order() -> Result<FaceCullingOrder, StateQueryErr
   match order {
     gl::CCW => Ok(FaceCullingOrder::CCW),
     gl::CW => Ok(FaceCullingOrder::CW),
-    _ => Err(StateQueryError::UnknownFaceCullingOrder(order))
+    _ => Err(StateQueryError::UnknownFaceCullingOrder(order)),
   }
 }
 
@@ -434,7 +439,7 @@ unsafe fn get_ctx_face_culling_mode() -> Result<FaceCullingMode, StateQueryError
     gl::FRONT => Ok(FaceCullingMode::Front),
     gl::BACK => Ok(FaceCullingMode::Back),
     gl::FRONT_AND_BACK => Ok(FaceCullingMode::Both),
-    _ => Err(StateQueryError::UnknownFaceCullingMode(mode))
+    _ => Err(StateQueryError::UnknownFaceCullingMode(mode)),
   }
 }
 

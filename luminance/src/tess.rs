@@ -25,26 +25,38 @@
 //! - `BufferSlice`, which gives you an immutable access to the vertices
 //! - `BufferSliceMut`, which gives you a mutable access to the vertices
 //!
-//! You can retrieve those slices with the `Tess::as_slice` and `Tess::as_slice_mut` methods. 
+//! You can retrieve those slices with the `Tess::as_slice` and `Tess::as_slice_mut` methods.
 //!
 //! # Tessellation render
 //!
 //! In order to render a `Tess`, you have to use a `TessSlice` object. You’ll be able to use that
 //! object in *pipelines*. See the `pipeline` module for further details.
 
-#[cfg(feature = "std")] use std::fmt;
-#[cfg(feature = "std")] use std::marker::PhantomData;
-#[cfg(feature = "std")] use std::mem::size_of;
-#[cfg(feature = "std")] use std::ops::{Range, RangeFull, RangeFrom, RangeTo};
-#[cfg(feature = "std")] use std::os::raw::c_void;
-#[cfg(feature = "std")] use std::ptr;
+#[cfg(feature = "std")]
+use std::fmt;
+#[cfg(feature = "std")]
+use std::marker::PhantomData;
+#[cfg(feature = "std")]
+use std::mem::size_of;
+#[cfg(feature = "std")]
+use std::ops::{Range, RangeFrom, RangeFull, RangeTo};
+#[cfg(feature = "std")]
+use std::os::raw::c_void;
+#[cfg(feature = "std")]
+use std::ptr;
 
-#[cfg(not(feature = "std"))] use alloc::vec::Vec;
-#[cfg(not(feature = "std"))] use core::fmt;
-#[cfg(not(feature = "std"))] use core::marker::PhantomData;
-#[cfg(not(feature = "std"))] use core::mem::size_of;
-#[cfg(not(feature = "std"))] use core::ops::{Range, RangeFull, RangeFrom, RangeTo};
-#[cfg(not(feature = "std"))] use core::ptr;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+#[cfg(not(feature = "std"))]
+use core::fmt;
+#[cfg(not(feature = "std"))]
+use core::marker::PhantomData;
+#[cfg(not(feature = "std"))]
+use core::mem::size_of;
+#[cfg(not(feature = "std"))]
+use core::ops::{Range, RangeFrom, RangeFull, RangeTo};
+#[cfg(not(feature = "std"))]
+use core::ptr;
 
 use buffer::{Buffer, BufferError, BufferSlice, BufferSliceMut, RawBuffer};
 use context::GraphicsContext;
@@ -65,26 +77,22 @@ pub enum Mode {
   /// A triangle fan, defined by at least three points and zero or many other ones.
   TriangleFan,
   /// A triangle strip, defined by at least three points and zero or many other ones.
-  TriangleStrip
+  TriangleStrip,
 }
 
 /// Error that can occur while trying to map GPU tessellation to host code.
 #[derive(Debug, Eq, PartialEq)]
 pub enum TessMapError {
   VertexBufferMapFailed(BufferError),
-  ForbiddenAttributelessMapping
+  ForbiddenAttributelessMapping,
 }
 
 impl fmt::Display for TessMapError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
-      TessMapError::VertexBufferMapFailed(ref e) => {
-        write!(f, "cannot map tessallation buffer: {}", e)
-      }
+      TessMapError::VertexBufferMapFailed(ref e) => write!(f, "cannot map tessallation buffer: {}", e),
 
-      TessMapError::ForbiddenAttributelessMapping => {
-        f.write_str("cannot map an attributeless buffer")
-      }
+      TessMapError::ForbiddenAttributelessMapping => f.write_str("cannot map an attributeless buffer"),
     }
   }
 }
@@ -94,14 +102,17 @@ impl fmt::Display for TessMapError {
 /// This type enables you to pass in a slice of vertices or ask for the GPU to only reserve enough
 /// space for the number of vertices, leaving the allocated memory uninitialized.
 #[derive(Debug, Eq, PartialEq)]
-pub enum TessVertices<'a, T> where T: 'a + Vertex {
+pub enum TessVertices<'a, T>
+where T: 'a + Vertex {
   /// Pass in a slice of vertices.
   Fill(&'a [T]),
   /// Reserve a certain number of vertices.
-  Reserve(usize)
+  Reserve(usize),
 }
 
-impl<'a, T> From<&'a [T]> for TessVertices<'a, T> where T: 'a + Vertex {
+impl<'a, T> From<&'a [T]> for TessVertices<'a, T>
+where T: 'a + Vertex
+{
   fn from(slice: &'a [T]) -> Self {
     TessVertices::Fill(slice)
   }
@@ -116,26 +127,29 @@ pub struct Tess<V> {
   vao: GLenum,
   vbo: Option<RawBuffer>, // no vbo means attributeless render
   ibo: Option<RawBuffer>,
-  _v: PhantomData<V>
+  _v: PhantomData<V>,
 }
 
-impl<V> Tess<V> where V: Vertex {
+impl<V> Tess<V>
+where V: Vertex
+{
   /// Create a new tessellation.
   ///
   /// The `mode` argument gives the type of the primitives and how to interpret the `vertices` and
   /// `indices` slices. If `indices` is set to `None`, the tessellation will use the `vertices`
   /// as-is.
   pub fn new<'a, C, W, I>(ctx: &mut C, mode: Mode, vertices: W, indices: I) -> Self
-      where C: GraphicsContext,
-            TessVertices<'a, V>: From<W>,
-            V: 'a + Vertex,
-            I: Into<Option<&'a[u32]>> {
+  where
+    C: GraphicsContext,
+    TessVertices<'a, V>: From<W>,
+    V: 'a + Vertex,
+    I: Into<Option<&'a [u32]>>, {
     let vertices = vertices.into();
 
     let mut vao: GLuint = 0;
     let vert_nb = match vertices {
       TessVertices::Fill(slice) => slice.len(),
-      TessVertices::Reserve(nb) => nb
+      TessVertices::Reserve(nb) => nb,
     };
 
     unsafe {
@@ -172,21 +186,21 @@ impl<V> Tess<V> where V: Vertex {
         Tess {
           mode: opengl_mode(mode),
           vert_nb: ind_nb,
-          vao: vao,
+          vao,
           vbo: Some(raw_vbo),
           ibo: Some(raw_ibo),
-          _v: PhantomData
+          _v: PhantomData,
         }
       } else {
         ctx.state().borrow_mut().bind_vertex_array(vao);
 
         Tess {
           mode: opengl_mode(mode),
-          vert_nb: vert_nb,
-          vao: vao,
+          vert_nb,
+          vao,
           vbo: Some(raw_vbo),
           ibo: None,
-          _v: PhantomData
+          _v: PhantomData,
         }
       }
     }
@@ -194,13 +208,7 @@ impl<V> Tess<V> where V: Vertex {
 
   // Render the tessellation by providing the number of vertices to pick from it and how many
   // instances are wished.
-  fn render<C>(
-    &self,
-    ctx: &mut C,
-    start_index: usize,
-    vert_nb: usize,
-    inst_nb: usize
-  )
+  fn render<C>(&self, ctx: &mut C, start_index: usize, vert_nb: usize, inst_nb: usize)
   where C: GraphicsContext {
     let vert_nb = vert_nb as GLsizei;
     let inst_nb = inst_nb as GLsizei;
@@ -208,7 +216,8 @@ impl<V> Tess<V> where V: Vertex {
     unsafe {
       ctx.state().borrow_mut().bind_vertex_array(self.vao);
 
-      if self.ibo.is_some() { // indexed render
+      if self.ibo.is_some() {
+        // indexed render
         let first = (size_of::<u32>() * start_index) as *const c_void;
 
         if inst_nb == 1 {
@@ -218,7 +227,8 @@ impl<V> Tess<V> where V: Vertex {
         } else {
           panic!("cannot index-render 0 instance");
         }
-      } else { // direct render
+      } else {
+        // direct render
         let first = start_index as GLint;
 
         if inst_nb == 1 {
@@ -234,14 +244,18 @@ impl<V> Tess<V> where V: Vertex {
 
   /// Get an immutable slice over the vertices stored on GPU.
   pub fn as_slice(&self) -> Result<BufferSlice<V>, TessMapError> {
-    self.vbo.as_ref()
+    self
+      .vbo
+      .as_ref()
       .ok_or(TessMapError::ForbiddenAttributelessMapping)
       .and_then(|raw| RawBuffer::as_slice(raw).map_err(TessMapError::VertexBufferMapFailed))
   }
 
   /// Get a mutable slice over the vertices stored on GPU.
   pub fn as_slice_mut<C>(&mut self) -> Result<BufferSliceMut<V>, TessMapError> {
-    self.vbo.as_mut()
+    self
+      .vbo
+      .as_mut()
       .ok_or(TessMapError::ForbiddenAttributelessMapping)
       .and_then(|raw| RawBuffer::as_slice_mut(raw).map_err(TessMapError::VertexBufferMapFailed))
   }
@@ -253,11 +267,7 @@ impl Tess<()> {
   /// You just have to give the `Mode` to use and the number of vertices the tessellation must
   /// generate. You’ll be handed back a tessellation object that doesn’t actually hold anything.
   /// You will have to generate the vertices on the fly in your shaders.
-  pub fn attributeless<C>(
-    ctx: &mut C,
-    mode: Mode,
-    vert_nb: usize
-  ) -> Self
+  pub fn attributeless<C>(ctx: &mut C, mode: Mode, vert_nb: usize) -> Self
   where C: GraphicsContext {
     let mut gfx_state = ctx.state().borrow_mut();
     let mut vao = 0;
@@ -270,11 +280,11 @@ impl Tess<()> {
 
       Tess {
         mode: opengl_mode(mode),
-        vert_nb: vert_nb,
-        vao: vao,
+        vert_nb,
+        vao,
         vbo: None,
         ibo: None,
-        _v: PhantomData
+        _v: PhantomData,
       }
     }
   }
@@ -331,7 +341,7 @@ fn dim_as_size(d: &Dim) -> GLint {
     Dim::Dim1 => 1,
     Dim::Dim2 => 2,
     Dim::Dim3 => 3,
-    Dim::Dim4 => 4
+    Dim::Dim4 => 4,
   }
 }
 
@@ -342,22 +352,34 @@ fn offset_based_vertex_weight(formats: &[VertexComponentFormat], offsets: &[usiz
     return 0;
   }
 
-  off_align(offsets[offsets.len() - 1] + component_weight(&formats[formats.len() - 1]), formats[0].align)
+  off_align(
+    offsets[offsets.len() - 1] + component_weight(&formats[formats.len() - 1]),
+    formats[0].align,
+  )
 }
 
 // Set the vertex component OpenGL pointers regarding the index of the component (i), the stride
 fn set_component_format(i: u32, stride: GLsizei, off: usize, f: &VertexComponentFormat) {
   match f.comp_type {
-    Type::Floating => {
-      unsafe {
-        gl::VertexAttribPointer(i as GLuint, dim_as_size(&f.dim), opengl_sized_type(&f), gl::FALSE, stride, ptr::null::<c_void>().offset(off as isize));
-      }
+    Type::Floating => unsafe {
+      gl::VertexAttribPointer(
+        i as GLuint,
+        dim_as_size(&f.dim),
+        opengl_sized_type(&f),
+        gl::FALSE,
+        stride,
+        ptr::null::<c_void>().offset(off as isize),
+      );
     },
-    Type::Integral | Type::Unsigned | Type::Boolean => {
-      unsafe {
-        gl::VertexAttribIPointer(i as GLuint, dim_as_size(&f.dim), opengl_sized_type(&f), stride, ptr::null::<c_void>().offset(off as isize));
-      }
-    }
+    Type::Integral | Type::Unsigned | Type::Boolean => unsafe {
+      gl::VertexAttribIPointer(
+        i as GLuint,
+        dim_as_size(&f.dim),
+        opengl_sized_type(&f),
+        stride,
+        ptr::null::<c_void>().offset(off as isize),
+      );
+    },
   }
 
   unsafe {
@@ -374,7 +396,7 @@ fn opengl_sized_type(f: &VertexComponentFormat) -> GLenum {
     (Type::Unsigned, 2) => gl::UNSIGNED_SHORT,
     (Type::Unsigned, 4) => gl::UNSIGNED_INT,
     (Type::Floating, 4) => gl::FLOAT,
-    _ => panic!("unsupported vertex component format: {:?}", f)
+    _ => panic!("unsupported vertex component format: {:?}", f),
   }
 }
 
@@ -385,7 +407,7 @@ fn opengl_mode(mode: Mode) -> GLenum {
     Mode::LineStrip => gl::LINE_STRIP,
     Mode::Triangle => gl::TRIANGLES,
     Mode::TriangleFan => gl::TRIANGLE_FAN,
-    Mode::TriangleStrip => gl::TRIANGLE_STRIP
+    Mode::TriangleStrip => gl::TRIANGLE_STRIP,
   }
 }
 
@@ -393,7 +415,8 @@ fn opengl_mode(mode: Mode) -> GLenum {
 ///
 /// This type enables slicing a tessellation on the fly so that we can render patches of it.
 #[derive(Clone)]
-pub struct TessSlice<'a, V> where V: 'a {
+pub struct TessSlice<'a, V>
+where V: 'a {
   /// Tessellation to render.
   tess: &'a Tess<V>,
   /// Start index (vertex) in the tessellation.
@@ -401,7 +424,7 @@ pub struct TessSlice<'a, V> where V: 'a {
   /// Number of vertices to pick from the tessellation. If `None`, all of them are selected.
   vert_nb: usize,
   /// Number of instances to render.
-  inst_nb: usize
+  inst_nb: usize,
 }
 
 impl<'a, V> TessSlice<'a, V> {
@@ -409,10 +432,10 @@ impl<'a, V> TessSlice<'a, V> {
   /// instance.
   pub fn one_whole(tess: &'a Tess<V>) -> Self {
     TessSlice {
-      tess: tess,
+      tess,
       start_index: 0,
       vert_nb: tess.vert_nb,
-      inst_nb: 1
+      inst_nb: 1,
     }
   }
 
@@ -429,14 +452,17 @@ impl<'a, V> TessSlice<'a, V> {
   /// Panic if the number of vertices is higher to the capacity of the tessellation’s vertex buffer.
   pub fn one_sub(tess: &'a Tess<V>, vert_nb: usize) -> Self {
     if vert_nb > tess.vert_nb {
-      panic!("cannot render {} vertices for a tessellation which vertex capacity is {}", vert_nb, tess.vert_nb);
+      panic!(
+        "cannot render {} vertices for a tessellation which vertex capacity is {}",
+        vert_nb, tess.vert_nb
+      );
     }
 
     TessSlice {
-      tess: tess,
+      tess,
       start_index: 0,
-      vert_nb: vert_nb,
-      inst_nb: 1
+      vert_nb,
+      inst_nb: 1,
     }
   }
 
@@ -452,24 +478,35 @@ impl<'a, V> TessSlice<'a, V> {
   /// Panic if the number of vertices is higher to the capacity of the tessellation’s vertex buffer.
   pub fn one_slice(tess: &'a Tess<V>, start: usize, nb: usize) -> Self {
     if start > tess.vert_nb {
-      panic!("cannot render {} vertices starting at vertex {} for a tessellation which vertex capacity is {}", nb, start, tess.vert_nb);
+      panic!(
+        "cannot render {} vertices starting at vertex {} for a tessellation which vertex capacity is {}",
+        nb, start, tess.vert_nb
+      );
     }
 
     if nb > tess.vert_nb {
-      panic!("cannot render {} vertices for a tessellation which vertex capacity is {}", nb, tess.vert_nb);
+      panic!(
+        "cannot render {} vertices for a tessellation which vertex capacity is {}",
+        nb, tess.vert_nb
+      );
     }
 
     TessSlice {
-      tess: tess,
+      tess,
       start_index: start,
       vert_nb: nb,
-      inst_nb: 1
+      inst_nb: 1,
     }
   }
 
   /// Render a tessellation.
-  pub fn render<C>(&self, ctx: &mut C) where C: GraphicsContext, V: Vertex {
-    self.tess.render(ctx, self.start_index, self.vert_nb, self.inst_nb);
+  pub fn render<C>(&self, ctx: &mut C)
+  where
+    C: GraphicsContext,
+    V: Vertex, {
+    self
+      .tess
+      .render(ctx, self.start_index, self.vert_nb, self.inst_nb);
   }
 }
 

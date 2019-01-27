@@ -62,27 +62,47 @@
 //! `UniformBlock`. Keep in mind alignment must be respected and is a bit peculiar. TODO: explain
 //! std140 here.
 
-#[cfg(feature = "std")] use std::cell::RefCell;
-#[cfg(feature = "std")] use std::cmp::Ordering;
-#[cfg(feature = "std")] use std::fmt;
-#[cfg(feature = "std")] use std::marker::PhantomData;
-#[cfg(feature = "std")] use std::mem;
-#[cfg(feature = "std")] use std::ops::{Deref, DerefMut};
-#[cfg(feature = "std")] use std::os::raw::c_void;
-#[cfg(feature = "std")] use std::ptr;
-#[cfg(feature = "std")] use std::rc::Rc;
-#[cfg(feature = "std")] use std::slice;
+#[cfg(feature = "std")]
+use std::cell::RefCell;
+#[cfg(feature = "std")]
+use std::cmp::Ordering;
+#[cfg(feature = "std")]
+use std::fmt;
+#[cfg(feature = "std")]
+use std::marker::PhantomData;
+#[cfg(feature = "std")]
+use std::mem;
+#[cfg(feature = "std")]
+use std::ops::{Deref, DerefMut};
+#[cfg(feature = "std")]
+use std::os::raw::c_void;
+#[cfg(feature = "std")]
+use std::ptr;
+#[cfg(feature = "std")]
+use std::rc::Rc;
+#[cfg(feature = "std")]
+use std::slice;
 
-#[cfg(not(feature = "std"))] use alloc::rc::Rc;
-#[cfg(not(feature = "std"))] use alloc::vec::Vec;
-#[cfg(not(feature = "std"))] use core::cell::RefCell;
-#[cfg(not(feature = "std"))] use core::cmp::Ordering;
-#[cfg(not(feature = "std"))] use core::fmt;
-#[cfg(not(feature = "std"))] use core::marker::PhantomData;
-#[cfg(not(feature = "std"))] use core::mem;
-#[cfg(not(feature = "std"))] use core::ops::{Deref, DerefMut};
-#[cfg(not(feature = "std"))] use core::ptr;
-#[cfg(not(feature = "std"))] use core::slice;
+#[cfg(not(feature = "std"))]
+use alloc::rc::Rc;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+#[cfg(not(feature = "std"))]
+use core::cell::RefCell;
+#[cfg(not(feature = "std"))]
+use core::cmp::Ordering;
+#[cfg(not(feature = "std"))]
+use core::fmt;
+#[cfg(not(feature = "std"))]
+use core::marker::PhantomData;
+#[cfg(not(feature = "std"))]
+use core::mem;
+#[cfg(not(feature = "std"))]
+use core::ops::{Deref, DerefMut};
+#[cfg(not(feature = "std"))]
+use core::ptr;
+#[cfg(not(feature = "std"))]
+use core::slice;
 
 use context::GraphicsContext;
 use linear::{M22, M33, M44};
@@ -105,27 +125,31 @@ pub enum BufferError {
   /// Contains the number of passed value and the size of the buffer.
   TooManyValues(usize, usize),
   /// Mapping the buffer failed.
-  MapFailed
+  MapFailed,
 }
 
 impl fmt::Display for BufferError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
-      BufferError::Overflow(i, size) => {
-        write!(f, "buffer overflow (index = {}, size = {})", i, size)
-      }
+      BufferError::Overflow(i, size) => write!(f, "buffer overflow (index = {}, size = {})", i, size),
 
       BufferError::TooFewValues(nb, size) => {
-        write!(f, "too few values passed to the buffer (nb = {}, size = {})", nb, size)
+        write!(
+          f,
+          "too few values passed to the buffer (nb = {}, size = {})",
+          nb, size
+        )
       }
 
       BufferError::TooManyValues(nb, size) => {
-        write!(f, "too many values passed to the buffer (nb = {}, size = {})", nb, size)
+        write!(
+          f,
+          "too many values passed to the buffer (nb = {}, size = {})",
+          nb, size
+        )
       }
 
-      BufferError::MapFailed => {
-        write!(f, "buffer mapping failed")
-      }
+      BufferError::MapFailed => write!(f, "buffer mapping failed"),
     }
   }
 }
@@ -134,12 +158,13 @@ impl fmt::Display for BufferError {
 /// resized. The size is expressed in number of elements lying in the buffer – not in bytes.
 pub struct Buffer<T> {
   raw: RawBuffer,
-  _t: PhantomData<T>
+  _t: PhantomData<T>,
 }
 
 impl<T> Buffer<T> {
   /// Create a new `Buffer` with a given number of elements.
-  pub fn new<C>(ctx: &mut C, len: usize) -> Buffer<T> where C: GraphicsContext {
+  pub fn new<C>(ctx: &mut C, len: usize) -> Buffer<T>
+  where C: GraphicsContext {
     let mut buffer: GLuint = 0;
     let bytes = mem::size_of::<T>() * len;
 
@@ -152,11 +177,11 @@ impl<T> Buffer<T> {
     Buffer {
       raw: RawBuffer {
         handle: buffer,
-        bytes: bytes,
-        len: len,
+        bytes,
+        len,
         state: ctx.state().clone(),
       },
-      _t: PhantomData
+      _t: PhantomData,
     }
   }
 
@@ -169,7 +194,8 @@ impl<T> Buffer<T> {
   /// Retrieve an element from the `Buffer`.
   ///
   /// Checks boundaries.
-  pub fn at(&self, i: usize) -> Option<T> where T: Copy {
+  pub fn at(&self, i: usize) -> Option<T>
+  where T: Copy {
     if i >= self.len {
       return None;
     }
@@ -187,7 +213,8 @@ impl<T> Buffer<T> {
   }
 
   /// Retrieve the whole content of the `Buffer`.
-  pub fn whole(&self) -> Vec<T> where T: Copy {
+  pub fn whole(&self) -> Vec<T>
+  where T: Copy {
     unsafe {
       self.raw.state.borrow_mut().bind_array_buffer(self.handle);
       let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *mut T;
@@ -203,7 +230,8 @@ impl<T> Buffer<T> {
   /// Set a value at a given index in the `Buffer`.
   ///
   /// Checks boundaries.
-  pub fn set(&mut self, i: usize, x: T) -> Result<(), BufferError> where T: Copy {
+  pub fn set(&mut self, i: usize, x: T) -> Result<(), BufferError>
+  where T: Copy {
     if i >= self.len {
       return Err(BufferError::Overflow(i, self.len));
     }
@@ -234,7 +262,7 @@ impl<T> Buffer<T> {
     let real_bytes = match in_bytes.cmp(&self.bytes) {
       Ordering::Less => return Err(BufferError::TooFewValues(len, self.len)),
       Ordering::Greater => return Err(BufferError::TooManyValues(len, self.len)),
-      _ => in_bytes
+      _ => in_bytes,
     };
 
     unsafe {
@@ -250,7 +278,8 @@ impl<T> Buffer<T> {
   }
 
   /// Fill the `Buffer` with a single value.
-  pub fn clear(&self, x: T) -> Result<(), BufferError> where T: Copy {
+  pub fn clear(&self, x: T) -> Result<(), BufferError>
+  where T: Copy {
     self.write_whole(&vec![x; self.len])
   }
 
@@ -267,7 +296,7 @@ impl<T> Buffer<T> {
       handle: self.raw.handle,
       bytes: self.raw.bytes,
       len: self.raw.len,
-      state: self.raw.state.clone()
+      state: self.raw.state.clone(),
     };
 
     // forget self so that we don’t call drop on it after the function has returned
@@ -306,7 +335,7 @@ pub struct RawBuffer {
   handle: GLuint,
   bytes: usize,
   len: usize,
-  state: Rc<RefCell<GraphicsState>>
+  state: Rc<RefCell<GraphicsState>>,
 }
 
 impl RawBuffer {
@@ -321,10 +350,7 @@ impl RawBuffer {
         return Err(BufferError::MapFailed);
       }
 
-      Ok(BufferSlice {
-        raw: self,
-        ptr
-      })
+      Ok(BufferSlice { raw: self, ptr })
     }
   }
 
@@ -339,10 +365,7 @@ impl RawBuffer {
         return Err(BufferError::MapFailed);
       }
 
-      Ok(BufferSliceMut {
-        raw: self,
-        ptr
-      })
+      Ok(BufferSliceMut { raw: self, ptr })
     }
   }
 
@@ -365,14 +388,17 @@ impl<T> From<Buffer<T>> for RawBuffer {
 }
 
 /// A buffer slice mapped into GPU memory.
-pub struct BufferSlice<'a, T> where T: 'a {
+pub struct BufferSlice<'a, T>
+where T: 'a {
   // Borrowed raw buffer.
   raw: &'a RawBuffer,
   // Raw pointer into the GPU memory.
-  ptr: *const T
+  ptr: *const T,
 }
 
-impl<'a, T> Drop for BufferSlice<'a, T> where T: 'a {
+impl<'a, T> Drop for BufferSlice<'a, T>
+where T: 'a
+{
   fn drop(&mut self) {
     unsafe {
       self.raw.state.borrow_mut().bind_array_buffer(self.raw.handle);
@@ -381,7 +407,9 @@ impl<'a, T> Drop for BufferSlice<'a, T> where T: 'a {
   }
 }
 
-impl<'a, T> Deref for BufferSlice<'a, T> where T: 'a {
+impl<'a, T> Deref for BufferSlice<'a, T>
+where T: 'a
+{
   type Target = [T];
 
   fn deref(&self) -> &Self::Target {
@@ -389,9 +417,11 @@ impl<'a, T> Deref for BufferSlice<'a, T> where T: 'a {
   }
 }
 
-impl<'a, 'b, T> IntoIterator for &'b BufferSlice<'a, T> where T: 'a {
-  type Item = &'b T;
+impl<'a, 'b, T> IntoIterator for &'b BufferSlice<'a, T>
+where T: 'a
+{
   type IntoIter = slice::Iter<'b, T>;
+  type Item = &'b T;
 
   fn into_iter(self) -> Self::IntoIter {
     self.deref().into_iter()
@@ -399,14 +429,17 @@ impl<'a, 'b, T> IntoIterator for &'b BufferSlice<'a, T> where T: 'a {
 }
 
 /// A buffer mutable slice into GPU memory.
-pub struct BufferSliceMut<'a, T> where T: 'a {
+pub struct BufferSliceMut<'a, T>
+where T: 'a {
   // Borrowed buffer.
   raw: &'a RawBuffer,
   // Raw pointer into the GPU memory.
-  ptr: *mut T
+  ptr: *mut T,
 }
 
-impl<'a, T> Drop for BufferSliceMut<'a, T> where T: 'a {
+impl<'a, T> Drop for BufferSliceMut<'a, T>
+where T: 'a
+{
   fn drop(&mut self) {
     unsafe {
       self.raw.state.borrow_mut().bind_array_buffer(self.raw.handle);
@@ -415,25 +448,31 @@ impl<'a, T> Drop for BufferSliceMut<'a, T> where T: 'a {
   }
 }
 
-impl<'a, 'b, T> IntoIterator for &'b BufferSliceMut<'a, T> where T: 'a {
-  type Item = &'b T;
+impl<'a, 'b, T> IntoIterator for &'b BufferSliceMut<'a, T>
+where T: 'a
+{
   type IntoIter = slice::Iter<'b, T>;
+  type Item = &'b T;
 
   fn into_iter(self) -> Self::IntoIter {
     self.deref().into_iter()
   }
 }
 
-impl<'a, 'b, T> IntoIterator for &'b mut BufferSliceMut<'a, T> where T: 'a {
-  type Item = &'b mut T;
+impl<'a, 'b, T> IntoIterator for &'b mut BufferSliceMut<'a, T>
+where T: 'a
+{
   type IntoIter = slice::IterMut<'b, T>;
+  type Item = &'b mut T;
 
   fn into_iter(self) -> Self::IntoIter {
     self.deref_mut().into_iter()
   }
 }
 
-impl<'a, T> Deref for BufferSliceMut<'a, T> where T: 'a {
+impl<'a, T> Deref for BufferSliceMut<'a, T>
+where T: 'a
+{
   type Target = [T];
 
   fn deref(&self) -> &Self::Target {
@@ -441,7 +480,9 @@ impl<'a, T> Deref for BufferSliceMut<'a, T> where T: 'a {
   }
 }
 
-impl<'a, T> DerefMut for BufferSliceMut<'a, T> where T: 'a {
+impl<'a, T> DerefMut for BufferSliceMut<'a, T>
+where T: 'a
+{
   fn deref_mut(&mut self) -> &mut Self::Target {
     unsafe { slice::from_raw_parts_mut(self.ptr, self.raw.len) }
   }

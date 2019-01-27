@@ -14,10 +14,10 @@
 //!
 //! This crate exposes several important types that all backends must use. Among them, you’ll find:
 //!
-//! - `WindowDim`: abstraction over the dimension of a window and its mode (windowed, fullscreen,
-//!   fullscreen restricted).
-//! - `WindowOpt`: an opaque type giving access to hints to customize the window integration, such
-//!   as whether the cursor should be hidden or not.
+//! - `WindowDim`: abstraction over the dimension of a window and its mode (windowed, fullscreen, fullscreen
+//!   restricted).
+//! - `WindowOpt`: an opaque type giving access to hints to customize the window integration, such as whether
+//!   the cursor should be hidden or not.
 //!
 //! The `Device` trait must be implemented by a backend so that an application is completely
 //! agnostic of the backend. This trait defines several basic methods that will help you to:
@@ -34,8 +34,8 @@ use luminance::context::GraphicsContext;
 ///
 ///   - `Windowed(width, height)` opens in windowed mode with the wished resolution.
 ///   - `Fullscreen` opens in fullscreen mode by using the primary monitor resolution.
-///   - `FullscreenRestricted(width, height)` is a mix between `Windowed(width, height)` and
-///     `Fullscreen`. It opens in fullscreen mode by using the wished resolution.
+///   - `FullscreenRestricted(width, height)` is a mix between `Windowed(width, height)` and `Fullscreen`. It
+///     opens in fullscreen mode by using the wished resolution.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum WindowDim {
   /// Windowed mode.
@@ -43,7 +43,7 @@ pub enum WindowDim {
   /// Fullscreen mode (adapt to your screen).
   Fullscreen,
   /// Fullscreen mode with restricted viewport dimension.
-  FullscreenRestricted(u32, u32)
+  FullscreenRestricted(u32, u32),
 }
 
 /// Different window options.
@@ -52,7 +52,7 @@ pub enum WindowDim {
 /// with `default()` though.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct WindowOpt {
-  hide_cursor: bool
+  hide_cursor: bool,
 }
 
 impl Default for WindowOpt {
@@ -60,9 +60,7 @@ impl Default for WindowOpt {
   ///
   /// - `hide_cursor(false)`
   fn default() -> Self {
-    WindowOpt {
-      hide_cursor: false
-    }
+    WindowOpt { hide_cursor: false }
   }
 }
 
@@ -70,7 +68,10 @@ impl WindowOpt {
   /// Hide or unhide the cursor. Default to `false`.
   #[inline]
   pub fn hide_cursor(self, hide: bool) -> Self {
-    WindowOpt { hide_cursor: hide, ..self }
+    WindowOpt {
+      hide_cursor: hide,
+      ..self
+    }
   }
 
   #[inline]

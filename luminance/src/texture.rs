@@ -91,13 +91,12 @@
 //! the image from the disk – see the awesome [image](https://crates.io/crates/image) – and then
 //! upload the data to the texture. You have several functions to do so:
 //!
-//! - `Texture::upload`: this function takes a slice of texels and upload them to the whole texture
-//!   memory
-//! - `Texture::upload_part`: this function does the same thing as `Texture::upload`, but gives you
-//!   the extra control on where in the texture you want to upload and with which size
-//! - `Texture::upload_raw`: this function takes a slice of raw encoding data and upload them to the
-//!   whole texture memory. This is especially handy when your texture has several channels but the
-//!   data you have don’t take channels into account and are just *raw* data.
+//! - `Texture::upload`: this function takes a slice of texels and upload them to the whole texture memory
+//! - `Texture::upload_part`: this function does the same thing as `Texture::upload`, but gives you the extra
+//!   control on where in the texture you want to upload and with which size
+//! - `Texture::upload_raw`: this function takes a slice of raw encoding data and upload them to the whole
+//!   texture memory. This is especially handy when your texture has several channels but the data you have
+//!   don’t take channels into account and are just *raw* data.
 //! - `Texture::upload_part_raw`: same thing as above, but with offset and size control.
 //!
 //! Alternatively, you can clear the texture with `Texture::clear` and `Texture::clear_part`.
@@ -107,28 +106,45 @@
 //! The function `Texel::get_raw_texels` must be used to retreive texels out of a texture. This
 //! function allocates memory, so be careful when using it.
 
-#[cfg(feature = "std")] use std::cell::RefCell;
-#[cfg(feature = "std")] use std::fmt;
-#[cfg(feature = "std")] use std::marker::PhantomData;
-#[cfg(feature = "std")] use std::mem;
-#[cfg(feature = "std")] use std::os::raw::c_void;
-#[cfg(feature = "std")] use std::ops::{Deref, DerefMut};
-#[cfg(feature = "std")] use std::ptr;
-#[cfg(feature = "std")] use std::rc::Rc;
+#[cfg(feature = "std")]
+use std::cell::RefCell;
+#[cfg(feature = "std")]
+use std::fmt;
+#[cfg(feature = "std")]
+use std::marker::PhantomData;
+#[cfg(feature = "std")]
+use std::mem;
+#[cfg(feature = "std")]
+use std::ops::{Deref, DerefMut};
+#[cfg(feature = "std")]
+use std::os::raw::c_void;
+#[cfg(feature = "std")]
+use std::ptr;
+#[cfg(feature = "std")]
+use std::rc::Rc;
 
-#[cfg(not(feature = "std"))] use alloc::rc::Rc;
-#[cfg(not(feature = "std"))] use alloc::string::String;
-#[cfg(not(feature = "std"))] use alloc::vec::Vec;
-#[cfg(not(feature = "std"))] use core::cell::RefCell;
-#[cfg(not(feature = "std"))] use core::fmt::{self, Write};
-#[cfg(not(feature = "std"))] use core::marker::PhantomData;
-#[cfg(not(feature = "std"))] use core::mem;
-#[cfg(not(feature = "std"))] use core::ops::{Deref, DerefMut};
-#[cfg(not(feature = "std"))] use core::ptr;
+#[cfg(not(feature = "std"))]
+use alloc::rc::Rc;
+#[cfg(not(feature = "std"))]
+use alloc::string::String;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+#[cfg(not(feature = "std"))]
+use core::cell::RefCell;
+#[cfg(not(feature = "std"))]
+use core::fmt::{self, Write};
+#[cfg(not(feature = "std"))]
+use core::marker::PhantomData;
+#[cfg(not(feature = "std"))]
+use core::mem;
+#[cfg(not(feature = "std"))]
+use core::ops::{Deref, DerefMut};
+#[cfg(not(feature = "std"))]
+use core::ptr;
 
 use context::GraphicsContext;
 use metagl::*;
-use pixel::{Pixel, PixelFormat, opengl_pixel_format, pixel_components};
+use pixel::{opengl_pixel_format, pixel_components, Pixel, PixelFormat};
 use state::GraphicsState;
 
 /// How to wrap texture coordinates while sampling textures?
@@ -145,7 +161,7 @@ pub enum Wrap {
   /// ```
   Repeat,
   /// Same as `Repeat` but it will alternatively repeat between *[0;1]* and *[1;0]*.
-  MirroredRepeat
+  MirroredRepeat,
 }
 
 /// Minification filter.
@@ -166,7 +182,7 @@ pub enum MinFilter {
   LinearMipmapNearest,
   /// This filter will linearly interpolate between two mipmaps, which selected texels would have
   /// been linarily interpolated as well.
-  LinearMipmapLinear
+  LinearMipmapLinear,
 }
 
 /// Magnification filter.
@@ -175,7 +191,7 @@ pub enum MagFilter {
   /// Nearest interpolation.
   Nearest,
   /// Linear interpolation between surrounding pixels.
-  Linear
+  Linear,
 }
 
 /// Depth comparison to perform while depth test. `a` is the incoming fragment’s depth and b is the
@@ -197,7 +213,7 @@ pub enum DepthComparison {
   /// Depth test succeeds if `a > b`.
   Greater,
   /// Depth test succeeds if `a >= b`.
-  GreaterOrEqual
+  GreaterOrEqual,
 }
 
 /// Reify a type into a `Dim`.
@@ -210,21 +226,30 @@ pub trait Dimensionable {
   /// Width of the associated `Size`.
   fn width(size: Self::Size) -> u32;
   /// Height of the associated `Size`. If it doesn’t have one, set it to 1.
-  fn height(_: Self::Size) -> u32 { 1 }
+  fn height(_: Self::Size) -> u32 {
+    1
+  }
   /// Depth of the associated `Size`. If it doesn’t have one, set it to 1.
-  fn depth(_: Self::Size) -> u32 { 1 }
+  fn depth(_: Self::Size) -> u32 {
+    1
+  }
   /// X offset.
   fn x_offset(offset: Self::Offset) -> u32;
   /// Y offset. If it doesn’t have one, set it to 0.
-  fn y_offset(_: Self::Offset) -> u32 { 1 }
+  fn y_offset(_: Self::Offset) -> u32 {
+    1
+  }
   /// Z offset. If it doesn’t have one, set it to 0.
-  fn z_offset(_: Self::Offset) -> u32 { 1 }
+  fn z_offset(_: Self::Offset) -> u32 {
+    1
+  }
   /// Zero offset.
   fn zero_offset() -> Self::Offset;
 }
 
 // Capacity of the dimension, which is the product of the width, height and depth.
-fn dim_capacity<D>(size: D::Size) -> u32 where D: Dimensionable {
+fn dim_capacity<D>(size: D::Size) -> u32
+where D: Dimensionable {
   D::width(size) * D::height(size) * D::depth(size)
 }
 
@@ -234,7 +259,7 @@ pub enum Dim {
   Dim1,
   Dim2,
   Dim3,
-  Cubemap
+  Cubemap,
 }
 
 /// 1D dimension.
@@ -242,16 +267,24 @@ pub enum Dim {
 pub struct Dim1;
 
 impl Dimensionable for Dim1 {
-  type Size = u32;
   type Offset = u32;
+  type Size = u32;
 
-  fn dim() -> Dim { Dim::Dim1 }
+  fn dim() -> Dim {
+    Dim::Dim1
+  }
 
-  fn width(w: Self::Size) -> u32 { w }
+  fn width(w: Self::Size) -> u32 {
+    w
+  }
 
-  fn x_offset(off: Self::Offset) -> u32 { off }
+  fn x_offset(off: Self::Offset) -> u32 {
+    off
+  }
 
-  fn zero_offset() -> Self::Offset { 0 }
+  fn zero_offset() -> Self::Offset {
+    0
+  }
 }
 
 /// 2D dimension.
@@ -259,20 +292,32 @@ impl Dimensionable for Dim1 {
 pub struct Dim2;
 
 impl Dimensionable for Dim2 {
-  type Size = [u32; 2];
   type Offset = [u32; 2];
+  type Size = [u32; 2];
 
-  fn dim() -> Dim { Dim::Dim2 }
+  fn dim() -> Dim {
+    Dim::Dim2
+  }
 
-  fn width(size: Self::Size) -> u32 { size[0] }
+  fn width(size: Self::Size) -> u32 {
+    size[0]
+  }
 
-  fn height(size: Self::Size) -> u32 { size[1] }
+  fn height(size: Self::Size) -> u32 {
+    size[1]
+  }
 
-  fn x_offset(off: Self::Offset) -> u32 { off[0] }
+  fn x_offset(off: Self::Offset) -> u32 {
+    off[0]
+  }
 
-  fn y_offset(off: Self::Offset) -> u32 { off[1] }
+  fn y_offset(off: Self::Offset) -> u32 {
+    off[1]
+  }
 
-  fn zero_offset() -> Self::Offset { [0, 0] }
+  fn zero_offset() -> Self::Offset {
+    [0, 0]
+  }
 }
 
 /// 3D dimension.
@@ -280,24 +325,40 @@ impl Dimensionable for Dim2 {
 pub struct Dim3;
 
 impl Dimensionable for Dim3 {
-  type Size = [u32; 3];
   type Offset = [u32; 3];
+  type Size = [u32; 3];
 
-  fn dim() -> Dim { Dim::Dim3 }
+  fn dim() -> Dim {
+    Dim::Dim3
+  }
 
-  fn width(size: Self::Size) -> u32 { size[0] }
+  fn width(size: Self::Size) -> u32 {
+    size[0]
+  }
 
-  fn height(size: Self::Size) -> u32 { size[1] }
+  fn height(size: Self::Size) -> u32 {
+    size[1]
+  }
 
-  fn depth(size: Self::Size) -> u32 { size[2] }
+  fn depth(size: Self::Size) -> u32 {
+    size[2]
+  }
 
-  fn x_offset(off: Self::Offset) -> u32 { off[0] }
+  fn x_offset(off: Self::Offset) -> u32 {
+    off[0]
+  }
 
-  fn y_offset(off: Self::Offset) -> u32 { off[1] }
+  fn y_offset(off: Self::Offset) -> u32 {
+    off[1]
+  }
 
-  fn z_offset(off: Self::Offset) -> u32 { off[2] }
+  fn z_offset(off: Self::Offset) -> u32 {
+    off[2]
+  }
 
-  fn zero_offset() -> Self::Offset { [0, 0, 0] }
+  fn zero_offset() -> Self::Offset {
+    [0, 0, 0]
+  }
 }
 
 /// Cubemap dimension.
@@ -305,20 +366,32 @@ impl Dimensionable for Dim3 {
 pub struct Cubemap;
 
 impl Dimensionable for Cubemap {
-  type Size = u32;
   type Offset = ([u32; 2], CubeFace);
+  type Size = u32;
 
-  fn dim() -> Dim { Dim::Cubemap }
+  fn dim() -> Dim {
+    Dim::Cubemap
+  }
 
-  fn width(s: Self::Size) -> u32 { s }
+  fn width(s: Self::Size) -> u32 {
+    s
+  }
 
-  fn height(s: Self::Size) -> u32 { s }
+  fn height(s: Self::Size) -> u32 {
+    s
+  }
 
-  fn depth(_: Self::Size) -> u32 { 6 }
+  fn depth(_: Self::Size) -> u32 {
+    6
+  }
 
-  fn x_offset(off: Self::Offset) -> u32 { off.0[0] }
+  fn x_offset(off: Self::Offset) -> u32 {
+    off.0[0]
+  }
 
-  fn y_offset(off: Self::Offset) -> u32 { off.0[1] }
+  fn y_offset(off: Self::Offset) -> u32 {
+    off.0[1]
+  }
 
   fn z_offset(off: Self::Offset) -> u32 {
     match off.1 {
@@ -327,11 +400,13 @@ impl Dimensionable for Cubemap {
       CubeFace::PositiveY => 2,
       CubeFace::NegativeY => 3,
       CubeFace::PositiveZ => 4,
-      CubeFace::NegativeZ => 5
+      CubeFace::NegativeZ => 5,
     }
   }
 
-  fn zero_offset() -> Self::Offset { ([0, 0], CubeFace::PositiveX) }
+  fn zero_offset() -> Self::Offset {
+    ([0, 0], CubeFace::PositiveX)
+  }
 }
 
 /// Faces of a cubemap.
@@ -342,7 +417,7 @@ pub enum CubeFace {
   PositiveY,
   NegativeY,
   PositiveZ,
-  NegativeZ
+  NegativeZ,
 }
 
 /// Trait used to reify a type into a `Layering`.
@@ -357,7 +432,7 @@ pub enum Layering {
   /// Non-layered.
   Flat,
   /// Layered.
-  Layered
+  Layered,
 }
 
 /// Flat texture hint.
@@ -366,7 +441,11 @@ pub enum Layering {
 #[derive(Clone, Copy, Debug)]
 pub struct Flat;
 
-impl Layerable for Flat { fn layering() -> Layering { Layering::Flat } }
+impl Layerable for Flat {
+  fn layering() -> Layering {
+    Layering::Flat
+  }
+}
 
 /// Layered texture hint.
 ///
@@ -375,14 +454,18 @@ impl Layerable for Flat { fn layering() -> Layering { Layering::Flat } }
 #[derive(Clone, Copy, Debug)]
 pub struct Layered;
 
-impl Layerable for Layered { fn layering() -> Layering { Layering::Layered } }
+impl Layerable for Layered {
+  fn layering() -> Layering {
+    Layering::Layered
+  }
+}
 
 /// Raw buffer. Any buffer can be converted to that type. However, keep in mind that even though
 /// type erasure is safe, creating a buffer from a raw buffer is not.
 pub struct RawTexture {
   handle: GLuint, // handle to the GPU texture object
   target: GLenum, // “type” of the texture; used for bindings
-  state: Rc<RefCell<GraphicsState>>
+  state: Rc<RefCell<GraphicsState>>,
 }
 
 impl RawTexture {
@@ -390,7 +473,7 @@ impl RawTexture {
     RawTexture {
       handle,
       target,
-      state
+      state,
     }
   }
 
@@ -409,15 +492,24 @@ impl RawTexture {
 ///
 /// `L` refers to the layering type; `D` refers to the dimension; `P` is the pixel format for the
 /// texels.
-pub struct Texture<L, D, P> where L: Layerable, D: Dimensionable, P: Pixel {
+pub struct Texture<L, D, P>
+where
+  L: Layerable,
+  D: Dimensionable,
+  P: Pixel, {
   raw: RawTexture,
   size: D::Size,
   mipmaps: usize, // number of mipmaps
   _l: PhantomData<L>,
-  _p: PhantomData<P>
+  _p: PhantomData<P>,
 }
 
-impl<L, D, P> Deref for Texture<L, D, P> where L: Layerable, D: Dimensionable, P: Pixel {
+impl<L, D, P> Deref for Texture<L, D, P>
+where
+  L: Layerable,
+  D: Dimensionable,
+  P: Pixel,
+{
   type Target = RawTexture;
 
   fn deref(&self) -> &Self::Target {
@@ -425,29 +517,35 @@ impl<L, D, P> Deref for Texture<L, D, P> where L: Layerable, D: Dimensionable, P
   }
 }
 
-impl<L, D, P> DerefMut for Texture<L, D, P> where L: Layerable, D: Dimensionable, P: Pixel {
+impl<L, D, P> DerefMut for Texture<L, D, P>
+where
+  L: Layerable,
+  D: Dimensionable,
+  P: Pixel,
+{
   fn deref_mut(&mut self) -> &mut Self::Target {
     &mut self.raw
   }
 }
 
-impl<L, D, P> Drop for Texture<L, D, P> where L: Layerable, D: Dimensionable, P: Pixel {
+impl<L, D, P> Drop for Texture<L, D, P>
+where
+  L: Layerable,
+  D: Dimensionable,
+  P: Pixel,
+{
   fn drop(&mut self) {
     unsafe { gl::DeleteTextures(1, &self.handle) }
   }
 }
 
 impl<L, D, P> Texture<L, D, P>
-    where L: Layerable,
-          D: Dimensionable,
-          P: Pixel {
-  pub fn new<C>(
-    ctx: &mut C,
-    size: D::Size,
-    mipmaps: usize,
-    sampler: &Sampler
-  ) -> Result<Self, TextureError>
-
+where
+  L: Layerable,
+  D: Dimensionable,
+  P: Pixel,
+{
+  pub fn new<C>(ctx: &mut C, size: D::Size, mipmaps: usize, sampler: &Sampler) -> Result<Self, TextureError>
   where C: GraphicsContext {
     let mipmaps = mipmaps + 1; // + 1 prevent having 0 mipmaps
     let mut texture = 0;
@@ -456,7 +554,7 @@ impl<L, D, P> Texture<L, D, P>
     unsafe {
       gl::GenTextures(1, &mut texture);
       ctx.state().borrow_mut().bind_texture(target, texture);
-    
+
       create_texture::<L, D>(target, size, mipmaps, P::pixel_format(), sampler)?;
 
       let raw = RawTexture::new(ctx.state().clone(), texture, target);
@@ -466,7 +564,7 @@ impl<L, D, P> Texture<L, D, P>
         size,
         mipmaps,
         _l: PhantomData,
-        _p: PhantomData
+        _p: PhantomData,
       })
     }
   }
@@ -478,7 +576,7 @@ impl<L, D, P> Texture<L, D, P>
       size,
       mipmaps: mipmaps + 1,
       _l: PhantomData,
-      _p: PhantomData
+      _p: PhantomData,
     }
   }
 
@@ -503,13 +601,18 @@ impl<L, D, P> Texture<L, D, P>
   /// left-upper corner and the `size` gives the dimension of the rectangle. All the covered texels
   /// by this rectangle will be cleared to the `pixel` value.
   pub fn clear_part(&self, gen_mipmaps: bool, offset: D::Offset, size: D::Size, pixel: P::Encoding)
-      where P::Encoding: Copy {
-    self.upload_part(gen_mipmaps, offset, size, &vec![pixel; dim_capacity::<D>(size) as usize])
+  where P::Encoding: Copy {
+    self.upload_part(
+      gen_mipmaps,
+      offset,
+      size,
+      &vec![pixel; dim_capacity::<D>(size) as usize],
+    )
   }
 
   /// Clear a whole texture with a `pixel` value.
   pub fn clear(&self, gen_mipmaps: bool, pixel: P::Encoding)
-      where P::Encoding: Copy {
+  where P::Encoding: Copy {
     self.clear_part(gen_mipmaps, D::zero_offset(), self.size, pixel)
   }
 
@@ -523,8 +626,9 @@ impl<L, D, P> Texture<L, D, P>
     gen_mipmaps: bool, // TODO: proper typing instead of bool
     offset: D::Offset,
     size: D::Size,
-    texels: &[P::Encoding]
-  ) {
+    texels: &[P::Encoding],
+  )
+  {
     unsafe {
       let mut gfx_state = self.state.borrow_mut();
 
@@ -544,8 +648,9 @@ impl<L, D, P> Texture<L, D, P>
   pub fn upload(
     &self,
     gen_mipmaps: bool, // FIXME: bool typing
-    texels: &[P::Encoding]
-  ) {
+    texels: &[P::Encoding],
+  )
+  {
     self.upload_part(gen_mipmaps, D::zero_offset(), self.size, texels)
   }
 
@@ -559,8 +664,9 @@ impl<L, D, P> Texture<L, D, P>
     gen_mipmaps: bool,
     offset: D::Offset,
     size: D::Size,
-    texels: &[P::RawEncoding]
-  ) {
+    texels: &[P::RawEncoding],
+  )
+  {
     unsafe {
       let mut gfx_state = self.state.borrow_mut();
 
@@ -583,7 +689,10 @@ impl<L, D, P> Texture<L, D, P>
 
   // FIXME: cubemaps?
   /// Get the raw texels associated with this texture.
-  pub fn get_raw_texels(&self) -> Vec<P::RawEncoding> where P: Pixel, P::RawEncoding: Copy {
+  pub fn get_raw_texels(&self) -> Vec<P::RawEncoding>
+  where
+    P: Pixel,
+    P::RawEncoding: Copy, {
     let mut texels = Vec::new();
     let pf = P::pixel_format();
     let (format, _, ty) = opengl_pixel_format(pf).unwrap();
@@ -617,17 +726,21 @@ impl<L, D, P> Texture<L, D, P>
 
 pub(crate) fn opengl_target(l: Layering, d: Dim) -> GLenum {
   match l {
-    Layering::Flat => match d {
-      Dim::Dim1 => gl::TEXTURE_1D,
-      Dim::Dim2 => gl::TEXTURE_2D,
-      Dim::Dim3 => gl::TEXTURE_3D,
-      Dim::Cubemap => gl::TEXTURE_CUBE_MAP
-    },
-    Layering::Layered => match d {
-      Dim::Dim1 => gl::TEXTURE_1D_ARRAY,
-      Dim::Dim2 => gl::TEXTURE_2D_ARRAY,
-      Dim::Dim3 => panic!("3D textures array not supported"),
-      Dim::Cubemap => gl::TEXTURE_CUBE_MAP_ARRAY
+    Layering::Flat => {
+      match d {
+        Dim::Dim1 => gl::TEXTURE_1D,
+        Dim::Dim2 => gl::TEXTURE_2D,
+        Dim::Dim3 => gl::TEXTURE_3D,
+        Dim::Cubemap => gl::TEXTURE_CUBE_MAP,
+      }
+    }
+    Layering::Layered => {
+      match d {
+        Dim::Dim1 => gl::TEXTURE_1D_ARRAY,
+        Dim::Dim2 => gl::TEXTURE_2D_ARRAY,
+        Dim::Dim3 => panic!("3D textures array not supported"),
+        Dim::Cubemap => gl::TEXTURE_CUBE_MAP_ARRAY,
+      }
     }
   }
 }
@@ -637,22 +750,21 @@ pub(crate) unsafe fn create_texture<L, D>(
   size: D::Size,
   mipmaps: usize,
   pf: PixelFormat,
-  sampler: &Sampler
+  sampler: &Sampler,
 ) -> Result<(), TextureError>
-where L: Layerable,
-      D: Dimensionable {
+where
+  L: Layerable,
+  D: Dimensionable,
+{
   set_texture_levels(target, mipmaps);
   apply_sampler_to_texture(target, sampler);
   create_texture_storage::<L, D>(size, mipmaps, pf)
 }
 
-fn create_texture_storage<L, D>(
-  size: D::Size,
-  mipmaps: usize,
-  pf: PixelFormat
-) -> Result<(), TextureError>
-where L: Layerable,
-      D: Dimensionable {
+fn create_texture_storage<L, D>(size: D::Size, mipmaps: usize, pf: PixelFormat) -> Result<(), TextureError>
+where
+  L: Layerable,
+  D: Dimensionable, {
   match opengl_pixel_format(pf) {
     Some(glf) => {
       let (format, iformat, encoding) = glf;
@@ -666,13 +778,28 @@ where L: Layerable,
 
         // 2D texture
         (Layering::Flat, Dim::Dim2) => {
-          create_texture_2d_storage(format, iformat, encoding, D::width(size), D::height(size), mipmaps);
+          create_texture_2d_storage(
+            format,
+            iformat,
+            encoding,
+            D::width(size),
+            D::height(size),
+            mipmaps,
+          );
           Ok(())
         }
 
         // 3D texture
         (Layering::Flat, Dim::Dim3) => {
-          create_texture_3d_storage(format, iformat, encoding, D::width(size), D::height(size), D::depth(size), mipmaps);
+          create_texture_3d_storage(
+            format,
+            iformat,
+            encoding,
+            D::width(size),
+            D::height(size),
+            D::depth(size),
+            mipmaps,
+          );
           Ok(())
         }
 
@@ -685,7 +812,10 @@ where L: Layerable,
         _ => {
           #[cfg(feature = "std")]
           {
-            Err(TextureError::TextureStorageCreationFailed(format!("unsupported texture OpenGL pixel format: {:?}", glf)))
+            Err(TextureError::TextureStorageCreationFailed(format!(
+              "unsupported texture OpenGL pixel format: {:?}",
+              glf
+            )))
           }
 
           #[cfg(not(feature = "std"))]
@@ -701,7 +831,10 @@ where L: Layerable,
     None => {
       #[cfg(feature = "std")]
       {
-        Err(TextureError::TextureStorageCreationFailed(format!("unsupported texture pixel format: {:?}", pf)))
+        Err(TextureError::TextureStorageCreationFailed(format!(
+          "unsupported texture pixel format: {:?}",
+          pf
+        )))
       }
 
       #[cfg(not(feature = "std"))]
@@ -715,39 +848,104 @@ where L: Layerable,
 }
 
 fn create_texture_1d_storage(format: GLenum, iformat: GLenum, encoding: GLenum, w: u32, mipmaps: usize) {
-  for level in 0..mipmaps {
+  for level in 0 .. mipmaps {
     let w = w / 2u32.pow(level as u32);
 
-    unsafe { gl::TexImage1D(gl::TEXTURE_1D, level as GLint, iformat as GLint, w as GLsizei, 0, format, encoding, ptr::null()) };
+    unsafe {
+      gl::TexImage1D(
+        gl::TEXTURE_1D,
+        level as GLint,
+        iformat as GLint,
+        w as GLsizei,
+        0,
+        format,
+        encoding,
+        ptr::null(),
+      )
+    };
   }
 }
 
-fn create_texture_2d_storage(format: GLenum, iformat: GLenum, encoding: GLenum, w: u32, h: u32, mipmaps: usize) {
-  for level in 0..mipmaps {
+fn create_texture_2d_storage(
+  format: GLenum,
+  iformat: GLenum,
+  encoding: GLenum,
+  w: u32,
+  h: u32,
+  mipmaps: usize,
+)
+{
+  for level in 0 .. mipmaps {
     let div = 2u32.pow(level as u32);
     let w = w / div;
     let h = h / div;
 
-    unsafe { gl::TexImage2D(gl::TEXTURE_2D, level as GLint, iformat as GLint, w as GLsizei, h as GLsizei, 0, format, encoding, ptr::null()) };
+    unsafe {
+      gl::TexImage2D(
+        gl::TEXTURE_2D,
+        level as GLint,
+        iformat as GLint,
+        w as GLsizei,
+        h as GLsizei,
+        0,
+        format,
+        encoding,
+        ptr::null(),
+      )
+    };
   }
 }
 
-fn create_texture_3d_storage(format: GLenum, iformat: GLenum, encoding: GLenum, w: u32, h: u32, d: u32, mipmaps: usize) {
-  for level in 0..mipmaps {
+fn create_texture_3d_storage(
+  format: GLenum,
+  iformat: GLenum,
+  encoding: GLenum,
+  w: u32,
+  h: u32,
+  d: u32,
+  mipmaps: usize,
+)
+{
+  for level in 0 .. mipmaps {
     let div = 2u32.pow(level as u32);
     let w = w / div;
     let h = h / div;
     let d = d / div;
 
-    unsafe { gl::TexImage3D(gl::TEXTURE_3D, level as GLint, iformat as GLint, w as GLsizei, h as GLsizei, d as GLsizei, 0, format, encoding, ptr::null()) };
+    unsafe {
+      gl::TexImage3D(
+        gl::TEXTURE_3D,
+        level as GLint,
+        iformat as GLint,
+        w as GLsizei,
+        h as GLsizei,
+        d as GLsizei,
+        0,
+        format,
+        encoding,
+        ptr::null(),
+      )
+    };
   }
 }
 
 fn create_cubemap_storage(format: GLenum, iformat: GLenum, encoding: GLenum, s: u32, mipmaps: usize) {
-  for level in 0..mipmaps {
+  for level in 0 .. mipmaps {
     let s = s / 2u32.pow(level as u32);
 
-    unsafe { gl::TexImage2D(gl::TEXTURE_CUBE_MAP, level as GLint, iformat as GLint, s as GLsizei, s as GLsizei, 0, format, encoding, ptr::null()) };
+    unsafe {
+      gl::TexImage2D(
+        gl::TEXTURE_CUBE_MAP,
+        level as GLint,
+        iformat as GLint,
+        s as GLsizei,
+        s as GLsizei,
+        0,
+        format,
+        encoding,
+        ptr::null(),
+      )
+    };
   }
 }
 
@@ -763,13 +961,29 @@ fn apply_sampler_to_texture(target: GLenum, sampler: &Sampler) {
     gl::TexParameteri(target, gl::TEXTURE_WRAP_R, opengl_wrap(sampler.wrap_r) as GLint);
     gl::TexParameteri(target, gl::TEXTURE_WRAP_S, opengl_wrap(sampler.wrap_s) as GLint);
     gl::TexParameteri(target, gl::TEXTURE_WRAP_T, opengl_wrap(sampler.wrap_t) as GLint);
-    gl::TexParameteri(target, gl::TEXTURE_MIN_FILTER, opengl_min_filter(sampler.min_filter) as GLint);
-    gl::TexParameteri(target, gl::TEXTURE_MAG_FILTER, opengl_mag_filter(sampler.mag_filter) as GLint);
+    gl::TexParameteri(
+      target,
+      gl::TEXTURE_MIN_FILTER,
+      opengl_min_filter(sampler.min_filter) as GLint,
+    );
+    gl::TexParameteri(
+      target,
+      gl::TEXTURE_MAG_FILTER,
+      opengl_mag_filter(sampler.mag_filter) as GLint,
+    );
     match sampler.depth_comparison {
       Some(fun) => {
-        gl::TexParameteri(target, gl::TEXTURE_COMPARE_FUNC, opengl_depth_comparison(fun) as GLint);
-        gl::TexParameteri(target, gl::TEXTURE_COMPARE_MODE, gl::COMPARE_REF_TO_TEXTURE as GLint);
-      },
+        gl::TexParameteri(
+          target,
+          gl::TEXTURE_COMPARE_FUNC,
+          opengl_depth_comparison(fun) as GLint,
+        );
+        gl::TexParameteri(
+          target,
+          gl::TEXTURE_COMPARE_MODE,
+          gl::COMPARE_REF_TO_TEXTURE as GLint,
+        );
+      }
       None => {
         gl::TexParameteri(target, gl::TEXTURE_COMPARE_MODE, gl::NONE as GLint);
       }
@@ -781,7 +995,7 @@ fn opengl_wrap(wrap: Wrap) -> GLenum {
   match wrap {
     Wrap::ClampToEdge => gl::CLAMP_TO_EDGE,
     Wrap::Repeat => gl::REPEAT,
-    Wrap::MirroredRepeat => gl::MIRRORED_REPEAT
+    Wrap::MirroredRepeat => gl::MIRRORED_REPEAT,
   }
 }
 
@@ -792,14 +1006,14 @@ fn opengl_min_filter(filter: MinFilter) -> GLenum {
     MinFilter::NearestMipmapNearest => gl::NEAREST_MIPMAP_NEAREST,
     MinFilter::NearestMipmapLinear => gl::NEAREST_MIPMAP_LINEAR,
     MinFilter::LinearMipmapNearest => gl::LINEAR_MIPMAP_NEAREST,
-    MinFilter::LinearMipmapLinear => gl::LINEAR_MIPMAP_LINEAR
+    MinFilter::LinearMipmapLinear => gl::LINEAR_MIPMAP_LINEAR,
   }
 }
 
 fn opengl_mag_filter(filter: MagFilter) -> GLenum {
   match filter {
     MagFilter::Nearest => gl::NEAREST,
-    MagFilter::Linear => gl::LINEAR
+    MagFilter::Linear => gl::LINEAR,
   }
 }
 
@@ -812,15 +1026,16 @@ fn opengl_depth_comparison(fun: DepthComparison) -> GLenum {
     DepthComparison::Less => gl::LESS,
     DepthComparison::LessOrEqual => gl::LEQUAL,
     DepthComparison::Greater => gl::GREATER,
-    DepthComparison::GreaterOrEqual => gl::GEQUAL
+    DepthComparison::GreaterOrEqual => gl::GEQUAL,
   }
 }
 
 // Upload texels into the texture’s memory. Becareful of the type of texels you send down.
 fn upload_texels<L, D, P, T>(target: GLenum, off: D::Offset, size: D::Size, texels: &[T])
-    where L: Layerable,
-          D: Dimensionable,
-          P: Pixel {
+where
+  L: Layerable,
+  D: Dimensionable,
+  P: Pixel, {
   let pf = P::pixel_format();
 
   match opengl_pixel_format(pf) {
@@ -828,16 +1043,66 @@ fn upload_texels<L, D, P, T>(target: GLenum, off: D::Offset, size: D::Size, texe
       match L::layering() {
         Layering::Flat => {
           match D::dim() {
-            Dim::Dim1 => unsafe { gl::TexSubImage1D(target, 0, D::x_offset(off) as GLint, D::width(size) as GLsizei, format, encoding, texels.as_ptr() as *const c_void) },
-            Dim::Dim2 => unsafe { gl::TexSubImage2D(target, 0, D::x_offset(off) as GLint, D::y_offset(off) as GLint, D::width(size) as GLsizei, D::height(size) as GLsizei, format, encoding, texels.as_ptr() as *const c_void) },
-            Dim::Dim3 => unsafe { gl::TexSubImage3D(target, 0, D::x_offset(off) as GLint, D::y_offset(off) as GLint, D::z_offset(off) as GLint, D::width(size) as GLsizei, D::height(size) as GLsizei, D::depth(size) as GLsizei, format, encoding, texels.as_ptr() as *const c_void) },
-            Dim::Cubemap => unsafe { gl::TexSubImage3D(target, 0, D::x_offset(off) as GLint, D::y_offset(off) as GLint, (gl::TEXTURE_CUBE_MAP_POSITIVE_X + D::z_offset(off)) as GLint, D::width(size) as GLsizei, D::width(size) as GLsizei, 1, format, encoding, texels.as_ptr() as *const c_void) }
+            Dim::Dim1 => unsafe {
+              gl::TexSubImage1D(
+                target,
+                0,
+                D::x_offset(off) as GLint,
+                D::width(size) as GLsizei,
+                format,
+                encoding,
+                texels.as_ptr() as *const c_void,
+              )
+            },
+            Dim::Dim2 => unsafe {
+              gl::TexSubImage2D(
+                target,
+                0,
+                D::x_offset(off) as GLint,
+                D::y_offset(off) as GLint,
+                D::width(size) as GLsizei,
+                D::height(size) as GLsizei,
+                format,
+                encoding,
+                texels.as_ptr() as *const c_void,
+              )
+            },
+            Dim::Dim3 => unsafe {
+              gl::TexSubImage3D(
+                target,
+                0,
+                D::x_offset(off) as GLint,
+                D::y_offset(off) as GLint,
+                D::z_offset(off) as GLint,
+                D::width(size) as GLsizei,
+                D::height(size) as GLsizei,
+                D::depth(size) as GLsizei,
+                format,
+                encoding,
+                texels.as_ptr() as *const c_void,
+              )
+            },
+            Dim::Cubemap => unsafe {
+              gl::TexSubImage3D(
+                target,
+                0,
+                D::x_offset(off) as GLint,
+                D::y_offset(off) as GLint,
+                (gl::TEXTURE_CUBE_MAP_POSITIVE_X + D::z_offset(off)) as GLint,
+                D::width(size) as GLsizei,
+                D::width(size) as GLsizei,
+                1,
+                format,
+                encoding,
+                texels.as_ptr() as *const c_void,
+              )
+            },
           }
-        },
-        Layering::Layered => panic!("Layering::Layered not implemented yet")
+        }
+        Layering::Layered => panic!("Layering::Layered not implemented yet"),
       }
-    },
-    None => panic!("unknown pixel format")
+    }
+    None => panic!("unknown pixel format"),
   }
 }
 
@@ -855,7 +1120,7 @@ pub struct Sampler {
   /// Magnification filter.
   pub mag_filter: MagFilter,
   /// For depth textures, should we perform depth comparison and if so, how?
-  pub depth_comparison: Option<DepthComparison>
+  pub depth_comparison: Option<DepthComparison>,
 }
 
 /// Default value is as following:
@@ -867,7 +1132,7 @@ impl Default for Sampler {
       wrap_t: Wrap::ClampToEdge,
       min_filter: MinFilter::NearestMipmapLinear,
       mag_filter: MagFilter::Linear,
-      depth_comparison: None
+      depth_comparison: None,
     }
   }
 }

@@ -5,7 +5,7 @@
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct FaceCulling {
   pub(crate) order: FaceCullingOrder,
-  pub(crate) mode: FaceCullingMode
+  pub(crate) mode: FaceCullingMode,
 }
 
 impl FaceCulling {
@@ -23,7 +23,7 @@ impl Default for FaceCulling {
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) enum FaceCullingState {
   Enabled,
-  Disabled
+  Disabled,
 }
 
 /// Face culling order.
@@ -36,7 +36,7 @@ pub enum FaceCullingOrder {
   /// Clockwise order.
   CW,
   /// Counter-clockwise order.
-  CCW
+  CCW,
 }
 
 /// Side to show and side to cull.
@@ -47,5 +47,5 @@ pub enum FaceCullingMode {
   /// Cull the back side only.
   Back,
   /// Always cull any triangle.
-  Both
+  Both,
 }

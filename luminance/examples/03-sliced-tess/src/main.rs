@@ -17,13 +17,13 @@
 extern crate luminance;
 extern crate luminance_glfw;
 
+use luminance::context::GraphicsContext;
 use luminance::framebuffer::Framebuffer;
+use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, Tess, TessSliceIndex};
-use luminance::render_state::RenderState;
 use luminance_glfw::event::{Action, Key, WindowEvent};
 use luminance_glfw::surface::{GlfwSurface, Surface, WindowDim, WindowOpt};
-use luminance::context::GraphicsContext;
 
 const VS: &'static str = include_str!("vs.glsl");
 const FS: &'static str = include_str!("fs.glsl");
@@ -32,21 +32,21 @@ type Vertex = ([f32; 2], [f32; 3]);
 
 const TRI_VERTICES: [Vertex; 6] = [
   // first triangle – a red one
-  ([ 0.5, -0.5], [1., 0., 0.]),
-  ([ 0.0,  0.5], [1., 0., 0.]),
+  ([0.5, -0.5], [1., 0., 0.]),
+  ([0.0, 0.5], [1., 0., 0.]),
   ([-0.5, -0.5], [1., 0., 0.]),
   // second triangle, a blue one
-  ([-0.5,  0.5], [0., 0., 1.]),
-  ([ 0.0, -0.5], [0., 0., 1.]),
-  ([ 0.5,  0.5], [0., 0., 1.])
+  ([-0.5, 0.5], [0., 0., 1.]),
+  ([0.0, -0.5], [0., 0., 1.]),
+  ([0.5, 0.5], [0., 0., 1.]),
 ];
 
 // Convenience type to select which slice to render.
 #[derive(Copy, Clone, Debug)]
-enum SliceMethod { 
-  Red, // draw the red triangle
+enum SliceMethod {
+  Red,  // draw the red triangle
   Blue, // draw the blue triangle
-  Both // draw both the triangles
+  Both, // draw both the triangles
 }
 
 impl SliceMethod {
@@ -54,13 +54,18 @@ impl SliceMethod {
     match self {
       SliceMethod::Red => SliceMethod::Blue,
       SliceMethod::Blue => SliceMethod::Both,
-      SliceMethod::Both => SliceMethod::Red
+      SliceMethod::Both => SliceMethod::Red,
     }
   }
 }
 
 fn main() {
-  let mut surface = GlfwSurface::new(WindowDim::Windowed(960, 540), "Hello, world!", WindowOpt::default()).expect("GLFW surface creation");
+  let mut surface = GlfwSurface::new(
+    WindowDim::Windowed(960, 540),
+    "Hello, world!",
+    WindowOpt::default(),
+  )
+  .expect("GLFW surface creation");
 
   let (program, _) = Program::<Vertex, (), ()>::from_strings(None, VS, None, FS).expect("program creation");
 
@@ -75,9 +80,7 @@ fn main() {
   'app: loop {
     for event in surface.poll_events() {
       match event {
-        WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => {
-          break 'app
-        }
+        WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
 
         WindowEvent::Key(Key::Space, _, Action::Release, _) => {
           slice_method = slice_method.toggle();
@@ -88,31 +91,32 @@ fn main() {
           back_buffer = Framebuffer::back_buffer([width as u32, height as u32]);
         }
 
-        _ => ()
+        _ => (),
       }
     }
 
-    surface.pipeline_builder().pipeline(&back_buffer, [0., 0., 0., 0.], |_, shd_gate| {
-      shd_gate.shade(&program, |rdr_gate, _| {
-        rdr_gate.render(RenderState::default(), |tess_gate| {
-          let slice = match slice_method {
-            // the red triangle is at slice [..3]; you can also use the TessSlice::one_sub
-            // combinator if the start element is 0
-            SliceMethod::Red => triangles.slice(..3), // TessSlice::one_slice(&triangles, 0, 3),
-            // the blue triangle is at slice [3..]
-            SliceMethod::Blue => triangles.slice(3..), // TessSlice::one_slice(&triangles, 3, 6),
-            // both triangles are at slice [0..6] or [..], but we’ll use the faster
-            // TessSlice::one_whole combinator; this combinator is also if you invoke the From or
-            // Into method on (&triangles) (we did that in 02-render-state)
-            SliceMethod::Both => triangles.slice(..) // TessSlice::one_whole(&triangles)
-          };
+    surface
+      .pipeline_builder()
+      .pipeline(&back_buffer, [0., 0., 0., 0.], |_, shd_gate| {
+        shd_gate.shade(&program, |rdr_gate, _| {
+          rdr_gate.render(RenderState::default(), |tess_gate| {
+            let slice = match slice_method {
+              // the red triangle is at slice [..3]; you can also use the TessSlice::one_sub
+              // combinator if the start element is 0
+              SliceMethod::Red => triangles.slice(.. 3), // TessSlice::one_slice(&triangles, 0, 3),
+              // the blue triangle is at slice [3..]
+              SliceMethod::Blue => triangles.slice(3 ..), // TessSlice::one_slice(&triangles, 3, 6),
+              // both triangles are at slice [0..6] or [..], but we’ll use the faster
+              // TessSlice::one_whole combinator; this combinator is also if you invoke the From or
+              // Into method on (&triangles) (we did that in 02-render-state)
+              SliceMethod::Both => triangles.slice(..), // TessSlice::one_whole(&triangles)
+            };
 
-
-          // render the dynamically selected slice
-          tess_gate.render(&mut surface, slice);
+            // render the dynamically selected slice
+            tess_gate.render(&mut surface, slice);
+          });
         });
       });
-    });
 
     surface.swap_buffers();
   }

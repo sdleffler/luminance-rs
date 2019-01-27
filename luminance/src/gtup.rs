@@ -36,7 +36,7 @@ macro_rules! gtup_value {
 
 /// Generalized free tuple macro.
 ///
-/// If your compiler supports the `type_macros`*feature*, you can use this macro to create tuples 
+/// If your compiler supports the `type_macros`*feature*, you can use this macro to create tuples
 /// without the syntactic nesting boilerplate.
 ///
 /// Furthermore, you can create values with this macro as well.

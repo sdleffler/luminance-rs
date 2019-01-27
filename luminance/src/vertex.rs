@@ -44,8 +44,10 @@
 //! mapping your inner fields to a tuple or `GTup`, and call the right `Vertex` method on that
 //! tuple.
 
-#[cfg(feature = "std")] use std::vec::Vec;
-#[cfg(not(feature = "std"))] use alloc::vec::Vec;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+#[cfg(feature = "std")]
+use std::vec::Vec;
 
 use gtup::GTup;
 
@@ -65,7 +67,7 @@ pub struct VertexComponentFormat {
   pub unit_size: usize,
   /// Alignment of the component. The best advice is to respect what Rust does, so it’s highly
   /// recommended to use `::std::mem::align_of` to let it does the job for you.
-  pub align: usize
+  pub align: usize,
 }
 
 /// Possible type of vertex components.
@@ -74,7 +76,7 @@ pub enum Type {
   Integral,
   Unsigned,
   Floating,
-  Boolean
+  Boolean,
 }
 
 /// Possible dimension of vertex components.
@@ -83,7 +85,7 @@ pub enum Dim {
   Dim1,
   Dim2,
   Dim3,
-  Dim4
+  Dim4,
 }
 
 /// A type that can be used as a `Vertex` has to implement that trait – it must provide a mapping
@@ -102,7 +104,9 @@ pub unsafe trait Vertex {
 /// is, if `V1` is a sub-slice of `V0` starting at 0.
 ///
 /// We node that as `V1: CompatibleVertex<V0>`.
-pub unsafe trait CompatibleVertex<V>: Vertex where V: Vertex  {}
+pub unsafe trait CompatibleVertex<V>: Vertex
+where V: Vertex {
+}
 
 unsafe impl<V> CompatibleVertex<V> for V where V: Vertex {}
 
@@ -122,7 +126,7 @@ macro_rules! impl_base {
           comp_type: Type::$comp_type,
           dim: Dim::$dim,
           unit_size: $crate::vertex::size_of::<$q>(),
-          align: $crate::vertex::align_of::<$q>()
+          align: $crate::vertex::align_of::<$q>(),
         }]
       }
     }
@@ -130,7 +134,7 @@ macro_rules! impl_base {
 
   ($t:ty, $comp_type:ident, $dim:ident) => {
     impl_base!($t, $t, $comp_type, $dim);
-  }
+  };
 }
 
 macro_rules! impl_arr {
@@ -139,7 +143,7 @@ macro_rules! impl_arr {
     impl_base!([$t; 2], $t, $q, Dim2);
     impl_base!([$t; 3], $t, $q, Dim3);
     impl_base!([$t; 4], $t, $q, Dim4);
-  }
+  };
 }
 
 unsafe impl Vertex for () {
@@ -176,7 +180,11 @@ impl_arr!(f64, Floating);
 
 impl_arr!(bool, Boolean);
 
-unsafe impl<A, B> Vertex for GTup<A, B> where A: Vertex, B: Vertex {
+unsafe impl<A, B> Vertex for GTup<A, B>
+where
+  A: Vertex,
+  B: Vertex,
+{
   fn vertex_format() -> VertexFormat {
     let mut t = A::vertex_format();
     t.extend(B::vertex_format());

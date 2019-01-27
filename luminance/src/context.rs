@@ -10,22 +10,26 @@
 //!
 //! This crate is designed to work with the following principles:
 //!
-//!   - An object which type implements `GraphicsContext` must be `!Send` and `!Sync`. This
-//!     enforces that it cannot be moved nor shared between threads. Because of `GraphicsState`,
-//!     it’s very likely it’ll be `!Send` and `!Sync` automatically.
+//!   - An object which type implements `GraphicsContext` must be `!Send` and `!Sync`. This enforces that it
+//!     cannot be moved nor shared between threads. Because of `GraphicsState`, it’s very likely it’ll be
+//!     `!Send` and `!Sync` automatically.
 //!   - You can only create a single context per thread. Doing otherwise is undefined behavior.
-//!   - You can create as many contexts as you want as long as they respectively live on a
-//!     separate thread. In other terms, if you want `n` contexts, you need `n` threads.
+//!   - You can create as many contexts as you want as long as they respectively live on a separate thread. In
+//!     other terms, if you want `n` contexts, you need `n` threads.
 //!
 //! That last property might seem to be a drawback to you but is required to remove a lot of
 //! dynamic branches in the implementation and reduce the number of required safety
 //! checks – enforced at compile time instead.
 
-#[cfg(feature = "std")] use std::cell::RefCell;
-#[cfg(feature = "std")] use std::rc::Rc;
+#[cfg(feature = "std")]
+use std::cell::RefCell;
+#[cfg(feature = "std")]
+use std::rc::Rc;
 
-#[cfg(not(feature = "std"))] use alloc::rc::Rc;
-#[cfg(not(feature = "std"))] use core::cell::RefCell;
+#[cfg(not(feature = "std"))]
+use alloc::rc::Rc;
+#[cfg(not(feature = "std"))]
+use core::cell::RefCell;
 
 use pipeline::Builder;
 use state::GraphicsState;

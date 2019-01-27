@@ -1,12 +1,20 @@
-#[cfg(feature = "std")] use std::ffi::CString;
-#[cfg(feature = "std")] use std::fmt;
-#[cfg(feature = "std")] use std::ptr::{null, null_mut};
+#[cfg(feature = "std")]
+use std::ffi::CString;
+#[cfg(feature = "std")]
+use std::fmt;
+#[cfg(feature = "std")]
+use std::ptr::{null, null_mut};
 
-#[cfg(not(feature = "std"))] use alloc::prelude::ToOwned;
-#[cfg(not(feature = "std"))] use alloc::string::String;
-#[cfg(not(feature = "std"))] use alloc::vec::Vec;
-#[cfg(not(feature = "std"))] use core::fmt;
-#[cfg(not(feature = "std"))] use core::ptr::{null, null_mut};
+#[cfg(not(feature = "std"))]
+use alloc::prelude::ToOwned;
+#[cfg(not(feature = "std"))]
+use alloc::string::String;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+#[cfg(not(feature = "std"))]
+use core::fmt;
+#[cfg(not(feature = "std"))]
+use core::ptr::{null, null_mut};
 
 use metagl::*;
 
@@ -17,7 +25,7 @@ pub enum Type {
   TessellationEvaluationShader,
   VertexShader,
   GeometryShader,
-  FragmentShader
+  FragmentShader,
 }
 
 impl fmt::Display for Type {
@@ -27,7 +35,7 @@ impl fmt::Display for Type {
       Type::TessellationEvaluationShader => f.write_str("tessellation evaluation shader"),
       Type::VertexShader => f.write_str("vertex shader"),
       Type::GeometryShader => f.write_str("geometry shader"),
-      Type::FragmentShader => f.write_str("fragment shader")
+      Type::FragmentShader => f.write_str("fragment shader"),
     }
   }
 }
@@ -36,7 +44,7 @@ impl fmt::Display for Type {
 #[derive(Debug)]
 pub struct Stage {
   handle: GLuint,
-  ty: Type
+  ty: Type,
 }
 
 impl Stage {
@@ -46,7 +54,10 @@ impl Stage {
       let handle = gl::CreateShader(opengl_shader_type(ty));
 
       if handle == 0 {
-        return Err(StageError::CompilationFailed(ty, "unable to create shader stage".to_owned()));
+        return Err(StageError::CompilationFailed(
+          ty,
+          "unable to create shader stage".to_owned(),
+        ));
       }
 
       Self::source(handle, src);
@@ -56,10 +67,7 @@ impl Stage {
       gl::GetShaderiv(handle, gl::COMPILE_STATUS, &mut compiled);
 
       if compiled == (gl::TRUE as GLint) {
-        Ok(Stage {
-          handle: handle,
-          ty: ty
-        })
+        Ok(Stage { handle, ty })
       } else {
         let mut log_len: GLint = 0;
         gl::GetShaderiv(handle, gl::INFO_LOG_LENGTH, &mut log_len);
@@ -114,19 +122,15 @@ pub enum StageError {
   /// Occurs when a shader fails to compile.
   CompilationFailed(Type, String),
   /// Occurs when you try to create a shader which type is not supported on the current hardware.
-  UnsupportedType(Type)
+  UnsupportedType(Type),
 }
 
 impl fmt::Display for StageError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
-      StageError::CompilationFailed(ref ty, ref r) => {
-        write!(f, "{} compilation error: {}", ty, r)
-      }
+      StageError::CompilationFailed(ref ty, ref r) => write!(f, "{} compilation error: {}", ty, r),
 
-      StageError::UnsupportedType(ty) => {
-        write!(f, "unsupported {}", ty)
-      }
+      StageError::UnsupportedType(ty) => write!(f, "unsupported {}", ty),
     }
   }
 }
@@ -138,8 +142,8 @@ fn glsl_pragma_src(src: &str) -> String {
 }
 
 const GLSL_PRAGMA: &'static str = "\
-#version 330 core\n\
-#extension GL_ARB_separate_shader_objects : require\n";
+                                   #version 330 core\n\
+                                   #extension GL_ARB_separate_shader_objects : require\n";
 
 fn opengl_shader_type(t: Type) -> GLenum {
   match t {
@@ -147,6 +151,6 @@ fn opengl_shader_type(t: Type) -> GLenum {
     Type::TessellationEvaluationShader => gl::TESS_EVALUATION_SHADER,
     Type::VertexShader => gl::VERTEX_SHADER,
     Type::GeometryShader => gl::GEOMETRY_SHADER,
-    Type::FragmentShader => gl::FRAGMENT_SHADER
+    Type::FragmentShader => gl::FRAGMENT_SHADER,
   }
 }

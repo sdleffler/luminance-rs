@@ -9,16 +9,16 @@
 extern crate luminance;
 extern crate luminance_glfw;
 
+use luminance::context::GraphicsContext;
 use luminance::framebuffer::Framebuffer;
 use luminance::pipeline::BoundTexture;
 use luminance::pixel::RGBA32F;
+use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, Tess, TessSliceIndex};
 use luminance::texture::{Dim2, Flat};
-use luminance::render_state::RenderState;
 use luminance_glfw::event::{Action, Key, WindowEvent};
 use luminance_glfw::surface::{GlfwSurface, Surface, WindowDim, WindowOpt};
-use luminance::context::GraphicsContext;
 
 // we get the shader at compile time from ./vs.glsl and ./fs.glsl
 const VS: &'static str = include_str!("vs.glsl");
@@ -33,8 +33,8 @@ type Vertex = ([f32; 2], [f32; 3]);
 // a single triangle is enough here
 const TRI_VERTICES: [Vertex; 3] = [
   // triangle – an RGB one
-  ([ 0.5, -0.5], [0., 1., 0.]),
-  ([ 0.0,  0.5], [0., 0., 1.]),
+  ([0.5, -0.5], [0., 1., 0.]),
+  ([0.0, 0.5], [0., 0., 1.]),
   ([-0.5, -0.5], [1., 0., 0.]),
 ];
 
@@ -48,10 +48,17 @@ uniform_interface! {
 }
 
 fn main() {
-  let mut surface = GlfwSurface::new(WindowDim::Windowed(960, 540), "Hello, world!", WindowOpt::default()).expect("GLFW surface creation");
+  let mut surface = GlfwSurface::new(
+    WindowDim::Windowed(960, 540),
+    "Hello, world!",
+    WindowOpt::default(),
+  )
+  .expect("GLFW surface creation");
 
   let (program, _) = Program::<Vertex, (), ()>::from_strings(None, VS, None, FS).expect("program creation");
-  let (copy_program, warnings) = Program::<(), (), ShaderInterface>::from_strings(None, COPY_VS, None, COPY_FS).expect("copy program creation");
+  let (copy_program, warnings) =
+    Program::<(), (), ShaderInterface>::from_strings(None, COPY_VS, None, COPY_FS)
+      .expect("copy program creation");
 
   for warning in &warnings {
     eprintln!("copy shader warning: {:?}", warning);
@@ -63,7 +70,7 @@ fn main() {
 
   let surf_size = surface.size();
   // “screen“ we want to render into our offscreen render
-  let mut back_buffer = Framebuffer::back_buffer(surf_size); 
+  let mut back_buffer = Framebuffer::back_buffer(surf_size);
   // offscreen buffer that we will render in the first place
   let mut offscreen_buffer =
     Framebuffer::<Flat, Dim2, RGBA32F, ()>::new(&mut surface, surf_size, 0).expect("framebuffer creation");
@@ -76,15 +83,13 @@ fn main() {
     // for all the events on the surface
     for event in surface.poll_events() {
       match event {
-        WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => {
-          break 'app
-        }
+        WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
 
         WindowEvent::FramebufferSize(width, height) => {
           update_offscreen_buffer = Some([width as u32, height as u32]);
         }
 
-        _ => ()
+        _ => (),
       }
     }
 

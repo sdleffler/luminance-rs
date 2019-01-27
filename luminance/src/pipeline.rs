@@ -25,11 +25,10 @@
 //! framebuffers. Typically, a framebuffer has at least three buffers:
 //!
 //!   - A *color buffer*, that will receive texels (akin to pixels, but for textures/buffers).
-//!   - A *depth buffer*, a special buffer mostly used to determine whether a fragment (pixel) is
-//!     behind something that was previously rendered – it’s a simple solution to discard render
-//!     that won’t be visible anyway.
-//!   - A *stencil buffer*, which often acts as a mask to create interesting effects to your
-//!     renders.
+//!   - A *depth buffer*, a special buffer mostly used to determine whether a fragment (pixel) is behind
+//!     something that was previously rendered – it’s a simple solution to discard render that won’t be
+//!     visible anyway.
+//!   - A *stencil buffer*, which often acts as a mask to create interesting effects to your renders.
 //!
 //! luminance gives you access to the first two – the stencil buffer will be added in a future
 //! release.
@@ -50,12 +49,12 @@
 //!
 //! When you render a fragment A at a position P in a framebuffer, there are several configurations:
 //!
-//!   - You have a depth buffer and the depth test is enabled: in that case, no blending will happen
-//!     as either the already in-place fragment will be chosen or the new one you try to write,
-//!     depending on the result of the depth test.
-//!   - The depth test is disabled: in that case, each time a fragment is to be written to a place
-//!     in a buffer, its output will be blended with the color already present according to a
-//!     *blending equation* and two *blending factors*.
+//!   - You have a depth buffer and the depth test is enabled: in that case, no blending will happen as either
+//!     the already in-place fragment will be chosen or the new one you try to write, depending on the result
+//!     of the depth test.
+//!   - The depth test is disabled: in that case, each time a fragment is to be written to a place in a
+//!     buffer, its output will be blended with the color already present according to a *blending equation*
+//!     and two *blending factors*.
 //!
 //! # Shaders
 //!
@@ -96,26 +95,35 @@
 //! A pipeline is just an aggregation of shadings commands with a few extra information. It
 //! especially gives you the power to scope-bind GPU resources.
 
-#[cfg(feature = "std")] use std::cell::RefCell;
-#[cfg(feature = "std")] use std::marker::PhantomData;
-#[cfg(feature = "std")] use std::ops::Deref;
-#[cfg(feature = "std")] use std::rc::Rc;
+#[cfg(feature = "std")]
+use std::cell::RefCell;
+#[cfg(feature = "std")]
+use std::marker::PhantomData;
+#[cfg(feature = "std")]
+use std::ops::Deref;
+#[cfg(feature = "std")]
+use std::rc::Rc;
 
-#[cfg(not(feature = "std"))] use alloc::rc::Rc;
-#[cfg(not(feature = "std"))] use alloc::vec::Vec;
-#[cfg(not(feature = "std"))] use core::cell::RefCell;
-#[cfg(not(feature = "std"))] use core::marker::PhantomData;
-#[cfg(not(feature = "std"))] use core::ops::Deref;
+#[cfg(not(feature = "std"))]
+use alloc::rc::Rc;
+#[cfg(not(feature = "std"))]
+use alloc::vec::Vec;
+#[cfg(not(feature = "std"))]
+use core::cell::RefCell;
+#[cfg(not(feature = "std"))]
+use core::marker::PhantomData;
+#[cfg(not(feature = "std"))]
+use core::ops::Deref;
 
-use buffer::{Buffer, RawBuffer};
 use blending::BlendingState;
+use buffer::{Buffer, RawBuffer};
 use context::GraphicsContext;
 use face_culling::FaceCullingState;
 use framebuffer::{ColorSlot, DepthSlot, Framebuffer};
 use metagl::*;
 use pixel::{Pixel, Type as PxType};
 use render_state::RenderState;
-use shader::program::{Program, Type, Uniform, Uniformable, UniformInterface};
+use shader::program::{Program, Type, Uniform, UniformInterface, Uniformable};
 use state::GraphicsState;
 use tess::TessSlice;
 use texture::{Dim, Dimensionable, Layerable, Texture};
@@ -131,7 +139,7 @@ struct BindingStack {
   next_texture_unit: u32,
   free_texture_units: Vec<u32>,
   next_buffer_binding: u32,
-  free_buffer_bindings: Vec<u32>
+  free_buffer_bindings: Vec<u32>,
 }
 
 impl BindingStack {
@@ -142,14 +150,14 @@ impl BindingStack {
       next_texture_unit: 0,
       free_texture_units: Vec::new(),
       next_buffer_binding: 0,
-      free_buffer_bindings: Vec::new()
+      free_buffer_bindings: Vec::new(),
     }
   }
 }
 
 /// An opaque type used to create pipelines.
 pub struct Builder {
-  binding_stack: Rc<RefCell<BindingStack>>
+  binding_stack: Rc<RefCell<BindingStack>>,
 }
 
 impl Builder {
@@ -179,18 +187,21 @@ impl Builder {
     &self,
     framebuffer: &Framebuffer<L, D, CS, DS>,
     clear_color: [f32; 4],
-    f: F
-  )
-  where L: Layerable,
-        D: Dimensionable,
-        CS: ColorSlot<L, D>,
-        DS: DepthSlot<L, D>,
-        F: FnOnce(Pipeline, ShadingGate) {
+    f: F,
+  ) where
+    L: Layerable,
+    D: Dimensionable,
+    CS: ColorSlot<L, D>,
+    DS: DepthSlot<L, D>,
+    F: FnOnce(Pipeline, ShadingGate),
+  {
     let binding_stack = &self.binding_stack;
 
     unsafe {
       let bs = binding_stack.borrow();
-      bs.gfx_state.borrow_mut().bind_draw_framebuffer(framebuffer.handle());
+      bs.gfx_state
+        .borrow_mut()
+        .bind_draw_framebuffer(framebuffer.handle());
 
       gl::Viewport(0, 0, framebuffer.width() as GLint, framebuffer.height() as GLint);
       gl::ClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
@@ -209,20 +220,18 @@ impl Builder {
 /// Such a pipeline enables you to call shading commands, bind textures, bind uniform buffers, etc.
 /// in a scoped-binding way.
 pub struct Pipeline<'a> {
-  binding_stack: &'a Rc<RefCell<BindingStack>>
+  binding_stack: &'a Rc<RefCell<BindingStack>>,
 }
 
 impl<'a> Pipeline<'a> {
   /// Bind a texture and return the bound texture.
   ///
   /// The texture remains bound as long as the return value lives.
-  pub fn bind_texture<L, D, P>(
-    &'a self,
-    texture: &'a Texture<L, D, P>
-  ) -> BoundTexture<'a, L, D, P>
-  where L: 'a + Layerable,
-        D: 'a + Dimensionable,
-        P: 'a + Pixel {
+  pub fn bind_texture<L, D, P>(&'a self, texture: &'a Texture<L, D, P>) -> BoundTexture<'a, L, D, P>
+  where
+    L: 'a + Layerable,
+    D: 'a + Dimensionable,
+    P: 'a + Pixel, {
     let mut bstack = self.binding_stack.borrow_mut();
 
     let unit = bstack.free_texture_units.pop().unwrap_or_else(|| {
@@ -244,7 +253,8 @@ impl<'a> Pipeline<'a> {
   /// Bind a buffer and return the bound buffer.
   ///
   /// The buffer remains bound as long as the return value lives.
-  pub fn bind_buffer<T>(&'a self, buffer: &'a T) -> BoundBuffer<'a, T> where T: Deref<Target = RawBuffer> {
+  pub fn bind_buffer<T>(&'a self, buffer: &'a T) -> BoundBuffer<'a, T>
+  where T: Deref<Target = RawBuffer> {
     let mut bstack = self.binding_stack.borrow_mut();
 
     let binding = bstack.free_buffer_bindings.pop().unwrap_or_else(|| {
@@ -255,7 +265,10 @@ impl<'a> Pipeline<'a> {
     });
 
     unsafe {
-      bstack.gfx_state.borrow_mut().bind_buffer_base(buffer.handle(), binding);
+      bstack
+        .gfx_state
+        .borrow_mut()
+        .bind_buffer_base(buffer.handle(), binding);
     }
 
     BoundBuffer::new(self.binding_stack, binding)
@@ -265,31 +278,36 @@ impl<'a> Pipeline<'a> {
 /// An opaque type representing a bound texture in a `Builder`. You may want to pass such an object
 /// to a shader’s uniform’s update.
 pub struct BoundTexture<'a, L, D, P>
-where L: 'a + Layerable,
-      D: 'a + Dimensionable,
-      P: 'a + Pixel {
+where
+  L: 'a + Layerable,
+  D: 'a + Dimensionable,
+  P: 'a + Pixel, {
   unit: u32,
   binding_stack: &'a Rc<RefCell<BindingStack>>,
   _t: PhantomData<&'a Texture<L, D, P>>,
 }
 
 impl<'a, L, D, P> BoundTexture<'a, L, D, P>
-where L: 'a + Layerable,
-      D: 'a + Dimensionable,
-      P: 'a + Pixel {
+where
+  L: 'a + Layerable,
+  D: 'a + Dimensionable,
+  P: 'a + Pixel,
+{
   fn new(binding_stack: &'a Rc<RefCell<BindingStack>>, unit: u32) -> Self {
     BoundTexture {
       unit,
       binding_stack,
-      _t: PhantomData
+      _t: PhantomData,
     }
   }
 }
 
 impl<'a, L, D, P> Drop for BoundTexture<'a, L, D, P>
-where L: 'a + Layerable,
-      D: 'a + Dimensionable,
-      P: 'a + Pixel {
+where
+  L: 'a + Layerable,
+  D: 'a + Dimensionable,
+  P: 'a + Pixel,
+{
   fn drop(&mut self) {
     let mut bstack = self.binding_stack.borrow_mut();
     // place the unit into the free list
@@ -298,9 +316,11 @@ where L: 'a + Layerable,
 }
 
 unsafe impl<'a, 'b, L, D, P> Uniformable for &'b BoundTexture<'a, L, D, P>
-where L: 'a + Layerable,
-      D: 'a + Dimensionable,
-      P: 'a + Pixel {
+where
+  L: 'a + Layerable,
+  D: 'a + Dimensionable,
+  P: 'a + Pixel,
+{
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1i(u.index(), self.unit as GLint) }
   }
@@ -318,17 +338,18 @@ where L: 'a + Layerable,
       (PxType::Floating, Dim::Dim3) => Type::Sampler3D,
       (PxType::Integral, Dim::Cubemap) => Type::ICubemap,
       (PxType::Unsigned, Dim::Cubemap) => Type::UICubemap,
-      (PxType::Floating, Dim::Cubemap) => Type::Cubemap
+      (PxType::Floating, Dim::Cubemap) => Type::Cubemap,
     }
   }
 }
 
 /// An opaque type representing a bound buffer in a `Builder`. You may want to pass such an object
 /// to a shader’s uniform’s update.
-pub struct BoundBuffer<'a, T> where T: 'a {
+pub struct BoundBuffer<'a, T>
+where T: 'a {
   binding: u32,
   binding_stack: &'a Rc<RefCell<BindingStack>>,
-  _t: PhantomData<&'a Buffer<T>>
+  _t: PhantomData<&'a Buffer<T>>,
 }
 
 impl<'a, T> BoundBuffer<'a, T> {
@@ -336,7 +357,7 @@ impl<'a, T> BoundBuffer<'a, T> {
     BoundBuffer {
       binding,
       binding_stack,
-      _t: PhantomData
+      _t: PhantomData,
     }
   }
 }
@@ -354,23 +375,23 @@ unsafe impl<'a, 'b, T> Uniformable for &'b BoundBuffer<'a, T> {
     unsafe { gl::UniformBlockBinding(u.program(), u.index() as GLuint, self.binding as GLuint) }
   }
 
-  fn ty() -> Type { Type::BufferBinding }
+  fn ty() -> Type {
+    Type::BufferBinding
+  }
 }
 
 /// A shading gate provides you with a way to run shaders on rendering commands.
 pub struct ShadingGate<'a> {
-  binding_stack: &'a Rc<RefCell<BindingStack>>
+  binding_stack: &'a Rc<RefCell<BindingStack>>,
 }
 
 impl<'a> ShadingGate<'a> {
   /// Run a shader on a set of rendering commands.
-  pub fn shade<In, Out, Uni, F>(
-    &self,
-    program: &Program<In, Out, Uni>,
-    f: F
-  ) where In: Vertex,
-          Uni: UniformInterface,
-          F: FnOnce(&RenderGate<In>, &Uni) {
+  pub fn shade<In, Out, Uni, F>(&self, program: &Program<In, Out, Uni>, f: F)
+  where
+    In: Vertex,
+    Uni: UniformInterface,
+    F: FnOnce(&RenderGate<In>, &Uni), {
     unsafe {
       let bstack = self.binding_stack.borrow_mut();
       bstack.gfx_state.borrow_mut().use_program(program.handle());
@@ -389,12 +410,13 @@ impl<'a> ShadingGate<'a> {
 /// Render gate, allowing you to alter the render state and render tessellations.
 pub struct RenderGate<'a, V> {
   binding_stack: &'a Rc<RefCell<BindingStack>>,
-  _v: PhantomData<*const V>
+  _v: PhantomData<*const V>,
 }
 
 impl<'a, V> RenderGate<'a, V> {
   /// Alter the render state and draw tessellations.
-  pub fn render<F>(&self, rdr_st: RenderState, f: F) where F: FnOnce(&TessGate<V>) {
+  pub fn render<F>(&self, rdr_st: RenderState, f: F)
+  where F: FnOnce(&TessGate<V>) {
     unsafe {
       let bstack = self.binding_stack.borrow_mut();
       let mut gfx_state = bstack.gfx_state.borrow_mut();
@@ -404,7 +426,7 @@ impl<'a, V> RenderGate<'a, V> {
           gfx_state.set_blending_state(BlendingState::Enabled);
           gfx_state.set_blending_equation(equation);
           gfx_state.set_blending_func(src_factor, dst_factor);
-        },
+        }
         None => {
           gfx_state.set_blending_state(BlendingState::Disabled);
         }
@@ -417,16 +439,14 @@ impl<'a, V> RenderGate<'a, V> {
           gfx_state.set_face_culling_state(FaceCullingState::Enabled);
           gfx_state.set_face_culling_order(face_culling.order);
           gfx_state.set_face_culling_mode(face_culling.mode);
-        },
+        }
         None => {
           gfx_state.set_face_culling_state(FaceCullingState::Disabled);
         }
       }
     }
 
-    let tess_gate = TessGate {
-      _v: PhantomData,
-    };
+    let tess_gate = TessGate { _v: PhantomData };
 
     f(&tess_gate);
   }
@@ -434,16 +454,17 @@ impl<'a, V> RenderGate<'a, V> {
 
 /// Render tessellations.
 pub struct TessGate<V> {
-  _v: PhantomData<*const V>
+  _v: PhantomData<*const V>,
 }
 
-impl<V> TessGate<V> where V: Vertex {
+impl<V> TessGate<V>
+where V: Vertex
+{
   /// Render a tessellation.
-  pub fn render<C, W>(
-    &self,
-    ctx: &mut C,
-    tess: TessSlice<W>
-  ) where C: GraphicsContext, W: CompatibleVertex<V> {
+  pub fn render<C, W>(&self, ctx: &mut C, tess: TessSlice<W>)
+  where
+    C: GraphicsContext,
+    W: CompatibleVertex<V>, {
     tess.render(ctx);
   }
 }
