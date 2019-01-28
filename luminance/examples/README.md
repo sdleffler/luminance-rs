@@ -21,3 +21,7 @@ Each example comes in with a few explanations and how to use them at the top of 
   - [07-offscreen](./07-offscreen): get introduced to *offscreen rendering*, a powerful technique
     used to render frames into memory without directly displaying them on your screen. Offscreen
     framebuffers can be seen as a generalization of your screen.
+  - [08-shader-uniforms-adapt](./08-shader-uniforms-adapt): learn how to change the type of a shader
+    program’s uniform interface on the fly.
+  - [09-dynamic-uniform-interface](./09-dynamic-uniform-interface): implement a dynamic lookup for
+    shader program the easy way by using program interfaces to query uniforms on the fly!

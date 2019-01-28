@@ -238,9 +238,15 @@ where In: Vertex
     )
   }
 
-  /// Get the uniform interface associated with this program.
-  pub(crate) fn uniform_interface(&self) -> &Uni {
-    &self.uni_iface
+  /// Get the program interface associated with this program.
+  pub(crate) fn interface<'a>(&'a self) -> ProgramInterface<'a, Uni> {
+    let raw_program = &self.raw;
+    let uniform_interface = &self.uni_iface;
+
+    ProgramInterface {
+      raw_program,
+      uniform_interface,
+    }
   }
 
   /// Transform the program to adapt the uniform interface.
@@ -428,6 +434,31 @@ impl<'a> UniformBuilder<'a> {
   pub fn unbound<T>(&self) -> Uniform<T>
   where T: Uniformable {
     Uniform::unbound(self.raw.handle)
+  }
+}
+
+/// The shader program interface.
+///
+/// This struct gives you access to several capabilities, among them:
+///
+///   - The typed *uniform interface* you would have acquired earlier.
+///   - Some functions to query more data dynamically.
+pub struct ProgramInterface<'a, Uni> {
+  raw_program: &'a RawProgram,
+  uniform_interface: &'a Uni,
+}
+
+impl<'a, Uni> Deref for ProgramInterface<'a, Uni> {
+  type Target = Uni;
+
+  fn deref(&self) -> &Self::Target {
+    self.uniform_interface
+  }
+}
+
+impl<'a, Uni> ProgramInterface<'a, Uni> {
+  pub fn query(&'a self) -> UniformBuilder<'a> {
+    UniformBuilder::new(self.raw_program)
   }
 }
 

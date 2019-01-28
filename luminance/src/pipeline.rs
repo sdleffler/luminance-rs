@@ -123,7 +123,7 @@ use framebuffer::{ColorSlot, DepthSlot, Framebuffer};
 use metagl::*;
 use pixel::{Pixel, Type as PxType};
 use render_state::RenderState;
-use shader::program::{Program, Type, Uniform, UniformInterface, Uniformable};
+use shader::program::{Program, ProgramInterface, Type, Uniform, UniformInterface, Uniformable};
 use state::GraphicsState;
 use tess::TessSlice;
 use texture::{Dim, Dimensionable, Layerable, Texture};
@@ -387,11 +387,11 @@ pub struct ShadingGate<'a> {
 
 impl<'a> ShadingGate<'a> {
   /// Run a shader on a set of rendering commands.
-  pub fn shade<In, Out, Uni, F>(&self, program: &Program<In, Out, Uni>, f: F)
+  pub fn shade<In, Out, Uni, F>(&self, program: &'a Program<In, Out, Uni>, f: F)
   where
     In: Vertex,
     Uni: UniformInterface,
-    F: FnOnce(&RenderGate<In>, &Uni), {
+    F: FnOnce(&RenderGate<In>, ProgramInterface<'a, Uni>), {
     unsafe {
       let bstack = self.binding_stack.borrow_mut();
       bstack.gfx_state.borrow_mut().use_program(program.handle());
@@ -402,8 +402,8 @@ impl<'a> ShadingGate<'a> {
       _v: PhantomData,
     };
 
-    let uni_iface = program.uniform_interface();
-    f(&render_gate, uni_iface);
+    let program_interface = program.interface();
+    f(&render_gate, program_interface);
   }
 }
 
