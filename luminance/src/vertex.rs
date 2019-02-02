@@ -245,3 +245,90 @@ pub fn align_of<T>() -> usize {
     ::core::mem::align_of::<T>()
   }
 }
+
+pub unsafe trait Deinterleave: Sized {
+  fn visit_deinterleave<V>(&self, visitor: &mut V)
+  where V: SliceVisitor;
+}
+
+pub trait SliceVisitor {
+  fn visit_slice<T>(&mut self, slice: &[T]);
+}
+
+macro_rules! impl_deinterleave_for_scalar {
+  ($t:ty) => {
+    unsafe impl<'a> Deinterleave for &'a [$t] {
+      fn visit_deinterleave<V>(&self, visitor: &mut V)
+      where V: SliceVisitor {
+        visitor.visit_slice(self);
+      }
+    }
+  };
+}
+
+macro_rules! impl_deinterleave_for_arr {
+  ($t:ty) => {
+    impl_deinterleave_for_scalar!([$t; 1]);
+    impl_deinterleave_for_scalar!([$t; 2]);
+    impl_deinterleave_for_scalar!([$t; 3]);
+    impl_deinterleave_for_scalar!([$t; 4]);
+  };
+}
+
+macro_rules! impl_deinterleave_for_tuple {
+  ($($t:tt . $nth:tt),+) => {
+    unsafe impl<'a, $($t),+> Deinterleave for ($(&'a [$t]),+) {
+      fn visit_deinterleave<V>(&self, visitor: &mut V) where V: SliceVisitor {
+        $(
+          visitor.visit_slice(self.$nth);
+        )+
+      }
+    }
+  }
+}
+
+// scalars
+impl_deinterleave_for_scalar!(i8);
+impl_deinterleave_for_scalar!(i16);
+impl_deinterleave_for_scalar!(i32);
+
+impl_deinterleave_for_scalar!(u8);
+impl_deinterleave_for_scalar!(u16);
+impl_deinterleave_for_scalar!(u32);
+
+impl_deinterleave_for_scalar!(f32);
+impl_deinterleave_for_scalar!(f64);
+
+impl_deinterleave_for_scalar!(bool);
+
+// array
+impl_deinterleave_for_arr!(i8);
+impl_deinterleave_for_arr!(i16);
+impl_deinterleave_for_arr!(i32);
+
+impl_deinterleave_for_arr!(u8);
+impl_deinterleave_for_arr!(u16);
+impl_deinterleave_for_arr!(u32);
+
+impl_deinterleave_for_arr!(f32);
+impl_deinterleave_for_arr!(f64);
+
+impl_deinterleave_for_arr!(bool);
+
+impl_deinterleave_for_tuple!(A.0, B.1);
+impl_deinterleave_for_tuple!(A.0, B.1, C.2);
+impl_deinterleave_for_tuple!(A.0, B.1, C.2, D.3);
+impl_deinterleave_for_tuple!(A.0, B.1, C.2, D.3, E.4);
+impl_deinterleave_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5);
+impl_deinterleave_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6);
+impl_deinterleave_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7);
+impl_deinterleave_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7, I.8);
+impl_deinterleave_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7, I.8, J.9);
+impl_deinterleave_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7, I.8, J.9, K.10);
+impl_deinterleave_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7, I.8, J.9, K.10, L.11);
+impl_deinterleave_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7, I.8, J.9, K.10, L.11, M.12);
+impl_deinterleave_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7, I.8, J.9, K.10, L.11, M.12, N.13);
+impl_deinterleave_for_tuple!(A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7, I.8, J.9, K.10, L.11, M.12, N.13, O.14);
+impl_deinterleave_for_tuple!(
+  A.0, B.1, C.2, D.3, E.4, F.5, G.6, H.7, I.8, J.9, K.10, L.11, M.12, N.13, O.14, P.15
+);
