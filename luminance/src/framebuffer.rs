@@ -41,7 +41,6 @@ use core::fmt;
 use core::marker::PhantomData;
 
 use context::GraphicsContext;
-use gtup::GTup;
 use metagl::*;
 use pixel::{ColorPixel, DepthPixel, PixelFormat, RenderablePixel};
 use texture::{
@@ -411,39 +410,6 @@ where
   }
 }
 
-unsafe impl<L, D, P, B> ColorSlot<L, D> for GTup<P, B>
-where
-  L: Layerable,
-  D: Dimensionable,
-  D::Size: Copy,
-  P: ColorPixel + RenderablePixel,
-  B: ColorSlot<L, D>,
-{
-  type ColorTextures = GTup<Texture<L, D, P>, B::ColorTextures>;
-
-  fn color_formats() -> Vec<PixelFormat> {
-    let mut a = <P as ColorSlot<L, D>>::color_formats();
-    a.extend(B::color_formats());
-    a
-  }
-
-  fn reify_textures<C, I>(
-    ctx: &mut C,
-    size: D::Size,
-    mipmaps: usize,
-    textures: &mut I,
-  ) -> Self::ColorTextures
-  where
-    C: GraphicsContext,
-    I: Iterator<Item = GLuint>,
-  {
-    let a = P::reify_textures(ctx, size, mipmaps, textures);
-    let b = B::reify_textures(ctx, size, mipmaps, textures);
-
-    GTup(a, b)
-  }
-}
-
 macro_rules! impl_color_slot_tuple {
   ($($pf:ident),*) => {
     unsafe impl<L, D, $($pf),*> ColorSlot<L, D> for ($($pf),*)
@@ -480,10 +446,10 @@ macro_rules! impl_color_slot_tuples {
   };
 
   ($first:ident , $($pf:ident),*) => {
+    // implement the same list without the first type (reduced by one)
+    impl_color_slot_tuples!($($pf),*);
     // implement the current list
     impl_color_slot_tuple!($first, $($pf),*);
-    // and then implement the same list without the first type (reduced by one)
-    impl_color_slot_tuples!($($pf),*);
   };
 }
 

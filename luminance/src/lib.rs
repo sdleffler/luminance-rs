@@ -110,12 +110,10 @@ extern crate alloc;
 #[cfg(feature = "std")]
 extern crate gl;
 
-#[macro_use]
-pub mod gtup;
-
 pub mod blending;
 pub mod buffer;
 pub mod context;
+pub mod deinterleave;
 pub mod depth_test;
 pub mod face_culling;
 pub mod framebuffer;

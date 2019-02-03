@@ -61,7 +61,7 @@ use core::ptr;
 use buffer::{Buffer, BufferError, BufferSlice, BufferSliceMut, RawBuffer};
 use context::GraphicsContext;
 use metagl::*;
-use vertex::{Deinterleave, Dim, Type, Vertex, VertexComponentFormat};
+use vertex::{Vertex, VertexAttributeDim, VertexAttributeFmt, VertexAttributeType};
 
 /// Vertices can be connected via several modes.
 #[derive(Copy, Clone, Debug)]
@@ -140,7 +140,7 @@ impl<V> Tess<V> {
   where
     C: GraphicsContext,
     TessVertices<'a, V>: From<W>,
-    V: 'a + Vertex,
+    V: 'a + Vertex<'a>,
     I: Into<Option<&'a [u32]>>, {
     let vertices = vertices.into();
 
@@ -166,7 +166,7 @@ impl<V> Tess<V> {
       let raw_vbo = vertex_buffer.to_raw();
 
       ctx.state().borrow_mut().bind_array_buffer(raw_vbo.handle()); // FIXME: issue the call whatever the caching result
-      set_vertex_pointers(&V::vertex_format());
+      set_vertex_pointers(V::VERTEX_FMT);
 
       // TODO: refactor this schiesse
       // in case of indexed render, create an index buffer
@@ -204,13 +204,13 @@ impl<V> Tess<V> {
     }
   }
 
-  //pub fn new_deinterleaved<'a, C, W, I>(
+  // pub fn new_deinterleaved<'a, C, W, I>(
   //  ctx: &mut C,
   //  mode: Mode,
   //  vertices: W,
   //  indices: I
   //) -> Self
-  //where C: GraphicsContext,
+  // where C: GraphicsContext,
   //      TessVertices<'a, V::Deinterleaved>: From<W>,
   //      V: 'a + Vertex + Deinterleave,
   //      I: Into<Option<&'a [u32]>> {
@@ -312,7 +312,7 @@ impl<V> Drop for Tess<V> {
 
 // Give OpenGL types information on the content of the VBO by setting vertex formats and pointers
 // to buffer memory.
-fn set_vertex_pointers(formats: &[VertexComponentFormat]) {
+fn set_vertex_pointers(formats: &[VertexAttributeFmt]) {
   let offsets = aligned_offsets(formats);
   let vertex_weight = offset_based_vertex_weight(formats, &offsets) as GLsizei;
 
@@ -322,7 +322,7 @@ fn set_vertex_pointers(formats: &[VertexComponentFormat]) {
 }
 
 // Compute offsets for all the vertex components according to the alignments provided.
-fn aligned_offsets(formats: &[VertexComponentFormat]) -> Vec<usize> {
+fn aligned_offsets(formats: &[VertexAttributeFmt]) -> Vec<usize> {
   let mut offsets = Vec::with_capacity(formats.len());
   let mut off = 0;
 
@@ -344,22 +344,22 @@ fn off_align(off: usize, align: usize) -> usize {
 }
 
 // Weight in bytes of a vertex component.
-fn component_weight(f: &VertexComponentFormat) -> usize {
+fn component_weight(f: &VertexAttributeFmt) -> usize {
   dim_as_size(&f.dim) as usize * f.unit_size
 }
 
-fn dim_as_size(d: &Dim) -> GLint {
+fn dim_as_size(d: &VertexAttributeDim) -> GLint {
   match *d {
-    Dim::Dim1 => 1,
-    Dim::Dim2 => 2,
-    Dim::Dim3 => 3,
-    Dim::Dim4 => 4,
+    VertexAttributeDim::Dim1 => 1,
+    VertexAttributeDim::Dim2 => 2,
+    VertexAttributeDim::Dim3 => 3,
+    VertexAttributeDim::Dim4 => 4,
   }
 }
 
 // Weight in bytes of a single vertex, taking into account padding so that the vertex stay correctly
 // aligned.
-fn offset_based_vertex_weight(formats: &[VertexComponentFormat], offsets: &[usize]) -> usize {
+fn offset_based_vertex_weight(formats: &[VertexAttributeFmt], offsets: &[usize]) -> usize {
   if formats.is_empty() || offsets.is_empty() {
     return 0;
   }
@@ -371,9 +371,9 @@ fn offset_based_vertex_weight(formats: &[VertexComponentFormat], offsets: &[usiz
 }
 
 // Set the vertex component OpenGL pointers regarding the index of the component (i), the stride
-fn set_component_format(i: u32, stride: GLsizei, off: usize, f: &VertexComponentFormat) {
+fn set_component_format(i: u32, stride: GLsizei, off: usize, f: &VertexAttributeFmt) {
   match f.comp_type {
-    Type::Floating => unsafe {
+    VertexAttributeType::Floating => unsafe {
       gl::VertexAttribPointer(
         i as GLuint,
         dim_as_size(&f.dim),
@@ -383,7 +383,7 @@ fn set_component_format(i: u32, stride: GLsizei, off: usize, f: &VertexComponent
         ptr::null::<c_void>().offset(off as isize),
       );
     },
-    Type::Integral | Type::Unsigned | Type::Boolean => unsafe {
+    VertexAttributeType::Integral | VertexAttributeType::Unsigned | VertexAttributeType::Boolean => unsafe {
       gl::VertexAttribIPointer(
         i as GLuint,
         dim_as_size(&f.dim),
@@ -399,15 +399,15 @@ fn set_component_format(i: u32, stride: GLsizei, off: usize, f: &VertexComponent
   }
 }
 
-fn opengl_sized_type(f: &VertexComponentFormat) -> GLenum {
+fn opengl_sized_type(f: &VertexAttributeFmt) -> GLenum {
   match (f.comp_type, f.unit_size) {
-    (Type::Integral, 1) => gl::BYTE,
-    (Type::Integral, 2) => gl::SHORT,
-    (Type::Integral, 4) => gl::INT,
-    (Type::Unsigned, 1) | (Type::Boolean, 1) => gl::UNSIGNED_BYTE,
-    (Type::Unsigned, 2) => gl::UNSIGNED_SHORT,
-    (Type::Unsigned, 4) => gl::UNSIGNED_INT,
-    (Type::Floating, 4) => gl::FLOAT,
+    (VertexAttributeType::Integral, 1) => gl::BYTE,
+    (VertexAttributeType::Integral, 2) => gl::SHORT,
+    (VertexAttributeType::Integral, 4) => gl::INT,
+    (VertexAttributeType::Unsigned, 1) | (VertexAttributeType::Boolean, 1) => gl::UNSIGNED_BYTE,
+    (VertexAttributeType::Unsigned, 2) => gl::UNSIGNED_SHORT,
+    (VertexAttributeType::Unsigned, 4) => gl::UNSIGNED_INT,
+    (VertexAttributeType::Floating, 4) => gl::FLOAT,
     _ => panic!("unsupported vertex component format: {:?}", f),
   }
 }
@@ -515,7 +515,7 @@ impl<'a, V> TessSlice<'a, V> {
   pub fn render<C>(&self, ctx: &mut C)
   where
     C: GraphicsContext,
-    V: Vertex, {
+    V: Vertex<'a>, {
     self
       .tess
       .render(ctx, self.start_index, self.vert_nb, self.inst_nb);

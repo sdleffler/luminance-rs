@@ -137,7 +137,7 @@ pub struct Program<In, Out, Uni> {
 }
 
 impl<In, Out, Uni> Program<In, Out, Uni>
-where In: Vertex
+where In: for<'a> Vertex<'a>
 {
   /// Create a new program by consuming `Stage`s.
   pub fn from_stages<'a, T, G>(

@@ -389,7 +389,7 @@ impl<'a> ShadingGate<'a> {
   /// Run a shader on a set of rendering commands.
   pub fn shade<In, Out, Uni, F>(&self, program: &'a Program<In, Out, Uni>, f: F)
   where
-    In: Vertex,
+    In: for<'b> Vertex<'b>,
     Uni: UniformInterface,
     F: FnOnce(&RenderGate<In>, ProgramInterface<'a, Uni>), {
     unsafe {
@@ -457,14 +457,14 @@ pub struct TessGate<V> {
   _v: PhantomData<*const V>,
 }
 
-impl<V> TessGate<V>
-where V: Vertex
+impl<'a, V> TessGate<V>
+where V: Vertex<'a>
 {
   /// Render a tessellation.
-  pub fn render<C, W>(&self, ctx: &mut C, tess: TessSlice<W>)
+  pub fn render<C, W>(&self, ctx: &mut C, tess: TessSlice<'a, W>)
   where
     C: GraphicsContext,
-    W: CompatibleVertex<V>, {
+    W: CompatibleVertex<'a, V>, {
     tess.render(ctx);
   }
 }
