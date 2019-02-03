@@ -61,7 +61,7 @@ use core::ptr;
 use buffer::{Buffer, BufferError, BufferSlice, BufferSliceMut, RawBuffer};
 use context::GraphicsContext;
 use metagl::*;
-use vertex::{Dim, Type, Vertex, VertexComponentFormat};
+use vertex::{Deinterleave, Dim, Type, Vertex, VertexComponentFormat};
 
 /// Vertices can be connected via several modes.
 #[derive(Copy, Clone, Debug)]
@@ -103,7 +103,7 @@ impl fmt::Display for TessMapError {
 /// space for the number of vertices, leaving the allocated memory uninitialized.
 #[derive(Debug, Eq, PartialEq)]
 pub enum TessVertices<'a, T>
-where T: 'a + Vertex {
+where T: 'a {
   /// Pass in a slice of vertices.
   Fill(&'a [T]),
   /// Reserve a certain number of vertices.
@@ -111,7 +111,7 @@ where T: 'a + Vertex {
 }
 
 impl<'a, T> From<&'a [T]> for TessVertices<'a, T>
-where T: 'a + Vertex
+where T: 'a
 {
   fn from(slice: &'a [T]) -> Self {
     TessVertices::Fill(slice)
@@ -130,9 +130,7 @@ pub struct Tess<V> {
   _v: PhantomData<V>,
 }
 
-impl<V> Tess<V>
-where V: Vertex
-{
+impl<V> Tess<V> {
   /// Create a new tessellation.
   ///
   /// The `mode` argument gives the type of the primitives and how to interpret the `vertices` and
@@ -205,6 +203,20 @@ where V: Vertex
       }
     }
   }
+
+  //pub fn new_deinterleaved<'a, C, W, I>(
+  //  ctx: &mut C,
+  //  mode: Mode,
+  //  vertices: W,
+  //  indices: I
+  //) -> Self
+  //where C: GraphicsContext,
+  //      TessVertices<'a, V::Deinterleaved>: From<W>,
+  //      V: 'a + Vertex + Deinterleave,
+  //      I: Into<Option<&'a [u32]>> {
+  //  let vertices = vertices.into();
+
+  //}
 
   // Render the tessellation by providing the number of vertices to pick from it and how many
   // instances are wished.

@@ -93,9 +93,50 @@ pub enum Dim {
 ///
 /// If you’re not sure on how to implement that or if you want to use automatic types, feel free
 /// to use the primary supported types and `GTup` or tuples.
-pub unsafe trait Vertex {
+pub unsafe trait Vertex<'a> {
+  type Deinterleaved: Deinterleave;
+
   fn vertex_format() -> VertexFormat;
 }
+
+/// Class of vertex attributes.
+pub unsafe trait VertexAttribute {
+  fn vertex_attribute() -> VertexComponentFormat;
+}
+
+// Macro to quickly implement VertexAttribute for a given type.
+macro_rules! impl_vertex_attribute {
+  ($t:ty, $q:ty, $comp_type:ident, $dim:ident) => {
+    unsafe impl VertexAttribute for $t {
+      fn vertex_attribute() -> VertexComponentFormat {
+        VertexComponentFormat {
+          comp_type: Type::$comp_type,
+          dim: Dim::$dim,
+          unit_size: $crate::vertex::size_of::<$q>(),
+          align: $crate::vertex::align_of::<$q>(),
+        }
+      }
+    }
+  };
+
+  ($t:ty, $comp_type:ident) => {
+    impl_vertex_attribute!($t, $t, $comp_type, Dim1);
+    impl_vertex_attribute!([$t; 1], $t, $comp_type, Dim1);
+    impl_vertex_attribute!([$t; 2], $t, $comp_type, Dim2);
+    impl_vertex_attribute!([$t; 3], $t, $comp_type, Dim3);
+    impl_vertex_attribute!([$t; 4], $t, $comp_type, Dim4);
+  };
+}
+
+impl_vertex_attribute!(i8, Integral);
+impl_vertex_attribute!(i16, Integral);
+impl_vertex_attribute!(i32, Integral);
+impl_vertex_attribute!(u8, Unsigned);
+impl_vertex_attribute!(u16, Unsigned);
+impl_vertex_attribute!(u32, Unsigned);
+impl_vertex_attribute!(f32, Floating);
+impl_vertex_attribute!(f64, Floating);
+impl_vertex_attribute!(bool, Floating);
 
 /// A hint trait to implement to state whether a vertex type is compatible with another.
 ///
@@ -104,11 +145,11 @@ pub unsafe trait Vertex {
 /// is, if `V1` is a sub-slice of `V0` starting at 0.
 ///
 /// We node that as `V1: CompatibleVertex<V0>`.
-pub unsafe trait CompatibleVertex<V>: Vertex
-where V: Vertex {
+pub unsafe trait CompatibleVertex<'a, V>: Vertex
+where V: Vertex<'a> {
 }
 
-unsafe impl<V> CompatibleVertex<V> for V where V: Vertex {}
+unsafe impl<'a, V> CompatibleVertex<'a, V> for V where V: Vertex<'a> {}
 
 /// Macro used to implement the `Vertex` trait.
 ///
@@ -120,7 +161,9 @@ unsafe impl<V> CompatibleVertex<V> for V where V: Vertex {}
 /// than theirselves – usually, scalars.
 macro_rules! impl_base {
   ($t:ty, $q:ty, $comp_type:ident, $dim:ident) => {
-    unsafe impl Vertex for $t {
+    unsafe impl<'a> Vertex<'a> for $t {
+      type Deinterleaved = &'a [$t];
+
       fn vertex_format() -> VertexFormat {
         vec![VertexComponentFormat {
           comp_type: Type::$comp_type,
@@ -146,7 +189,9 @@ macro_rules! impl_arr {
   };
 }
 
-unsafe impl Vertex for () {
+unsafe impl<'a> Vertex<'a> for () {
+  type Deinterleaved = ();
+
   fn vertex_format() -> VertexFormat {
     Vec::new()
   }
@@ -180,23 +225,15 @@ impl_arr!(f64, Floating);
 
 impl_arr!(bool, Boolean);
 
-unsafe impl<A, B> Vertex for GTup<A, B>
-where
-  A: Vertex,
-  B: Vertex,
-{
-  fn vertex_format() -> VertexFormat {
-    let mut t = A::vertex_format();
-    t.extend(B::vertex_format());
-    t
-  }
-}
-
 macro_rules! impl_vertex_for_tuple {
   ($($t:tt),+) => {
-    unsafe impl<$($t),+> Vertex for ($($t),+) where $($t: Vertex),+ {
+    unsafe impl<'a, $($t),+> Vertex<'a> for ($($t),+) where $($t: Vertex<'a>),+ {
       fn vertex_format() -> VertexFormat {
-        <gtup!(:$($t),+) as Vertex>::vertex_format()
+        vec![
+          $(
+            impl_v
+          ),*
+        ]
       }
     }
   }
@@ -247,8 +284,7 @@ pub fn align_of<T>() -> usize {
 }
 
 pub unsafe trait Deinterleave: Sized {
-  fn visit_deinterleave<V>(&self, visitor: &mut V)
-  where V: SliceVisitor;
+  fn visit_deinterleave<V>(&self, visitor: &mut V) where V: SliceVisitor;
 }
 
 pub trait SliceVisitor {
