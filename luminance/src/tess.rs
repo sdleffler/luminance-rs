@@ -60,8 +60,9 @@ use core::ptr;
 
 use buffer::{Buffer, BufferError, BufferSlice, BufferSliceMut, RawBuffer};
 use context::GraphicsContext;
+use deinterleave::{Deinterleave, SliceVisitor};
 use metagl::*;
-use vertex::{Vertex, VertexAttributeDim, VertexAttributeFmt, VertexAttributeType};
+use vertex::{Vertex, VertexAttributeDim, VertexAttributeFmt, VertexAttributeType, VertexFmt};
 
 /// Vertices can be connected via several modes.
 #[derive(Copy, Clone, Debug)]
@@ -85,14 +86,17 @@ pub enum Mode {
 pub enum TessMapError {
   VertexBufferMapFailed(BufferError),
   ForbiddenAttributelessMapping,
+  ForbiddenDeinterleavedMapping,
 }
 
 impl fmt::Display for TessMapError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
       TessMapError::VertexBufferMapFailed(ref e) => write!(f, "cannot map tessallation buffer: {}", e),
-
       TessMapError::ForbiddenAttributelessMapping => f.write_str("cannot map an attributeless buffer"),
+      TessMapError::ForbiddenDeinterleavedMapping => {
+        f.write_str("cannot map a deinterleaved buffer as interleaved")
+      }
     }
   }
 }
@@ -103,14 +107,23 @@ impl fmt::Display for TessMapError {
 /// space for the number of vertices, leaving the allocated memory uninitialized.
 #[derive(Debug, Eq, PartialEq)]
 pub enum TessVertices<'a, T>
-where T: 'a {
+where T: 'a + ?Sized {
   /// Pass in a slice of vertices.
-  Fill(&'a [T]),
+  Fill(&'a T),
   /// Reserve a certain number of vertices.
   Reserve(usize),
 }
 
-impl<'a, T> From<&'a [T]> for TessVertices<'a, T>
+impl<'a, T> TessVertices<'a, [T]> {
+  fn len(&self) -> usize {
+    match *self {
+      TessVertices::Fill(ref slice) => slice.len(),
+      TessVertices::Reserve(len) => len,
+    }
+  }
+}
+
+impl<'a, T> From<&'a [T]> for TessVertices<'a, [T]>
 where T: 'a
 {
   fn from(slice: &'a [T]) -> Self {
@@ -125,7 +138,7 @@ pub struct Tess<V> {
   mode: GLenum,
   vert_nb: usize,
   vao: GLenum,
-  vbo: Option<RawBuffer>, // no vbo means attributeless render
+  vbo: Vec<RawBuffer>, // no vbo means attributeless render
   ibo: Option<RawBuffer>,
   _v: PhantomData<V>,
 }
@@ -139,16 +152,13 @@ impl<V> Tess<V> {
   pub fn new<'a, C, W, I>(ctx: &mut C, mode: Mode, vertices: W, indices: I) -> Self
   where
     C: GraphicsContext,
-    TessVertices<'a, V>: From<W>,
+    TessVertices<'a, [V]>: From<W>,
     V: 'a + Vertex<'a>,
     I: Into<Option<&'a [u32]>>, {
-    let vertices = vertices.into();
+    let vertices = TessVertices::from(vertices);
 
     let mut vao: GLuint = 0;
-    let vert_nb = match vertices {
-      TessVertices::Fill(slice) => slice.len(),
-      TessVertices::Reserve(nb) => nb,
-    };
+    let vert_nb = vertices.len();
 
     unsafe {
       gl::GenVertexArrays(1, &mut vao);
@@ -185,7 +195,7 @@ impl<V> Tess<V> {
           mode: opengl_mode(mode),
           vert_nb: ind_nb,
           vao,
-          vbo: Some(raw_vbo),
+          vbo: vec![raw_vbo],
           ibo: Some(raw_ibo),
           _v: PhantomData,
         }
@@ -196,7 +206,7 @@ impl<V> Tess<V> {
           mode: opengl_mode(mode),
           vert_nb,
           vao,
-          vbo: Some(raw_vbo),
+          vbo: vec![raw_vbo],
           ibo: None,
           _v: PhantomData,
         }
@@ -204,19 +214,64 @@ impl<V> Tess<V> {
     }
   }
 
-  // pub fn new_deinterleaved<'a, C, W, I>(
-  //  ctx: &mut C,
-  //  mode: Mode,
-  //  vertices: W,
-  //  indices: I
-  //) -> Self
-  // where C: GraphicsContext,
-  //      TessVertices<'a, V::Deinterleaved>: From<W>,
-  //      V: 'a + Vertex + Deinterleave,
-  //      I: Into<Option<&'a [u32]>> {
-  //  let vertices = vertices.into();
+  pub fn new_deinterleaved<'a, C, W, I>(ctx: &mut C, mode: Mode, vertices: W, indices: I) -> Self
+  where
+    C: GraphicsContext,
+    TessVertices<'a, V::Deinterleaved>: From<W>,
+    V: 'a + Vertex<'a>,
+    I: Into<Option<&'a [u32]>>, {
+    let mut vao: GLuint = 0;
 
-  //}
+    unsafe {
+      gl::GenVertexArrays(1, &mut vao);
+      ctx.state().borrow_mut().bind_vertex_array(vao);
+
+      // TODO WORK
+      match vertices.into() {
+        TessVertices::Fill(deinterleaved) => {
+          // this visitor creates the deinterleaved buffers by visiting the input slices from the
+          // deinterleaved representation of the vertex type
+          struct Visitor<'a, C, V> {
+            ctx: &'a mut C,
+            vertex_fmt: V,
+            buffers: Vec<RawBuffer>,
+          }
+
+          impl<'a, C, V> SliceVisitor for Visitor<'a, C, V>
+          where
+            C: GraphicsContext,
+            V: Iterator<Item = VertexAttributeFmt>,
+          {
+            fn visit_slice<T>(&mut self, slice: &[T]) {
+              let mut buffer = Buffer::new(self.ctx, slice.len());
+              buffer.fill(slice);
+
+              let raw_buf = buffer.to_raw();
+
+              self.ctx.state().borrow_mut().bind_array_buffer(raw_buf.handle());
+
+              // get the next vertex attribute format
+              let vertex_attr_format = self.vertex_fmt.next().unwrap();
+              set_vertex_pointers(&[vertex_attr_format]);
+
+              self.buffers.push(raw_buf);
+            }
+          }
+
+          // call the visitor
+          let mut visitor = Visitor {
+            ctx,
+            vertex_fmt: V::VERTEX_FMT.iter().cloned(),
+            buffers: Vec::new(),
+          };
+
+          deinterleaved.visit_deinterleave(&mut visitor);
+        }
+
+        TessVertices::Reserve(vertex_nb) => {}
+      }
+    }
+  }
 
   // Render the tessellation by providing the number of vertices to pick from it and how many
   // instances are wished.
@@ -256,20 +311,28 @@ impl<V> Tess<V> {
 
   /// Get an immutable slice over the vertices stored on GPU.
   pub fn as_slice(&self) -> Result<BufferSlice<V>, TessMapError> {
-    self
-      .vbo
-      .as_ref()
-      .ok_or(TessMapError::ForbiddenAttributelessMapping)
-      .and_then(|raw| RawBuffer::as_slice(raw).map_err(TessMapError::VertexBufferMapFailed))
+    match self.vbo.len() {
+      0 => Err(TessMapError::ForbiddenAttributelessMapping),
+      1 => {
+        self.vbo[0]
+          .as_slice()
+          .map_err(TessMapError::VertexBufferMapFailed)
+      }
+      _ => Err(TessMapError::ForbiddenDeinterleavedMapping),
+    }
   }
 
   /// Get a mutable slice over the vertices stored on GPU.
   pub fn as_slice_mut<C>(&mut self) -> Result<BufferSliceMut<V>, TessMapError> {
-    self
-      .vbo
-      .as_mut()
-      .ok_or(TessMapError::ForbiddenAttributelessMapping)
-      .and_then(|raw| RawBuffer::as_slice_mut(raw).map_err(TessMapError::VertexBufferMapFailed))
+    match self.vbo.len() {
+      0 => Err(TessMapError::ForbiddenAttributelessMapping),
+      1 => {
+        self.vbo[0]
+          .as_slice_mut()
+          .map_err(TessMapError::VertexBufferMapFailed)
+      }
+      _ => Err(TessMapError::ForbiddenDeinterleavedMapping),
+    }
   }
 }
 
@@ -294,7 +357,7 @@ impl Tess<()> {
         mode: opengl_mode(mode),
         vert_nb,
         vao,
-        vbo: None,
+        vbo: Vec::new(),
         ibo: None,
         _v: PhantomData,
       }

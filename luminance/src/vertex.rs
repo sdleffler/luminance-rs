@@ -160,13 +160,12 @@ pub const fn align_of<T>() -> usize {
 macro_rules! impl_vertex_attribute {
   ($t:ty, $q:ty, $comp_type:ident, $dim:ident) => {
     unsafe impl VertexAttribute for $t {
-      const VERTEX_ATTRIBUTE_FMT: VertexAttributeFmt =
-        VertexAttributeFmt {
-          comp_type: VertexAttributeType::$comp_type,
-          dim: VertexAttributeDim::$dim,
-          unit_size: $crate::vertex::size_of::<$q>(),
-          align: $crate::vertex::align_of::<$q>(),
-        };
+      const VERTEX_ATTRIBUTE_FMT: VertexAttributeFmt = VertexAttributeFmt {
+        comp_type: VertexAttributeType::$comp_type,
+        dim: VertexAttributeDim::$dim,
+        unit_size: $crate::vertex::size_of::<$q>(),
+        align: $crate::vertex::align_of::<$q>(),
+      };
     }
   };
 
@@ -216,4 +215,3 @@ macro_rules! impl_vertex_for_tuples {
 }
 
 impl_vertex_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
-
