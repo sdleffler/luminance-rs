@@ -62,7 +62,7 @@ use buffer::{Buffer, BufferError, BufferSlice, BufferSliceMut, RawBuffer};
 use context::GraphicsContext;
 use deinterleave::{Deinterleave, SliceVisitor};
 use metagl::*;
-use vertex::{Vertex, VertexAttributeDim, VertexAttributeFmt, VertexAttributeType, VertexFmt};
+use vertex::{Vertex, VertexAttributeDim, VertexAttributeFmt, VertexAttributeType};
 
 /// Vertices can be connected via several modes.
 #[derive(Copy, Clone, Debug)]
@@ -178,29 +178,27 @@ impl<V> Tess<V> {
       ctx.state().borrow_mut().bind_array_buffer(raw_vbo.handle()); // FIXME: issue the call whatever the caching result
       set_vertex_pointers(V::VERTEX_FMT);
 
-      // TODO: refactor this schiesse
       // in case of indexed render, create an index buffer
       if let Some(indices) = indices.into() {
-        let ind_nb = indices.len();
-        let index_buffer = Buffer::new(ctx, ind_nb);
-        index_buffer.fill(indices).unwrap();
-
+        let index_buffer = Buffer::from_slice(ctx, indices);
         let raw_ibo = index_buffer.to_raw();
 
         gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, raw_ibo.handle());
 
-        ctx.state().borrow_mut().bind_vertex_array(vao);
+        // TODO: ensure we don’t need that
+        // ctx.state().borrow_mut().bind_vertex_array(vao);
 
         Tess {
           mode: opengl_mode(mode),
-          vert_nb: ind_nb,
+          vert_nb: indices.len(),
           vao,
           vbo: vec![raw_vbo],
           ibo: Some(raw_ibo),
           _v: PhantomData,
         }
       } else {
-        ctx.state().borrow_mut().bind_vertex_array(vao);
+        // TODO: ensure we don’t need that
+        // ctx.state().borrow_mut().bind_vertex_array(vao);
 
         Tess {
           mode: opengl_mode(mode),
@@ -217,7 +215,7 @@ impl<V> Tess<V> {
   pub fn new_deinterleaved<'a, C, W, I>(ctx: &mut C, mode: Mode, vertices: W, indices: I) -> Self
   where
     C: GraphicsContext,
-    TessVertices<'a, V::Deinterleaved>: From<W>,
+    &'a V::Deinterleaved: From<W>,
     V: 'a + Vertex<'a>,
     I: Into<Option<&'a [u32]>>, {
     let mut vao: GLuint = 0;
@@ -227,48 +225,37 @@ impl<V> Tess<V> {
       ctx.state().borrow_mut().bind_vertex_array(vao);
 
       // TODO WORK
-      match vertices.into() {
-        TessVertices::Fill(deinterleaved) => {
-          // this visitor creates the deinterleaved buffers by visiting the input slices from the
-          // deinterleaved representation of the vertex type
-          struct Visitor<'a, C, V> {
-            ctx: &'a mut C,
-            vertex_fmt: V,
-            buffers: Vec<RawBuffer>,
-          }
+      let deinterleaved: &V::Deinterleaved = vertices.into();
+      let (buffers, vert_nb) = {
+        let mut visitor = DeinterleavingVisitor::new(ctx, V::VERTEX_FMT.iter().cloned());
 
-          impl<'a, C, V> SliceVisitor for Visitor<'a, C, V>
-          where
-            C: GraphicsContext,
-            V: Iterator<Item = VertexAttributeFmt>,
-          {
-            fn visit_slice<T>(&mut self, slice: &[T]) {
-              let mut buffer = Buffer::new(self.ctx, slice.len());
-              buffer.fill(slice);
+        deinterleaved.visit_deinterleave(&mut visitor);
+        (visitor.buffers, visitor.vert_nb)
+      };
 
-              let raw_buf = buffer.to_raw();
+      if let Some(indices) = indices.into() {
+        let index_buffer = Buffer::from_slice(ctx, indices);
+        let raw_ibo = index_buffer.to_raw();
 
-              self.ctx.state().borrow_mut().bind_array_buffer(raw_buf.handle());
+        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, raw_ibo.handle());
 
-              // get the next vertex attribute format
-              let vertex_attr_format = self.vertex_fmt.next().unwrap();
-              set_vertex_pointers(&[vertex_attr_format]);
-
-              self.buffers.push(raw_buf);
-            }
-          }
-
-          // call the visitor
-          let mut visitor = Visitor {
-            ctx,
-            vertex_fmt: V::VERTEX_FMT.iter().cloned(),
-            buffers: Vec::new(),
-          };
-
-          deinterleaved.visit_deinterleave(&mut visitor);
+        Tess {
+          mode: opengl_mode(mode),
+          vert_nb: indices.len(),
+          vao,
+          vbo: buffers,
+          ibo: Some(raw_ibo),
+          _v: PhantomData
         }
-
-        TessVertices::Reserve(vertex_nb) => {}
+      } else {
+        Tess {
+          mode: opengl_mode(mode),
+          vert_nb,
+          vao,
+          vbo: buffers,
+          ibo: None,
+          _v: PhantomData
+        }
       }
     }
   }
@@ -616,5 +603,48 @@ impl<V> TessSliceIndex<RangeFrom<usize>, V> for Tess<V> {
 impl<V> TessSliceIndex<Range<usize>, V> for Tess<V> {
   fn slice<'a>(&'a self, range: Range<usize>) -> TessSlice<'a, V> {
     TessSlice::one_slice(self, range.start, range.end)
+  }
+}
+
+// this visitor creates the deinterleaved buffers by visiting the input slices from the
+// deinterleaved representation of the vertex type
+struct DeinterleavingVisitor<'a, C, V> {
+  ctx: &'a mut C,
+  vertex_fmt: V,
+  buffers: Vec<RawBuffer>,
+  vert_nb: usize
+}
+
+impl<'a, C, V> DeinterleavingVisitor<'a, C, V> {
+  fn new(ctx: &'a mut C, vertex_fmt: V) -> Self {
+    DeinterleavingVisitor {
+      ctx,
+      vertex_fmt,
+      buffers: Vec::new(),
+      vert_nb: 0
+    }
+  }
+}
+
+impl<'a, C, V> SliceVisitor for DeinterleavingVisitor<'a, C, V>
+where
+  C: GraphicsContext,
+  V: Iterator<Item = VertexAttributeFmt>,
+{
+  fn visit_slice<T>(&mut self, slice: &[T]) {
+    let buffer = Buffer::from_slice(self.ctx, slice);
+    let raw_buf = buffer.to_raw();
+
+    if self.vert_nb == 0 {
+      self.vert_nb = slice.len();
+    }
+
+    unsafe { self.ctx.state().borrow_mut().bind_array_buffer(raw_buf.handle()) };
+
+    // get the next vertex attribute format
+    let vertex_attr_format = self.vertex_fmt.next().unwrap();
+    set_vertex_pointers(&[vertex_attr_format]);
+
+    self.buffers.push(raw_buf);
   }
 }

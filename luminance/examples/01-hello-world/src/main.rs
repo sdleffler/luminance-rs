@@ -39,6 +39,28 @@ const TRI_VERTICES: [Vertex; 6] = [
   ([0.5, 0.5], [0.2, 0.2, 1.]),
 ];
 
+// The vertices, deinterleaved version. We still define two triangles.
+const TRI_DEINT_VERTICES: (&[[f32; 2]], &[[f32; 3]]) = (
+  // positions go first
+  &[
+    [0.5, -0.5],
+    [0.0, 0.5],
+    [-0.5, -0.5],
+    [-0.5, 0.5],
+    [0.0, -0.5],
+    [0.5, 0.5],
+  ],
+  // then colors
+  &[
+    [0., 1., 0.],
+    [0., 0., 1.],
+    [1., 0., 0.],
+    [1., 0.2, 1.],
+    [0.2, 1., 1.],
+    [0.2, 0.2, 1.],
+  ]
+);
+
 // Indices into TRI_VERTICES to use to build up the triangles.
 const TRI_INDEXES: [u32; 6] = [
   0, 1, 2, // first triangle
@@ -51,13 +73,17 @@ const TRI_INDEXES: [u32; 6] = [
 enum TessMethod {
   Direct,
   Indexed,
+  DirectDeinterleaved,
+  IndexedDeinterleaved
 }
 
 impl TessMethod {
   fn toggle(self) -> Self {
     match self {
       TessMethod::Direct => TessMethod::Indexed,
-      TessMethod::Indexed => TessMethod::Direct,
+      TessMethod::Indexed => TessMethod::DirectDeinterleaved,
+      TessMethod::DirectDeinterleaved => TessMethod::IndexedDeinterleaved,
+      TessMethod::IndexedDeinterleaved => TessMethod::Direct,
     }
   }
 }
@@ -83,6 +109,13 @@ fn main() {
   // by the second slice and this indexes will reference the first slice (useful not to duplicate
   // vertices on more complex objects than just two triangles)
   let indexed_triangles = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[..], &TRI_INDEXES[..]);
+
+  // create direct, deinterleaved tesselations; such tessellations allow to separate vertex
+  // attributes in several contiguous regions of memory
+  let direct_deinterleaved_triangles = Tess::<Vertex>::new_deinterleaved(&mut surface, Mode::Triangle, &TRI_DEINT_VERTICES, None);
+
+  // create indexed, deinterleaved tessellations; have your cake and fucking eat it, now.
+  let indexed_deinterleaved_triangles = Tess::<Vertex>::new_deinterleaved(&mut surface, Mode::Triangle, &TRI_DEINT_VERTICES, &TRI_INDEXES[..]);
 
   // the back buffer, which we will make our render into (we make it mutable so that we can change
   // it whenever the window dimensions change)
@@ -127,6 +160,8 @@ fn main() {
             let tess = match demo {
               TessMethod::Direct => &direct_triangles,
               TessMethod::Indexed => &indexed_triangles,
+              TessMethod::DirectDeinterleaved => &direct_deinterleaved_triangles,
+              TessMethod::IndexedDeinterleaved => &indexed_deinterleaved_triangles
             };
 
             // render the tessellation to the surface

@@ -185,6 +185,30 @@ impl<T> Buffer<T> {
     }
   }
 
+  /// Create a buffer out of a slice.
+  pub fn from_slice<C>(ctx: &mut C, slice: &[T]) -> Buffer<T>
+  where C: GraphicsContext {
+    let mut buffer: GLuint = 0;
+    let len = slice.len();
+    let bytes = mem::size_of::<T>() * len;
+
+    unsafe {
+      gl::GenBuffers(1, &mut buffer);
+      ctx.state().borrow_mut().bind_array_buffer(buffer);
+      gl::BufferData(gl::ARRAY_BUFFER, bytes as isize, slice.as_ptr() as *const c_void, gl::STREAM_DRAW);
+    }
+
+    Buffer {
+      raw: RawBuffer {
+        handle: buffer,
+        bytes,
+        len,
+        state: ctx.state().clone(),
+      },
+      _t: PhantomData,
+    }
+  }
+
   /// Get the length of the buffer.
   #[inline(always)]
   pub fn len(&self) -> usize {
