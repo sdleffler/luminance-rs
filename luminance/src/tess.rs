@@ -176,7 +176,7 @@ impl<V> Tess<V> {
       let raw_vbo = vertex_buffer.to_raw();
 
       ctx.state().borrow_mut().bind_array_buffer(raw_vbo.handle()); // FIXME: issue the call whatever the caching result
-      set_vertex_pointers(V::VERTEX_FMT);
+      set_vertex_pointers_interleaved(V::VERTEX_FMT);
 
       // in case of indexed render, create an index buffer
       if let Some(indices) = indices.into() {
@@ -362,13 +362,32 @@ impl<V> Drop for Tess<V> {
 
 // Give OpenGL types information on the content of the VBO by setting vertex formats and pointers
 // to buffer memory.
-fn set_vertex_pointers(formats: &[VertexAttributeFmt]) {
+//
+// This is the interleaved version: it must be used for a single buffer only. If you want to set
+// vertex pointer for a single buffer (deinterleaved buffers), please switch to the
+// `set_vertex_pointer_deinterleaved` function instead
+fn set_vertex_pointers_interleaved(formats: &[VertexAttributeFmt]) {
+  // this function sets the vertex attribute pointer for the input list by computing:
+  //   - The vertex attribute ID: this is the “rank” of the attribute in the input list (order
+  //     matters, for short).
+  //   - The stride: this is easily computed, since it’s the size (bytes) of a single vertex.
+  //   - The offsets: each attribute has a given offset in the buffer. This is computed by
+  //     accumulating the size of all previously set attributes.
   let offsets = aligned_offsets(formats);
   let vertex_weight = offset_based_vertex_weight(formats, &offsets) as GLsizei;
 
   for (i, (format, off)) in formats.iter().zip(offsets).enumerate() {
     set_component_format(i as u32, vertex_weight, off, format);
   }
+}
+
+// Give OpenGL types information on the content of the VBO by setting vertex format and pointer to
+// buffer memory.
+//
+// This is the deinterleaved version. It will set the vertex attribute pointer for the given buffer.
+fn set_vertex_pointer_deinterleaved(format: &VertexAttributeFmt, index: u32) {
+  let stride = component_weight(format) as GLsizei;
+  set_component_format(index, stride, 0, format);
 }
 
 // Compute offsets for all the vertex components according to the alignments provided.
@@ -643,7 +662,7 @@ where
 
     // get the next vertex attribute format
     let vertex_attr_format = self.vertex_fmt.next().unwrap();
-    set_vertex_pointers(&[vertex_attr_format]);
+    set_vertex_pointer_deinterleaved(&vertex_attr_format, self.buffers.len() as u32);
 
     self.buffers.push(raw_buf);
   }
