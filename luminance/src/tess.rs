@@ -15,22 +15,44 @@
 //!
 //! # Tessellation creation
 //!
-//! Creation is done via the `Tess::new` function. This function is polymorphing in the type of
-//! vertices you send. See the `TessVertices` type for further details.
+//! Creation is done via the [`Tess::new`] function. This function is polymorphing in the type of
+//! vertices you send. See the [`TessVertices`] type for further details.
 //!
-//! # Tessellation vertices mapping
+//! ## On interleaved and deinterleaved vertices
+//!
+//! Because [`Tess::new`] uses your user-defined vertex type, it uses interleaved memory. That
+//! means that all vertices are spread out in a single GPU memory region (a single buffer). This
+//! behavior is fine for most applications that will want their shaders to use all vertex attributes
+//! but sometimes you want a more specific memory strategy. For instance, some shaders won’t use all
+//! of the available vertex attributes.
+//!
+//! [`Tess`] supports such situations with the [`Tess::new_deinterleaved`] method, that creates a
+//! tessellation by lying vertex attributes out in their own respective buffers. The implication is
+//! that the interface requires you to pass already deinterleaved vertices. Those are most of the
+//! time isomorphic to tuples of slices.
+//!
+//! # Tessellation vertices CPU mapping
 //!
 //! It’s possible to map `Tess`’ vertices into your code. You’re provided with two types to do so:
 //!
-//! - `BufferSlice`, which gives you an immutable access to the vertices
-//! - `BufferSliceMut`, which gives you a mutable access to the vertices
+//! - [`BufferSlice`], which gives you an immutable access to the vertices.
+//! - [`BufferSliceMut`], which gives you a mutable access to the vertices.
 //!
-//! You can retrieve those slices with the `Tess::as_slice` and `Tess::as_slice_mut` methods.
+//! You can retrieve those slices with the [`Tess::as_slice`] and [`Tess::as_slice_mut`] methods.
 //!
 //! # Tessellation render
 //!
-//! In order to render a `Tess`, you have to use a `TessSlice` object. You’ll be able to use that
-//! object in *pipelines*. See the `pipeline` module for further details.
+//! In order to render a [`Tess`], you have to use a [`TessSlice`] object. You’ll be able to use
+//! that object in *pipelines*. See the `pipeline` module for further details.
+//!
+//! [`BufferSlice`]: crate/buffer/struct.BufferSlice.html
+//! [`BufferSliceMut`]: crate/buffer/struct.BufferSliceMut.html
+//! [`Tess`]: struct.Tess.html
+//! [`Tess::as_slice`]: struct.Tess.html#method.as_slice
+//! [`Tess::as_slice_mut`]: struct.Tess.html#method.as_slice_mut
+//! [`Tess::new`]: struct.Tess.html#method.new
+//! [`Tess::new_deinterleaved`]: struct.Tess.html#method.new_deinterleaved
+//! [`TessSlice`]: struct.TessSlice.html
 
 #[cfg(feature = "std")]
 use std::fmt;
@@ -84,8 +106,13 @@ pub enum Mode {
 /// Error that can occur while trying to map GPU tessellation to host code.
 #[derive(Debug, Eq, PartialEq)]
 pub enum TessMapError {
+  /// The CPU mapping failed due to buffer errors.
   VertexBufferMapFailed(BufferError),
+  /// The CPU mapping failed because you cannot map an attributeless tessellation since it doesn’t
+  /// have any vertex attribute.
   ForbiddenAttributelessMapping,
+  /// The CPU mapping failed because currently, mapping deinterleaved buffers is not supported via
+  /// a single slice.
   ForbiddenDeinterleavedMapping,
 }
 
@@ -107,8 +134,10 @@ impl fmt::Display for TessMapError {
 /// space for the number of vertices, leaving the allocated memory uninitialized.
 #[derive(Debug, Eq, PartialEq)]
 pub enum TessVertices<'a, T>
-where T: 'a + ?Sized {
-  /// Pass in a slice of vertices.
+where
+  T: 'a + ?Sized,
+{
+  /// Pass in a borrow of vertices.
   Fill(&'a T),
   /// Reserve a certain number of vertices.
   Reserve(usize),
@@ -124,7 +153,8 @@ impl<'a, T> TessVertices<'a, [T]> {
 }
 
 impl<'a, T> From<&'a [T]> for TessVertices<'a, [T]>
-where T: 'a
+where
+  T: 'a,
 {
   fn from(slice: &'a [T]) -> Self {
     TessVertices::Fill(slice)
@@ -149,12 +179,16 @@ impl<V> Tess<V> {
   /// The `mode` argument gives the type of the primitives and how to interpret the `vertices` and
   /// `indices` slices. If `indices` is set to `None`, the tessellation will use the `vertices`
   /// as-is.
+  ///
+  /// This is the interleaved version. If you want deinterleaved tessellations, have a look at the
+  /// [`Tess::new_deinterleaved`] method.
   pub fn new<'a, C, W, I>(ctx: &mut C, mode: Mode, vertices: W, indices: I) -> Self
   where
     C: GraphicsContext,
     TessVertices<'a, [V]>: From<W>,
     V: 'a + Vertex<'a>,
-    I: Into<Option<&'a [u32]>>, {
+    I: Into<Option<&'a [u32]>>,
+  {
     let vertices = TessVertices::from(vertices);
 
     let mut vao: GLuint = 0;
@@ -212,19 +246,20 @@ impl<V> Tess<V> {
     }
   }
 
+  /// Build a tessellation by using deinterleaved memory.
   pub fn new_deinterleaved<'a, C, W, I>(ctx: &mut C, mode: Mode, vertices: W, indices: I) -> Self
   where
     C: GraphicsContext,
     &'a V::Deinterleaved: From<W>,
     V: 'a + Vertex<'a>,
-    I: Into<Option<&'a [u32]>>, {
+    I: Into<Option<&'a [u32]>>,
+  {
     let mut vao: GLuint = 0;
 
     unsafe {
       gl::GenVertexArrays(1, &mut vao);
       ctx.state().borrow_mut().bind_vertex_array(vao);
 
-      // TODO WORK
       let deinterleaved: &V::Deinterleaved = vertices.into();
       let (buffers, vert_nb) = {
         let mut visitor = DeinterleavingVisitor::new(ctx, V::VERTEX_FMT.iter().cloned());
@@ -245,7 +280,7 @@ impl<V> Tess<V> {
           vao,
           vbo: buffers,
           ibo: Some(raw_ibo),
-          _v: PhantomData
+          _v: PhantomData,
         }
       } else {
         Tess {
@@ -254,7 +289,7 @@ impl<V> Tess<V> {
           vao,
           vbo: buffers,
           ibo: None,
-          _v: PhantomData
+          _v: PhantomData,
         }
       }
     }
@@ -263,7 +298,9 @@ impl<V> Tess<V> {
   // Render the tessellation by providing the number of vertices to pick from it and how many
   // instances are wished.
   fn render<C>(&self, ctx: &mut C, start_index: usize, vert_nb: usize, inst_nb: usize)
-  where C: GraphicsContext {
+  where
+    C: GraphicsContext,
+  {
     let vert_nb = vert_nb as GLsizei;
     let inst_nb = inst_nb as GLsizei;
 
@@ -300,11 +337,9 @@ impl<V> Tess<V> {
   pub fn as_slice(&self) -> Result<BufferSlice<V>, TessMapError> {
     match self.vbo.len() {
       0 => Err(TessMapError::ForbiddenAttributelessMapping),
-      1 => {
-        self.vbo[0]
-          .as_slice()
-          .map_err(TessMapError::VertexBufferMapFailed)
-      }
+      1 => self.vbo[0]
+        .as_slice()
+        .map_err(TessMapError::VertexBufferMapFailed),
       _ => Err(TessMapError::ForbiddenDeinterleavedMapping),
     }
   }
@@ -313,11 +348,9 @@ impl<V> Tess<V> {
   pub fn as_slice_mut<C>(&mut self) -> Result<BufferSliceMut<V>, TessMapError> {
     match self.vbo.len() {
       0 => Err(TessMapError::ForbiddenAttributelessMapping),
-      1 => {
-        self.vbo[0]
-          .as_slice_mut()
-          .map_err(TessMapError::VertexBufferMapFailed)
-      }
+      1 => self.vbo[0]
+        .as_slice_mut()
+        .map_err(TessMapError::VertexBufferMapFailed),
       _ => Err(TessMapError::ForbiddenDeinterleavedMapping),
     }
   }
@@ -330,7 +363,9 @@ impl Tess<()> {
   /// generate. You’ll be handed back a tessellation object that doesn’t actually hold anything.
   /// You will have to generate the vertices on the fly in your shaders.
   pub fn attributeless<C>(ctx: &mut C, mode: Mode, vert_nb: usize) -> Self
-  where C: GraphicsContext {
+  where
+    C: GraphicsContext,
+  {
     let mut gfx_state = ctx.state().borrow_mut();
     let mut vao = 0;
 
@@ -497,7 +532,9 @@ fn opengl_mode(mode: Mode) -> GLenum {
 /// This type enables slicing a tessellation on the fly so that we can render patches of it.
 #[derive(Clone)]
 pub struct TessSlice<'a, V>
-where V: 'a {
+where
+  V: 'a,
+{
   /// Tessellation to render.
   tess: &'a Tess<V>,
   /// Start index (vertex) in the tessellation.
@@ -584,7 +621,8 @@ impl<'a, V> TessSlice<'a, V> {
   pub fn render<C>(&self, ctx: &mut C)
   where
     C: GraphicsContext,
-    V: Vertex<'a>, {
+    V: Vertex<'a>,
+  {
     self
       .tess
       .render(ctx, self.start_index, self.vert_nb, self.inst_nb);
@@ -631,7 +669,7 @@ struct DeinterleavingVisitor<'a, C, V> {
   ctx: &'a mut C,
   vertex_fmt: V,
   buffers: Vec<RawBuffer>,
-  vert_nb: usize
+  vert_nb: usize,
 }
 
 impl<'a, C, V> DeinterleavingVisitor<'a, C, V> {
@@ -640,7 +678,7 @@ impl<'a, C, V> DeinterleavingVisitor<'a, C, V> {
       ctx,
       vertex_fmt,
       buffers: Vec::new(),
-      vert_nb: 0
+      vert_nb: 0,
     }
   }
 }

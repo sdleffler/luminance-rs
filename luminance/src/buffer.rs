@@ -133,21 +133,17 @@ impl fmt::Display for BufferError {
     match *self {
       BufferError::Overflow(i, size) => write!(f, "buffer overflow (index = {}, size = {})", i, size),
 
-      BufferError::TooFewValues(nb, size) => {
-        write!(
-          f,
-          "too few values passed to the buffer (nb = {}, size = {})",
-          nb, size
-        )
-      }
+      BufferError::TooFewValues(nb, size) => write!(
+        f,
+        "too few values passed to the buffer (nb = {}, size = {})",
+        nb, size
+      ),
 
-      BufferError::TooManyValues(nb, size) => {
-        write!(
-          f,
-          "too many values passed to the buffer (nb = {}, size = {})",
-          nb, size
-        )
-      }
+      BufferError::TooManyValues(nb, size) => write!(
+        f,
+        "too many values passed to the buffer (nb = {}, size = {})",
+        nb, size
+      ),
 
       BufferError::MapFailed => write!(f, "buffer mapping failed"),
     }
@@ -164,7 +160,9 @@ pub struct Buffer<T> {
 impl<T> Buffer<T> {
   /// Create a new `Buffer` with a given number of elements.
   pub fn new<C>(ctx: &mut C, len: usize) -> Buffer<T>
-  where C: GraphicsContext {
+  where
+    C: GraphicsContext,
+  {
     let mut buffer: GLuint = 0;
     let bytes = mem::size_of::<T>() * len;
 
@@ -187,7 +185,9 @@ impl<T> Buffer<T> {
 
   /// Create a buffer out of a slice.
   pub fn from_slice<C>(ctx: &mut C, slice: &[T]) -> Buffer<T>
-  where C: GraphicsContext {
+  where
+    C: GraphicsContext,
+  {
     let mut buffer: GLuint = 0;
     let len = slice.len();
     let bytes = mem::size_of::<T>() * len;
@@ -195,7 +195,12 @@ impl<T> Buffer<T> {
     unsafe {
       gl::GenBuffers(1, &mut buffer);
       ctx.state().borrow_mut().bind_array_buffer(buffer);
-      gl::BufferData(gl::ARRAY_BUFFER, bytes as isize, slice.as_ptr() as *const c_void, gl::STREAM_DRAW);
+      gl::BufferData(
+        gl::ARRAY_BUFFER,
+        bytes as isize,
+        slice.as_ptr() as *const c_void,
+        gl::STREAM_DRAW,
+      );
     }
 
     Buffer {
@@ -219,7 +224,9 @@ impl<T> Buffer<T> {
   ///
   /// Checks boundaries.
   pub fn at(&self, i: usize) -> Option<T>
-  where T: Copy {
+  where
+    T: Copy,
+  {
     if i >= self.len {
       return None;
     }
@@ -238,7 +245,9 @@ impl<T> Buffer<T> {
 
   /// Retrieve the whole content of the `Buffer`.
   pub fn whole(&self) -> Vec<T>
-  where T: Copy {
+  where
+    T: Copy,
+  {
     unsafe {
       self.raw.state.borrow_mut().bind_array_buffer(self.handle);
       let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *mut T;
@@ -255,7 +264,9 @@ impl<T> Buffer<T> {
   ///
   /// Checks boundaries.
   pub fn set(&mut self, i: usize, x: T) -> Result<(), BufferError>
-  where T: Copy {
+  where
+    T: Copy,
+  {
     if i >= self.len {
       return Err(BufferError::Overflow(i, self.len));
     }
@@ -303,7 +314,9 @@ impl<T> Buffer<T> {
 
   /// Fill the `Buffer` with a single value.
   pub fn clear(&self, x: T) -> Result<(), BufferError>
-  where T: Copy {
+  where
+    T: Copy,
+  {
     self.write_whole(&vec![x; self.len])
   }
 
@@ -413,7 +426,9 @@ impl<T> From<Buffer<T>> for RawBuffer {
 
 /// A buffer slice mapped into GPU memory.
 pub struct BufferSlice<'a, T>
-where T: 'a {
+where
+  T: 'a,
+{
   // Borrowed raw buffer.
   raw: &'a RawBuffer,
   // Raw pointer into the GPU memory.
@@ -421,7 +436,8 @@ where T: 'a {
 }
 
 impl<'a, T> Drop for BufferSlice<'a, T>
-where T: 'a
+where
+  T: 'a,
 {
   fn drop(&mut self) {
     unsafe {
@@ -432,7 +448,8 @@ where T: 'a
 }
 
 impl<'a, T> Deref for BufferSlice<'a, T>
-where T: 'a
+where
+  T: 'a,
 {
   type Target = [T];
 
@@ -442,7 +459,8 @@ where T: 'a
 }
 
 impl<'a, 'b, T> IntoIterator for &'b BufferSlice<'a, T>
-where T: 'a
+where
+  T: 'a,
 {
   type IntoIter = slice::Iter<'b, T>;
   type Item = &'b T;
@@ -454,7 +472,9 @@ where T: 'a
 
 /// A buffer mutable slice into GPU memory.
 pub struct BufferSliceMut<'a, T>
-where T: 'a {
+where
+  T: 'a,
+{
   // Borrowed buffer.
   raw: &'a RawBuffer,
   // Raw pointer into the GPU memory.
@@ -462,7 +482,8 @@ where T: 'a {
 }
 
 impl<'a, T> Drop for BufferSliceMut<'a, T>
-where T: 'a
+where
+  T: 'a,
 {
   fn drop(&mut self) {
     unsafe {
@@ -473,7 +494,8 @@ where T: 'a
 }
 
 impl<'a, 'b, T> IntoIterator for &'b BufferSliceMut<'a, T>
-where T: 'a
+where
+  T: 'a,
 {
   type IntoIter = slice::Iter<'b, T>;
   type Item = &'b T;
@@ -484,7 +506,8 @@ where T: 'a
 }
 
 impl<'a, 'b, T> IntoIterator for &'b mut BufferSliceMut<'a, T>
-where T: 'a
+where
+  T: 'a,
 {
   type IntoIter = slice::IterMut<'b, T>;
   type Item = &'b mut T;
@@ -495,7 +518,8 @@ where T: 'a
 }
 
 impl<'a, T> Deref for BufferSliceMut<'a, T>
-where T: 'a
+where
+  T: 'a,
 {
   type Target = [T];
 
@@ -505,7 +529,8 @@ where T: 'a
 }
 
 impl<'a, T> DerefMut for BufferSliceMut<'a, T>
-where T: 'a
+where
+  T: 'a,
 {
   fn deref_mut(&mut self) -> &mut Self::Target {
     unsafe { slice::from_raw_parts_mut(self.ptr, self.raw.len) }

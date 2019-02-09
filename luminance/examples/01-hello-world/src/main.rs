@@ -58,7 +58,7 @@ const TRI_DEINT_VERTICES: (&[[f32; 2]], &[[f32; 3]]) = (
     [1., 0.2, 1.],
     [0.2, 1., 1.],
     [0.2, 0.2, 1.],
-  ]
+  ],
 );
 
 // Indices into TRI_VERTICES to use to build up the triangles.
@@ -74,7 +74,7 @@ enum TessMethod {
   Direct,
   Indexed,
   DirectDeinterleaved,
-  IndexedDeinterleaved
+  IndexedDeinterleaved,
 }
 
 impl TessMethod {
@@ -112,10 +112,16 @@ fn main() {
 
   // create direct, deinterleaved tesselations; such tessellations allow to separate vertex
   // attributes in several contiguous regions of memory
-  let direct_deinterleaved_triangles = Tess::<Vertex>::new_deinterleaved(&mut surface, Mode::Triangle, &TRI_DEINT_VERTICES, None);
+  let direct_deinterleaved_triangles =
+    Tess::<Vertex>::new_deinterleaved(&mut surface, Mode::Triangle, &TRI_DEINT_VERTICES, None);
 
   // create indexed, deinterleaved tessellations; have your cake and fucking eat it, now.
-  let indexed_deinterleaved_triangles = Tess::<Vertex>::new_deinterleaved(&mut surface, Mode::Triangle, &TRI_DEINT_VERTICES, &TRI_INDEXES[..]);
+  let indexed_deinterleaved_triangles = Tess::<Vertex>::new_deinterleaved(
+    &mut surface,
+    Mode::Triangle,
+    &TRI_DEINT_VERTICES,
+    &TRI_INDEXES[..],
+  );
 
   // the back buffer, which we will make our render into (we make it mutable so that we can change
   // it whenever the window dimensions change)
@@ -161,7 +167,7 @@ fn main() {
               TessMethod::Direct => &direct_triangles,
               TessMethod::Indexed => &indexed_triangles,
               TessMethod::DirectDeinterleaved => &direct_deinterleaved_triangles,
-              TessMethod::IndexedDeinterleaved => &indexed_deinterleaved_triangles
+              TessMethod::IndexedDeinterleaved => &indexed_deinterleaved_triangles,
             };
 
             // render the tessellation to the surface

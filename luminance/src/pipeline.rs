@@ -231,7 +231,8 @@ impl<'a> Pipeline<'a> {
   where
     L: 'a + Layerable,
     D: 'a + Dimensionable,
-    P: 'a + Pixel, {
+    P: 'a + Pixel,
+  {
     let mut bstack = self.binding_stack.borrow_mut();
 
     let unit = bstack.free_texture_units.pop().unwrap_or_else(|| {
@@ -254,7 +255,9 @@ impl<'a> Pipeline<'a> {
   ///
   /// The buffer remains bound as long as the return value lives.
   pub fn bind_buffer<T>(&'a self, buffer: &'a T) -> BoundBuffer<'a, T>
-  where T: Deref<Target = RawBuffer> {
+  where
+    T: Deref<Target = RawBuffer>,
+  {
     let mut bstack = self.binding_stack.borrow_mut();
 
     let binding = bstack.free_buffer_bindings.pop().unwrap_or_else(|| {
@@ -281,7 +284,8 @@ pub struct BoundTexture<'a, L, D, P>
 where
   L: 'a + Layerable,
   D: 'a + Dimensionable,
-  P: 'a + Pixel, {
+  P: 'a + Pixel,
+{
   unit: u32,
   binding_stack: &'a Rc<RefCell<BindingStack>>,
   _t: PhantomData<&'a Texture<L, D, P>>,
@@ -346,7 +350,9 @@ where
 /// An opaque type representing a bound buffer in a `Builder`. You may want to pass such an object
 /// to a shader’s uniform’s update.
 pub struct BoundBuffer<'a, T>
-where T: 'a {
+where
+  T: 'a,
+{
   binding: u32,
   binding_stack: &'a Rc<RefCell<BindingStack>>,
   _t: PhantomData<&'a Buffer<T>>,
@@ -391,7 +397,8 @@ impl<'a> ShadingGate<'a> {
   where
     In: for<'b> Vertex<'b>,
     Uni: UniformInterface,
-    F: FnOnce(&RenderGate<In>, ProgramInterface<'a, Uni>), {
+    F: FnOnce(&RenderGate<In>, ProgramInterface<'a, Uni>),
+  {
     unsafe {
       let bstack = self.binding_stack.borrow_mut();
       bstack.gfx_state.borrow_mut().use_program(program.handle());
@@ -416,7 +423,9 @@ pub struct RenderGate<'a, V> {
 impl<'a, V> RenderGate<'a, V> {
   /// Alter the render state and draw tessellations.
   pub fn render<F>(&self, rdr_st: RenderState, f: F)
-  where F: FnOnce(&TessGate<V>) {
+  where
+    F: FnOnce(&TessGate<V>),
+  {
     unsafe {
       let bstack = self.binding_stack.borrow_mut();
       let mut gfx_state = bstack.gfx_state.borrow_mut();
@@ -458,13 +467,15 @@ pub struct TessGate<V> {
 }
 
 impl<'a, V> TessGate<V>
-where V: Vertex<'a>
+where
+  V: Vertex<'a>,
 {
   /// Render a tessellation.
   pub fn render<C, W>(&self, ctx: &mut C, tess: TessSlice<'a, W>)
   where
     C: GraphicsContext,
-    W: CompatibleVertex<'a, V>, {
+    W: CompatibleVertex<'a, V>,
+  {
     tess.render(ctx);
   }
 }

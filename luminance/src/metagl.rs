@@ -53,7 +53,9 @@ mod meta {
 
   #[inline(always)]
   pub unsafe fn with_cstring<F, A>(s: &str, f: F) -> Result<A, NulError>
-  where F: FnOnce(*const GLchar) -> A {
+  where
+    F: FnOnce(*const GLchar) -> A,
+  {
     let bytes = s.as_bytes();
 
     if bytes.contains(&b'\0') {

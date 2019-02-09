@@ -103,9 +103,9 @@ fn main() {
             let slice = match slice_method {
               // the red triangle is at slice [..3]; you can also use the TessSlice::one_sub
               // combinator if the start element is 0
-              SliceMethod::Red => triangles.slice(.. 3), // TessSlice::one_slice(&triangles, 0, 3),
+              SliceMethod::Red => triangles.slice(..3), // TessSlice::one_slice(&triangles, 0, 3),
               // the blue triangle is at slice [3..]
-              SliceMethod::Blue => triangles.slice(3 ..), // TessSlice::one_slice(&triangles, 3, 6),
+              SliceMethod::Blue => triangles.slice(3..), // TessSlice::one_slice(&triangles, 3, 6),
               // both triangles are at slice [0..6] or [..], but we’ll use the faster
               // TessSlice::one_whole combinator; this combinator is also if you invoke the From or
               // Into method on (&triangles) (we did that in 02-render-state)

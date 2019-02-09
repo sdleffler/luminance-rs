@@ -66,25 +66,21 @@ enum ProgramMode {
 impl ProgramMode {
   fn toggle(self) -> Self {
     match self {
-      ProgramMode::First(p) => {
-        match p.adapt() {
-          Ok((x, _)) => ProgramMode::Second(x),
-          Err((e, y)) => {
-            eprintln!("unable to switch to second uniform interface: {:?}", e);
-            ProgramMode::First(y)
-          }
+      ProgramMode::First(p) => match p.adapt() {
+        Ok((x, _)) => ProgramMode::Second(x),
+        Err((e, y)) => {
+          eprintln!("unable to switch to second uniform interface: {:?}", e);
+          ProgramMode::First(y)
         }
-      }
+      },
 
-      ProgramMode::Second(p) => {
-        match p.adapt() {
-          Ok((x, _)) => ProgramMode::First(x),
-          Err((e, y)) => {
-            eprintln!("unable to switch to first uniform interface: {:?}", e);
-            ProgramMode::Second(y)
-          }
+      ProgramMode::Second(p) => match p.adapt() {
+        Ok((x, _)) => ProgramMode::First(x),
+        Err((e, y)) => {
+          eprintln!("unable to switch to first uniform interface: {:?}", e);
+          ProgramMode::Second(y)
         }
-      }
+      },
     }
   }
 }

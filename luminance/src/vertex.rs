@@ -81,7 +81,9 @@ unsafe impl<'a> Vertex<'a> for () {
 ///
 /// We node that as `V1: CompatibleVertex<V0>`.
 pub unsafe trait CompatibleVertex<'a, V>: Vertex<'a>
-where V: Vertex<'a> {
+where
+  V: Vertex<'a>,
+{
 }
 
 unsafe impl<'a, V> CompatibleVertex<'a, V> for V where V: Vertex<'a> {}

@@ -113,7 +113,8 @@ where
   D: Dimensionable,
   D::Size: Copy,
   CS: ColorSlot<L, D>,
-  DS: DepthSlot<L, D>, {
+  DS: DepthSlot<L, D>,
+{
   handle: GLuint,
   renderbuffer: Option<GLuint>,
   w: u32,
@@ -205,7 +206,7 @@ where
         // specify the list of color buffers to draw to
         let color_buf_nb = color_formats.len() as GLsizei;
         let color_buffers: Vec<_> =
-          (gl::COLOR_ATTACHMENT0 .. gl::COLOR_ATTACHMENT0 + color_buf_nb as GLenum).collect();
+          (gl::COLOR_ATTACHMENT0..gl::COLOR_ATTACHMENT0 + color_buf_nb as GLenum).collect();
 
         gl::DrawBuffers(color_buf_nb, color_buffers.as_ptr());
       }
@@ -335,7 +336,8 @@ pub unsafe trait ColorSlot<L, D>
 where
   L: Layerable,
   D: Dimensionable,
-  D::Size: Copy, {
+  D::Size: Copy,
+{
   /// Textures associated with this color slot.
   type ColorTextures;
 
@@ -369,7 +371,8 @@ where
   fn reify_textures<C, I>(_: &mut C, _: D::Size, _: usize, _: &mut I) -> Self::ColorTextures
   where
     C: GraphicsContext,
-    I: Iterator<Item = GLuint>, {
+    I: Iterator<Item = GLuint>,
+  {
     ()
   }
 }
@@ -387,12 +390,7 @@ where
     vec![P::pixel_format()]
   }
 
-  fn reify_textures<C, I>(
-    ctx: &mut C,
-    size: D::Size,
-    mipmaps: usize,
-    textures: &mut I,
-  ) -> Self::ColorTextures
+  fn reify_textures<C, I>(ctx: &mut C, size: D::Size, mipmaps: usize, textures: &mut I) -> Self::ColorTextures
   where
     C: GraphicsContext,
     I: Iterator<Item = GLuint>,
@@ -461,7 +459,8 @@ pub unsafe trait DepthSlot<L, D>
 where
   L: Layerable,
   D: Dimensionable,
-  D::Size: Copy, {
+  D::Size: Copy,
+{
   /// Texture associated with this color slot.
   type DepthTexture;
 
@@ -490,7 +489,8 @@ where
   fn reify_texture<C, T>(_: &mut C, _: D::Size, _: usize, _: T) -> Self::DepthTexture
   where
     C: GraphicsContext,
-    T: Into<Option<GLuint>>, {
+    T: Into<Option<GLuint>>,
+  {
     ()
   }
 }
@@ -511,7 +511,8 @@ where
   fn reify_texture<C, T>(ctx: &mut C, size: D::Size, mipmaps: usize, texture: T) -> Self::DepthTexture
   where
     C: GraphicsContext,
-    T: Into<Option<GLuint>>, {
+    T: Into<Option<GLuint>>,
+  {
     unsafe {
       let raw = RawTexture::new(
         ctx.state().clone(),

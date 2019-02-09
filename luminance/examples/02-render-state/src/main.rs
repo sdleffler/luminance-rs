@@ -73,8 +73,8 @@ fn main() {
   let (program, _) = Program::<Vertex, (), ()>::from_strings(None, VS, None, FS).expect("program creation");
 
   // create a red and blue triangles
-  let red_triangle = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[0 .. 3], None);
-  let blue_triangle = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[3 .. 6], None);
+  let red_triangle = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[0..3], None);
+  let blue_triangle = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[3..6], None);
 
   let mut back_buffer = Framebuffer::back_buffer(surface.size());
 
@@ -116,17 +116,15 @@ fn main() {
           // set the blending we decided earlier
           .set_blending(blending);
 
-          rdr_gate.render(render_state, |tess_gate| {
-            match depth_method {
-              DepthMethod::Under => {
-                tess_gate.render(&mut surface, (&red_triangle).into());
-                tess_gate.render(&mut surface, (&blue_triangle).into());
-              }
+          rdr_gate.render(render_state, |tess_gate| match depth_method {
+            DepthMethod::Under => {
+              tess_gate.render(&mut surface, (&red_triangle).into());
+              tess_gate.render(&mut surface, (&blue_triangle).into());
+            }
 
-              DepthMethod::Atop => {
-                tess_gate.render(&mut surface, (&blue_triangle).into());
-                tess_gate.render(&mut surface, (&red_triangle).into());
-              }
+            DepthMethod::Atop => {
+              tess_gate.render(&mut surface, (&blue_triangle).into());
+              tess_gate.render(&mut surface, (&red_triangle).into());
             }
           });
         });

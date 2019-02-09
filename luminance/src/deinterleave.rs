@@ -52,18 +52,34 @@
 //! then need to ask your CPU to load all required data from different places from memory (this,
 //! then, can be way more costful and non-cache-friendly).
 
+/// Types that are the deinterleaved representation of another.
+///
+/// Those types have special internal properties that allow for inspecting its slices.
 pub unsafe trait Deinterleave: Sized {
+  /// Traverse the type and call this method every time a slice is found.
+  ///
+  /// Notice that this function only gives you a way to apply a universally-quantified function via
+  /// a *visitor pattern*.
   fn visit_deinterleave<V>(&self, visitor: &mut V)
-  where V: SliceVisitor;
+  where
+    V: SliceVisitor;
 }
 
+/// No slice in [`()`], so this will do nothing interesting and immediately return.
 unsafe impl Deinterleave for () {
   fn visit_deinterleave<V>(&self, _: &mut V)
-  where V: SliceVisitor {
+  where
+    V: SliceVisitor,
+  {
   }
 }
 
+/// Universal quantification done the poor way.
+///
+/// Rust doesn’t support universal quantification so far, so we need this trait to enter universal
+/// quantified functions. In this case, this is specialized for slices.
 pub trait SliceVisitor {
+  /// Called everytime a slice is visited.
   fn visit_slice<T>(&mut self, slice: &[T]);
 }
 
@@ -71,7 +87,9 @@ macro_rules! impl_deinterleave_for_scalar {
   ($t:ty) => {
     unsafe impl<'a> Deinterleave for &'a [$t] {
       fn visit_deinterleave<V>(&self, visitor: &mut V)
-      where V: SliceVisitor {
+      where
+        V: SliceVisitor,
+      {
         visitor.visit_slice(self);
       }
     }
