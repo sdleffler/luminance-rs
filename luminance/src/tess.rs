@@ -209,7 +209,7 @@ impl<V> Tess<V> {
 
       let raw_vbo = vertex_buffer.to_raw();
 
-      ctx.state().borrow_mut().bind_array_buffer(raw_vbo.handle()); // FIXME: issue the call whatever the caching result
+      ctx.state().borrow_mut().bind_array_buffer(raw_vbo.handle());
       set_vertex_pointers_interleaved(V::VERTEX_FMT);
 
       // in case of indexed render, create an index buffer
@@ -218,9 +218,6 @@ impl<V> Tess<V> {
         let raw_ibo = index_buffer.to_raw();
 
         gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, raw_ibo.handle());
-
-        // TODO: ensure we don’t need that
-        // ctx.state().borrow_mut().bind_vertex_array(vao);
 
         Tess {
           mode: opengl_mode(mode),
@@ -231,9 +228,6 @@ impl<V> Tess<V> {
           _v: PhantomData,
         }
       } else {
-        // TODO: ensure we don’t need that
-        // ctx.state().borrow_mut().bind_vertex_array(vao);
-
         Tess {
           mode: opengl_mode(mode),
           vert_nb,
