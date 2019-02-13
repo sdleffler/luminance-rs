@@ -189,14 +189,14 @@ struct VertexBufferFmt {
 enum VertexBufferType {
   Regular(Vec<VertexBufferFmt>),
   Indexing,
-  Instancing(Vec<VertexBufferFmt>)
+  Instancing(Vec<VertexBufferFmt>),
 }
 
 struct VertexBuffer {
   /// Type of the vertex buffer.
   ty: VertexBufferType,
   /// Internal buffer.
-  buf: RawBuffer
+  buf: RawBuffer,
 }
 
 struct Tess2 {
@@ -211,16 +211,17 @@ struct Tess2 {
 }
 
 /// Build tessellation the easy way.
-pub struct TessBuilder<'a, C, V> {
+pub struct TessBuilder<'a, C, V, I> {
   ctx: &'a mut C,
   vertex_buffers: Vec<VertexBuffer>,
   index_buffer: Option<VertexBuffer>,
   vert_nb: usize,
   inst_nb: usize,
-  _v: PhantomData<V>
+  _v: PhantomData<V>,
+  _i: PhantomData<I>
 }
 
-impl<'a, C, V> TessBuilder<'a, C, V> {
+impl<'a, C, V, I> TessBuilder<'a, C, V, I> {
   pub fn new(ctx: &'a mut C) -> Self {
     TessBuilder {
       ctx,
@@ -229,20 +230,32 @@ impl<'a, C, V> TessBuilder<'a, C, V> {
       vert_nb: 0,
       inst_nb: 0,
       _v: PhantomData,
+      _i: PhantomData,
     }
   }
 }
 
-impl<'a, C, V> TessBuilder<'a, C, V> where C: GraphicsContext, V: Vertex<'a> {
+impl<'a, C, V, I> TessBuilder<'a, C, V, I>
+where
+  C: GraphicsContext,
+{
   /// Set interleaved vertices.
-  pub fn set_vertices<W>(&mut self, vertices: W) -> &mut Self where W: AsRef<[V]> {
+  pub fn set_vertices<W>(&mut self, vertices: W) -> &mut Self
+  where
+    W: AsRef<[V]>,
+    V: Vertex<'a>
+  {
     let vertices = vertices.as_ref();
 
     // create a new interleaved raw buffer and turn it into a vertex buffer
-    let vb_fmt = V::VERTEX_FMT.iter().enumerate().map(|(index, &fmt)| VertexBufferFmt { index, fmt }).collect();
+    let vb_fmt = V::VERTEX_FMT
+      .iter()
+      .enumerate()
+      .map(|(index, &fmt)| VertexBufferFmt { index, fmt })
+      .collect();
     let vb = VertexBuffer {
       ty: VertexBufferType::Regular(vb_fmt),
-      buf: Buffer::from_slice(self.ctx, vertices).to_raw()
+      buf: Buffer::from_slice(self.ctx, vertices).to_raw(),
     };
 
     self.vertex_buffers = vec![vb];
@@ -252,9 +265,14 @@ impl<'a, C, V> TessBuilder<'a, C, V> where C: GraphicsContext, V: Vertex<'a> {
   }
 
   /// Set deinterleaved vertices.
-  pub fn set_deinterleaved_vertices<W>(&mut self, vertices: W) -> &mut Self where W: AsRef<V::Deinterleaved> {
+  pub fn set_deinterleaved_vertices<W>(&mut self, vertices: W) -> &mut Self
+  where
+    W: AsRef<V::Deinterleaved>,
+    V: Vertex<'a>
+  {
     let (buffers, vert_nb) = {
-      let mut visitor = DeinterleavingVisitor::new(self.ctx, V::VERTEX_FMT.iter().cloned());
+      let mut visitor =
+        DeinterleavingVisitor::new(self.ctx, V::VERTEX_FMT.iter().cloned(), VertexBufferType::Regular);
       vertices.as_ref().visit_deinterleave(&mut visitor);
       (visitor.buffers, visitor.vert_nb)
     };
@@ -266,13 +284,16 @@ impl<'a, C, V> TessBuilder<'a, C, V> where C: GraphicsContext, V: Vertex<'a> {
   }
 
   /// Set vertex indices in order to specify how vertices should be picked by the GPU pipeline.
-  pub fn set_indices<I>(&mut self, indices: I) -> &mut Self where I: AsRef<[u32]> {
+  pub fn set_indices<T>(&mut self, indices: T) -> &mut Self
+  where
+    T: AsRef<[u32]>,
+  {
     let indices = indices.as_ref();
 
     // create a new raw buffer containing the indices and turn it into a vertex buffer
     let vb = VertexBuffer {
       ty: VertexBufferType::Indexing,
-      buf: Buffer::from_slice(self.ctx, indices).to_raw()
+      buf: Buffer::from_slice(self.ctx, indices).to_raw(),
     };
 
     self.index_buffer = Some(vb);
@@ -282,16 +303,20 @@ impl<'a, C, V> TessBuilder<'a, C, V> where C: GraphicsContext, V: Vertex<'a> {
   }
 
   /// Set vertex instances. Those are always deinterleaved attributes.
-  pub fn set_instances<'b, I, Q>(&mut self, instances: I) -> &mut Self
-  where I: AsRef<[Q]>,
-        Q: Vertex<'b> {
-    let instances = instances.as_ref();
+  pub fn set_instances<'b, Q>(&mut self, instances: Q) -> &mut Self
+  where
+    Q: AsRef<I::Deinterleaved>,
+    I: Vertex<'b>,
+  {
+    {
+      let mut visitor = DeinterleavingVisitor::new(
+        self.ctx,
+        I::VERTEX_FMT.iter().cloned(),
+        VertexBufferType::Instancing,
+      );
 
-    let vb_fmt = Q::VERTEX_FMT.iter().enumerate().map(|(index, &fmt)| VertexBufferFmt { index, fmt }).collect();
-    let vb = VertexBuffer {
-      ty: VertexBufferType::Instancing(vb_fmt),
-      buf: Buffer::from_slice(self.ctx, instances).to_raw()
-    };
+      instances.as_ref().visit_deinterleave(&mut visitor);
+    }
 
     self
   }
@@ -796,30 +821,42 @@ impl<V> TessSliceIndex<Range<usize>, V> for Tess<V> {
   }
 }
 
-// this visitor creates the deinterleaved buffers by visiting the input slices from the
-// deinterleaved representation of the vertex type
-struct DeinterleavingVisitor<'a, C, V> {
+// This visitor creates the deinterleaved buffers by visiting the input slices from the
+// deinterleaved representation of the vertex type.
+//
+// The F type variable is a constructor of VertexBufferType that allows VertexBufferType::Regular(_)
+// or VertexBufferType::Instancing(_).
+struct DeinterleavingVisitor<'a, C, V, F>
+where
+  F: Fn(Vec<VertexBufferFmt>) -> VertexBufferType,
+{
   ctx: &'a mut C,
   vertex_fmt: V,
   buffers: Vec<VertexBuffer>,
   vert_nb: usize,
+  ty_fun: F,
 }
 
-impl<'a, C, V> DeinterleavingVisitor<'a, C, V> {
-  fn new(ctx: &'a mut C, vertex_fmt: V) -> Self {
+impl<'a, C, V, F> DeinterleavingVisitor<'a, C, V, F>
+where
+  F: Fn(Vec<VertexBufferFmt>) -> VertexBufferType,
+{
+  fn new(ctx: &'a mut C, vertex_fmt: V, ty_fun: F) -> Self {
     DeinterleavingVisitor {
       ctx,
       vertex_fmt,
       buffers: Vec::new(),
       vert_nb: 0,
+      ty_fun,
     }
   }
 }
 
-impl<'a, C, V> SliceVisitor for DeinterleavingVisitor<'a, C, V>
+impl<'a, C, V, F> SliceVisitor for DeinterleavingVisitor<'a, C, V, F>
 where
   C: GraphicsContext,
   V: Iterator<Item = VertexAttributeFmt>,
+  F: Fn(Vec<VertexBufferFmt>) -> VertexBufferType,
 {
   fn visit_slice<T>(&mut self, slice: &[T]) {
     let buf = Buffer::from_slice(self.ctx, slice);
@@ -832,11 +869,11 @@ where
     let vertex_attr_format = self.vertex_fmt.next().unwrap();
     let vb_fmt = VertexBufferFmt {
       index: 0,
-      fmt: vertex_attr_format
+      fmt: vertex_attr_format,
     };
     let vb = VertexBuffer {
-      ty: VertexBufferType::Instancing(vb_fmt),
-      buf: buf.to_raw()
+      ty: (self.ty_fun)(vec![vb_fmt]),
+      buf: buf.to_raw(),
     };
 
     self.buffers.push(vb);
