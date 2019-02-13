@@ -161,6 +161,144 @@ where
   }
 }
 
+/// Description of a vertex buffer.
+///
+/// Tessellation are made of several attributes. Those can be:
+///
+///   - **Vertex attributes** — e.g. vertex positions, normals, colors, UV channel coordinates, etc.
+///   - **Vertex instancing attributes**, which are information that represent instancing attributes
+///     that will be available as vertex attributes in shaders.
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+struct VertexBufferFmt {
+  /// Index of the verte attribute in the buffer.
+  ///
+  /// Such an index is used to uniquely identify the attribute in the buffer and is used by the
+  /// backend to peek them on the GPU-side.
+  index: usize,
+  /// Type of the attribute.
+  ///
+  /// Such a type is used to give backends information about the size and alignment of this
+  /// attribute.
+  fmt: VertexAttributeFmt,
+}
+
+/// Kind of a vertex buffer.
+///
+/// It can either be a regular vertex buffer or an instancing one.
+#[derive(Clone, Debug)]
+enum VertexBufferType {
+  Regular(Vec<VertexBufferFmt>),
+  Indexing,
+  Instancing(Vec<VertexBufferFmt>)
+}
+
+struct VertexBuffer {
+  /// Type of the vertex buffer.
+  ty: VertexBufferType,
+  /// Internal buffer.
+  buf: RawBuffer
+}
+
+struct Tess2 {
+  /// Vertex buffer, holding vertices.
+  vertex_buffer: Option<VertexBuffer>,
+  /// Total number of vertices represented by the buffers.
+  vert_nb: usize,
+  /// Total number of instances represented by the buffers.
+  inst_nb: usize,
+  /// Internal OpenGL vertex array object.
+  vao: GLuint,
+}
+
+/// Build tessellation the easy way.
+pub struct TessBuilder<'a, C, V> {
+  ctx: &'a mut C,
+  vertex_buffers: Vec<VertexBuffer>,
+  index_buffer: Option<VertexBuffer>,
+  vert_nb: usize,
+  inst_nb: usize,
+  _v: PhantomData<V>
+}
+
+impl<'a, C, V> TessBuilder<'a, C, V> {
+  pub fn new(ctx: &'a mut C) -> Self {
+    TessBuilder {
+      ctx,
+      vertex_buffers: Vec::new(),
+      index_buffer: None,
+      vert_nb: 0,
+      inst_nb: 0,
+      _v: PhantomData,
+    }
+  }
+}
+
+impl<'a, C, V> TessBuilder<'a, C, V> where C: GraphicsContext, V: Vertex<'a> {
+  /// Set interleaved vertices.
+  pub fn set_vertices<W>(&mut self, vertices: W) -> &mut Self where W: AsRef<[V]> {
+    let vertices = vertices.as_ref();
+
+    // create a new interleaved raw buffer and turn it into a vertex buffer
+    let vb_fmt = V::VERTEX_FMT.iter().enumerate().map(|(index, &fmt)| VertexBufferFmt { index, fmt }).collect();
+    let vb = VertexBuffer {
+      ty: VertexBufferType::Regular(vb_fmt),
+      buf: Buffer::from_slice(self.ctx, vertices).to_raw()
+    };
+
+    self.vertex_buffers = vec![vb];
+    self.vert_nb = vertices.len();
+
+    self
+  }
+
+  /// Set deinterleaved vertices.
+  pub fn set_deinterleaved_vertices<W>(&mut self, vertices: W) -> &mut Self where W: AsRef<V::Deinterleaved> {
+    let (buffers, vert_nb) = {
+      let mut visitor = DeinterleavingVisitor::new(self.ctx, V::VERTEX_FMT.iter().cloned());
+      vertices.as_ref().visit_deinterleave(&mut visitor);
+      (visitor.buffers, visitor.vert_nb)
+    };
+
+    self.vertex_buffers = buffers;
+    self.vert_nb = vert_nb;
+
+    self
+  }
+
+  /// Set vertex indices in order to specify how vertices should be picked by the GPU pipeline.
+  pub fn set_indices<I>(&mut self, indices: I) -> &mut Self where I: AsRef<[u32]> {
+    let indices = indices.as_ref();
+
+    // create a new raw buffer containing the indices and turn it into a vertex buffer
+    let vb = VertexBuffer {
+      ty: VertexBufferType::Indexing,
+      buf: Buffer::from_slice(self.ctx, indices).to_raw()
+    };
+
+    self.index_buffer = Some(vb);
+    self.vert_nb = indices.len();
+
+    self
+  }
+
+  /// Set vertex instances. Those are always deinterleaved attributes.
+  pub fn set_instances<'b, I, Q>(&mut self, instances: I) -> &mut Self
+  where I: AsRef<[Q]>,
+        Q: Vertex<'b> {
+    let instances = instances.as_ref();
+
+    let vb_fmt = Q::VERTEX_FMT.iter().enumerate().map(|(index, &fmt)| VertexBufferFmt { index, fmt }).collect();
+    let vb = VertexBuffer {
+      ty: VertexBufferType::Instancing(vb_fmt),
+      buf: Buffer::from_slice(self.ctx, instances).to_raw()
+    };
+
+    self
+  }
+
+  //pub fn build(self) -> Tess2
+}
+
 /// GPU typed tessellation.
 ///
 /// The tessellation is typed with the vertex type.
@@ -250,43 +388,44 @@ impl<V> Tess<V> {
   {
     let mut vao: GLuint = 0;
 
-    unsafe {
-      gl::GenVertexArrays(1, &mut vao);
-      ctx.state().borrow_mut().bind_vertex_array(vao);
+    unimplemented!()
+    //unsafe {
+    //  gl::GenVertexArrays(1, &mut vao);
+    //  ctx.state().borrow_mut().bind_vertex_array(vao);
 
-      let deinterleaved: &V::Deinterleaved = vertices.into();
-      let (buffers, vert_nb) = {
-        let mut visitor = DeinterleavingVisitor::new(ctx, V::VERTEX_FMT.iter().cloned());
+    //  let deinterleaved: &V::Deinterleaved = vertices.into();
+    //  let (buffers, vert_nb) = {
+    //    let mut visitor = DeinterleavingVisitor::new(ctx, V::VERTEX_FMT.iter().cloned());
 
-        deinterleaved.visit_deinterleave(&mut visitor);
-        (visitor.buffers, visitor.vert_nb)
-      };
+    //    deinterleaved.visit_deinterleave(&mut visitor);
+    //    (visitor.buffers, visitor.vert_nb)
+    //  };
 
-      if let Some(indices) = indices.into() {
-        let index_buffer = Buffer::from_slice(ctx, indices);
-        let raw_ibo = index_buffer.to_raw();
+    //  if let Some(indices) = indices.into() {
+    //    let index_buffer = Buffer::from_slice(ctx, indices);
+    //    let raw_ibo = index_buffer.to_raw();
 
-        gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, raw_ibo.handle());
+    //    gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, raw_ibo.handle());
 
-        Tess {
-          mode: opengl_mode(mode),
-          vert_nb: indices.len(),
-          vao,
-          vbo: buffers,
-          ibo: Some(raw_ibo),
-          _v: PhantomData,
-        }
-      } else {
-        Tess {
-          mode: opengl_mode(mode),
-          vert_nb,
-          vao,
-          vbo: buffers,
-          ibo: None,
-          _v: PhantomData,
-        }
-      }
-    }
+    //    Tess {
+    //      mode: opengl_mode(mode),
+    //      vert_nb: indices.len(),
+    //      vao,
+    //      vbo: buffers,
+    //      ibo: Some(raw_ibo),
+    //      _v: PhantomData,
+    //    }
+    //  } else {
+    //    Tess {
+    //      mode: opengl_mode(mode),
+    //      vert_nb,
+    //      vao,
+    //      vbo: buffers,
+    //      ibo: None,
+    //      _v: PhantomData,
+    //    }
+    //  }
+    //}
   }
 
   // Render the tessellation by providing the number of vertices to pick from it and how many
@@ -662,7 +801,7 @@ impl<V> TessSliceIndex<Range<usize>, V> for Tess<V> {
 struct DeinterleavingVisitor<'a, C, V> {
   ctx: &'a mut C,
   vertex_fmt: V,
-  buffers: Vec<RawBuffer>,
+  buffers: Vec<VertexBuffer>,
   vert_nb: usize,
 }
 
@@ -683,19 +822,23 @@ where
   V: Iterator<Item = VertexAttributeFmt>,
 {
   fn visit_slice<T>(&mut self, slice: &[T]) {
-    let buffer = Buffer::from_slice(self.ctx, slice);
-    let raw_buf = buffer.to_raw();
+    let buf = Buffer::from_slice(self.ctx, slice);
 
     if self.vert_nb == 0 {
       self.vert_nb = slice.len();
     }
 
-    unsafe { self.ctx.state().borrow_mut().bind_array_buffer(raw_buf.handle()) };
-
     // get the next vertex attribute format
     let vertex_attr_format = self.vertex_fmt.next().unwrap();
-    set_vertex_pointer_deinterleaved(&vertex_attr_format, self.buffers.len() as u32);
+    let vb_fmt = VertexBufferFmt {
+      index: 0,
+      fmt: vertex_attr_format
+    };
+    let vb = VertexBuffer {
+      ty: VertexBufferType::Instancing(vb_fmt),
+      buf: buf.to_raw()
+    };
 
-    self.buffers.push(raw_buf);
+    self.buffers.push(vb);
   }
 }

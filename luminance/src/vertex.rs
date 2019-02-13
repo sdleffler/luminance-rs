@@ -93,7 +93,7 @@ pub type VertexFmt = &'static [VertexAttributeFmt];
 
 /// Vertex attribute format. It gives information on how vertices should be passed to the GPU and
 /// optimized in buffers.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct VertexAttributeFmt {
   /// Type of the attribute. See `VertexAttributeType` for further details.
   pub comp_type: VertexAttributeType,
@@ -108,7 +108,7 @@ pub struct VertexAttributeFmt {
 }
 
 /// Possible type of vertex attributes.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum VertexAttributeType {
   Integral,
   Unsigned,
@@ -117,7 +117,7 @@ pub enum VertexAttributeType {
 }
 
 /// Possible dimension of vertex attributes.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub enum VertexAttributeDim {
   Dim1,
   Dim2,
