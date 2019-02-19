@@ -84,7 +84,7 @@ use buffer::{Buffer, BufferError, BufferSlice, BufferSliceMut, RawBuffer};
 use context::GraphicsContext;
 use deinterleave::{Deinterleave, SliceVisitor};
 use metagl::*;
-use vertex::{Vertex, VertexAttributeDim, VertexAttributeFmt, VertexAttributeType};
+use vertex::{Vertex, VertexAttributeDim, VertexAttribFmt, VertexAttributeType};
 
 /// Vertices can be connected via several modes.
 #[derive(Copy, Clone, Debug)]
@@ -179,7 +179,7 @@ struct VertexBufferFmt {
   ///
   /// Such a type is used to give backends information about the size and alignment of this
   /// attribute.
-  fmt: VertexAttributeFmt,
+  fmt: VertexAttribFmt,
 }
 
 /// Kind of a vertex buffer.
@@ -559,7 +559,7 @@ impl<V> Drop for Tess<V> {
 // This is the interleaved version: it must be used for a single buffer only. If you want to set
 // vertex pointer for a single buffer (deinterleaved buffers), please switch to the
 // `set_vertex_pointer_deinterleaved` function instead
-fn set_vertex_pointers_interleaved(formats: &[VertexAttributeFmt]) {
+fn set_vertex_pointers_interleaved(formats: &[VertexAttribFmt]) {
   // this function sets the vertex attribute pointer for the input list by computing:
   //   - The vertex attribute ID: this is the “rank” of the attribute in the input list (order
   //     matters, for short).
@@ -578,13 +578,13 @@ fn set_vertex_pointers_interleaved(formats: &[VertexAttributeFmt]) {
 // buffer memory.
 //
 // This is the deinterleaved version. It will set the vertex attribute pointer for the given buffer.
-fn set_vertex_pointer_deinterleaved(format: &VertexAttributeFmt, index: u32) {
+fn set_vertex_pointer_deinterleaved(format: &VertexAttribFmt, index: u32) {
   let stride = component_weight(format) as GLsizei;
   set_component_format(index, stride, 0, format);
 }
 
 // Compute offsets for all the vertex components according to the alignments provided.
-fn aligned_offsets(formats: &[VertexAttributeFmt]) -> Vec<usize> {
+fn aligned_offsets(formats: &[VertexAttribFmt]) -> Vec<usize> {
   let mut offsets = Vec::with_capacity(formats.len());
   let mut off = 0;
 
@@ -606,7 +606,7 @@ fn off_align(off: usize, align: usize) -> usize {
 }
 
 // Weight in bytes of a vertex component.
-fn component_weight(f: &VertexAttributeFmt) -> usize {
+fn component_weight(f: &VertexAttribFmt) -> usize {
   dim_as_size(&f.dim) as usize * f.unit_size
 }
 
@@ -621,7 +621,7 @@ fn dim_as_size(d: &VertexAttributeDim) -> GLint {
 
 // Weight in bytes of a single vertex, taking into account padding so that the vertex stay correctly
 // aligned.
-fn offset_based_vertex_weight(formats: &[VertexAttributeFmt], offsets: &[usize]) -> usize {
+fn offset_based_vertex_weight(formats: &[VertexAttribFmt], offsets: &[usize]) -> usize {
   if formats.is_empty() || offsets.is_empty() {
     return 0;
   }
@@ -633,7 +633,7 @@ fn offset_based_vertex_weight(formats: &[VertexAttributeFmt], offsets: &[usize])
 }
 
 // Set the vertex component OpenGL pointers regarding the index of the component (i), the stride
-fn set_component_format(i: u32, stride: GLsizei, off: usize, f: &VertexAttributeFmt) {
+fn set_component_format(i: u32, stride: GLsizei, off: usize, f: &VertexAttribFmt) {
   match f.comp_type {
     VertexAttributeType::Floating => unsafe {
       gl::VertexAttribPointer(
@@ -661,7 +661,7 @@ fn set_component_format(i: u32, stride: GLsizei, off: usize, f: &VertexAttribute
   }
 }
 
-fn opengl_sized_type(f: &VertexAttributeFmt) -> GLenum {
+fn opengl_sized_type(f: &VertexAttribFmt) -> GLenum {
   match (f.comp_type, f.unit_size) {
     (VertexAttributeType::Integral, 1) => gl::BYTE,
     (VertexAttributeType::Integral, 2) => gl::SHORT,
@@ -855,7 +855,7 @@ where
 impl<'a, C, V, F> SliceVisitor for DeinterleavingVisitor<'a, C, V, F>
 where
   C: GraphicsContext,
-  V: Iterator<Item = VertexAttributeFmt>,
+  V: Iterator<Item = VertexAttribFmt>,
   F: Fn(Vec<VertexBufferFmt>) -> VertexBufferType,
 {
   fn visit_slice<T>(&mut self, slice: &[T]) {

@@ -22,9 +22,9 @@
 //! ## Attributes list
 //!
 //! As mentionned above, you can use tuples and structs as `Vertex`. If you look at the definition
-//! of `VertexFmt`, you’ll notice that it’s a `Vec<VertexAttributeFmt>`. That means simple
+//! of `VertexFmt`, you’ll notice that it’s a `Vec<VertexAttribFmt>`. That means simple
 //! and primary types map to unit vectors – i.e. their size is 1 – but tuples and structs need
-//! several `VertexAttributeFmt`s to be represented, hence vectors with sizes greater than 1. No
+//! several `VertexAttribFmt`s to be represented, hence vectors with sizes greater than 1. No
 //! check is made on how many vertex attributes you’re using – there’s a practical limit, set by the
 //! GPU, but it’s not checked (yet).
 //!
@@ -88,13 +88,13 @@ where
 
 unsafe impl<'a, V> CompatibleVertex<'a, V> for V where V: Vertex<'a> {}
 
-/// A `VertexFmt` is a list of `VertexAttributeFmt`s.
-pub type VertexFmt = &'static [VertexAttributeFmt];
+/// A `VertexFmt` is a list of `VertexAttribFmt`s.
+pub type VertexFmt = &'static [VertexAttribFmt];
 
 /// Vertex attribute format. It gives information on how vertices should be passed to the GPU and
 /// optimized in buffers.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub struct VertexAttributeFmt {
+pub struct VertexAttribFmt {
   /// Type of the attribute. See `VertexAttributeType` for further details.
   pub comp_type: VertexAttributeType,
   /// Dimension of the attribute. It should be in 1–4. See `VertexAttributeDim` for further details.
@@ -127,7 +127,7 @@ pub enum VertexAttributeDim {
 
 /// Class of vertex attributes.
 pub unsafe trait VertexAttribute {
-  const VERTEX_ATTRIBUTE_FMT: VertexAttributeFmt;
+  const VERTEX_ATTRIB_FMT: VertexAttribFmt;
 }
 
 /// A local version of size_of that depends on the state of the std feature.
@@ -162,7 +162,7 @@ pub const fn align_of<T>() -> usize {
 macro_rules! impl_vertex_attribute {
   ($t:ty, $q:ty, $comp_type:ident, $dim:ident) => {
     unsafe impl VertexAttribute for $t {
-      const VERTEX_ATTRIBUTE_FMT: VertexAttributeFmt = VertexAttributeFmt {
+      const VERTEX_ATTRIB_FMT: VertexAttribFmt = VertexAttribFmt {
         comp_type: VertexAttributeType::$comp_type,
         dim: VertexAttributeDim::$dim,
         unit_size: $crate::vertex::size_of::<$q>(),
@@ -198,7 +198,7 @@ macro_rules! impl_vertex_for_tuple {
       const VERTEX_FMT: VertexFmt =
         &[
           $(
-            $t::VERTEX_ATTRIBUTE_FMT
+            $t::VERTEX_ATTRIB_FMT
           ),*
         ];
     }
