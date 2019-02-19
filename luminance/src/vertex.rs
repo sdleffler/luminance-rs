@@ -95,6 +95,9 @@ pub type VertexFmt = &'static [VertexAttribFmt];
 /// optimized in buffers.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct VertexAttribFmt {
+  /// Index of the attribute. See [`VertexSemantics`] for a public typed encoding of vertex
+  /// semantics.
+  pub index: usize,
   /// Type of the attribute. See `VertexAttributeType` for further details.
   pub comp_type: VertexAttributeType,
   /// Dimension of the attribute. It should be in 1–4. See `VertexAttributeDim` for further details.
@@ -130,6 +133,28 @@ pub unsafe trait VertexAttribute {
   const VERTEX_ATTRIB_FMT: VertexAttribFmt;
 }
 
+/// Vertex semantics.
+///
+/// Vertex semantics are a mean to make shaders and vertex buffers talk to each other correctly.
+/// This is important for several reasons:
+///
+///   - The memory layout of your vertex buffers might be very different from an ideal case or even
+///     the common case. Shaders don’t have any way to know where to pick vertex attributes from, so
+///     a mapping is needed.
+///   - Sometimes, a shader just need a few information from the vertex attributes. You then want to
+///     be able to authorize _“gaps”_ in the semantics so that shaders can be used for several
+///     varieties of vertex formats.
+///
+/// Vertex semantics are any types that can implement this trait. The idea is that semantics must be
+/// unique. The vertex position should have an index that is never used anywhere else in the vertex
+/// buffer. Because of the second point above, it’s also highly recommended (even though valid) to
+/// stick to the same index for a given semantics when you have several tessellations – that allows
+/// better compositing with shaders. Basically, the best advice to follow: define your semantics
+/// once, and keep to them.
+pub unsafe trait VertexSemantics {
+  fn index(&self) -> usize;
+}
+
 /// A local version of size_of that depends on the state of the std feature.
 #[inline(always)]
 pub const fn size_of<T>() -> usize {
@@ -158,62 +183,62 @@ pub const fn align_of<T>() -> usize {
   }
 }
 
-// Macro to quickly implement VertexAttribute for a given type.
-macro_rules! impl_vertex_attribute {
-  ($t:ty, $q:ty, $comp_type:ident, $dim:ident) => {
-    unsafe impl VertexAttribute for $t {
-      const VERTEX_ATTRIB_FMT: VertexAttribFmt = VertexAttribFmt {
-        comp_type: VertexAttributeType::$comp_type,
-        dim: VertexAttributeDim::$dim,
-        unit_size: $crate::vertex::size_of::<$q>(),
-        align: $crate::vertex::align_of::<$q>(),
-      };
-    }
-  };
-
-  ($t:ty, $comp_type:ident) => {
-    impl_vertex_attribute!($t, $t, $comp_type, Dim1);
-    impl_vertex_attribute!([$t; 1], $t, $comp_type, Dim1);
-    impl_vertex_attribute!([$t; 2], $t, $comp_type, Dim2);
-    impl_vertex_attribute!([$t; 3], $t, $comp_type, Dim3);
-    impl_vertex_attribute!([$t; 4], $t, $comp_type, Dim4);
-  };
-}
-
-impl_vertex_attribute!(i8, Integral);
-impl_vertex_attribute!(i16, Integral);
-impl_vertex_attribute!(i32, Integral);
-impl_vertex_attribute!(u8, Unsigned);
-impl_vertex_attribute!(u16, Unsigned);
-impl_vertex_attribute!(u32, Unsigned);
-impl_vertex_attribute!(f32, Floating);
-impl_vertex_attribute!(f64, Floating);
-impl_vertex_attribute!(bool, Floating);
-
-macro_rules! impl_vertex_for_tuple {
-  ($($t:tt),+) => {
-    unsafe impl<'a, $($t),+> Vertex<'a> for ($($t),+) where $($t: 'a + VertexAttribute),+ {
-      type Deinterleaved = ($(&'a [$t]),*);
-
-      const VERTEX_FMT: VertexFmt =
-        &[
-          $(
-            $t::VERTEX_ATTRIB_FMT
-          ),*
-        ];
-    }
-  }
-}
-
-macro_rules! impl_vertex_for_tuples {
-  ($a:tt, $b:tt) => {
-    impl_vertex_for_tuple!($a, $b);
-  };
-
-  ($first_t:tt, $($t:tt),+) => {
-    impl_vertex_for_tuples!($($t),+);
-    impl_vertex_for_tuple!($first_t, $($t),+);
-  }
-}
-
-impl_vertex_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
+// // Macro to quickly implement VertexAttribute for a given type.
+// macro_rules! impl_vertex_attribute {
+//   ($t:ty, $q:ty, $comp_type:ident, $dim:ident) => {
+//     unsafe impl VertexAttribute for $t {
+//       const VERTEX_ATTRIB_FMT: VertexAttribFmt = VertexAttribFmt {
+//         comp_type: VertexAttributeType::$comp_type,
+//         dim: VertexAttributeDim::$dim,
+//         unit_size: $crate::vertex::size_of::<$q>(),
+//         align: $crate::vertex::align_of::<$q>(),
+//       };
+//     }
+//   };
+//
+//   ($t:ty, $comp_type:ident) => {
+//     impl_vertex_attribute!($t, $t, $comp_type, Dim1);
+//     impl_vertex_attribute!([$t; 1], $t, $comp_type, Dim1);
+//     impl_vertex_attribute!([$t; 2], $t, $comp_type, Dim2);
+//     impl_vertex_attribute!([$t; 3], $t, $comp_type, Dim3);
+//     impl_vertex_attribute!([$t; 4], $t, $comp_type, Dim4);
+//   };
+// }
+//
+// impl_vertex_attribute!(i8, Integral);
+// impl_vertex_attribute!(i16, Integral);
+// impl_vertex_attribute!(i32, Integral);
+// impl_vertex_attribute!(u8, Unsigned);
+// impl_vertex_attribute!(u16, Unsigned);
+// impl_vertex_attribute!(u32, Unsigned);
+// impl_vertex_attribute!(f32, Floating);
+// impl_vertex_attribute!(f64, Floating);
+// impl_vertex_attribute!(bool, Floating);
+//
+// macro_rules! impl_vertex_for_tuple {
+//   ($($t:tt),+) => {
+//     unsafe impl<'a, $($t),+> Vertex<'a> for ($($t),+) where $($t: 'a + VertexAttribute),+ {
+//       type Deinterleaved = ($(&'a [$t]),*);
+//
+//       const VERTEX_FMT: VertexFmt =
+//         &[
+//           $(
+//             $t::VERTEX_ATTRIB_FMT
+//           ),*
+//         ];
+//     }
+//   }
+// }
+//
+// macro_rules! impl_vertex_for_tuples {
+//   ($a:tt, $b:tt) => {
+//     impl_vertex_for_tuple!($a, $b);
+//   };
+//
+//   ($first_t:tt, $($t:tt),+) => {
+//     impl_vertex_for_tuples!($($t),+);
+//     impl_vertex_for_tuple!($first_t, $($t),+);
+//   }
+// }
+//
+// impl_vertex_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
