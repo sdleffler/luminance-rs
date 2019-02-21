@@ -89,15 +89,24 @@ where
 unsafe impl<'a, V> CompatibleVertex<'a, V> for V where V: Vertex<'a> {}
 
 /// A `VertexFmt` is a list of `VertexAttribFmt`s.
-pub type VertexFmt = &'static [VertexAttribFmt];
+pub type VertexFmt = &'static [IndexedVertexAttribFmt];
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub struct IndexedVertexAttribFmt {
+  pub index: usize,
+  pub attrib_fmt: VertexAttribFmt
+}
+
+impl IndexedVertexAttribFmt {
+  pub fn new(index: usize, attrib_fmt: VertexAttribFmt) -> Self {
+    IndexedVertexAttribFmt { index, attrib_fmt }
+  }
+}
 
 /// Vertex attribute format. It gives information on how vertices should be passed to the GPU and
 /// optimized in buffers.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct VertexAttribFmt {
-  /// Index of the attribute. See [`VertexSemantics`] for a public typed encoding of vertex
-  /// semantics.
-  pub index: usize,
   /// Type of the attribute. See `VertexAttributeType` for further details.
   pub comp_type: VertexAttributeType,
   /// Dimension of the attribute. It should be in 1–4. See `VertexAttributeDim` for further details.
@@ -133,10 +142,10 @@ pub unsafe trait VertexAttribute {
   const VERTEX_ATTRIB_FMT: VertexAttribFmt;
 }
 
-/// Vertex semantics.
+/// Vertex attribute semantics.
 ///
-/// Vertex semantics are a mean to make shaders and vertex buffers talk to each other correctly.
-/// This is important for several reasons:
+/// Vertex attribute semantics are a mean to make shaders and vertex buffers talk to each other
+/// correctly. This is important for several reasons:
 ///
 ///   - The memory layout of your vertex buffers might be very different from an ideal case or even
 ///     the common case. Shaders don’t have any way to know where to pick vertex attributes from, so
@@ -145,13 +154,13 @@ pub unsafe trait VertexAttribute {
 ///     be able to authorize _“gaps”_ in the semantics so that shaders can be used for several
 ///     varieties of vertex formats.
 ///
-/// Vertex semantics are any types that can implement this trait. The idea is that semantics must be
-/// unique. The vertex position should have an index that is never used anywhere else in the vertex
-/// buffer. Because of the second point above, it’s also highly recommended (even though valid) to
-/// stick to the same index for a given semantics when you have several tessellations – that allows
-/// better compositing with shaders. Basically, the best advice to follow: define your semantics
-/// once, and keep to them.
-pub unsafe trait VertexSemantics {
+/// Vertex attribute semantics are any types that can implement this trait. The idea is that
+/// semantics must be unique. The vertex position should have an index that is never used anywhere
+/// else in the vertex buffer. Because of the second point above, it’s also highly recommended
+/// (even though valid) to stick to the same index for a given semantics when you have several
+/// tessellations – that allows better compositing with shaders. Basically, the best advice to
+/// follow: define your semantics once, and keep to them.
+pub unsafe trait VertexAttribSemantics {
   fn index(&self) -> usize;
 }
 
