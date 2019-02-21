@@ -166,9 +166,9 @@ where
 /// It can either be a regular vertex buffer or an instancing one.
 #[derive(Clone, Debug)]
 enum VertexBufferType {
-  Regular(VertexFmt),
+  Regular(Vec<IndexedVertexAttribFmt>),
   Indexing,
-  Instancing(VertexFmt),
+  Instancing(Vec<IndexedVertexAttribFmt>),
 }
 
 struct VertexBuffer {
@@ -228,7 +228,7 @@ where
 
     // create a new interleaved raw buffer and turn it into a vertex buffer
     let vb = VertexBuffer {
-      ty: VertexBufferType::Regular(V::VERTEX_FMT),
+      ty: VertexBufferType::Regular(V::VERTEX_FMT.iter().cloned().collect()),
       buf: Buffer::from_slice(self.ctx, vertices).to_raw(),
     };
 
@@ -347,7 +347,7 @@ impl<V> Tess<V> {
       let raw_vbo = vertex_buffer.to_raw();
 
       ctx.state().borrow_mut().bind_array_buffer(raw_vbo.handle());
-      set_vertex_pointers_interleaved(V::VERTEX_FMT);
+      set_vertex_pointers(V::VERTEX_FMT);
 
       // in case of indexed render, create an index buffer
       if let Some(indices) = indices.into() {
@@ -529,11 +529,7 @@ impl<V> Drop for Tess<V> {
 
 // Give OpenGL types information on the content of the VBO by setting vertex formats and pointers
 // to buffer memory.
-//
-// This is the interleaved version: it must be used for a single buffer only. If you want to set
-// vertex pointer for a single buffer (deinterleaved buffers), please switch to the
-// `set_vertex_pointer_deinterleaved` function instead
-fn set_vertex_pointers_interleaved(formats: VertexFmt) {
+fn set_vertex_pointers(formats: VertexFmt) {
   // this function sets the vertex attribute pointer for the input list by computing:
   //   - The vertex attribute ID: this is the “rank” of the attribute in the input list (order
   //     matters, for short).
@@ -546,15 +542,6 @@ fn set_vertex_pointers_interleaved(formats: VertexFmt) {
   for (i, (format, off)) in formats.iter().zip(offsets).enumerate() {
     set_component_format(vertex_weight, off, format);
   }
-}
-
-// Give OpenGL types information on the content of the VBO by setting vertex format and pointer to
-// buffer memory.
-//
-// This is the deinterleaved version. It will set the vertex attribute pointer for the given buffer.
-fn set_vertex_pointer_deinterleaved(format: &[VertexAttribFmt], index: u32) {
-  let stride = component_weight(format) as GLsizei;
-  set_component_format(stride, 0, format);
 }
 
 // Compute offsets for all the vertex components according to the alignments provided.
@@ -602,7 +589,7 @@ fn offset_based_vertex_weight(formats: VertexFmt, offsets: &[usize]) -> usize {
   }
 
   off_align(
-    offsets[offsets.len() - 1] + component_weight(&formats[formats.len() - 1]),
+    offsets[offsets.len() - 1] + component_weight(&formats[formats.len() - 1].attrib_fmt),
     formats[0].attrib_fmt.align,
   )
 }
@@ -804,10 +791,7 @@ impl<V> TessSliceIndex<Range<usize>, V> for Tess<V> {
 //
 // The F type variable is a constructor of VertexBufferType that allows VertexBufferType::Regular(_)
 // or VertexBufferType::Instancing(_).
-struct DeinterleavingVisitor<'a, C, V, F>
-where
-  F: Fn(Vec<VertexBufferFmt>) -> VertexBufferType,
-{
+struct DeinterleavingVisitor<'a, C, V, F> {
   ctx: &'a mut C,
   vertex_fmt: V,
   buffers: Vec<VertexBuffer>,
@@ -815,10 +799,7 @@ where
   ty_fun: F,
 }
 
-impl<'a, C, V, F> DeinterleavingVisitor<'a, C, V, F>
-where
-  F: Fn(Vec<VertexBufferFmt>) -> VertexBufferType,
-{
+impl<'a, C, V, F> DeinterleavingVisitor<'a, C, V, F> {
   fn new(ctx: &'a mut C, vertex_fmt: V, ty_fun: F) -> Self {
     DeinterleavingVisitor {
       ctx,
@@ -833,8 +814,8 @@ where
 impl<'a, C, V, F> SliceVisitor for DeinterleavingVisitor<'a, C, V, F>
 where
   C: GraphicsContext,
-  V: Iterator<Item = VertexAttribFmt>,
-  F: Fn(Vec<VertexBufferFmt>) -> VertexBufferType,
+  V: Iterator<Item = IndexedVertexAttribFmt>,
+  F: Fn(Vec<IndexedVertexAttribFmt>) -> VertexBufferType,
 {
   fn visit_slice<T>(&mut self, slice: &[T]) {
     let buf = Buffer::from_slice(self.ctx, slice);
@@ -844,13 +825,9 @@ where
     }
 
     // get the next vertex attribute format
-    let vertex_attr_format = self.vertex_fmt.next().unwrap();
-    let vb_fmt = VertexBufferFmt {
-      index: 0,
-      fmt: vertex_attr_format,
-    };
+    let vertex_attr_fmt = self.vertex_fmt.next().unwrap();
     let vb = VertexBuffer {
-      ty: (self.ty_fun)(vec![vb_fmt]),
+      ty: (self.ty_fun)(vec![vertex_attr_fmt]),
       buf: buf.to_raw(),
     };
 
