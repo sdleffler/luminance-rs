@@ -192,62 +192,34 @@ pub const fn align_of<T>() -> usize {
   }
 }
 
-// // Macro to quickly implement VertexAttribute for a given type.
-// macro_rules! impl_vertex_attribute {
-//   ($t:ty, $q:ty, $comp_type:ident, $dim:ident) => {
-//     unsafe impl VertexAttribute for $t {
-//       const VERTEX_ATTRIB_FMT: VertexAttribFmt = VertexAttribFmt {
-//         comp_type: VertexAttributeType::$comp_type,
-//         dim: VertexAttributeDim::$dim,
-//         unit_size: $crate::vertex::size_of::<$q>(),
-//         align: $crate::vertex::align_of::<$q>(),
-//       };
-//     }
-//   };
-//
-//   ($t:ty, $comp_type:ident) => {
-//     impl_vertex_attribute!($t, $t, $comp_type, Dim1);
-//     impl_vertex_attribute!([$t; 1], $t, $comp_type, Dim1);
-//     impl_vertex_attribute!([$t; 2], $t, $comp_type, Dim2);
-//     impl_vertex_attribute!([$t; 3], $t, $comp_type, Dim3);
-//     impl_vertex_attribute!([$t; 4], $t, $comp_type, Dim4);
-//   };
-// }
-//
-// impl_vertex_attribute!(i8, Integral);
-// impl_vertex_attribute!(i16, Integral);
-// impl_vertex_attribute!(i32, Integral);
-// impl_vertex_attribute!(u8, Unsigned);
-// impl_vertex_attribute!(u16, Unsigned);
-// impl_vertex_attribute!(u32, Unsigned);
-// impl_vertex_attribute!(f32, Floating);
-// impl_vertex_attribute!(f64, Floating);
-// impl_vertex_attribute!(bool, Floating);
-//
-// macro_rules! impl_vertex_for_tuple {
-//   ($($t:tt),+) => {
-//     unsafe impl<'a, $($t),+> Vertex<'a> for ($($t),+) where $($t: 'a + VertexAttribute),+ {
-//       type Deinterleaved = ($(&'a [$t]),*);
-//
-//       const VERTEX_FMT: VertexFmt =
-//         &[
-//           $(
-//             $t::VERTEX_ATTRIB_FMT
-//           ),*
-//         ];
-//     }
-//   }
-// }
-//
-// macro_rules! impl_vertex_for_tuples {
-//   ($a:tt, $b:tt) => {
-//     impl_vertex_for_tuple!($a, $b);
-//   };
-//
-//   ($first_t:tt, $($t:tt),+) => {
-//     impl_vertex_for_tuples!($($t),+);
-//     impl_vertex_for_tuple!($first_t, $($t),+);
-//   }
-// }
-//
-// impl_vertex_for_tuples!(A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P);
+// Macro to quickly implement VertexAttribute for a given type.
+macro_rules! impl_vertex_attribute {
+  ($t:ty, $q:ty, $comp_type:ident, $dim:ident) => {
+    unsafe impl VertexAttribute for $t {
+      const VERTEX_ATTRIB_FMT: VertexAttribFmt = VertexAttribFmt {
+        comp_type: VertexAttributeType::$comp_type,
+        dim: VertexAttributeDim::$dim,
+        unit_size: $crate::vertex::size_of::<$q>(),
+        align: $crate::vertex::align_of::<$q>(),
+      };
+    }
+  };
+
+  ($t:ty, $comp_type:ident) => {
+    impl_vertex_attribute!($t, $t, $comp_type, Dim1);
+    impl_vertex_attribute!([$t; 1], $t, $comp_type, Dim1);
+    impl_vertex_attribute!([$t; 2], $t, $comp_type, Dim2);
+    impl_vertex_attribute!([$t; 3], $t, $comp_type, Dim3);
+    impl_vertex_attribute!([$t; 4], $t, $comp_type, Dim4);
+  };
+}
+
+impl_vertex_attribute!(i8, Integral);
+impl_vertex_attribute!(i16, Integral);
+impl_vertex_attribute!(i32, Integral);
+impl_vertex_attribute!(u8, Unsigned);
+impl_vertex_attribute!(u16, Unsigned);
+impl_vertex_attribute!(u32, Unsigned);
+impl_vertex_attribute!(f32, Floating);
+impl_vertex_attribute!(f64, Floating);
+impl_vertex_attribute!(bool, Floating);

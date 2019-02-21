@@ -84,7 +84,7 @@ use buffer::{Buffer, BufferError, BufferSlice, BufferSliceMut, RawBuffer};
 use context::GraphicsContext;
 use deinterleave::{Deinterleave, SliceVisitor};
 use metagl::*;
-use vertex::{Vertex, VertexAttributeDim, VertexAttribFmt, VertexAttributeType};
+use vertex::{IndexedVertexAttribFmt, Vertex, VertexAttributeDim, VertexAttribFmt, VertexAttributeType, VertexFmt};
 
 /// Vertices can be connected via several modes.
 #[derive(Copy, Clone, Debug)]
@@ -161,35 +161,14 @@ where
   }
 }
 
-/// Description of a vertex buffer.
-///
-/// Tessellation are made of several attributes. Those can be:
-///
-///   - **Vertex attributes** — e.g. vertex positions, normals, colors, UV channel coordinates, etc.
-///   - **Vertex instancing attributes**, which are information that represent instancing attributes
-///     that will be available as vertex attributes in shaders.
-#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
-struct VertexBufferFmt {
-  /// Index of the verte attribute in the buffer.
-  ///
-  /// Such an index is used to uniquely identify the attribute in the buffer and is used by the
-  /// backend to peek them on the GPU-side.
-  index: usize,
-  /// Type of the attribute.
-  ///
-  /// Such a type is used to give backends information about the size and alignment of this
-  /// attribute.
-  fmt: VertexAttribFmt,
-}
-
 /// Kind of a vertex buffer.
 ///
 /// It can either be a regular vertex buffer or an instancing one.
 #[derive(Clone, Debug)]
 enum VertexBufferType {
-  Regular(Vec<VertexBufferFmt>),
+  Regular(VertexFmt),
   Indexing,
-  Instancing(Vec<VertexBufferFmt>),
+  Instancing(VertexFmt),
 }
 
 struct VertexBuffer {
@@ -248,13 +227,8 @@ where
     let vertices = vertices.as_ref();
 
     // create a new interleaved raw buffer and turn it into a vertex buffer
-    let vb_fmt = V::VERTEX_FMT
-      .iter()
-      .enumerate()
-      .map(|(index, &fmt)| VertexBufferFmt { index, fmt })
-      .collect();
     let vb = VertexBuffer {
-      ty: VertexBufferType::Regular(vb_fmt),
+      ty: VertexBufferType::Regular(V::VERTEX_FMT),
       buf: Buffer::from_slice(self.ctx, vertices).to_raw(),
     };
 
@@ -559,7 +533,7 @@ impl<V> Drop for Tess<V> {
 // This is the interleaved version: it must be used for a single buffer only. If you want to set
 // vertex pointer for a single buffer (deinterleaved buffers), please switch to the
 // `set_vertex_pointer_deinterleaved` function instead
-fn set_vertex_pointers_interleaved(formats: &[VertexAttribFmt]) {
+fn set_vertex_pointers_interleaved(formats: VertexFmt) {
   // this function sets the vertex attribute pointer for the input list by computing:
   //   - The vertex attribute ID: this is the “rank” of the attribute in the input list (order
   //     matters, for short).
@@ -570,7 +544,7 @@ fn set_vertex_pointers_interleaved(formats: &[VertexAttribFmt]) {
   let vertex_weight = offset_based_vertex_weight(formats, &offsets) as GLsizei;
 
   for (i, (format, off)) in formats.iter().zip(offsets).enumerate() {
-    set_component_format(i as u32, vertex_weight, off, format);
+    set_component_format(vertex_weight, off, format);
   }
 }
 
@@ -578,21 +552,22 @@ fn set_vertex_pointers_interleaved(formats: &[VertexAttribFmt]) {
 // buffer memory.
 //
 // This is the deinterleaved version. It will set the vertex attribute pointer for the given buffer.
-fn set_vertex_pointer_deinterleaved(format: &VertexAttribFmt, index: u32) {
+fn set_vertex_pointer_deinterleaved(format: &[VertexAttribFmt], index: u32) {
   let stride = component_weight(format) as GLsizei;
-  set_component_format(index, stride, 0, format);
+  set_component_format(stride, 0, format);
 }
 
 // Compute offsets for all the vertex components according to the alignments provided.
-fn aligned_offsets(formats: &[VertexAttribFmt]) -> Vec<usize> {
+fn aligned_offsets(formats: VertexFmt) -> Vec<usize> {
   let mut offsets = Vec::with_capacity(formats.len());
   let mut off = 0;
 
   // compute offsets
   for f in formats {
-    off = off_align(off, f.align); // keep the current component format aligned
+    let fmt = &f.attrib_fmt;
+    off = off_align(off, fmt.align); // keep the current component format aligned
     offsets.push(off);
-    off += component_weight(f); // increment the offset by the pratical size of the component
+    off += component_weight(fmt); // increment the offset by the pratical size of the component
   }
 
   offsets
@@ -621,43 +596,46 @@ fn dim_as_size(d: &VertexAttributeDim) -> GLint {
 
 // Weight in bytes of a single vertex, taking into account padding so that the vertex stay correctly
 // aligned.
-fn offset_based_vertex_weight(formats: &[VertexAttribFmt], offsets: &[usize]) -> usize {
+fn offset_based_vertex_weight(formats: VertexFmt, offsets: &[usize]) -> usize {
   if formats.is_empty() || offsets.is_empty() {
     return 0;
   }
 
   off_align(
     offsets[offsets.len() - 1] + component_weight(&formats[formats.len() - 1]),
-    formats[0].align,
+    formats[0].attrib_fmt.align,
   )
 }
 
 // Set the vertex component OpenGL pointers regarding the index of the component (i), the stride
-fn set_component_format(i: u32, stride: GLsizei, off: usize, f: &VertexAttribFmt) {
-  match f.comp_type {
-    VertexAttributeType::Floating => unsafe {
-      gl::VertexAttribPointer(
-        i as GLuint,
-        dim_as_size(&f.dim),
-        opengl_sized_type(&f),
-        gl::FALSE,
-        stride,
-        ptr::null::<c_void>().offset(off as isize),
-      );
-    },
-    VertexAttributeType::Integral | VertexAttributeType::Unsigned | VertexAttributeType::Boolean => unsafe {
-      gl::VertexAttribIPointer(
-        i as GLuint,
-        dim_as_size(&f.dim),
-        opengl_sized_type(&f),
-        stride,
-        ptr::null::<c_void>().offset(off as isize),
-      );
-    },
-  }
+fn set_component_format(stride: GLsizei, off: usize, fmt: &IndexedVertexAttribFmt) {
+  let f = &fmt.attrib_fmt;
+  let index = fmt.index as GLuint;
 
   unsafe {
-    gl::EnableVertexAttribArray(i as GLuint);
+    match f.comp_type {
+      VertexAttributeType::Floating => {
+        gl::VertexAttribPointer(
+          index,
+          dim_as_size(&f.dim),
+          opengl_sized_type(&f),
+          gl::FALSE,
+          stride,
+          ptr::null::<c_void>().offset(off as isize),
+          );
+      },
+      VertexAttributeType::Integral | VertexAttributeType::Unsigned | VertexAttributeType::Boolean => {
+        gl::VertexAttribIPointer(
+          index,
+          dim_as_size(&f.dim),
+          opengl_sized_type(&f),
+          stride,
+          ptr::null::<c_void>().offset(off as isize),
+          );
+      },
+    }
+
+    gl::EnableVertexAttribArray(index);
   }
 }
 
