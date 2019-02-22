@@ -42,6 +42,7 @@ impl fmt::Display for StructImplError {
       StructImplError::FieldsError(ref errs) => {
         for err in errs {
           err.fmt(f)?;
+          writeln!(f, "").unwrap();
         }
 
         Ok(())
@@ -101,9 +102,9 @@ fn generate_struct_vertex_impl(ident: Ident, struct_: DataStruct) -> Result<Toke
 #[derive(Debug)]
 enum FieldError {
   SemanticsParseError(syn::Error),
-  SeveralSemantics,
-  WrongSemanticsFormat,
-  SemanticsKeyNotFound
+  SeveralSemantics(Ident),
+  WrongSemanticsFormat(Ident),
+  SemanticsKeyNotFound(Ident)
 }
 
 impl From<syn::Error> for FieldError {
@@ -116,10 +117,10 @@ impl fmt::Display for FieldError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
       FieldError::SemanticsParseError(ref e) => write!(f, "unable to pars semantics: {}", e),
-      FieldError::SeveralSemantics =>
-        f.write_str("several semantics annotations were found; please use only one"),
-      FieldError::WrongSemanticsFormat => f.write_str("the semantics should be a variant"),
-      FieldError::SemanticsKeyNotFound => f.write_str("the semantics annotation was not found")
+      FieldError::SeveralSemantics(ref field) =>
+        write!(f, "several semantics annotations were found while expecting one for field {}", field),
+      FieldError::WrongSemanticsFormat(ref field) => write!(f, "the semantics should be a variant for field {}", field),
+      FieldError::SemanticsKeyNotFound(ref field) => write!(f, "the semantics annotation was not found for field {}", field)
     }
   }
 }
@@ -127,6 +128,7 @@ impl fmt::Display for FieldError {
 fn get_field_type_semantics(field: Field) -> Result<(syn::Type, Variant), FieldError> {
   let mut semantics_found = false;
   let mut ty_semantics = None;
+  let field_ident = field.ident.unwrap();
 
   for attr in field.attrs {
     match attr.parse_meta() {
@@ -137,11 +139,11 @@ fn get_field_type_semantics(field: Field) -> Result<(syn::Type, Variant), FieldE
               semantics_found = true;
               ty_semantics = Some((field.ty.clone(), semantics.parse()?));
             } else {
-              return Err(FieldError::SeveralSemantics);
+              return Err(FieldError::SeveralSemantics(field_ident.clone()));
             }
           }
 
-          _ => return Err(FieldError::WrongSemanticsFormat)
+          _ => return Err(FieldError::WrongSemanticsFormat(field_ident.clone()))
         }
       }
 
@@ -152,5 +154,5 @@ fn get_field_type_semantics(field: Field) -> Result<(syn::Type, Variant), FieldE
 
   // here, ty_semantics holds either our type and its associated semantics or we’re missing the
   // semantics key
-  ty_semantics.ok_or(FieldError::SemanticsKeyNotFound)
+  ty_semantics.ok_or(FieldError::SemanticsKeyNotFound(field_ident))
 }
