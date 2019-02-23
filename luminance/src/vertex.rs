@@ -54,13 +54,15 @@ use crate::deinterleave::Deinterleave;
 pub unsafe trait Vertex<'a> {
   type Deinterleaved: Deinterleave;
 
-  const VERTEX_FMT: VertexFmt;
+  fn vertex_fmt() -> VertexFmt;
 }
 
 unsafe impl<'a> Vertex<'a> for () {
   type Deinterleaved = ();
 
-  const VERTEX_FMT: VertexFmt = &[];
+  fn vertex_fmt() -> VertexFmt {
+    Vec::new()
+  }
 }
 
 // /// Universal `Vertex` implementation. Any type that already implements `VertexAttribute` also
@@ -89,7 +91,7 @@ where
 unsafe impl<'a, V> CompatibleVertex<'a, V> for V where V: Vertex<'a> {}
 
 /// A `VertexFmt` is a list of `VertexAttribFmt`s.
-pub type VertexFmt = &'static [IndexedVertexAttribFmt];
+pub type VertexFmt = Vec<IndexedVertexAttribFmt>;
 
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct IndexedVertexAttribFmt {
@@ -160,7 +162,7 @@ pub unsafe trait VertexAttribute {
 /// (even though valid) to stick to the same index for a given semantics when you have several
 /// tessellations – that allows better compositing with shaders. Basically, the best advice to
 /// follow: define your semantics once, and keep to them.
-pub unsafe trait VertexAttribSemantics {
+pub trait VertexAttribSemantics {
   fn index(&self) -> usize;
 }
 

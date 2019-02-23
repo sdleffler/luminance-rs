@@ -4,14 +4,15 @@ use proc_macro::TokenStream;
 use quote::quote;
 use std::fmt;
 use syn::{
-  self, Data, DataStruct, DeriveInput, Field, Fields, Ident, Lit, Meta, Variant,
-  parse_macro_input
+  self, Data, DataStruct, DeriveInput, Expr, Field, Fields, Ident, Lit, Meta,
+  NestedMeta, parse_macro_input
 };
 
+const VERTEX_ATTR_KEY: &str = "vertex";
 const SEMANTICS_ATTR_KEY: &str = "semantics";
 
-#[proc_macro_derive(Vertex)]
-pub fn vertex(input: TokenStream) -> TokenStream {
+#[proc_macro_derive(Vertex, attributes(vertex))]
+pub fn derive_vertex(input: TokenStream) -> TokenStream {
   let di: DeriveInput = parse_macro_input!(input);
 
   match di.data {
@@ -65,7 +66,7 @@ fn generate_struct_vertex_impl(ident: Ident, struct_: DataStruct) -> Result<Toke
         match r {
           Ok((ty, semantics)) => {
             let indexed_vertex_attrib_fmt_q = quote!{
-              IndexedVertexAttribFmt::new(#semantics.index(), #ty::VERTEX_ATTRIB_FMT)
+              luminance::vertex::IndexedVertexAttribFmt::new(#semantics.index(), <#ty as luminance::vertex::VertexAttribute>::VERTEX_ATTRIB_FMT)
             };
 
             indexed_vertex_attrib_fmts.push(indexed_vertex_attrib_fmt_q);
@@ -84,10 +85,12 @@ fn generate_struct_vertex_impl(ident: Ident, struct_: DataStruct) -> Result<Toke
       // formats needed to implement the Vertex trait
       let struct_name = ident;
       let impl_ = quote! {
-        impl<'a> Vertex<'a> for #struct_name {
-          type Deinterleaved = &'a (#(#fields_tys),*);
+        unsafe impl<'a> luminance::vertex::Vertex<'a> for #struct_name {
+          type Deinterleaved = (#(&'a [#fields_tys]),*);
 
-          const VERTEX_FMT: VertexFmt = &[#(#indexed_vertex_attrib_fmts),*];
+          fn vertex_fmt() -> luminance::vertex::VertexFmt {
+            vec![#(#indexed_vertex_attrib_fmts),*]
+          }
         }
       };
 
@@ -104,7 +107,7 @@ enum FieldError {
   SemanticsParseError(syn::Error),
   SeveralSemantics(Ident),
   WrongSemanticsFormat(Ident),
-  SemanticsKeyNotFound(Ident)
+  SemanticsKeyNotFound(Ident),
 }
 
 impl From<syn::Error> for FieldError {
@@ -119,27 +122,39 @@ impl fmt::Display for FieldError {
       FieldError::SemanticsParseError(ref e) => write!(f, "unable to pars semantics: {}", e),
       FieldError::SeveralSemantics(ref field) =>
         write!(f, "several semantics annotations were found while expecting one for field {}", field),
-      FieldError::WrongSemanticsFormat(ref field) => write!(f, "the semantics should be a variant for field {}", field),
+      FieldError::WrongSemanticsFormat(ref field) => write!(f, "the semantics should be an expression for field {}", field),
       FieldError::SemanticsKeyNotFound(ref field) => write!(f, "the semantics annotation was not found for field {}", field)
     }
   }
 }
 
-fn get_field_type_semantics(field: Field) -> Result<(syn::Type, Variant), FieldError> {
+fn get_field_type_semantics(field: Field) -> Result<(syn::Type, Expr), FieldError> {
   let mut semantics_found = false;
   let mut ty_semantics = None;
   let field_ident = field.ident.unwrap();
 
   for attr in field.attrs {
     match attr.parse_meta() {
-      Ok(Meta::NameValue(ref mnv)) if mnv.ident == SEMANTICS_ATTR_KEY => {
-        match mnv.lit {
-          Lit::Str(ref semantics) => {
-            if !semantics_found {
-              semantics_found = true;
-              ty_semantics = Some((field.ty.clone(), semantics.parse()?));
-            } else {
-              return Err(FieldError::SeveralSemantics(field_ident.clone()));
+      Ok(Meta::List(ref ml)) if ml.ident == VERTEX_ATTR_KEY => {
+        let nested = &ml.nested;
+
+        if nested.len() != 1 {
+          return Err(FieldError::WrongSemanticsFormat(field_ident.clone()));
+        }
+
+        match nested.into_iter().next().unwrap() {
+          NestedMeta::Meta(Meta::NameValue(ref mnv)) if mnv.ident == SEMANTICS_ATTR_KEY => {
+            match mnv.lit {
+              Lit::Str(ref semantics) => {
+                if !semantics_found {
+                  semantics_found = true;
+                  ty_semantics = Some((field.ty.clone(), semantics.parse()?));
+                } else {
+                  return Err(FieldError::SeveralSemantics(field_ident.clone()));
+                }
+              }
+
+              _ => return Err(FieldError::WrongSemanticsFormat(field_ident.clone()))
             }
           }
 
@@ -148,7 +163,7 @@ fn get_field_type_semantics(field: Field) -> Result<(syn::Type, Variant), FieldE
       }
 
       // we ignore all other metas as it might be stuff from some other crates
-      _ => ()
+      _ => panic!("duh")
     }
   }
 

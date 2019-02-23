@@ -228,7 +228,7 @@ where
 
     // create a new interleaved raw buffer and turn it into a vertex buffer
     let vb = VertexBuffer {
-      ty: VertexBufferType::Regular(V::VERTEX_FMT.iter().cloned().collect()),
+      ty: VertexBufferType::Regular(V::vertex_fmt()),
       buf: Buffer::from_slice(self.ctx, vertices).to_raw(),
     };
 
@@ -246,7 +246,7 @@ where
   {
     let (buffers, vert_nb) = {
       let mut visitor =
-        DeinterleavingVisitor::new(self.ctx, V::VERTEX_FMT.iter().cloned(), VertexBufferType::Regular);
+        DeinterleavingVisitor::new(self.ctx, V::vertex_fmt().into_iter(), VertexBufferType::Regular);
       vertices.as_ref().visit_deinterleave(&mut visitor);
       (visitor.buffers, visitor.vert_nb)
     };
@@ -285,7 +285,7 @@ where
     {
       let mut visitor = DeinterleavingVisitor::new(
         self.ctx,
-        I::VERTEX_FMT.iter().cloned(),
+        I::vertex_fmt().into_iter(),
         VertexBufferType::Instancing,
       );
 
@@ -347,7 +347,7 @@ impl<V> Tess<V> {
       let raw_vbo = vertex_buffer.to_raw();
 
       ctx.state().borrow_mut().bind_array_buffer(raw_vbo.handle());
-      set_vertex_pointers(V::VERTEX_FMT);
+      set_vertex_pointers(V::vertex_fmt());
 
       // in case of indexed render, create an index buffer
       if let Some(indices) = indices.into() {
@@ -536,8 +536,8 @@ fn set_vertex_pointers(formats: VertexFmt) {
   //   - The stride: this is easily computed, since it’s the size (bytes) of a single vertex.
   //   - The offsets: each attribute has a given offset in the buffer. This is computed by
   //     accumulating the size of all previously set attributes.
-  let offsets = aligned_offsets(formats);
-  let vertex_weight = offset_based_vertex_weight(formats, &offsets) as GLsizei;
+  let offsets = aligned_offsets(formats.clone());
+  let vertex_weight = offset_based_vertex_weight(formats.clone(), &offsets) as GLsizei;
 
   for (i, (format, off)) in formats.iter().zip(offsets).enumerate() {
     set_component_format(vertex_weight, off, format);
