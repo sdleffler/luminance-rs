@@ -57,6 +57,9 @@ pub struct GraphicsState {
   // array buffer
   bound_array_buffer: GLuint,
 
+  // element buffer
+  bound_element_array_buffer: GLuint,
+
   // framebuffer
   bound_draw_framebuffer: GLuint,
 
@@ -110,6 +113,7 @@ impl GraphicsState {
       let bound_textures = vec![(gl::TEXTURE_2D, 0); 48]; // 48 is the platform minimal requirement
       let bound_uniform_buffers = vec![0; 36]; // 36 is the platform minimal requirement
       let bound_array_buffer = 0;
+      let bound_element_array_buffer = 0;
       let bound_draw_framebuffer = get_ctx_bound_draw_framebuffer()?;
       let bound_vertex_array = get_ctx_bound_vertex_array()?;
       let current_program = get_ctx_current_program()?;
@@ -127,6 +131,7 @@ impl GraphicsState {
         bound_textures,
         bound_uniform_buffers,
         bound_array_buffer,
+        bound_element_array_buffer,
         bound_draw_framebuffer,
         bound_vertex_array,
         current_program,
@@ -257,6 +262,13 @@ impl GraphicsState {
     if self.bound_array_buffer != handle {
       gl::BindBuffer(gl::ARRAY_BUFFER, handle);
       self.bound_array_buffer = handle;
+    }
+  }
+
+  pub(crate) unsafe fn bind_element_array_buffer(&mut self, handle: GLuint) {
+    if self.bound_element_array_buffer != handle {
+      gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, handle);
+      self.bound_element_array_buffer = handle;
     }
   }
 
