@@ -4,7 +4,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use std::fmt;
 use syn::{
-  self, Data, DataStruct, DeriveInput, Expr, Field, Fields, Ident, Lit, Meta,
+  self, Attribute, Data, DataEnum, DataStruct, DeriveInput, Expr, Field, Fields, Ident, Lit, Meta,
   NestedMeta, parse_macro_input
 };
 
@@ -24,9 +24,26 @@ pub fn derive_vertex(input: TokenStream) -> TokenStream {
       }
     }
 
-    _ => panic!("only structs are currently supported")
+    _ => panic!("only structs are currently supported for deriving Vertex")
   }
 }
+
+//#[proc_macro_derive(VertexAttribSem, attributes(attrib))]
+//pub fn derive_vertex_attrib_sem(input: TokenStream) -> TokenStream {
+//  let di: DeriveInput = parse_macro_input!(input);
+//
+//  match di.data {
+//    // for now, we only handle enums
+//    Data::Enum(enum_) => {
+//      match generate_enum_vertex_attrib_sem_impl(di.ident, enum_) {
+//        Ok(impl_) => impl_,
+//        Err(e) => panic!("{}", e)
+//      }
+//    }
+//
+//    _ => panic!("only enums are currently supported for deriving VertexAttribSem")
+//  }
+//}
 
 #[derive(Debug)]
 enum StructImplError {
@@ -67,7 +84,7 @@ fn generate_struct_vertex_impl(ident: Ident, struct_: DataStruct) -> Result<Toke
           Ok((ty, semantics)) => {
             let indexed_vertex_attrib_fmt_q = quote!{
               luminance::vertex::IndexedVertexAttribFmt::new(
-                <_ as luminance::vertex::VertexAttribSem>::index(&#semantics),
+                #semantics,
                 <#ty as luminance::vertex::VertexAttrib>::VERTEX_ATTRIB_FMT
               )
             };
@@ -108,9 +125,7 @@ fn generate_struct_vertex_impl(ident: Ident, struct_: DataStruct) -> Result<Toke
 #[derive(Debug)]
 enum FieldError {
   SemanticsParseError(syn::Error),
-  SeveralSemantics(Ident),
-  WrongSemanticsFormat(Ident),
-  SemanticsKeyNotFound(Ident),
+  AttributeError(AttrError),
 }
 
 impl From<syn::Error> for FieldError {
@@ -123,54 +138,90 @@ impl fmt::Display for FieldError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
       FieldError::SemanticsParseError(ref e) => write!(f, "unable to pars semantics: {}", e),
-      FieldError::SeveralSemantics(ref field) =>
-        write!(f, "several semantics annotations were found while expecting one for field {}", field),
-      FieldError::WrongSemanticsFormat(ref field) => write!(f, "the semantics should be an expression for field {}", field),
-      FieldError::SemanticsKeyNotFound(ref field) => write!(f, "the semantics annotation was not found for field {}", field)
+      FieldError::AttributeError(ref e) => write!(f, "{}", e)
     }
   }
 }
 
 fn get_field_type_semantics(field: Field) -> Result<(syn::Type, Expr), FieldError> {
-  let mut semantics_found = false;
-  let mut ty_semantics = None;
   let field_ident = field.ident.unwrap();
 
-  for attr in field.attrs {
+  let lit = get_field_attr_once(&field_ident, field.attrs, VERTEX_ATTR_KEY, SEMANTICS_ATTR_KEY)
+    .map_err(FieldError::AttributeError)?;
+
+  match lit {
+    Lit::Str(ref semantics) => Ok((field.ty.clone(), semantics.parse()?)),
+    _ => Err(FieldError::AttributeError(AttrError::WrongFormat(field_ident)))
+  }
+}
+
+#[derive(Debug)]
+enum AttrError {
+  WrongFormat(Ident),
+  Several(Ident, String, String),
+  CannotFindAttribute(Ident, String, String)
+}
+
+impl fmt::Display for AttrError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    match *self {
+      AttrError::WrongFormat(ref field) => write!(f, "wrong attribute format for field {}", field),
+      AttrError::Several(ref field, ref key, ref sub_key) =>
+        write!(f, "expected one pair {}({} = …) for field {}, got several", key, sub_key, field),
+      AttrError::CannotFindAttribute(ref field, ref key, ref sub_key) =>
+        write!(f, "no attribute found {}({} = …) for field {}", key, sub_key, field)
+    }
+  }
+}
+
+/// Get an attribute on a field or a variant that must appear only once with the following syntax:
+///
+///   #[key(sub_key = lit)]
+///
+/// The literal value is free to inspection.
+fn get_field_attr_once<A>(
+  field_ident: &Ident,
+  attrs: A,
+  key: &str,
+  sub_key: &str
+) -> Result<Lit, AttrError> where A: IntoIterator<Item = Attribute> {
+  let mut lit = None;
+
+  for attr in attrs.into_iter() {
     match attr.parse_meta() {
-      Ok(Meta::List(ref ml)) if ml.ident == VERTEX_ATTR_KEY => {
+      Ok(Meta::List(ref ml)) if ml.ident == key => {
         let nested = &ml.nested;
 
         if nested.len() != 1 {
-          return Err(FieldError::WrongSemanticsFormat(field_ident.clone()));
+          return Err(AttrError::WrongFormat(field_ident.clone()));
         }
 
         match nested.into_iter().next().unwrap() {
-          NestedMeta::Meta(Meta::NameValue(ref mnv)) if mnv.ident == SEMANTICS_ATTR_KEY => {
-            match mnv.lit {
-              Lit::Str(ref semantics) => {
-                if !semantics_found {
-                  semantics_found = true;
-                  ty_semantics = Some((field.ty.clone(), semantics.parse()?));
-                } else {
-                  return Err(FieldError::SeveralSemantics(field_ident.clone()));
-                }
-              }
-
-              _ => return Err(FieldError::WrongSemanticsFormat(field_ident.clone()))
+          NestedMeta::Meta(Meta::NameValue(ref mnv)) if mnv.ident == sub_key => {
+            if lit.is_some() {
+              return Err(AttrError::Several(field_ident.clone(), key.to_owned(), sub_key.to_owned()));
             }
+
+            lit = Some(mnv.lit.clone());
           }
 
-          _ => return Err(FieldError::WrongSemanticsFormat(field_ident.clone()))
+          _ => ()
         }
       }
 
-      // we ignore all other metas as it might be stuff from some other crates
-      _ => panic!("duh")
+      _ => () // ignore things that might not be ours
     }
   }
 
-  // here, ty_semantics holds either our type and its associated semantics or we’re missing the
-  // semantics key
-  ty_semantics.ok_or(FieldError::SemanticsKeyNotFound(field_ident))
+  lit.ok_or(AttrError::CannotFindAttribute(field_ident.clone(), key.to_owned(), sub_key.to_owned()))
 }
+
+//fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result<TokenStream, ()> {
+//  let variants_names =
+//    enum_.variants.into_iter().map(|var| {
+//      for attr in var.attrs.into_iter() {
+//      }
+//    });
+//
+//  Err(())
+//}

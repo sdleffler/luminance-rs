@@ -138,8 +138,11 @@ pub unsafe trait VertexAttrib {
 /// (even though valid) to stick to the same index for a given semantics when you have several
 /// tessellations – that allows better compositing with shaders. Basically, the best advice to
 /// follow: define your semantics once, and keep to them.
-pub trait VertexAttribSem {
+pub trait VertexAttribSem: Sized {
+  /// Retrieve the semantics index of this semantics.
   fn index(&self) -> usize;
+  /// Convert from a semantics name to a semantics.
+  fn from_name(name: &str) -> Option<Self>;
 }
 
 /// A local version of size_of that depends on the state of the std feature.
