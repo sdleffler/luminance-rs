@@ -75,21 +75,6 @@ unsafe impl<'a> Vertex<'a> for () {
 //   }
 // }
 
-/// A hint trait to implement to state whether a vertex type is compatible with another.
-///
-/// If you have two types `V0: Vertex` and `V1: Vertex`, we say that `V1` is compatible with `V0`
-/// only if `&V0::vertex_fmt()[0..V1::vertex_fmt().len()] == &V1::vertex_fmt()[..]`. That
-/// is, if `V1` is a sub-slice of `V0` starting at 0.
-///
-/// We node that as `V1: CompatibleVertex<V0>`.
-pub unsafe trait CompatibleVertex<'a, V>: Vertex<'a>
-where
-  V: Vertex<'a>,
-{
-}
-
-unsafe impl<'a, V> CompatibleVertex<'a, V> for V where V: Vertex<'a> {}
-
 /// A `VertexFmt` is a list of `VertexAttribFmt`s.
 pub type VertexFmt = Vec<IndexedVertexAttribFmt>;
 

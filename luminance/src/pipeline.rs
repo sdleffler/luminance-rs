@@ -127,7 +127,7 @@ use shader::program::{Program, ProgramInterface, Type, Uniform, UniformInterface
 use state::GraphicsState;
 use tess::TessSlice;
 use texture::{Dim, Dimensionable, Layerable, Texture};
-use vertex::{CompatibleVertex, Vertex};
+use vertex::Vertex;
 
 // A stack of bindings.
 //
@@ -397,7 +397,7 @@ impl<'a> ShadingGate<'a> {
   where
     In: for<'b> Vertex<'b>,
     Uni: UniformInterface,
-    F: FnOnce(&RenderGate<In>, ProgramInterface<'a, Uni>),
+    F: FnOnce(&RenderGate, ProgramInterface<'a, Uni>),
   {
     unsafe {
       let bstack = self.binding_stack.borrow_mut();
@@ -406,7 +406,6 @@ impl<'a> ShadingGate<'a> {
 
     let render_gate = RenderGate {
       binding_stack: self.binding_stack,
-      _v: PhantomData,
     };
 
     let program_interface = program.interface();
@@ -415,17 +414,13 @@ impl<'a> ShadingGate<'a> {
 }
 
 /// Render gate, allowing you to alter the render state and render tessellations.
-pub struct RenderGate<'a, V> {
+pub struct RenderGate<'a> {
   binding_stack: &'a Rc<RefCell<BindingStack>>,
-  _v: PhantomData<*const V>,
 }
 
-impl<'a, V> RenderGate<'a, V> {
+impl<'a> RenderGate<'a> {
   /// Alter the render state and draw tessellations.
-  pub fn render<F>(&self, rdr_st: RenderState, f: F)
-  where
-    F: FnOnce(&TessGate<V>),
-  {
+  pub fn render<F>(&self, rdr_st: RenderState, f: F) where F: FnOnce(&TessGate) {
     unsafe {
       let bstack = self.binding_stack.borrow_mut();
       let mut gfx_state = bstack.gfx_state.borrow_mut();
@@ -455,27 +450,20 @@ impl<'a, V> RenderGate<'a, V> {
       }
     }
 
-    let tess_gate = TessGate { _v: PhantomData };
+    let tess_gate = TessGate { _hidden: () };
 
     f(&tess_gate);
   }
 }
 
 /// Render tessellations.
-pub struct TessGate<V> {
-  _v: PhantomData<*const V>,
+pub struct TessGate {
+  _hidden: ()
 }
 
-impl<'a, V> TessGate<V>
-where
-  V: Vertex<'a>,
-{
+impl TessGate {
   /// Render a tessellation.
-  pub fn render<C, W>(&self, ctx: &mut C, tess: TessSlice<'a, W>)
-  where
-    C: GraphicsContext,
-    W: CompatibleVertex<'a, V>,
-  {
+  pub fn render<C>(&self, ctx: &mut C, tess: TessSlice) where C: GraphicsContext {
     tess.render(ctx);
   }
 }

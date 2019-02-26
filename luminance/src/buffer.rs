@@ -214,12 +214,6 @@ impl<T> Buffer<T> {
     }
   }
 
-  /// Get the length of the buffer.
-  #[inline(always)]
-  pub fn len(&self) -> usize {
-    self.len
-  }
-
   /// Retrieve an element from the `Buffer`.
   ///
   /// Checks boundaries.
@@ -407,8 +401,14 @@ impl RawBuffer {
   }
 
   // Get the underlying GPU handle.
-  pub(crate) fn handle(&self) -> GLuint {
+  pub fn handle(&self) -> GLuint {
     self.handle
+  }
+
+  /// Get the length of the buffer.
+  #[inline(always)]
+  pub fn len(&self) -> usize {
+    self.len
   }
 }
 
