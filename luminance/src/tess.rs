@@ -127,39 +127,6 @@ impl fmt::Display for TessMapError {
   }
 }
 
-/// Accepted vertices for building tessellations.
-///
-/// This type enables you to pass in a slice of vertices or ask for the GPU to only reserve enough
-/// space for the number of vertices, leaving the allocated memory uninitialized.
-#[derive(Debug, Eq, PartialEq)]
-pub enum TessVertices<'a, T>
-where
-  T: 'a + ?Sized,
-{
-  /// Pass in a borrow of vertices.
-  Fill(&'a T),
-  /// Reserve a certain number of vertices.
-  Reserve(usize),
-}
-
-impl<'a, T> TessVertices<'a, [T]> {
-  fn len(&self) -> usize {
-    match *self {
-      TessVertices::Fill(ref slice) => slice.len(),
-      TessVertices::Reserve(len) => len,
-    }
-  }
-}
-
-impl<'a, T> From<&'a [T]> for TessVertices<'a, [T]>
-where
-  T: 'a,
-{
-  fn from(slice: &'a [T]) -> Self {
-    TessVertices::Fill(slice)
-  }
-}
-
 struct VertexBuffer {
   /// Indexed format of the buffer.
   fmt: VertexFmt,
