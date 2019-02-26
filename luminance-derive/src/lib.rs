@@ -66,7 +66,10 @@ fn generate_struct_vertex_impl(ident: Ident, struct_: DataStruct) -> Result<Toke
         match r {
           Ok((ty, semantics)) => {
             let indexed_vertex_attrib_fmt_q = quote!{
-              luminance::vertex::IndexedVertexAttribFmt::new(#semantics.index(), <#ty as luminance::vertex::VertexAttribute>::VERTEX_ATTRIB_FMT)
+              luminance::vertex::IndexedVertexAttribFmt::new(
+                <_ as luminance::vertex::VertexAttribSem>::index(&#semantics),
+                <#ty as luminance::vertex::VertexAttrib>::VERTEX_ATTRIB_FMT
+              )
             };
 
             indexed_vertex_attrib_fmts.push(indexed_vertex_attrib_fmt_q);

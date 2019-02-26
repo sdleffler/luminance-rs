@@ -1,4 +1,4 @@
-use luminance::vertex::VertexAttribSemantics;
+use luminance::vertex::VertexAttribSem;
 use luminance_derive::Vertex;
 
 type Position = [f32; 3];
@@ -14,7 +14,7 @@ fn derive_simple_semantics() {
     Color = 2
   }
 
-  impl VertexAttribSemantics for Semantics {
+  impl VertexAttribSem for Semantics {
     fn index(&self) -> usize {
       *self as usize
     }

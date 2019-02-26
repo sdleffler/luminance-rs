@@ -79,7 +79,7 @@ use core::ptr;
 use buffer::{Buffer, BufferError, BufferSlice, BufferSliceMut, RawBuffer};
 use context::GraphicsContext;
 use metagl::*;
-use vertex::{IndexedVertexAttribFmt, Vertex, VertexAttributeDim, VertexAttribFmt, VertexAttributeType, VertexFmt};
+use vertex::{IndexedVertexAttribFmt, Vertex, VertexAttribDim, VertexAttribFmt, VertexAttribType, VertexFmt};
 
 /// Vertices can be connected via several modes.
 #[derive(Copy, Clone, Debug)]
@@ -451,12 +451,12 @@ fn component_weight(f: &VertexAttribFmt) -> usize {
   dim_as_size(&f.dim) as usize * f.unit_size
 }
 
-fn dim_as_size(d: &VertexAttributeDim) -> GLint {
+fn dim_as_size(d: &VertexAttribDim) -> GLint {
   match *d {
-    VertexAttributeDim::Dim1 => 1,
-    VertexAttributeDim::Dim2 => 2,
-    VertexAttributeDim::Dim3 => 3,
-    VertexAttributeDim::Dim4 => 4,
+    VertexAttribDim::Dim1 => 1,
+    VertexAttribDim::Dim2 => 2,
+    VertexAttribDim::Dim3 => 3,
+    VertexAttribDim::Dim4 => 4,
   }
 }
 
@@ -480,7 +480,7 @@ fn set_component_format(stride: GLsizei, off: usize, fmt: &IndexedVertexAttribFm
 
   unsafe {
     match f.comp_type {
-      VertexAttributeType::Floating => {
+      VertexAttribType::Floating => {
         gl::VertexAttribPointer(
           index,
           dim_as_size(&f.dim),
@@ -490,7 +490,7 @@ fn set_component_format(stride: GLsizei, off: usize, fmt: &IndexedVertexAttribFm
           ptr::null::<c_void>().offset(off as isize),
           );
       },
-      VertexAttributeType::Integral | VertexAttributeType::Unsigned | VertexAttributeType::Boolean => {
+      VertexAttribType::Integral | VertexAttribType::Unsigned | VertexAttribType::Boolean => {
         gl::VertexAttribIPointer(
           index,
           dim_as_size(&f.dim),
@@ -507,13 +507,13 @@ fn set_component_format(stride: GLsizei, off: usize, fmt: &IndexedVertexAttribFm
 
 fn opengl_sized_type(f: &VertexAttribFmt) -> GLenum {
   match (f.comp_type, f.unit_size) {
-    (VertexAttributeType::Integral, 1) => gl::BYTE,
-    (VertexAttributeType::Integral, 2) => gl::SHORT,
-    (VertexAttributeType::Integral, 4) => gl::INT,
-    (VertexAttributeType::Unsigned, 1) | (VertexAttributeType::Boolean, 1) => gl::UNSIGNED_BYTE,
-    (VertexAttributeType::Unsigned, 2) => gl::UNSIGNED_SHORT,
-    (VertexAttributeType::Unsigned, 4) => gl::UNSIGNED_INT,
-    (VertexAttributeType::Floating, 4) => gl::FLOAT,
+    (VertexAttribType::Integral, 1) => gl::BYTE,
+    (VertexAttribType::Integral, 2) => gl::SHORT,
+    (VertexAttribType::Integral, 4) => gl::INT,
+    (VertexAttribType::Unsigned, 1) | (VertexAttribType::Boolean, 1) => gl::UNSIGNED_BYTE,
+    (VertexAttribType::Unsigned, 2) => gl::UNSIGNED_SHORT,
+    (VertexAttribType::Unsigned, 4) => gl::UNSIGNED_INT,
+    (VertexAttribType::Floating, 4) => gl::FLOAT,
     _ => panic!("unsupported vertex component format: {:?}", f),
   }
 }

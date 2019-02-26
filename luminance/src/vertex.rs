@@ -2,7 +2,7 @@
 //!
 //! A vertex is a type representing a point. It’s common to find vertex positions, normals, colors
 //! or even texture coordinates. However, you’re free to use whichever type you want. Nevertheless,
-//! you’re limited to a range of types and dimensions. See `VertexAttributeType` and `VertexAttributeDim` for further details.
+//! you’re limited to a range of types and dimensions. See `VertexAttribType` and `VertexAttribDim` for further details.
 //!
 //! # `Vertex`
 //!
@@ -65,16 +65,6 @@ unsafe impl<'a> Vertex<'a> for () {
   }
 }
 
-// /// Universal `Vertex` implementation. Any type that already implements `VertexAttribute` also
-// /// implements `Vertex`.
-// impl <'a, T> Vertex<'a> where T: VertexAttribute {
-//   type Deinterleaved = &'a [T];
-//
-//   fn vertex_fmt() -> VertexFmt {
-//     &[Self::vertex_attribute()]
-//   }
-// }
-
 /// A `VertexFmt` is a list of `VertexAttribFmt`s.
 pub type VertexFmt = Vec<IndexedVertexAttribFmt>;
 
@@ -85,7 +75,8 @@ pub struct IndexedVertexAttribFmt {
 }
 
 impl IndexedVertexAttribFmt {
-  pub fn new(index: usize, attrib_fmt: VertexAttribFmt) -> Self {
+  pub fn new<S>(sem: S, attrib_fmt: VertexAttribFmt) -> Self where S: VertexAttribSem {
+    let index = sem.index();
     IndexedVertexAttribFmt { index, attrib_fmt }
   }
 }
@@ -94,10 +85,10 @@ impl IndexedVertexAttribFmt {
 /// optimized in buffers.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct VertexAttribFmt {
-  /// Type of the attribute. See `VertexAttributeType` for further details.
-  pub comp_type: VertexAttributeType,
-  /// Dimension of the attribute. It should be in 1–4. See `VertexAttributeDim` for further details.
-  pub dim: VertexAttributeDim,
+  /// Type of the attribute. See `VertexAttribType` for further details.
+  pub comp_type: VertexAttribType,
+  /// Dimension of the attribute. It should be in 1–4. See `VertexAttribDim` for further details.
+  pub dim: VertexAttribDim,
   /// Size in bytes that a single element of the attribute takes. That is, if your attribute has
   /// a dimension set to 2, then the unit size should be the size of a single element (not two).
   pub unit_size: usize,
@@ -108,7 +99,7 @@ pub struct VertexAttribFmt {
 
 /// Possible type of vertex attributes.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum VertexAttributeType {
+pub enum VertexAttribType {
   Integral,
   Unsigned,
   Floating,
@@ -117,7 +108,7 @@ pub enum VertexAttributeType {
 
 /// Possible dimension of vertex attributes.
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum VertexAttributeDim {
+pub enum VertexAttribDim {
   Dim1,
   Dim2,
   Dim3,
@@ -125,7 +116,7 @@ pub enum VertexAttributeDim {
 }
 
 /// Class of vertex attributes.
-pub unsafe trait VertexAttribute {
+pub unsafe trait VertexAttrib {
   const VERTEX_ATTRIB_FMT: VertexAttribFmt;
 }
 
@@ -147,7 +138,7 @@ pub unsafe trait VertexAttribute {
 /// (even though valid) to stick to the same index for a given semantics when you have several
 /// tessellations – that allows better compositing with shaders. Basically, the best advice to
 /// follow: define your semantics once, and keep to them.
-pub trait VertexAttribSemantics {
+pub trait VertexAttribSem {
   fn index(&self) -> usize;
 }
 
@@ -179,13 +170,13 @@ pub const fn align_of<T>() -> usize {
   }
 }
 
-// Macro to quickly implement VertexAttribute for a given type.
+// Macro to quickly implement VertexAttrib for a given type.
 macro_rules! impl_vertex_attribute {
   ($t:ty, $q:ty, $comp_type:ident, $dim:ident) => {
-    unsafe impl VertexAttribute for $t {
+    unsafe impl VertexAttrib for $t {
       const VERTEX_ATTRIB_FMT: VertexAttribFmt = VertexAttribFmt {
-        comp_type: VertexAttributeType::$comp_type,
-        dim: VertexAttributeDim::$dim,
+        comp_type: VertexAttribType::$comp_type,
+        dim: VertexAttribDim::$dim,
         unit_size: $crate::vertex::size_of::<$q>(),
         align: $crate::vertex::align_of::<$q>(),
       };
