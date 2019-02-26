@@ -9,7 +9,10 @@ use syn::{
 };
 
 const VERTEX_ATTR_KEY: &str = "vertex";
-const SEMANTICS_ATTR_KEY: &str = "semantics";
+const SEMANTICS_ATTR_KEY: &str = "sem";
+
+const SEM_KEY: &str = "sem";
+const SEM_NAME_KEY: &str = "name";
 
 #[proc_macro_derive(Vertex, attributes(vertex))]
 pub fn derive_vertex(input: TokenStream) -> TokenStream {
@@ -216,12 +219,11 @@ fn get_field_attr_once<A>(
   lit.ok_or(AttrError::CannotFindAttribute(field_ident.clone(), key.to_owned(), sub_key.to_owned()))
 }
 
-//fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result<TokenStream, ()> {
-//  let variants_names =
-//    enum_.variants.into_iter().map(|var| {
-//      for attr in var.attrs.into_iter() {
-//      }
-//    });
-//
-//  Err(())
-//}
+fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result<TokenStream, ()> {
+  let variants_names =
+    enum_.variants.into_iter().map(|var| {
+      let lit = get_field_attr_once(&var.ident, var.attrs, SEM_KEY, SEM_NAME_KEY);
+    });
+
+  Err(())
+}

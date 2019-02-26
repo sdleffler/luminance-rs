@@ -22,11 +22,11 @@ fn derive_simple_semantics() {
 
   #[derive(Clone, Copy, Debug, Vertex)]
   struct Vertex {
-    #[vertex(semantics = "Semantics::Position")]
+    #[vertex(sem = "Semantics::Position")]
     pos: Position,
-    #[vertex(semantics = "Semantics::Normal")]
+    #[vertex(sem = "Semantics::Normal")]
     nor: Normal,
-    #[vertex(semantics = "Semantics::Color")]
+    #[vertex(sem = "Semantics::Color")]
     col: Color
   }
 }
