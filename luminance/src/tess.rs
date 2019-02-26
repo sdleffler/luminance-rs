@@ -103,6 +103,8 @@ pub enum Mode {
 pub enum TessMapError {
   /// The CPU mapping failed due to buffer errors.
   VertexBufferMapFailed(BufferError),
+  /// Target type is not the same as the one stored in the buffer.
+  TypeMismatch(VertexFmt, VertexFmt),
   /// The CPU mapping failed because you cannot map an attributeless tessellation since it doesn’t
   /// have any vertex attribute.
   ForbiddenAttributelessMapping,
@@ -114,7 +116,9 @@ pub enum TessMapError {
 impl fmt::Display for TessMapError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
-      TessMapError::VertexBufferMapFailed(ref e) => write!(f, "cannot map tessallation buffer: {}", e),
+      TessMapError::VertexBufferMapFailed(ref e) => write!(f, "cannot map tessellation buffer: {}", e),
+      TessMapError::TypeMismatch(ref a, ref b) =>
+       write!(f, "cannot map tessellation: type mismatch between {:?} and {:?}", a, b),
       TessMapError::ForbiddenAttributelessMapping => f.write_str("cannot map an attributeless buffer"),
       TessMapError::ForbiddenDeinterleavedMapping => {
         f.write_str("cannot map a deinterleaved buffer as interleaved")
@@ -388,22 +392,40 @@ impl Tess {
     }
   }
 
-  pub fn as_slice<V>(&self) -> Result<BufferSlice<V>, TessMapError> {
+  pub fn as_slice<'a, V>(&'a self) -> Result<BufferSlice<V>, TessMapError> where V: Vertex<'a> {
     match self.vertex_buffers.len() {
       0 => Err(TessMapError::ForbiddenAttributelessMapping),
-      1 => self.vertex_buffers[0].buf
-        .as_slice()
-        .map_err(TessMapError::VertexBufferMapFailed),
+
+      1 => {
+        let vb = &self.vertex_buffers[0];
+        let target_fmt = V::vertex_fmt(); // costs a bit
+
+        if vb.fmt != target_fmt {
+          Err(TessMapError::TypeMismatch(vb.fmt.clone(), target_fmt))
+        } else {
+          vb.buf.as_slice().map_err(TessMapError::VertexBufferMapFailed)
+        }
+      }
+
       _ => Err(TessMapError::ForbiddenDeinterleavedMapping),
     }
   }
 
-  pub fn as_slice_mut<V>(&mut self) -> Result<BufferSliceMut<V>, TessMapError> {
+  pub fn as_slice_mut<'a, V>(&mut self) -> Result<BufferSliceMut<V>, TessMapError> where V: Vertex<'a> {
     match self.vertex_buffers.len() {
       0 => Err(TessMapError::ForbiddenAttributelessMapping),
-      1 => self.vertex_buffers[0].buf
-        .as_slice_mut()
-        .map_err(TessMapError::VertexBufferMapFailed),
+
+      1 => {
+        let vb = &mut self.vertex_buffers[0];
+        let target_fmt = V::vertex_fmt(); // costs a bit
+
+        if vb.fmt != target_fmt {
+          Err(TessMapError::TypeMismatch(vb.fmt.clone(), target_fmt))
+        } else {
+          vb.buf.as_slice_mut().map_err(TessMapError::VertexBufferMapFailed)
+        }
+      }
+
       _ => Err(TessMapError::ForbiddenDeinterleavedMapping),
     }
   }
