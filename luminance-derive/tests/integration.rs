@@ -1,5 +1,5 @@
 use luminance::vertex::VertexAttribSem;
-use luminance_derive::Vertex;
+use luminance_derive::{Vertex, VertexAttribSem};
 
 type Position = [f32; 3];
 type Normal = [f32; 3];
@@ -7,17 +7,14 @@ type Color = [f32; 4];
 
 #[test]
 fn derive_simple_semantics() {
-  #[derive(Clone, Copy, Debug)]
+  #[derive(Clone, Copy, Debug, VertexAttribSem)]
   enum Semantics {
+    #[sem(name = "position")]
     Position = 0,
+    #[sem(name = "normal")]
     Normal = 1,
+    #[sem(name = "color")]
     Color = 2
-  }
-
-  impl VertexAttribSem for Semantics {
-    fn index(&self) -> usize {
-      *self as usize
-    }
   }
 
   #[derive(Clone, Copy, Debug, Vertex)]

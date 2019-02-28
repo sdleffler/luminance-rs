@@ -4,9 +4,10 @@ use proc_macro::TokenStream;
 use quote::quote;
 use std::fmt;
 use syn::{
-  self, Attribute, Data, DataEnum, DataStruct, DeriveInput, Expr, Field, Fields, Ident, Lit, Meta,
+  self, Attribute, Data, DataEnum, DataStruct, DeriveInput, Expr, Field, Fields, Ident, Lit, LitStr, Meta,
   NestedMeta, parse_macro_input
 };
+use syn::parse::Parse;
 
 const VERTEX_ATTR_KEY: &str = "vertex";
 const SEMANTICS_ATTR_KEY: &str = "sem";
@@ -31,22 +32,22 @@ pub fn derive_vertex(input: TokenStream) -> TokenStream {
   }
 }
 
-//#[proc_macro_derive(VertexAttribSem, attributes(attrib))]
-//pub fn derive_vertex_attrib_sem(input: TokenStream) -> TokenStream {
-//  let di: DeriveInput = parse_macro_input!(input);
-//
-//  match di.data {
-//    // for now, we only handle enums
-//    Data::Enum(enum_) => {
-//      match generate_enum_vertex_attrib_sem_impl(di.ident, enum_) {
-//        Ok(impl_) => impl_,
-//        Err(e) => panic!("{}", e)
-//      }
-//    }
-//
-//    _ => panic!("only enums are currently supported for deriving VertexAttribSem")
-//  }
-//}
+#[proc_macro_derive(VertexAttribSem, attributes(sem))]
+pub fn derive_vertex_attrib_sem(input: TokenStream) -> TokenStream {
+  let di: DeriveInput = parse_macro_input!(input);
+
+  match di.data {
+    // for now, we only handle enums
+    Data::Enum(enum_) => {
+      match generate_enum_vertex_attrib_sem_impl(di.ident, enum_) {
+        Ok(impl_) => impl_,
+        Err(e) => panic!("{}", e)
+      }
+    }
+
+    _ => panic!("only enums are currently supported for deriving VertexAttribSem")
+  }
+}
 
 #[derive(Debug)]
 enum StructImplError {
@@ -79,7 +80,7 @@ fn generate_struct_vertex_impl(ident: Ident, struct_: DataStruct) -> Result<Toke
       let fields = named_fields.named.into_iter().map(get_field_type_semantics);
       let mut indexed_vertex_attrib_fmts = Vec::new();
       let mut fields_tys = Vec::new();
-      let mut errored = Vec::new();
+      let mut errors = Vec::new();
 
       // partition and generate IndexedVertexAttribFmt
       for r in fields {
@@ -96,12 +97,12 @@ fn generate_struct_vertex_impl(ident: Ident, struct_: DataStruct) -> Result<Toke
             fields_tys.push(ty);
           }
 
-          Err(err) => errored.push(err)
+          Err(err) => errors.push(err)
         }
       }
 
-      if !errored.is_empty() {
-        return Err(StructImplError::FieldsError(errored));
+      if !errors.is_empty() {
+        return Err(StructImplError::FieldsError(errors));
       }
 
       // indexed_vertex_attrib_fmts contains the exhaustive list of the indexed vertex attribute
@@ -149,20 +150,18 @@ impl fmt::Display for FieldError {
 fn get_field_type_semantics(field: Field) -> Result<(syn::Type, Expr), FieldError> {
   let field_ident = field.ident.unwrap();
 
-  let lit = get_field_attr_once(&field_ident, field.attrs, VERTEX_ATTR_KEY, SEMANTICS_ATTR_KEY)
+  let semantics = get_field_attr_once(&field_ident, field.attrs, VERTEX_ATTR_KEY, SEMANTICS_ATTR_KEY)
     .map_err(FieldError::AttributeError)?;
 
-  match lit {
-    Lit::Str(ref semantics) => Ok((field.ty.clone(), semantics.parse()?)),
-    _ => Err(FieldError::AttributeError(AttrError::WrongFormat(field_ident)))
-  }
+  Ok((field.ty.clone(), semantics))
 }
 
 #[derive(Debug)]
 enum AttrError {
   WrongFormat(Ident),
   Several(Ident, String, String),
-  CannotFindAttribute(Ident, String, String)
+  CannotFindAttribute(Ident, String, String),
+  CannotParseAttribute(Ident, String, String)
 }
 
 impl fmt::Display for AttrError {
@@ -172,22 +171,23 @@ impl fmt::Display for AttrError {
       AttrError::Several(ref field, ref key, ref sub_key) =>
         write!(f, "expected one pair {}({} = …) for field {}, got several", key, sub_key, field),
       AttrError::CannotFindAttribute(ref field, ref key, ref sub_key) =>
-        write!(f, "no attribute found {}({} = …) for field {}", key, sub_key, field)
+        write!(f, "no attribute found {}({} = …) for field {}", key, sub_key, field),
+      AttrError::CannotParseAttribute(ref field, ref key, ref sub_key) =>
+        write!(f, "cannot parse attribute {}({} = …) for field {}", key, sub_key, field),
     }
   }
 }
 
-/// Get an attribute on a field or a variant that must appear only once with the following syntax:
+/// Get and parse an attribute on a field or a variant that must appear only once with the following
+/// syntax:
 ///
-///   #[key(sub_key = lit)]
-///
-/// The literal value is free to inspection.
-fn get_field_attr_once<A>(
+///   #[key(sub_key = "lit")]
+fn get_field_attr_once<A, T>(
   field_ident: &Ident,
   attrs: A,
   key: &str,
   sub_key: &str
-) -> Result<Lit, AttrError> where A: IntoIterator<Item = Attribute> {
+) -> Result<T, AttrError> where A: IntoIterator<Item = Attribute>, T: Parse {
   let mut lit = None;
 
   for attr in attrs.into_iter() {
@@ -205,7 +205,9 @@ fn get_field_attr_once<A>(
               return Err(AttrError::Several(field_ident.clone(), key.to_owned(), sub_key.to_owned()));
             }
 
-            lit = Some(mnv.lit.clone());
+            if let Lit::Str(ref strlit) = mnv.lit {
+              lit = Some(strlit.parse().map_err(|_| AttrError::CannotParseAttribute(field_ident.clone(), key.to_owned(), sub_key.to_owned()))?);
+            }
           }
 
           _ => ()
@@ -219,11 +221,70 @@ fn get_field_attr_once<A>(
   lit.ok_or(AttrError::CannotFindAttribute(field_ident.clone(), key.to_owned(), sub_key.to_owned()))
 }
 
-fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result<TokenStream, ()> {
-  let variants_names =
-    enum_.variants.into_iter().map(|var| {
-      let lit = get_field_attr_once(&var.ident, var.attrs, SEM_KEY, SEM_NAME_KEY);
-    });
+#[derive(Debug)]
+enum VertexAttribSemImplError {
+  AttributeErrors(Vec<AttrError>),
+}
 
-  Err(())
+impl fmt::Display for VertexAttribSemImplError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    match *self {
+      VertexAttribSemImplError::AttributeErrors(ref errs) => {
+        for err in errs {
+          err.fmt(f)?;
+          writeln!(f, "").unwrap();
+        }
+
+        Ok(())
+      }
+    }
+  }
+}
+
+fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result<TokenStream, VertexAttribSemImplError> {
+  // for each variant, we want to generate a pattern "name" => Type::Variant; if we cannot find
+  // the annotation, that’s considered an error and those will be reported
+  let patterns = enum_.variants.into_iter().map(|var| {
+    let var_name = &var.ident;
+    get_field_attr_once::<_, Expr>(var_name, var.attrs, SEM_KEY, SEM_NAME_KEY).map(|sem| {
+      quote!{
+        #sem => Some(#ident::#var_name)
+      }
+    })
+  });
+
+  // we partition the variants so that we get the ones errored
+  let mut variants = Vec::new();
+  let mut errors = Vec::new();
+
+  for pattern in patterns {
+    match pattern {
+      Ok(pattern) => variants.push(pattern),
+      Err(e) => errors.push(e)
+    }
+  }
+
+  if !errors.is_empty() {
+    return Err(VertexAttribSemImplError::AttributeErrors(errors));
+  }
+
+  // generate the implementation of VertexAttribSem
+  let impl_ = quote!{
+    impl VertexAttribSem for #ident {
+      fn index(&self) -> usize {
+        *self as usize
+      }
+
+      fn from_name(name: &str) -> Option<Self> {
+        match name {
+          #(#variants,)*
+          _ => None
+        }
+      }
+    }
+  };
+
+  eprintln!("{:?}", impl_);
+
+  Ok(impl_.into())
 }
