@@ -247,7 +247,7 @@ fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result
   let patterns = enum_.variants.into_iter().map(|var| {
     let var_name = &var.ident;
     get_field_attr_once::<_, Ident>(var_name, var.attrs, SEM_KEY, SEM_NAME_KEY).map(|sem| {
-      let sem = format!("{}", sem);
+      let sem = sem.to_string();
       quote!{
         #sem => Some(#ident::#var_name)
       }
