@@ -228,7 +228,7 @@ where
 
       // add the vertex buffers into the vao
       for vb in &self.vertex_buffers {
-        gfx_st.bind_vertex_array(vb.buf.handle());
+        gfx_st.bind_array_buffer(vb.buf.handle());
         set_vertex_pointers(&vb.fmt)
       }
 
