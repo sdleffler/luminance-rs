@@ -271,7 +271,7 @@ fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result
 
   // generate the implementation of VertexAttribSem
   let impl_ = quote!{
-    impl VertexAttribSem for #ident {
+    impl luminance::vertex::VertexAttribSem for #ident {
       fn index(&self) -> usize {
         *self as usize
       }

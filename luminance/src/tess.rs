@@ -166,7 +166,7 @@ where
   /// buffer. Second, you can opt-in to use deinterleaved memory, in which case you will have
   /// several, smaller buffers of borrowed data and you will issue a call to this method for all of
   /// them.
-  pub fn add_vertices<V, W>(&mut self, vertices: W) -> &mut Self
+  pub fn add_vertices<V, W>(mut self, vertices: W) -> Self
   where
     W: AsRef<[V]>,
     V: Vertex<'a>
@@ -185,7 +185,7 @@ where
   }
 
   /// Set vertex indices in order to specify how vertices should be picked by the GPU pipeline.
-  pub fn set_indices<T>(&mut self, indices: T) -> &mut Self
+  pub fn set_indices<T>(mut self, indices: T) -> Self
   where
     T: AsRef<[u32]>,
   {
@@ -199,12 +199,12 @@ where
     self
   }
 
-  pub fn set_mode(&mut self, mode: Mode) -> &mut Self {
+  pub fn set_mode(mut self, mode: Mode) -> Self {
     self.mode = mode;
     self
   }
 
-  pub fn set_vertex_nb(&mut self, nb: usize) -> &mut Self {
+  pub fn set_vertex_nb(mut self, nb: usize) -> Self {
     self.vert_nb = nb;
     self
   }

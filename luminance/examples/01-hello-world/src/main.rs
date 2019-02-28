@@ -9,60 +9,92 @@
 //! https://docs.rs/luminance
 
 extern crate luminance;
+extern crate luminance_derive;
 extern crate luminance_glfw;
 
 use luminance::context::GraphicsContext;
 use luminance::framebuffer::Framebuffer;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
-use luminance::tess::{Mode, Tess};
+use luminance::tess::{Mode, TessBuilder};
+use luminance_derive::{Vertex, VertexAttribSem};
 use luminance_glfw::event::{Action, Key, WindowEvent};
 use luminance_glfw::surface::{GlfwSurface, Surface, WindowDim, WindowOpt};
 
-// we get the shader at compile time from ./vs.glsl and ./fs.glsl
+// We get the shader at compile time from ./vs.glsl and ./fs.glsl.
 const VS: &'static str = include_str!("vs.glsl");
 const FS: &'static str = include_str!("fs.glsl");
 
-// type of the vertices of our triangles; here we use a 2D position ([f32; 2]) and a RGB color
-// ([f32; 3]).
-type Vertex = ([f32; 2], [f32; 3]);
+// Vertex semantics. Those are needed to instruct the GPU how to select vertex’s attributes from
+// the memory we fill at render time, in shader. You don’t have to worry about them; just keep in
+// mind they’re mandatory and act as “protocol” between GPU’s memory regions and shaders.
+//
+// We derive VertexAttribSem automatically and provide the mapping as field attributes.
+#[derive(Clone, Copy, Debug, Eq, PartialEq, VertexAttribSem)]
+enum Semantics {
+  #[sem(name = "co")] // reference vertex positions with the co variable in vertex shaders
+  Position,
+  #[sem(name = "color")] // reference vertex colors with the color variable in vertex shaders
+  Color
+}
+
+// Our vertex type.
+//
+// We derive the Vertex trait automatically and we associate to each field the semantics that must
+// be used on the GPU.
+#[derive(Clone, Copy, Debug, PartialEq, Vertex)]
+struct Vertex {
+  #[vertex(sem = "Semantics::Position")]
+  pos: [f32; 2],
+  #[vertex(sem = "Semantics::Color")]
+  rgb: [f32; 3]
+}
 
 // The vertices. We define two triangles.
 const TRI_VERTICES: [Vertex; 6] = [
   // first triangle – an RGB one
-  ([0.5, -0.5], [0., 1., 0.]),
-  ([0.0, 0.5], [0., 0., 1.]),
-  ([-0.5, -0.5], [1., 0., 0.]),
+  Vertex { pos: [0.5, -0.5], rgb: [0., 1., 0.] },
+  Vertex { pos: [0.0, 0.5], rgb: [0., 0., 1.] },
+  Vertex { pos: [-0.5, -0.5], rgb: [1., 0., 0.] },
   // second triangle, a purple one, positioned differently
-  ([-0.5, 0.5], [1., 0.2, 1.]),
-  ([0.0, -0.5], [0.2, 1., 1.]),
-  ([0.5, 0.5], [0.2, 0.2, 1.]),
+  Vertex { pos: [-0.5, 0.5], rgb: [1., 0.2, 1.] },
+  Vertex { pos: [0.0, -0.5], rgb: [0.2, 1., 1.] },
+  Vertex { pos: [0.5, 0.5], rgb: [0.2, 0.2, 1.] },
 ];
 
-// The vertices, deinterleaved version. We still define two triangles.
-const TRI_DEINT_VERTICES: (&[[f32; 2]], &[[f32; 3]]) = (
-  // positions go first
-  &[
-    [0.5, -0.5],
-    [0.0, 0.5],
-    [-0.5, -0.5],
-    [-0.5, 0.5],
-    [0.0, -0.5],
-    [0.5, 0.5],
-  ],
-  // then colors
-  &[
-    [0., 1., 0.],
-    [0., 0., 1.],
-    [1., 0., 0.],
-    [1., 0.2, 1.],
-    [0.2, 1., 1.],
-    [0.2, 0.2, 1.],
-  ],
-);
+#[derive(Clone, Copy, Debug, PartialEq, Vertex)]
+struct Positions {
+  #[vertex(sem = "Semantics::Position")]
+  pos: [f32; 2]
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Vertex)]
+struct Colors {
+  #[vertex(sem = "Semantics::Color")]
+  color: [f32; 3]
+}
+
+// The vertices, deinterleaved versions. We still define two triangles.
+const TRI_DEINT_POS_VERTICES: &[Positions] = &[
+  Positions { pos: [0.5, -0.5] },
+  Positions { pos: [0.0, 0.5] },
+  Positions { pos: [-0.5, -0.5] },
+  Positions { pos: [-0.5, 0.5] },
+  Positions { pos: [0.0, -0.5] },
+  Positions { pos: [0.5, 0.5] },
+];
+
+const TRI_DEINT_COLOR_VERTICES: &[Colors] = &[
+  Colors { color: [0., 1., 0.] },
+  Colors { color: [0., 0., 1.] },
+  Colors { color: [1., 0., 0.] },
+  Colors { color: [1., 0.2, 1.] },
+  Colors { color: [0.2, 1., 1.] },
+  Colors { color: [0.2, 0.2, 1.] },
+];
 
 // Indices into TRI_VERTICES to use to build up the triangles.
-const TRI_INDEXES: [u32; 6] = [
+const TRI_INDICES: [u32; 6] = [
   0, 1, 2, // first triangle
   3, 4, 5, // second triangle
 ];
@@ -94,8 +126,7 @@ fn main() {
     WindowDim::Windowed(960, 540),
     "Hello, world!",
     WindowOpt::default(),
-  )
-  .expect("GLFW surface creation");
+  ).expect("GLFW surface creation");
 
   // we need a program to “shade” our triangles and to tell luminance which is the input vertex
   // type, and we’re not interested in the other two type variables for this sample
@@ -103,25 +134,39 @@ fn main() {
 
   // create tessellation for direct geometry; that is, tessellation that will render vertices by
   // taking one after another in the provided slice
-  let direct_triangles = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[..], None);
+  let direct_triangles = TessBuilder::new(&mut surface)
+    .add_vertices(TRI_VERTICES)
+    .set_mode(Mode::Triangle)
+    .build()
+    .unwrap();
 
   // create indexed tessellation; that is, the vertices will be picked by using the indexes provided
   // by the second slice and this indexes will reference the first slice (useful not to duplicate
   // vertices on more complex objects than just two triangles)
-  let indexed_triangles = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[..], &TRI_INDEXES[..]);
+  let indexed_triangles = TessBuilder::new(&mut surface)
+    .add_vertices(TRI_VERTICES)
+    .set_indices(TRI_INDICES)
+    .set_mode(Mode::Triangle)
+    .build()
+    .unwrap();
 
   // create direct, deinterleaved tesselations; such tessellations allow to separate vertex
   // attributes in several contiguous regions of memory
-  let direct_deinterleaved_triangles =
-    Tess::<Vertex>::new_deinterleaved(&mut surface, Mode::Triangle, &TRI_DEINT_VERTICES, None);
+  let direct_deinterleaved_triangles = TessBuilder::new(&mut surface)
+    .add_vertices(TRI_DEINT_POS_VERTICES)
+    .add_vertices(TRI_DEINT_COLOR_VERTICES)
+    .set_mode(Mode::Triangle)
+    .build()
+    .unwrap();
 
   // create indexed, deinterleaved tessellations; have your cake and fucking eat it, now.
-  let indexed_deinterleaved_triangles = Tess::<Vertex>::new_deinterleaved(
-    &mut surface,
-    Mode::Triangle,
-    &TRI_DEINT_VERTICES,
-    &TRI_INDEXES[..],
-  );
+  let indexed_deinterleaved_triangles = TessBuilder::new(&mut surface)
+    .add_vertices(TRI_DEINT_POS_VERTICES)
+    .add_vertices(TRI_DEINT_COLOR_VERTICES)
+    .set_indices(TRI_INDICES)
+    .set_mode(Mode::Triangle)
+    .build()
+    .unwrap();
 
   // the back buffer, which we will make our render into (we make it mutable so that we can change
   // it whenever the window dimensions change)
