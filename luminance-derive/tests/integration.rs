@@ -7,15 +7,23 @@ type Color = [f32; 4];
 
 #[test]
 fn derive_simple_semantics() {
-  #[derive(Clone, Copy, Debug, VertexAttribSem)]
+  #[derive(Clone, Copy, Debug, Eq, PartialEq, VertexAttribSem)]
   enum Semantics {
     #[sem(name = "position")]
-    Position = 0,
+    Position,
     #[sem(name = "normal")]
-    Normal = 1,
+    Normal,
     #[sem(name = "color")]
-    Color = 2
+    Color
   }
+
+  assert_eq!(Semantics::Position.index(), 0);
+  assert_eq!(Semantics::Normal.index(), 1);
+  assert_eq!(Semantics::Color.index(), 2);
+  assert_eq!(<Semantics as VertexAttribSem>::parse("position"), Some(Semantics::Position));
+  assert_eq!(<Semantics as VertexAttribSem>::parse("normal"), Some(Semantics::Normal));
+  assert_eq!(<Semantics as VertexAttribSem>::parse("color"), Some(Semantics::Color));
+  assert_eq!(<Semantics as VertexAttribSem>::parse("bidule"), None);
 
   #[derive(Clone, Copy, Debug, Vertex)]
   struct Vertex {
