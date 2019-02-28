@@ -4,7 +4,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use std::fmt;
 use syn::{
-  self, Attribute, Data, DataEnum, DataStruct, DeriveInput, Expr, Field, Fields, Ident, Lit, LitStr, Meta,
+  self, Attribute, Data, DataEnum, DataStruct, DeriveInput, Expr, Field, Fields, Ident, Lit, Meta,
   NestedMeta, parse_macro_input
 };
 use syn::parse::Parse;
@@ -246,7 +246,8 @@ fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result
   // the annotation, that’s considered an error and those will be reported
   let patterns = enum_.variants.into_iter().map(|var| {
     let var_name = &var.ident;
-    get_field_attr_once::<_, Expr>(var_name, var.attrs, SEM_KEY, SEM_NAME_KEY).map(|sem| {
+    get_field_attr_once::<_, Ident>(var_name, var.attrs, SEM_KEY, SEM_NAME_KEY).map(|sem| {
+      let sem = format!("{}", sem);
       quote!{
         #sem => Some(#ident::#var_name)
       }
@@ -283,8 +284,6 @@ fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result
       }
     }
   };
-
-  eprintln!("{:?}", impl_);
 
   Ok(impl_.into())
 }
