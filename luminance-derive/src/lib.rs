@@ -276,7 +276,7 @@ fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result
         *self as usize
       }
 
-      fn from_name(name: &str) -> Option<Self> {
+      fn parse(name: &str) -> Option<Self> {
         match name {
           #(#variants,)*
           _ => None

@@ -142,7 +142,7 @@ pub trait VertexAttribSem: Sized {
   /// Retrieve the semantics index of this semantics.
   fn index(&self) -> usize;
   /// Convert from a semantics name to a semantics.
-  fn from_name(name: &str) -> Option<Self>;
+  fn parse(name: &str) -> Option<Self>;
 }
 
 /// A local version of size_of that depends on the state of the std feature.
