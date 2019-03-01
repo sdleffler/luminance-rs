@@ -5,7 +5,7 @@ use quote::quote;
 use std::fmt;
 use syn::{
   self, Attribute, Data, DataEnum, DataStruct, DeriveInput, Expr, Field, Fields, Ident, Lit, Meta,
-  NestedMeta, parse_macro_input
+  NestedMeta, Type, parse_macro_input
 };
 use syn::parse::Parse;
 
@@ -22,7 +22,7 @@ pub fn derive_vertex(input: TokenStream) -> TokenStream {
   match di.data {
     // for now, we only handle structs
     Data::Struct(struct_) => {
-      match generate_struct_vertex_impl(di.ident, struct_) {
+      match generate_struct_vertex_impl(di.ident, di.attrs, struct_) {
         Ok(impl_) => impl_,
         Err(e) => panic!("{}", e)
       }
@@ -51,6 +51,7 @@ pub fn derive_vertex_attrib_sem(input: TokenStream) -> TokenStream {
 
 #[derive(Debug)]
 enum StructImplError {
+  SemanticsError(AttrError),
   UnsupportedUnnamed,
   UnsupportedUnit,
   FieldsError(Vec<FieldError>)
@@ -59,6 +60,8 @@ enum StructImplError {
 impl fmt::Display for StructImplError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
+      StructImplError::SemanticsError(ref e) =>
+        write!(f, "error with semantics type; {}", e),
       StructImplError::UnsupportedUnnamed => f.write_str("unsupported unnamed fields"),
       StructImplError::UnsupportedUnit => f.write_str("unsupported unit struct"),
       StructImplError::FieldsError(ref errs) => {
@@ -74,7 +77,20 @@ impl fmt::Display for StructImplError {
 }
 
 /// Generate the Vertex impl for a struct.
-fn generate_struct_vertex_impl(ident: Ident, struct_: DataStruct) -> Result<TokenStream, StructImplError> {
+fn generate_struct_vertex_impl<A>(
+  ident: Ident,
+  attrs: A,
+  struct_: DataStruct
+) -> Result<TokenStream, StructImplError>
+where A: IntoIterator<Item = Attribute> {
+  // search the semantics name
+  let sem_type: Type = get_field_attr_once(
+    &ident,
+    attrs.into_iter(),
+    "vertex",
+    "sem"
+  ).map_err(StructImplError::SemanticsError)?;
+
   match struct_.fields {
     Fields::Named(named_fields) => {
       let fields = named_fields.named.into_iter().map(get_field_type_semantics);
@@ -87,7 +103,7 @@ fn generate_struct_vertex_impl(ident: Ident, struct_: DataStruct) -> Result<Toke
         match r {
           Ok((ty, semantics)) => {
             let indexed_vertex_attrib_fmt_q = quote!{
-              luminance::vertex::IndexedVertexAttribFmt::new(
+              luminance::vertex::IndexedVertexAttribFmt::new::<#sem_type>(
                 #semantics,
                 <#ty as luminance::vertex::VertexAttrib>::VERTEX_ATTRIB_FMT
               )
@@ -141,7 +157,7 @@ impl From<syn::Error> for FieldError {
 impl fmt::Display for FieldError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
-      FieldError::SemanticsParseError(ref e) => write!(f, "unable to pars semantics: {}", e),
+      FieldError::SemanticsParseError(ref e) => write!(f, "unable to parse semantics: {}", e),
       FieldError::AttributeError(ref e) => write!(f, "{}", e)
     }
   }
@@ -167,13 +183,13 @@ enum AttrError {
 impl fmt::Display for AttrError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
-      AttrError::WrongFormat(ref field) => write!(f, "wrong attribute format for field {}", field),
+      AttrError::WrongFormat(ref field) => write!(f, "wrong attribute format for {}", field),
       AttrError::Several(ref field, ref key, ref sub_key) =>
-        write!(f, "expected one pair {}({} = …) for field {}, got several", key, sub_key, field),
+        write!(f, "expected one pair {}({} = …) for {}, got several", key, sub_key, field),
       AttrError::CannotFindAttribute(ref field, ref key, ref sub_key) =>
-        write!(f, "no attribute found {}({} = …) for field {}", key, sub_key, field),
+        write!(f, "no attribute found {}({} = …) for {}", key, sub_key, field),
       AttrError::CannotParseAttribute(ref field, ref key, ref sub_key) =>
-        write!(f, "cannot parse attribute {}({} = …) for field {}", key, sub_key, field),
+        write!(f, "cannot parse attribute {}({} = …) for {}", key, sub_key, field),
     }
   }
 }

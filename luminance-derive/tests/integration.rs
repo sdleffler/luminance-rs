@@ -26,6 +26,7 @@ fn derive_simple_semantics() {
   assert_eq!(<Semantics as VertexAttribSem>::parse("bidule"), None);
 
   #[derive(Clone, Copy, Debug, Vertex)]
+  #[vertex(sem = "Semantics")]
   struct Vertex {
     #[vertex(sem = "Semantics::Position")]
     pos: Position,
