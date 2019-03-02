@@ -9,12 +9,6 @@ use syn::{
 };
 use syn::parse::Parse;
 
-const VERTEX_ATTR_KEY: &str = "vertex";
-const SEMANTICS_ATTR_KEY: &str = "sem";
-
-const SEM_KEY: &str = "sem";
-const SEM_NAME_KEY: &str = "name";
-
 #[proc_macro_derive(Vertex, attributes(vertex))]
 pub fn derive_vertex(input: TokenStream) -> TokenStream {
   let di: DeriveInput = parse_macro_input!(input);
@@ -22,7 +16,7 @@ pub fn derive_vertex(input: TokenStream) -> TokenStream {
   match di.data {
     // for now, we only handle structs
     Data::Struct(struct_) => {
-      match generate_struct_vertex_impl(di.ident, di.attrs, struct_) {
+      match generate_struct_vertex_impl(di.ident, di.attrs.iter(), struct_) {
         Ok(impl_) => impl_,
         Err(e) => panic!("{}", e)
       }
@@ -77,16 +71,16 @@ impl fmt::Display for StructImplError {
 }
 
 /// Generate the Vertex impl for a struct.
-fn generate_struct_vertex_impl<A>(
+fn generate_struct_vertex_impl<'a, A>(
   ident: Ident,
   attrs: A,
   struct_: DataStruct
 ) -> Result<TokenStream, StructImplError>
-where A: IntoIterator<Item = Attribute> {
+where A: IntoIterator<Item = &'a Attribute> {
   // search the semantics name
   let sem_type: Type = get_field_attr_once(
     &ident,
-    attrs.into_iter(),
+    attrs,
     "vertex",
     "sem"
   ).map_err(StructImplError::SemanticsError)?;
@@ -166,7 +160,7 @@ impl fmt::Display for FieldError {
 fn get_field_type_semantics(field: Field) -> Result<(syn::Type, Expr), FieldError> {
   let field_ident = field.ident.unwrap();
 
-  let semantics = get_field_attr_once(&field_ident, field.attrs, VERTEX_ATTR_KEY, SEMANTICS_ATTR_KEY)
+  let semantics = get_field_attr_once(&field_ident, field.attrs.iter(), "vertex", "sem")
     .map_err(FieldError::AttributeError)?;
 
   Ok((field.ty.clone(), semantics))
@@ -174,7 +168,6 @@ fn get_field_type_semantics(field: Field) -> Result<(syn::Type, Expr), FieldErro
 
 #[derive(Debug)]
 enum AttrError {
-  WrongFormat(Ident),
   Several(Ident, String, String),
   CannotFindAttribute(Ident, String, String),
   CannotParseAttribute(Ident, String, String)
@@ -183,7 +176,6 @@ enum AttrError {
 impl fmt::Display for AttrError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
-      AttrError::WrongFormat(ref field) => write!(f, "wrong attribute format for {}", field),
       AttrError::Several(ref field, ref key, ref sub_key) =>
         write!(f, "expected one pair {}({} = …) for {}, got several", key, sub_key, field),
       AttrError::CannotFindAttribute(ref field, ref key, ref sub_key) =>
@@ -198,12 +190,12 @@ impl fmt::Display for AttrError {
 /// syntax:
 ///
 ///   #[key(sub_key = "lit")]
-fn get_field_attr_once<A, T>(
+fn get_field_attr_once<'a, A, T>(
   field_ident: &Ident,
   attrs: A,
   key: &str,
   sub_key: &str
-) -> Result<T, AttrError> where A: IntoIterator<Item = Attribute>, T: Parse {
+) -> Result<T, AttrError> where A: IntoIterator<Item = &'a Attribute>, T: Parse {
   let mut lit = None;
 
   for attr in attrs.into_iter() {
@@ -211,23 +203,22 @@ fn get_field_attr_once<A, T>(
       Ok(Meta::List(ref ml)) if ml.ident == key => {
         let nested = &ml.nested;
 
-        if nested.len() != 1 {
-          return Err(AttrError::WrongFormat(field_ident.clone()));
-        }
+        for nested in nested.into_iter() {
+          match nested {
+            NestedMeta::Meta(Meta::NameValue(ref mnv)) if mnv.ident == sub_key => {
+              if lit.is_some() {
+                return Err(AttrError::Several(field_ident.clone(), key.to_owned(), sub_key.to_owned()));
+              }
 
-        match nested.into_iter().next().unwrap() {
-          NestedMeta::Meta(Meta::NameValue(ref mnv)) if mnv.ident == sub_key => {
-            if lit.is_some() {
-              return Err(AttrError::Several(field_ident.clone(), key.to_owned(), sub_key.to_owned()));
+              if let Lit::Str(ref strlit) = mnv.lit {
+                lit = Some(strlit.parse().map_err(|_| AttrError::CannotParseAttribute(field_ident.clone(), key.to_owned(), sub_key.to_owned()))?);
+              }
             }
 
-            if let Lit::Str(ref strlit) = mnv.lit {
-              lit = Some(strlit.parse().map_err(|_| AttrError::CannotParseAttribute(field_ident.clone(), key.to_owned(), sub_key.to_owned()))?);
-            }
+            _ => ()
           }
-
-          _ => ()
         }
+
       }
 
       _ => () // ignore things that might not be ours
@@ -257,16 +248,21 @@ impl fmt::Display for VertexAttribSemImplError {
   }
 }
 
+/// Get vertex semantics attributes.
+///
+///   (name, repr, type_name)
+fn get_vertex_sem_attribs<'a, A>(var_name: &Ident, attrs: A) -> Result<(Ident, Type, Type), AttrError> where A: IntoIterator<Item = &'a Attribute> + Clone {
+  let sem_name = get_field_attr_once::<_, Ident>(var_name, attrs.clone(), "sem", "name")?;
+  let sem_repr = get_field_attr_once::<_, Type>(var_name, attrs.clone(), "sem", "repr")?;
+  let sem_type_name = get_field_attr_once::<_, Type>(var_name, attrs, "sem", "type_name")?;
+
+  Ok((sem_name, sem_repr, sem_type_name))
+}
+
 fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result<TokenStream, VertexAttribSemImplError> {
-  // for each variant, we want to generate a pattern "name" => Type::Variant; if we cannot find
-  // the annotation, that’s considered an error and those will be reported
-  let patterns = enum_.variants.into_iter().map(|var| {
-    let var_name = &var.ident;
-    get_field_attr_once::<_, Ident>(var_name, var.attrs, SEM_KEY, SEM_NAME_KEY).map(|sem| {
-      let sem = sem.to_string();
-      quote!{
-        #sem => Some(#ident::#var_name)
-      }
+  let fields = enum_.variants.into_iter().map(|var| {
+    get_vertex_sem_attribs(&var.ident, var.attrs.iter()).map(|attrs| {
+      (var.ident, attrs.0, attrs.1, attrs.2)
     })
   });
 
@@ -274,9 +270,18 @@ fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result
   let mut variants = Vec::new();
   let mut errors = Vec::new();
 
-  for pattern in patterns {
-    match pattern {
-      Ok(pattern) => variants.push(pattern),
+  for field in fields {
+    match field {
+      Ok(field) => {
+        let sem_var = field.0;
+        let sem_name = field.1.to_string();
+        let branch = quote!{
+          #sem_name => Some(#ident::#sem_var)
+        };
+
+        variants.push(branch);
+      }
+
       Err(e) => errors.push(e)
     }
   }

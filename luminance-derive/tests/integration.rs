@@ -9,11 +9,11 @@ type Color = [f32; 4];
 fn derive_simple_semantics() {
   #[derive(Clone, Copy, Debug, Eq, PartialEq, VertexAttribSem)]
   enum Semantics {
-    #[sem(name = "position")]
+    #[sem(name = "position", repr = "[f32; 3]", type_name = "VertexPosition")]
     Position,
-    #[sem(name = "normal")]
+    #[sem(name = "normal", repr = "[f32; 3]", type_name = "VertexNormal")]
     Normal,
-    #[sem(name = "color")]
+    #[sem(name = "color", repr = "[f32; 4]", type_name = "VertexColor")]
     Color
   }
 
