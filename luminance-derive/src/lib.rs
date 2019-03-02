@@ -321,6 +321,7 @@ fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result
         repr: #repr_ty_name
       }
 
+      // helps convert from the repr type to the vertex attrib type
       impl From<#repr_ty_name> for #ty_name {
         fn from(repr: #repr_ty_name) -> Self {
           #ty_name {
@@ -329,10 +330,16 @@ fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result
         }
       }
 
+      // helps convert from the repr type to the vertex attrib type
       impl #ty_name {
         pub fn new(repr: #repr_ty_name) -> Self {
           repr.into()
         }
+      }
+
+      unsafe impl luminance::vertex::VertexAttrib for #ty_name {
+        const VERTEX_ATTRIB_FMT: luminance::vertex::VertexAttribFmt =
+          <#repr_ty_name as luminance::vertex::VertexAttrib>::VERTEX_ATTRIB_FMT;
       }
     }
   });
