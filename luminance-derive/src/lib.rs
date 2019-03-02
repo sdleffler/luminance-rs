@@ -316,6 +316,7 @@ fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result
   // generate the repr types
   let generated_types = ty_names.into_iter().zip(repr_ty_names).map(|(ty_name, repr_ty_name)| {
     quote!{
+      #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
       pub struct #ty_name {
         repr: #repr_ty_name
       }
