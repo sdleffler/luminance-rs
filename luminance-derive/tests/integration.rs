@@ -24,6 +24,7 @@ fn derive_simple_semantics() {
   assert_eq!(<Semantics as VertexAttribSem>::parse("normal"), Some(Semantics::Normal));
   assert_eq!(<Semantics as VertexAttribSem>::parse("color"), Some(Semantics::Color));
   assert_eq!(<Semantics as VertexAttribSem>::parse("bidule"), None);
+  assert_eq!(VertexPosition::new([1., 2., 3.]).repr, [1., 2., 3.]);
 
   #[derive(Clone, Copy, Debug, Vertex)]
   #[vertex(sem = "Semantics")]

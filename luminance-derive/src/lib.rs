@@ -267,19 +267,26 @@ fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result
   });
 
   // we partition the variants so that we get the ones errored
-  let mut variants = Vec::new();
+  let mut parse_branches = Vec::new();
+  let mut repr_ty_names = Vec::new();
+  let mut ty_names = Vec::new();
   let mut errors = Vec::new();
 
   for field in fields {
     match field {
       Ok(field) => {
+        // parse branches
         let sem_var = field.0;
         let sem_name = field.1.to_string();
         let branch = quote!{
           #sem_name => Some(#ident::#sem_var)
         };
 
-        variants.push(branch);
+        parse_branches.push(branch);
+
+        // repr type names & type names
+        repr_ty_names.push(field.2);
+        ty_names.push(field.3);
       }
 
       Err(e) => errors.push(e)
@@ -291,7 +298,7 @@ fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result
   }
 
   // generate the implementation of VertexAttribSem
-  let impl_ = quote!{
+  let vertex_attrib_sem_impl = quote!{
     impl luminance::vertex::VertexAttribSem for #ident {
       fn index(&self) -> usize {
         *self as usize
@@ -299,12 +306,40 @@ fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result
 
       fn parse(name: &str) -> Option<Self> {
         match name {
-          #(#variants,)*
+          #(#parse_branches,)*
           _ => None
         }
       }
     }
   };
 
-  Ok(impl_.into())
+  // generate the repr types
+  let generated_types = ty_names.into_iter().zip(repr_ty_names).map(|(ty_name, repr_ty_name)| {
+    quote!{
+      pub struct #ty_name {
+        repr: #repr_ty_name
+      }
+
+      impl From<#repr_ty_name> for #ty_name {
+        fn from(repr: #repr_ty_name) -> Self {
+          #ty_name {
+            repr
+          }
+        }
+      }
+
+      impl #ty_name {
+        pub fn new(repr: #repr_ty_name) -> Self {
+          repr.into()
+        }
+      }
+    }
+  });
+
+  let output = quote!{
+    #vertex_attrib_sem_impl
+    #(#generated_types)*
+  };
+
+  Ok(output.into())
 }
