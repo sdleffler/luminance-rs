@@ -4,7 +4,7 @@ use proc_macro::TokenStream;
 use quote::quote;
 use std::fmt;
 use syn::{
-  self, Attribute, Data, DataEnum, DataStruct, DeriveInput, Expr, Field, Fields, Ident, Lit, Meta,
+  self, Attribute, Data, DataEnum, DataStruct, DeriveInput, Fields, Ident, Lit, Meta,
   NestedMeta, Type, parse_macro_input
 };
 use syn::parse::Parse;
@@ -48,7 +48,6 @@ enum StructImplError {
   SemanticsError(AttrError),
   UnsupportedUnnamed,
   UnsupportedUnit,
-  FieldsError(Vec<FieldError>)
 }
 
 impl fmt::Display for StructImplError {
@@ -58,14 +57,6 @@ impl fmt::Display for StructImplError {
         write!(f, "error with semantics type; {}", e),
       StructImplError::UnsupportedUnnamed => f.write_str("unsupported unnamed fields"),
       StructImplError::UnsupportedUnit => f.write_str("unsupported unit struct"),
-      StructImplError::FieldsError(ref errs) => {
-        for err in errs {
-          err.fmt(f)?;
-          writeln!(f, "").unwrap();
-        }
-
-        Ok(())
-      }
     }
   }
 }
