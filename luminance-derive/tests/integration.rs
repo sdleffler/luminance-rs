@@ -1,4 +1,6 @@
-use luminance::vertex::VertexAttribSem;
+use luminance::vertex::{
+  HasSemantics, IndexedVertexAttribFmt, Vertex, VertexAttrib, VertexAttribSem
+};
 use luminance_derive::{Vertex, VertexAttribSem};
 
 #[test]
@@ -13,15 +15,6 @@ fn derive_simple_semantics() {
     Color
   }
 
-  assert_eq!(Semantics::Position.index(), 0);
-  assert_eq!(Semantics::Normal.index(), 1);
-  assert_eq!(Semantics::Color.index(), 2);
-  assert_eq!(<Semantics as VertexAttribSem>::parse("position"), Some(Semantics::Position));
-  assert_eq!(<Semantics as VertexAttribSem>::parse("normal"), Some(Semantics::Normal));
-  assert_eq!(<Semantics as VertexAttribSem>::parse("color"), Some(Semantics::Color));
-  assert_eq!(<Semantics as VertexAttribSem>::parse("bidule"), None);
-  assert_eq!(VertexPosition::new([1., 2., 3.]).repr, [1., 2., 3.]);
-
   #[derive(Clone, Copy, Debug, Vertex)]
   #[vertex(sem = "Semantics")]
   struct Vertex {
@@ -29,4 +22,24 @@ fn derive_simple_semantics() {
     nor: VertexNormal,
     col: VertexColor
   }
+
+  assert_eq!(Semantics::Position.index(), 0);
+  assert_eq!(Semantics::Normal.index(), 1);
+  assert_eq!(Semantics::Color.index(), 2);
+  assert_eq!(<Semantics as VertexAttribSem>::parse("position"), Some(Semantics::Position));
+  assert_eq!(<Semantics as VertexAttribSem>::parse("normal"), Some(Semantics::Normal));
+  assert_eq!(<Semantics as VertexAttribSem>::parse("color"), Some(Semantics::Color));
+  assert_eq!(<Semantics as VertexAttribSem>::parse("bidule"), None);
+  assert_eq!(VertexPosition::VERTEX_ATTRIB_SEM, Semantics::Position);
+  assert_eq!(VertexNormal::VERTEX_ATTRIB_SEM, Semantics::Normal);
+  assert_eq!(VertexColor::VERTEX_ATTRIB_SEM, Semantics::Color);
+  assert_eq!(VertexPosition::new([1., 2., 3.]).repr, [1., 2., 3.]);
+
+  let expected_fmt = vec![
+    IndexedVertexAttribFmt::new(Semantics::Position, <[f32; 3] as VertexAttrib>::VERTEX_ATTRIB_FMT),
+    IndexedVertexAttribFmt::new(Semantics::Normal, <[f32; 3] as VertexAttrib>::VERTEX_ATTRIB_FMT),
+    IndexedVertexAttribFmt::new(Semantics::Color, <[f32; 4] as VertexAttrib>::VERTEX_ATTRIB_FMT),
+  ];
+
+  assert_eq!(Vertex::vertex_fmt(), expected_fmt);
 }
