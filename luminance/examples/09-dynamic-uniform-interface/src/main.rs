@@ -14,13 +14,17 @@
 //! https://docs.rs/luminance
 
 extern crate luminance;
+extern crate luminance_derive;
 extern crate luminance_glfw;
 
+mod common;
+
+use crate::common::{Vertex, VertexPosition, VertexColor};
 use luminance::context::GraphicsContext;
 use luminance::framebuffer::Framebuffer;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
-use luminance::tess::{Mode, Tess};
+use luminance::tess::{Mode, TessBuilder};
 use luminance_glfw::event::{Action, Key, WindowEvent};
 use luminance_glfw::surface::{GlfwSurface, Surface, WindowDim, WindowOpt};
 use std::time::Instant;
@@ -28,13 +32,11 @@ use std::time::Instant;
 const VS: &'static str = include_str!("vs.glsl");
 const FS: &'static str = include_str!("fs.glsl");
 
-type Vertex = ([f32; 2], [f32; 3]);
-
 // Only one triangle this time.
 const TRI_VERTICES: [Vertex; 3] = [
-  ([0.5, -0.5], [1., 0., 0.]),
-  ([0.0, 0.5], [0., 1., 0.]),
-  ([-0.5, -0.5], [0., 0., 1.]),
+  Vertex { pos: VertexPosition::new([0.5, -0.5]), rgb: VertexColor::new([1., 0., 0.]) },
+  Vertex { pos: VertexPosition::new([0.0, 0.5]), rgb: VertexColor::new([0., 1., 0.]) },
+  Vertex { pos: VertexPosition::new([-0.5, -0.5]), rgb: VertexColor::new([0., 0., 1.]) },
 ];
 
 fn main() {
@@ -50,7 +52,11 @@ fn main() {
     .expect("program creation")
     .0;
 
-  let triangle = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[..], None);
+  let triangle = TessBuilder::new(&mut surface)
+    .add_vertices(TRI_VERTICES)
+    .set_mode(Mode::Triangle)
+    .build()
+    .unwrap();
 
   let mut back_buffer = Framebuffer::back_buffer(surface.size());
 
@@ -115,7 +121,7 @@ fn main() {
 
           // the `ask` function is type-safe: if you try to get a uniform which type is not
           // correctly reified from the source, you get a TypeMismatch runtime error
-          // if let Err(e) = query.ask::<i32>("triangle_pos") {
+          //if let Err(e) = query.ask::<i32>("triangle_pos") {
           //  eprintln!("{:?}", e);
           //}
 
