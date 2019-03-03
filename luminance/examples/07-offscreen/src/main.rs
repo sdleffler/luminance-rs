@@ -7,15 +7,19 @@
 
 #[macro_use]
 extern crate luminance;
+extern crate luminance_derive;
 extern crate luminance_glfw;
 
+mod common;
+
+use crate::common::{Vertex, VertexPosition, VertexColor};
 use luminance::context::GraphicsContext;
 use luminance::framebuffer::Framebuffer;
 use luminance::pipeline::BoundTexture;
 use luminance::pixel::RGBA32F;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
-use luminance::tess::{Mode, Tess, TessSliceIndex};
+use luminance::tess::{Mode, TessBuilder, TessSliceIndex};
 use luminance::texture::{Dim2, Flat};
 use luminance_glfw::event::{Action, Key, WindowEvent};
 use luminance_glfw::surface::{GlfwSurface, Surface, WindowDim, WindowOpt};
@@ -28,14 +32,12 @@ const FS: &'static str = include_str!("fs.glsl");
 const COPY_VS: &'static str = include_str!("copy_vs.glsl");
 const COPY_FS: &'static str = include_str!("copy_fs.glsl");
 
-type Vertex = ([f32; 2], [f32; 3]);
-
 // a single triangle is enough here
 const TRI_VERTICES: [Vertex; 3] = [
   // triangle – an RGB one
-  ([0.5, -0.5], [0., 1., 0.]),
-  ([0.0, 0.5], [0., 0., 1.]),
-  ([-0.5, -0.5], [1., 0., 0.]),
+  Vertex { pos: VertexPosition::new([0.5, -0.5]), rgb: VertexColor::new([0., 1., 0.]) },
+  Vertex { pos: VertexPosition::new([0.0, 0.5]), rgb: VertexColor::new([0., 0., 1.]) },
+  Vertex { pos: VertexPosition::new([-0.5, -0.5]), rgb: VertexColor::new([1., 0., 0.]) },
 ];
 
 // the shader uniform interface is defined there
@@ -64,9 +66,18 @@ fn main() {
     eprintln!("copy shader warning: {:?}", warning);
   }
 
-  let triangle = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[..], None);
+  let triangle = TessBuilder::new(&mut surface)
+    .add_vertices(TRI_VERTICES)
+    .set_mode(Mode::Triangle)
+    .build()
+    .unwrap();
+
   // we’ll need an attributeless quad to fetch in full screen
-  let quad = Tess::attributeless(&mut surface, Mode::TriangleFan, 4);
+  let quad = TessBuilder::new(&mut surface)
+    .set_vertex_nb(4)
+    .set_mode(Mode::TriangleFan)
+    .build()
+    .unwrap();
 
   let surf_size = surface.size();
   // “screen“ we want to render into our offscreen render
