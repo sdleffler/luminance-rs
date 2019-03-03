@@ -16,13 +16,17 @@
 
 #[macro_use]
 extern crate luminance;
+extern crate luminance_derive;
 extern crate luminance_glfw;
 
+mod common;
+
+use crate::common::{Vertex, VertexPosition, VertexColor};
 use luminance::context::GraphicsContext;
 use luminance::framebuffer::Framebuffer;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
-use luminance::tess::{Mode, Tess};
+use luminance::tess::{Mode, TessBuilder};
 use luminance_glfw::event::{Action, Key, WindowEvent};
 use luminance_glfw::surface::{GlfwSurface, Surface, WindowDim, WindowOpt};
 use std::time::Instant;
@@ -30,13 +34,11 @@ use std::time::Instant;
 const VS: &'static str = include_str!("vs.glsl");
 const FS: &'static str = include_str!("fs.glsl");
 
-type Vertex = ([f32; 2], [f32; 3]);
-
 // Only one triangle this time.
 const TRI_VERTICES: [Vertex; 3] = [
-  ([0.5, -0.5], [1., 0., 0.]),
-  ([0.0, 0.5], [0., 1., 0.]),
-  ([-0.5, -0.5], [0., 0., 1.]),
+  Vertex { pos: VertexPosition::new([0.5, -0.5]), rgb: VertexColor::new([1., 0., 0.]) },
+  Vertex { pos: VertexPosition::new([0.0, 0.5]), rgb: VertexColor::new([0., 1., 0.]) },
+  Vertex { pos: VertexPosition::new([-0.5, -0.5]), rgb: VertexColor::new([0., 0., 1.]) },
 ];
 
 /// First uniform interface.
@@ -44,7 +46,7 @@ uniform_interface! {
   struct ShaderInterface1 {
     #[as("t")]
     time: f32,
-    triangle_pos: [f32; 2]
+    triangle_size: f32
   }
 }
 
@@ -53,7 +55,7 @@ uniform_interface! {
   struct ShaderInterface2 {
     #[as("t")]
     time: f32,
-    triangle_size: f32
+    triangle_pos: [f32; 2]
   }
 }
 
@@ -99,12 +101,14 @@ fn main() {
       .0,
   );
 
-  let triangle = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[..], None);
+  let triangle = TessBuilder::new(&mut surface)
+    .add_vertices(TRI_VERTICES)
+    .set_mode(Mode::Triangle)
+    .build()
+    .unwrap();
 
   let mut back_buffer = Framebuffer::back_buffer(surface.size());
-
   let mut triangle_pos = [0., 0.];
-
   let start_t = Instant::now();
 
   'app: loop {
@@ -160,7 +164,7 @@ fn main() {
           ProgramMode::First(ref program) => {
             shd_gate.shade(&program, |rdr_gate, iface| {
               iface.time.update(t);
-              iface.triangle_pos.update(triangle_pos);
+              iface.triangle_size.update(t.cos().powf(2.));
 
               rdr_gate.render(RenderState::default(), |tess_gate| {
                 tess_gate.render(&mut surface, (&triangle).into());
@@ -174,7 +178,7 @@ fn main() {
             shd_gate.shade(&program, |rdr_gate, iface| {
               iface.time.update(t);
               // iface.triangle_pos.update(triangle_pos); // uncomment this to see a nice error ;)
-              iface.triangle_size.update(t.cos().powf(2.));
+              iface.triangle_pos.update(triangle_pos);
 
               rdr_gate.render(RenderState::default(), |tess_gate| {
                 tess_gate.render(&mut surface, (&triangle).into());
