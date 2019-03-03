@@ -15,7 +15,7 @@ use luminance::context::GraphicsContext;
 use luminance::framebuffer::Framebuffer;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
-use luminance::tess::{Mode, Tess};
+use luminance::tess::{Mode, TessBuilder};
 use luminance_glfw::event::{Action, Key, WindowEvent};
 use luminance_glfw::surface::{GlfwSurface, Surface, WindowDim, WindowOpt};
 
@@ -35,7 +35,11 @@ fn main() {
 
   // yet, we still need to tell luminance to render a certain number of vertices (even if we send no
   // attributes / data); in our case, we’ll just render a triangle, which has three vertices
-  let tess = Tess::attributeless(&mut surface, Mode::Triangle, 3);
+  let tess = TessBuilder::new(&mut surface)
+    .set_vertex_nb(3)
+    .set_mode(Mode::Triangle)
+    .build()
+    .unwrap();
 
   let mut back_buffer = Framebuffer::back_buffer(surface.size());
 
