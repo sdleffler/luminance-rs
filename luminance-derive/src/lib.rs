@@ -7,7 +7,6 @@ mod vertex_attrib_sem;
 use crate::vertex::generate_vertex_impl;
 use crate::vertex_attrib_sem::generate_enum_vertex_attrib_sem_impl;
 use proc_macro::TokenStream;
-use std::fmt;
 use syn::{self, Data, DeriveInput, parse_macro_input};
 
 #[proc_macro_derive(Vertex, attributes(vertex))]
@@ -43,23 +42,3 @@ pub fn derive_vertex_attrib_sem(input: TokenStream) -> TokenStream {
     _ => panic!("only enums are currently supported for deriving VertexAttribSem")
   }
 }
-
-#[derive(Debug)]
-enum FieldError {
-  SemanticsParseError(syn::Error),
-}
-
-impl From<syn::Error> for FieldError {
-  fn from(e: syn::Error) -> Self {
-    FieldError::SemanticsParseError(e)
-  }
-}
-
-impl fmt::Display for FieldError {
-  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-    match *self {
-      FieldError::SemanticsParseError(ref e) => write!(f, "unable to parse semantics: {}", e),
-    }
-  }
-}
-
