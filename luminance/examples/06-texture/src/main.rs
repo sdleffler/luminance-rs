@@ -7,6 +7,8 @@
 //!
 //! Press <escape> to quit or close the window.
 //!
+//! > Note: for this example, it is recommended to compile with --release to speed up image loading.
+//!
 //! https://docs.rs/luminance
 
 extern crate image;
@@ -20,7 +22,7 @@ use luminance::pipeline::BoundTexture;
 use luminance::pixel::RGB32F;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
-use luminance::tess::{Mode, Tess};
+use luminance::tess::{Mode, TessBuilder};
 use luminance::texture::{Dim2, Flat, Sampler, Texture};
 use luminance_glfw::event::{Action, Key, WindowEvent};
 use luminance_glfw::surface::{GlfwSurface, Surface, WindowDim, WindowOpt};
@@ -63,7 +65,11 @@ fn run(texture_path: &Path) {
   // we’ll use an attributeless render here to display a quad on the screen (two triangles); there
   // are over ways to cover the whole screen but this is easier for you to understand; the
   // TriangleFan creates triangles by connecting the third (and next) vertex to the first one
-  let tess = Tess::attributeless(&mut surface, Mode::TriangleFan, 4);
+  let tess = TessBuilder::new(&mut surface)
+    .set_vertex_nb(4)
+    .set_mode(Mode::TriangleFan)
+    .build()
+    .unwrap();
 
   let mut back_buffer = Framebuffer::back_buffer(surface.size());
 
