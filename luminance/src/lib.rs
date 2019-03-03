@@ -113,7 +113,6 @@ extern crate gl;
 pub mod blending;
 pub mod buffer;
 pub mod context;
-pub mod deinterleave;
 pub mod depth_test;
 pub mod face_culling;
 pub mod framebuffer;

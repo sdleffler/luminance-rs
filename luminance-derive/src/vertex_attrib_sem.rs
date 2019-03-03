@@ -74,16 +74,16 @@ pub(crate) fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum
           // convert from the repr type to the vertex attrib type
           impl From<#repr_ty_name> for #ty_name {
             fn from(repr: #repr_ty_name) -> Self {
-              #ty_name {
-                repr
-              }
+              #ty_name::new(repr)
             }
           }
 
           // convert from the repr type to the vertex attrib type
           impl #ty_name {
-            pub fn new(repr: #repr_ty_name) -> Self {
-              repr.into()
+            pub const fn new(repr: #repr_ty_name) -> Self {
+             #ty_name {
+               repr
+             }
             }
           }
 

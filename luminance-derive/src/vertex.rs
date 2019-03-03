@@ -61,8 +61,6 @@ where A: IntoIterator<Item = &'a Attribute> {
       let struct_name = ident;
       let impl_ = quote! {
         unsafe impl<'a> luminance::vertex::Vertex<'a> for #struct_name {
-          type Deinterleaved = (#(&'a [#fields_tys]),*);
-
           fn vertex_fmt() -> luminance::vertex::VertexFmt {
             vec![#(#indexed_vertex_attrib_fmts),*]
           }

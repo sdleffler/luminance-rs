@@ -31,10 +31,12 @@ const FS: &'static str = include_str!("fs.glsl");
 //
 // We derive VertexAttribSem automatically and provide the mapping as field attributes.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, VertexAttribSem)]
-enum Semantics {
-  #[sem(name = "co")] // reference vertex positions with the co variable in vertex shaders
+pub enum Semantics {
+  // reference vertex positions with the co variable in vertex shaders
+  #[sem(name = "co", repr = "[f32; 2]", type_name = "VertexPosition")]
   Position,
-  #[sem(name = "color")] // reference vertex colors with the color variable in vertex shaders
+  // reference vertex colors with the color variable in vertex shaders
+  #[sem(name = "color", repr = "[f32; 3]", type_name = "VertexColor")]
   Color
 }
 
@@ -43,54 +45,53 @@ enum Semantics {
 // We derive the Vertex trait automatically and we associate to each field the semantics that must
 // be used on the GPU.
 #[derive(Clone, Copy, Debug, PartialEq, Vertex)]
+#[vertex(sem = "Semantics")]
 struct Vertex {
-  #[vertex(sem = "Semantics::Position")]
-  pos: [f32; 2],
-  #[vertex(sem = "Semantics::Color")]
-  rgb: [f32; 3]
+  pos: VertexPosition,
+  rgb: VertexColor
 }
 
 // The vertices. We define two triangles.
 const TRI_VERTICES: [Vertex; 6] = [
   // first triangle – an RGB one
-  Vertex { pos: [0.5, -0.5], rgb: [0., 1., 0.] },
-  Vertex { pos: [0.0, 0.5], rgb: [0., 0., 1.] },
-  Vertex { pos: [-0.5, -0.5], rgb: [1., 0., 0.] },
+  Vertex { pos: VertexPosition::new([0.5, -0.5]), rgb: VertexColor::new([0., 1., 0.]) },
+  Vertex { pos: VertexPosition::new([0.0, 0.5]), rgb: VertexColor::new([0., 0., 1.]) },
+  Vertex { pos: VertexPosition::new([-0.5, -0.5]), rgb: VertexColor::new([1., 0., 0.]) },
   // second triangle, a purple one, positioned differently
-  Vertex { pos: [-0.5, 0.5], rgb: [1., 0.2, 1.] },
-  Vertex { pos: [0.0, -0.5], rgb: [0.2, 1., 1.] },
-  Vertex { pos: [0.5, 0.5], rgb: [0.2, 0.2, 1.] },
+  Vertex { pos: VertexPosition::new([-0.5, 0.5]), rgb: VertexColor::new([1., 0.2, 1.]) },
+  Vertex { pos: VertexPosition::new([0.0, -0.5]), rgb: VertexColor::new([0.2, 1., 1.]) },
+  Vertex { pos: VertexPosition::new([0.5, 0.5]), rgb: VertexColor::new([0.2, 0.2, 1.]) },
 ];
 
 #[derive(Clone, Copy, Debug, PartialEq, Vertex)]
+#[vertex(sem = "Semantics")]
 struct Positions {
-  #[vertex(sem = "Semantics::Position")]
-  pos: [f32; 2]
+  pos: VertexPosition
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Vertex)]
+#[vertex(sem = "Semantics")]
 struct Colors {
-  #[vertex(sem = "Semantics::Color")]
-  color: [f32; 3]
+  color: VertexColor
 }
 
 // The vertices, deinterleaved versions. We still define two triangles.
 const TRI_DEINT_POS_VERTICES: &[Positions] = &[
-  Positions { pos: [0.5, -0.5] },
-  Positions { pos: [0.0, 0.5] },
-  Positions { pos: [-0.5, -0.5] },
-  Positions { pos: [-0.5, 0.5] },
-  Positions { pos: [0.0, -0.5] },
-  Positions { pos: [0.5, 0.5] },
+  Positions { pos: VertexPosition::new([0.5, -0.5]) },
+  Positions { pos: VertexPosition::new([0.0, 0.5]) },
+  Positions { pos: VertexPosition::new([-0.5, -0.5]) },
+  Positions { pos: VertexPosition::new([-0.5, 0.5]) },
+  Positions { pos: VertexPosition::new([0.0, -0.5]) },
+  Positions { pos: VertexPosition::new([0.5, 0.5]) },
 ];
 
 const TRI_DEINT_COLOR_VERTICES: &[Colors] = &[
-  Colors { color: [0., 1., 0.] },
-  Colors { color: [0., 0., 1.] },
-  Colors { color: [1., 0., 0.] },
-  Colors { color: [1., 0.2, 1.] },
-  Colors { color: [0.2, 1., 1.] },
-  Colors { color: [0.2, 0.2, 1.] },
+  Colors { color: VertexColor::new([0., 1., 0.]) },
+  Colors { color: VertexColor::new([0., 0., 1.]) },
+  Colors { color: VertexColor::new([1., 0., 0.]) },
+  Colors { color: VertexColor::new([1., 0.2, 1.]) },
+  Colors { color: VertexColor::new([0.2, 1., 1.]) },
+  Colors { color: VertexColor::new([0.2, 0.2, 1.]) },
 ];
 
 // Indices into TRI_VERTICES to use to build up the triangles.

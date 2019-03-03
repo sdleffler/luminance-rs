@@ -44,22 +44,16 @@
 //! mapping your inner fields to a tuple or `GTup`, and call the right `Vertex` method on that
 //! tuple.
 
-use crate::deinterleave::Deinterleave;
-
 /// A type that can be used as a `Vertex` has to implement that trait – it must provide a mapping
 /// to `VertexFmt`.
 ///
 /// If you’re not sure on how to implement that or if you want to use automatic types, feel free
 /// to use the primary supported types and `GTup` or tuples.
 pub unsafe trait Vertex<'a> {
-  type Deinterleaved: Deinterleave;
-
   fn vertex_fmt() -> VertexFmt;
 }
 
 unsafe impl<'a> Vertex<'a> for () {
-  type Deinterleaved = ();
-
   fn vertex_fmt() -> VertexFmt {
     Vec::new()
   }
