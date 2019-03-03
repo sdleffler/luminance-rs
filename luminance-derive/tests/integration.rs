@@ -4,7 +4,7 @@ use luminance_derive::{Vertex, VertexAttribSem};
 #[test]
 fn derive_simple_semantics() {
   #[derive(Clone, Copy, Debug, Eq, PartialEq, VertexAttribSem)]
-  enum Semantics {
+  pub enum Semantics {
     #[sem(name = "position", repr = "[f32; 3]", type_name = "VertexPosition")]
     Position,
     #[sem(name = "normal", repr = "[f32; 3]", type_name = "VertexNormal")]
@@ -25,11 +25,8 @@ fn derive_simple_semantics() {
   #[derive(Clone, Copy, Debug, Vertex)]
   #[vertex(sem = "Semantics")]
   struct Vertex {
-    #[vertex(sem = "Semantics::Position")]
     pos: VertexPosition,
-    #[vertex(sem = "Semantics::Normal")]
     nor: VertexNormal,
-    #[vertex(sem = "Semantics::Color")]
     col: VertexColor
   }
 }

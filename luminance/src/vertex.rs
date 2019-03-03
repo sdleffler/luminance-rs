@@ -145,6 +145,16 @@ pub trait VertexAttribSem: Sized {
   fn parse(name: &str) -> Option<Self>;
 }
 
+/// Class of types that have an associated value which typ implements [`VertexAttribSem`], defining
+/// vertex legit attributes.
+///
+/// Vertex attribute types can be associated with only one semantics.
+pub trait HasSemantics {
+  type Sem;
+
+  const VERTEX_ATTRIB_SEM: Self::Sem;
+}
+
 /// A local version of size_of that depends on the state of the std feature.
 #[inline(always)]
 pub const fn size_of<T>() -> usize {

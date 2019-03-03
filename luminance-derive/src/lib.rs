@@ -87,32 +87,21 @@ where A: IntoIterator<Item = &'a Attribute> {
 
   match struct_.fields {
     Fields::Named(named_fields) => {
-      let fields = named_fields.named.into_iter().map(get_field_type_semantics);
       let mut indexed_vertex_attrib_fmts = Vec::new();
       let mut fields_tys = Vec::new();
-      let mut errors = Vec::new();
 
       // partition and generate IndexedVertexAttribFmt
-      for r in fields {
-        match r {
-          Ok((ty, semantics)) => {
-            let indexed_vertex_attrib_fmt_q = quote!{
-              luminance::vertex::IndexedVertexAttribFmt::new::<#sem_type>(
-                #semantics,
-                <#ty as luminance::vertex::VertexAttrib>::VERTEX_ATTRIB_FMT
-              )
-            };
+      for field in named_fields.named {
+        let field_ty = field.ty;
+        let indexed_vertex_attrib_fmt_q = quote!{
+          luminance::vertex::IndexedVertexAttribFmt::new::<#sem_type>(
+            <#field_ty as luminance::vertex::HasSemantics>::VERTEX_ATTRIB_SEM,
+            <#field_ty as luminance::vertex::VertexAttrib>::VERTEX_ATTRIB_FMT
+          )
+        };
 
-            indexed_vertex_attrib_fmts.push(indexed_vertex_attrib_fmt_q);
-            fields_tys.push(ty);
-          }
-
-          Err(err) => errors.push(err)
-        }
-      }
-
-      if !errors.is_empty() {
-        return Err(StructImplError::FieldsError(errors));
+        indexed_vertex_attrib_fmts.push(indexed_vertex_attrib_fmt_q);
+        fields_tys.push(field_ty);
       }
 
       // indexed_vertex_attrib_fmts contains the exhaustive list of the indexed vertex attribute
@@ -139,7 +128,6 @@ where A: IntoIterator<Item = &'a Attribute> {
 #[derive(Debug)]
 enum FieldError {
   SemanticsParseError(syn::Error),
-  AttributeError(AttrError),
 }
 
 impl From<syn::Error> for FieldError {
@@ -152,18 +140,8 @@ impl fmt::Display for FieldError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
       FieldError::SemanticsParseError(ref e) => write!(f, "unable to parse semantics: {}", e),
-      FieldError::AttributeError(ref e) => write!(f, "{}", e)
     }
   }
-}
-
-fn get_field_type_semantics(field: Field) -> Result<(syn::Type, Expr), FieldError> {
-  let field_ident = field.ident.unwrap();
-
-  let semantics = get_field_attr_once(&field_ident, field.attrs.iter(), "vertex", "sem")
-    .map_err(FieldError::AttributeError)?;
-
-  Ok((field.ty.clone(), semantics))
 }
 
 #[derive(Debug)]
@@ -266,10 +244,9 @@ fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result
     })
   });
 
-  // we partition the variants so that we get the ones errored
   let mut parse_branches = Vec::new();
-  let mut repr_ty_names = Vec::new();
-  let mut ty_names = Vec::new();
+  let mut field_based_gen = Vec::new();
+
   let mut errors = Vec::new();
 
   for field in fields {
@@ -278,15 +255,55 @@ fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result
         // parse branches
         let sem_var = field.0;
         let sem_name = field.1.to_string();
+        let repr_ty_name = field.2;
+        let ty_name = field.3;
+
+        // dynamic branch used for parsing the semantics from a string
         let branch = quote!{
           #sem_name => Some(#ident::#sem_var)
         };
 
         parse_branches.push(branch);
 
-        // repr type names & type names
-        repr_ty_names.push(field.2);
-        ty_names.push(field.3);
+        // field-based code generation
+        let field_gen = quote!{
+          // vertex attrib type
+          #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
+          pub struct #ty_name {
+            repr: #repr_ty_name
+          }
+
+          // convert from the repr type to the vertex attrib type
+          impl From<#repr_ty_name> for #ty_name {
+            fn from(repr: #repr_ty_name) -> Self {
+              #ty_name {
+                repr
+              }
+            }
+          }
+
+          // convert from the repr type to the vertex attrib type
+          impl #ty_name {
+            pub fn new(repr: #repr_ty_name) -> Self {
+              repr.into()
+            }
+          }
+
+          // get the associated semantics
+          impl luminance::vertex::HasSemantics for #ty_name {
+            type Sem = #ident;
+
+            const VERTEX_ATTRIB_SEM: Self::Sem = #ident::#sem_var;
+          }
+
+          // make the vertex attrib impl VertexAttrib by forwarding implementation to the repr type
+          unsafe impl luminance::vertex::VertexAttrib for #ty_name {
+            const VERTEX_ATTRIB_FMT: luminance::vertex::VertexAttribFmt =
+              <#repr_ty_name as luminance::vertex::VertexAttrib>::VERTEX_ATTRIB_FMT;
+          }
+        };
+
+        field_based_gen.push(field_gen);
       }
 
       Err(e) => errors.push(e)
@@ -313,40 +330,9 @@ fn generate_enum_vertex_attrib_sem_impl(ident: Ident, enum_: DataEnum) -> Result
     }
   };
 
-  // generate the repr types
-  let generated_types = ty_names.into_iter().zip(repr_ty_names).map(|(ty_name, repr_ty_name)| {
-    quote!{
-      #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
-      pub struct #ty_name {
-        repr: #repr_ty_name
-      }
-
-      // helps convert from the repr type to the vertex attrib type
-      impl From<#repr_ty_name> for #ty_name {
-        fn from(repr: #repr_ty_name) -> Self {
-          #ty_name {
-            repr
-          }
-        }
-      }
-
-      // helps convert from the repr type to the vertex attrib type
-      impl #ty_name {
-        pub fn new(repr: #repr_ty_name) -> Self {
-          repr.into()
-        }
-      }
-
-      unsafe impl luminance::vertex::VertexAttrib for #ty_name {
-        const VERTEX_ATTRIB_FMT: luminance::vertex::VertexAttribFmt =
-          <#repr_ty_name as luminance::vertex::VertexAttrib>::VERTEX_ATTRIB_FMT;
-      }
-    }
-  });
-
   let output = quote!{
     #vertex_attrib_sem_impl
-    #(#generated_types)*
+    #(#field_based_gen)*
   };
 
   Ok(output.into())
