@@ -284,6 +284,7 @@ where
       // we have an explicit number of vertices to render, but we’re gonna check that number actually
       // makes sense
       if let Some(ref index_buffer) = self.index_buffer {
+        // we have indices (indirect draw); so we’ll compare to them
         if index_buffer.len() < self.vert_nb {
           return Err(TessError::Overflow(index_buffer.len(), self.vert_nb));
         }
@@ -292,7 +293,7 @@ where
 
         if incoherent {
           return Err(TessError::LengthIncoherency(self.vert_nb));
-        } else if self.vertex_buffers[0].buf.len() < self.vert_nb {
+        } else if !self.vertex_buffers.is_empty() && self.vertex_buffers[0].buf.len() < self.vert_nb {
           return Err(TessError::Overflow(self.vertex_buffers[0].buf.len(), self.vert_nb));
         }
       }
