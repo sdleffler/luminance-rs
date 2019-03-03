@@ -1,7 +1,7 @@
 //! This program shows how to render two triangles that live in the same GPU tessellation. This is
 //! called “sliced tessellation” in luminance and can help you implement plenty of situations. One
-//! of the most interesting is for particles effect: you can allocate a big tessellation object on
-//! the GPU and slice it to render only the living particles.
+//! of the most interesting use case is for particles effect: you can allocate a big tessellation
+//! object on the GPU and slice it to render only the living particles.
 //!
 //! Press <space> to change the slicing method.
 //! Press <escape> to quit or close the window.
@@ -15,30 +15,32 @@
 //! https://github.com/rust-lang/rfcs/pull/2473
 
 extern crate luminance;
+extern crate luminance_derive;
 extern crate luminance_glfw;
 
+mod common;
+
+use crate::common::{Vertex, VertexPosition, VertexColor};
 use luminance::context::GraphicsContext;
 use luminance::framebuffer::Framebuffer;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
-use luminance::tess::{Mode, Tess, TessSliceIndex};
+use luminance::tess::{Mode, TessBuilder, TessSliceIndex};
 use luminance_glfw::event::{Action, Key, WindowEvent};
 use luminance_glfw::surface::{GlfwSurface, Surface, WindowDim, WindowOpt};
 
 const VS: &'static str = include_str!("vs.glsl");
 const FS: &'static str = include_str!("fs.glsl");
 
-type Vertex = ([f32; 2], [f32; 3]);
-
-const TRI_VERTICES: [Vertex; 6] = [
+pub const TRI_RED_BLUE_VERTICES: [Vertex; 6] = [
   // first triangle – a red one
-  ([0.5, -0.5], [1., 0., 0.]),
-  ([0.0, 0.5], [1., 0., 0.]),
-  ([-0.5, -0.5], [1., 0., 0.]),
+  Vertex { pos: VertexPosition::new([0.5, -0.5]), rgb: VertexColor::new([1., 0., 0.]) },
+  Vertex { pos: VertexPosition::new([0.0, 0.5]), rgb: VertexColor::new([1., 0., 0.]) },
+  Vertex { pos: VertexPosition::new([-0.5, -0.5]), rgb: VertexColor::new([1., 0., 0.]) },
   // second triangle, a blue one
-  ([-0.5, 0.5], [0., 0., 1.]),
-  ([0.0, -0.5], [0., 0., 1.]),
-  ([0.5, 0.5], [0., 0., 1.]),
+  Vertex { pos: VertexPosition::new([-0.5, 0.5]), rgb: VertexColor::new([0., 0., 1.]) },
+  Vertex { pos: VertexPosition::new([0.0, -0.5]), rgb: VertexColor::new([0., 0., 1.]) },
+  Vertex { pos: VertexPosition::new([0.5, 0.5]), rgb: VertexColor::new([0., 0., 1.]) },
 ];
 
 // Convenience type to select which slice to render.
@@ -70,7 +72,11 @@ fn main() {
   let (program, _) = Program::<Vertex, (), ()>::from_strings(None, VS, None, FS).expect("program creation");
 
   // create a single GPU tessellation that holds both the triangles (like in 01-hello-world)
-  let triangles = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[..], None);
+  let triangles = TessBuilder::new(&mut surface)
+    .add_vertices(TRI_RED_BLUE_VERTICES)
+    .set_mode(Mode::Triangle)
+    .build()
+    .unwrap();
 
   let mut back_buffer = Framebuffer::back_buffer(surface.size());
 
