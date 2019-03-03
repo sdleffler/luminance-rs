@@ -1,6 +1,8 @@
 //! This program shows how to tweak the render state in order to render two simple triangles with
 //! different parameters.
 //!
+//! From this tutorial on, vertex types and semantics are taken from a common.rs file.
+//!
 //! Press <space> to switch which triangle is rendered atop of which.
 //! Press <b> to activate additive blending or disable it.
 //! Press <escape> to quit or close the window.
@@ -8,32 +10,34 @@
 //! https://docs.rs/luminance
 
 extern crate luminance;
+extern crate luminance_derive;
 extern crate luminance_glfw;
 
+mod common;
+
+use crate::common::{Vertex, VertexPosition, VertexColor};
 use luminance::blending::{Equation, Factor};
 use luminance::context::GraphicsContext;
 use luminance::depth_test::DepthTest;
 use luminance::framebuffer::Framebuffer;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
-use luminance::tess::{Mode, Tess};
+use luminance::tess::{Mode, TessBuilder};
 use luminance_glfw::event::{Action, Key, WindowEvent};
 use luminance_glfw::surface::{GlfwSurface, Surface, WindowDim, WindowOpt};
 
 const VS: &'static str = include_str!("vs.glsl");
 const FS: &'static str = include_str!("fs.glsl");
 
-type Vertex = ([f32; 2], [f32; 3]);
-
-const TRI_VERTICES: [Vertex; 6] = [
+pub const TRI_RED_BLUE_VERTICES: [Vertex; 6] = [
   // first triangle – a red one
-  ([0.5, -0.5], [1., 0., 0.]),
-  ([0.0, 0.5], [1., 0., 0.]),
-  ([-0.5, -0.5], [1., 0., 0.]),
+  Vertex { pos: VertexPosition::new([0.5, -0.5]), rgb: VertexColor::new([1., 0., 0.]) },
+  Vertex { pos: VertexPosition::new([0.0, 0.5]), rgb: VertexColor::new([1., 0., 0.]) },
+  Vertex { pos: VertexPosition::new([-0.5, -0.5]), rgb: VertexColor::new([1., 0., 0.]) },
   // second triangle, a blue one
-  ([-0.5, 0.5], [0., 0., 1.]),
-  ([0.0, -0.5], [0., 0., 1.]),
-  ([0.5, 0.5], [0., 0., 1.]),
+  Vertex { pos: VertexPosition::new([-0.5, 0.5]), rgb: VertexColor::new([0., 0., 1.]) },
+  Vertex { pos: VertexPosition::new([0.0, -0.5]), rgb: VertexColor::new([0., 0., 1.]) },
+  Vertex { pos: VertexPosition::new([0.5, 0.5]), rgb: VertexColor::new([0., 0., 1.]) },
 ];
 
 // Convenience type to demonstrate how the depth test influences the rendering of two triangles.
@@ -73,8 +77,16 @@ fn main() {
   let (program, _) = Program::<Vertex, (), ()>::from_strings(None, VS, None, FS).expect("program creation");
 
   // create a red and blue triangles
-  let red_triangle = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[0..3], None);
-  let blue_triangle = Tess::new(&mut surface, Mode::Triangle, &TRI_VERTICES[3..6], None);
+  let red_triangle = TessBuilder::new(&mut surface)
+    .add_vertices(&TRI_RED_BLUE_VERTICES[0..3])
+    .set_mode(Mode::Triangle)
+    .build()
+    .unwrap();
+  let blue_triangle = TessBuilder::new(&mut surface)
+    .add_vertices(&TRI_RED_BLUE_VERTICES[3..6])
+    .set_mode(Mode::Triangle)
+    .build()
+    .unwrap();
 
   let mut back_buffer = Framebuffer::back_buffer(surface.size());
 
