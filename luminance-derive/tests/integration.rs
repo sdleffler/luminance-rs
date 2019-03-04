@@ -19,7 +19,9 @@ fn derive_simple_semantics() {
   #[vertex(sem = "Semantics")]
   struct Vertex {
     pos: VertexPosition,
+    #[vertex(instanced = "false")]
     nor: VertexNormal,
+    #[vertex(instanced = "true")]
     col: VertexColor
   }
 
@@ -38,7 +40,7 @@ fn derive_simple_semantics() {
   let expected_fmt = vec![
     IndexedVertexAttribFmt::new(Semantics::Position, VertexInstancing::Off, <[f32; 3] as VertexAttrib>::VERTEX_ATTRIB_FMT),
     IndexedVertexAttribFmt::new(Semantics::Normal, VertexInstancing::Off, <[f32; 3] as VertexAttrib>::VERTEX_ATTRIB_FMT),
-    IndexedVertexAttribFmt::new(Semantics::Color, VertexInstancing::Off, <[f32; 4] as VertexAttrib>::VERTEX_ATTRIB_FMT),
+    IndexedVertexAttribFmt::new(Semantics::Color, VertexInstancing::On, <[f32; 4] as VertexAttrib>::VERTEX_ATTRIB_FMT),
   ];
 
   assert_eq!(Vertex::vertex_fmt(), expected_fmt);
