@@ -79,7 +79,10 @@ use core::ptr;
 use buffer::{Buffer, BufferError, BufferSlice, BufferSliceMut, RawBuffer};
 use context::GraphicsContext;
 use metagl::*;
-use vertex::{IndexedVertexAttribFmt, Vertex, VertexAttribDim, VertexAttribFmt, VertexAttribType, VertexFmt};
+use vertex::{
+  IndexedVertexAttribFmt, Vertex, VertexAttribDim, VertexAttribFmt, VertexAttribType, VertexFmt,
+  VertexInstancing
+};
 
 /// Vertices can be connected via several modes.
 #[derive(Copy, Clone, Debug)]
@@ -501,6 +504,13 @@ fn set_component_format(stride: GLsizei, off: usize, fmt: &IndexedVertexAttribFm
           );
       },
     }
+
+    // set vertex attribute divisor based on the vertex instancing configuration
+    let divisor = match fmt.instancing {
+      VertexInstancing::On => 1,
+      VertexInstancing::Off => 0
+    };
+    gl::VertexAttribDivisor(index, divisor);
 
     gl::EnableVertexAttribArray(index);
   }
