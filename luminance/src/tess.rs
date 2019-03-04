@@ -143,7 +143,9 @@ pub struct TessBuilder<'a, C> {
   vertex_buffers: Vec<VertexBuffer>,
   index_buffer: Option<RawBuffer>,
   mode: Mode,
-  vert_nb: usize
+  vert_nb: usize,
+  instance_buffers: Vec<VertexBuffer>,
+  inst_nb: usize,
 }
 
 impl<'a, C> TessBuilder<'a, C> {
@@ -153,7 +155,9 @@ impl<'a, C> TessBuilder<'a, C> {
       vertex_buffers: Vec::new(),
       index_buffer: None,
       mode: Mode::Point,
-      vert_nb: 0
+      vert_nb: 0,
+      instance_buffers: Vec::new(),
+      inst_nb: 0,
     }
   }
 }
@@ -176,13 +180,27 @@ where
   {
     let vertices = vertices.as_ref();
 
-    // create a new interleaved raw buffer and turn it into a vertex buffer
     let vb = VertexBuffer {
       fmt: V::vertex_fmt(),
       buf: Buffer::from_slice(self.ctx, vertices).to_raw(),
     };
 
     self.vertex_buffers.push(vb);
+
+    self
+  }
+
+  pub fn add_instances<V, W>(mut self, instances: W) -> Self
+  where W: AsRef<[V]>,
+        V: Vertex<'a> {
+    let instances = instances.as_ref();
+
+    let vb = VertexBuffer {
+      fmt: V::vertex_fmt(),
+      buf: Buffer::from_slice(self.ctx, instances).to_raw(),
+    };
+
+    self.instance_buffers.push(vb);
 
     self
   }
@@ -212,14 +230,20 @@ where
     self
   }
 
+  pub fn set_instance_nb(mut self, nb: usize) -> Self {
+    self.inst_nb = nb;
+    self
+  }
+
   pub fn build(self) -> Result<Tess, TessError> {
     // try to deduce the number of vertices to render if it’s not specified
     let vert_nb = self.guess_vert_nb_or_fail()?;
-    self.build_tess(vert_nb)
+    let inst_nb = self.guess_inst_nb_or_fail()?;
+    self.build_tess(vert_nb, inst_nb)
   }
 
   /// Build a tessellation based on a given number of vertices to render by default.
-  fn build_tess(self, vert_nb: usize) -> Result<Tess, TessError> {
+  fn build_tess(self, vert_nb: usize, inst_nb: usize) -> Result<Tess, TessError> {
     let mut vao: GLuint = 0;
 
     unsafe {
@@ -251,7 +275,7 @@ where
     }
   }
 
-  /// Guess how many vertices there is to render based on the current configuration or fail if
+  /// Guess how many vertices there are to render based on the current configuration or fail if
   /// incorrectly configured.
   fn guess_vert_nb_or_fail(&self) -> Result<usize, TessError> {
     if self.vert_nb == 0 {
@@ -273,7 +297,7 @@ where
 
           _ => {
             let vert_nb = self.vertex_buffers[0].buf.len();
-            let incoherent = self.check_incoherent_vertex_buffers(vert_nb);
+            let incoherent = Self::check_incoherent_buffers(self.vertex_buffers.iter(), vert_nb);
 
             if incoherent {
               Err(TessError::LengthIncoherency(vert_nb))
@@ -292,7 +316,7 @@ where
           return Err(TessError::Overflow(index_buffer.len(), self.vert_nb));
         }
       } else {
-        let incoherent = self.check_incoherent_vertex_buffers(self.vert_nb);
+        let incoherent = Self::check_incoherent_buffers(self.vertex_buffers.iter(), self.vert_nb);
 
         if incoherent {
           return Err(TessError::LengthIncoherency(self.vert_nb));
@@ -306,8 +330,51 @@ where
   }
 
   /// Check whether any vertex buffer is incoherent in its length according to the input length.
-  fn check_incoherent_vertex_buffers(&self, len: usize) -> bool {
-    !self.vertex_buffers.iter().all(|vb| vb.buf.len() == len)
+  fn check_incoherent_buffers<'b, B>(mut buffers: B, len: usize) -> bool where B: Iterator<Item = &'b VertexBuffer> {
+    !buffers.all(|vb| vb.buf.len() == len)
+  }
+
+  /// Guess how many instances there are to render based on the current configuration or fail if
+  /// incorrectly configured.
+  fn guess_inst_nb_or_fail(&self) -> Result<usize, TessError> {
+    if self.inst_nb == 0 {
+      // we don’t have an explicit instance number to render; go and guess!
+      // deduce the number of instances based on the instance buffers; they all must be of the same
+      // length, otherwise it’s an error
+      match self.instance_buffers.len() {
+        0 => {
+          // no instance buffer; we we’re not using instance rendering
+          Ok(0)
+        }
+
+        1 => {
+          Ok(self.instance_buffers[0].buf.len())
+        }
+
+        _ => {
+          let inst_nb = self.instance_buffers[0].buf.len();
+          let incoherent = Self::check_incoherent_buffers(self.instance_buffers.iter(), inst_nb);
+
+          if incoherent {
+            Err(TessError::LengthIncoherency(inst_nb))
+          } else {
+            Ok(inst_nb)
+          }
+        }
+      }
+    } else {
+      // we have an explicit number of instances to render, but we’re gonna check that number
+      // actually makes sense
+      let incoherent = Self::check_incoherent_buffers(self.instance_buffers.iter(), self.vert_nb);
+
+      if incoherent {
+        return Err(TessError::LengthIncoherency(self.inst_nb));
+      } else if !self.instance_buffers.is_empty() && self.instance_buffers[0].buf.len() < self.inst_nb {
+        return Err(TessError::Overflow(self.instance_buffers[0].buf.len(), self.inst_nb));
+      }
+
+      Ok(self.inst_nb)
+    }
   }
 }
 
