@@ -2,11 +2,12 @@ use crate::attrib::{AttrError, get_field_attr_once};
 use proc_macro::TokenStream;
 use quote::quote;
 use std::fmt;
-use syn::{Attribute, DataStruct, Fields, Ident, Type};
+use syn::{Attribute, DataStruct, Fields, Ident, LitBool, Type};
 
 #[derive(Debug)]
 pub(crate) enum StructImplError {
   SemanticsError(AttrError),
+  FieldError(AttrError),
   UnsupportedUnnamed,
   UnsupportedUnit,
 }
@@ -16,6 +17,8 @@ impl fmt::Display for StructImplError {
     match *self {
       StructImplError::SemanticsError(ref e) =>
         write!(f, "error with semantics type; {}", e),
+      StructImplError::FieldError(ref e) =>
+        write!(f, "error with vertex attribute field; {}", e),
       StructImplError::UnsupportedUnnamed => f.write_str("unsupported unnamed fields"),
       StructImplError::UnsupportedUnit => f.write_str("unsupported unit struct"),
     }
@@ -44,10 +47,34 @@ where A: IntoIterator<Item = &'a Attribute> {
 
       // partition and generate IndexedVertexAttribFmt
       for field in named_fields.named {
+        let instancing_attr = get_field_attr_once(
+          field.ident.as_ref().unwrap(),
+          field.attrs.iter(),
+          "vertex",
+          "instanced"
+        );
+        let instancing = instancing_attr
+          .map(|b: LitBool| {
+            if b.value {
+              quote! { luminance::vertex::VertexInstancing::On }
+            } else {
+              quote! { luminance::vertex::VertexInstancing::Off }
+            }
+          })
+          .or_else(|e| match e {
+            AttrError::CannotFindAttribute(..) => {
+              Ok(quote! { luminance::vertex::VertexInstancing::Off })
+            }
+
+            _ => Err(e)
+          })
+          .map_err(StructImplError::FieldError)?;
+
         let field_ty = field.ty;
         let indexed_vertex_attrib_fmt_q = quote!{
           luminance::vertex::IndexedVertexAttribFmt::new::<#sem_type>(
             <#field_ty as luminance::vertex::HasSemantics>::VERTEX_ATTRIB_SEM,
+            #instancing,
             <#field_ty as luminance::vertex::VertexAttrib>::VERTEX_ATTRIB_FMT
           )
         };

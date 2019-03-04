@@ -65,14 +65,21 @@ pub type VertexFmt = Vec<IndexedVertexAttribFmt>;
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
 pub struct IndexedVertexAttribFmt {
   pub index: usize,
+  pub instancing: VertexInstancing,
   pub attrib_fmt: VertexAttribFmt
 }
 
 impl IndexedVertexAttribFmt {
-  pub fn new<S>(sem: S, attrib_fmt: VertexAttribFmt) -> Self where S: VertexAttribSem {
+  pub fn new<S>(sem: S, instancing: VertexInstancing, attrib_fmt: VertexAttribFmt) -> Self where S: VertexAttribSem {
     let index = sem.index();
-    IndexedVertexAttribFmt { index, attrib_fmt }
+    IndexedVertexAttribFmt { index, instancing, attrib_fmt }
   }
+}
+
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum VertexInstancing {
+  On,
+  Off,
 }
 
 /// Vertex attribute format. It gives information on how vertices should be passed to the GPU and
