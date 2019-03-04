@@ -56,7 +56,7 @@ fn main() {
 
   let triangle = TessBuilder::new(&mut surface)
     .add_vertices(TRI_VERTICES)
-    .add_vertices(INSTANCES)
+    .add_instances(INSTANCES)
     .set_mode(Mode::Triangle)
     .build()
     .unwrap();
