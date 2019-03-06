@@ -118,16 +118,6 @@ fn main() {
             time_u.update(t);
           }
 
-          if let Ok(triangle_pos_u) = query.ask("triangle_pos") {
-            triangle_pos_u.update(triangle_pos);
-          }
-
-          // the `ask` function is type-safe: if you try to get a uniform which type is not
-          // correctly reified from the source, you get a TypeMismatch runtime error
-          //if let Err(e) = query.ask::<i32>("triangle_pos") {
-          //  eprintln!("{:?}", e);
-          //}
-
           rdr_gate.render(RenderState::default(), |tess_gate| {
             tess_gate.render(&mut surface, (&triangle).into());
           });

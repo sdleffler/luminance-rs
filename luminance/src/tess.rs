@@ -264,10 +264,17 @@ where
         gfx_st.bind_element_array_buffer(index_buffer.handle());
       }
 
+      // add any instance buffers, if any
+      for vb in &self.instance_buffers {
+        gfx_st.bind_array_buffer(vb.buf.handle());
+        set_vertex_pointers(&vb.fmt);
+      }
+
       // convert to OpenGL-friendly internals and return
       Ok(Tess {
         mode: opengl_mode(self.mode),
         vert_nb,
+        inst_nb,
         vao,
         vertex_buffers: self.vertex_buffers,
         index_buffer: self.index_buffer
@@ -388,6 +395,7 @@ pub enum TessError {
 pub struct Tess {
   mode: GLenum,
   vert_nb: usize,
+  inst_nb: usize,
   vao: GLenum,
   vertex_buffers: Vec<VertexBuffer>,
   index_buffer: Option<RawBuffer>,
@@ -630,7 +638,7 @@ impl<'a> TessSlice<'a> {
       tess,
       start_index: 0,
       vert_nb: tess.vert_nb,
-      inst_nb: 1,
+      inst_nb: tess.inst_nb,
     }
   }
 
