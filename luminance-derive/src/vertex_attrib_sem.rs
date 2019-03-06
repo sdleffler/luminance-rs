@@ -4,6 +4,8 @@ use quote::quote;
 use std::fmt;
 use syn::{Attribute, DataEnum, Ident, Type};
 
+const KNOWN_SUBKEYS: &[&str] = &["name", "repr", "type_name"];
+
 #[derive(Debug)]
 pub(crate) enum VertexAttribSemImplError {
   AttributeErrors(Vec<AttrError>),
@@ -28,9 +30,9 @@ impl fmt::Display for VertexAttribSemImplError {
 ///
 ///   (name, repr, type_name)
 fn get_vertex_sem_attribs<'a, A>(var_name: &Ident, attrs: A) -> Result<(Ident, Type, Type), AttrError> where A: IntoIterator<Item = &'a Attribute> + Clone {
-  let sem_name = get_field_attr_once::<_, Ident>(var_name, attrs.clone(), "sem", "name")?;
-  let sem_repr = get_field_attr_once::<_, Type>(var_name, attrs.clone(), "sem", "repr")?;
-  let sem_type_name = get_field_attr_once::<_, Type>(var_name, attrs, "sem", "type_name")?;
+  let sem_name = get_field_attr_once::<_, Ident>(var_name, attrs.clone(), "sem", "name", KNOWN_SUBKEYS)?;
+  let sem_repr = get_field_attr_once::<_, Type>(var_name, attrs.clone(), "sem", "repr", KNOWN_SUBKEYS)?;
+  let sem_type_name = get_field_attr_once::<_, Type>(var_name, attrs, "sem", "type_name", KNOWN_SUBKEYS)?;
 
   Ok((sem_name, sem_repr, sem_type_name))
 }

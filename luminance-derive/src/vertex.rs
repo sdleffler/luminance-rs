@@ -4,6 +4,8 @@ use quote::quote;
 use std::fmt;
 use syn::{Attribute, DataStruct, Fields, Ident, LitBool, Type};
 
+const KNOWN_SUBKEYS: &[&str] = &["sem", "instanced"];
+
 #[derive(Debug)]
 pub(crate) enum StructImplError {
   SemanticsError(AttrError),
@@ -37,7 +39,8 @@ where A: IntoIterator<Item = &'a Attribute> {
     &ident,
     attrs,
     "vertex",
-    "sem"
+    "sem",
+    KNOWN_SUBKEYS
   ).map_err(StructImplError::SemanticsError)?;
 
   match struct_.fields {
@@ -51,7 +54,8 @@ where A: IntoIterator<Item = &'a Attribute> {
           field.ident.as_ref().unwrap(),
           field.attrs.iter(),
           "vertex",
-          "instanced"
+          "instanced",
+          KNOWN_SUBKEYS
         );
         let instancing = instancing_attr
           .map(|b: LitBool| {

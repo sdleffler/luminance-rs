@@ -6,7 +6,8 @@ use syn::parse::Parse;
 pub(crate) enum AttrError {
   Several(Ident, String, String),
   CannotFindAttribute(Ident, String, String),
-  CannotParseAttribute(Ident, String, String)
+  CannotParseAttribute(Ident, String, String),
+  UnknownSubKey(Ident, String, String),
 }
 
 impl fmt::Display for AttrError {
@@ -18,6 +19,8 @@ impl fmt::Display for AttrError {
         write!(f, "no attribute found {}({} = …) for {}", key, sub_key, field),
       AttrError::CannotParseAttribute(ref field, ref key, ref sub_key) =>
         write!(f, "cannot parse attribute {}({} = …) for {}", key, sub_key, field),
+      AttrError::UnknownSubKey(ref field, ref key, ref sub_key) =>
+        write!(f, "unknown sub key “{}” in {}({} = …) for {}", sub_key, key, sub_key, field),
     }
   }
 }
@@ -30,7 +33,8 @@ pub(crate) fn get_field_attr_once<'a, A, T>(
   field_ident: &Ident,
   attrs: A,
   key: &str,
-  sub_key: &str
+  sub_key: &str,
+  known_subkeys: &[&str]
 ) -> Result<T, AttrError> where A: IntoIterator<Item = &'a Attribute>, T: Parse {
   let mut lit = None;
 
@@ -41,20 +45,27 @@ pub(crate) fn get_field_attr_once<'a, A, T>(
 
         for nested in nested.into_iter() {
           match nested {
-            NestedMeta::Meta(Meta::NameValue(ref mnv)) if mnv.ident == sub_key => {
-              if lit.is_some() {
-                return Err(AttrError::Several(field_ident.clone(), key.to_owned(), sub_key.to_owned()));
-              }
+            NestedMeta::Meta(Meta::NameValue(ref mnv)) => {
+              if mnv.ident == sub_key {
+                if lit.is_some() {
+                  return Err(AttrError::Several(field_ident.clone(), key.to_owned(), sub_key.to_owned()));
+                }
 
-              if let Lit::Str(ref strlit) = mnv.lit {
-                lit = Some(strlit.parse().map_err(|_| AttrError::CannotParseAttribute(field_ident.clone(), key.to_owned(), sub_key.to_owned()))?);
+                if let Lit::Str(ref strlit) = mnv.lit {
+                  lit = Some(strlit.parse().map_err(|_| AttrError::CannotParseAttribute(field_ident.clone(), key.to_owned(), sub_key.to_owned()))?);
+                }
+              } else {
+                let ident_str = mnv.ident.to_string();
+
+                if !known_subkeys.contains(&ident_str.as_str()) {
+                  return Err(AttrError::UnknownSubKey(field_ident.clone(), key.to_owned(), ident_str));
+                }
               }
             }
 
             _ => ()
           }
         }
-
       }
 
       _ => () // ignore things that might not be ours
