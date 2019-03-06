@@ -277,6 +277,7 @@ where
         inst_nb,
         vao,
         vertex_buffers: self.vertex_buffers,
+        instance_buffers: self.instance_buffers,
         index_buffer: self.index_buffer
       })
     }
@@ -398,6 +399,7 @@ pub struct Tess {
   inst_nb: usize,
   vao: GLenum,
   vertex_buffers: Vec<VertexBuffer>,
+  instance_buffers: Vec<VertexBuffer>,
   index_buffer: Option<RawBuffer>,
 }
 
@@ -463,6 +465,44 @@ impl Tess {
 
       1 => {
         let vb = &mut self.vertex_buffers[0];
+        let target_fmt = V::vertex_fmt(); // costs a bit
+
+        if vb.fmt != target_fmt {
+          Err(TessMapError::TypeMismatch(vb.fmt.clone(), target_fmt))
+        } else {
+          vb.buf.as_slice_mut().map_err(TessMapError::VertexBufferMapFailed)
+        }
+      }
+
+      _ => Err(TessMapError::ForbiddenDeinterleavedMapping),
+    }
+  }
+
+  pub fn as_inst_slice<'a, V>(&'a self) -> Result<BufferSlice<V>, TessMapError> where V: Vertex<'a> {
+    match self.instance_buffers.len() {
+      0 => Err(TessMapError::ForbiddenAttributelessMapping),
+
+      1 => {
+        let vb = &self.instance_buffers[0];
+        let target_fmt = V::vertex_fmt(); // costs a bit
+
+        if vb.fmt != target_fmt {
+          Err(TessMapError::TypeMismatch(vb.fmt.clone(), target_fmt))
+        } else {
+          vb.buf.as_slice().map_err(TessMapError::VertexBufferMapFailed)
+        }
+      }
+
+      _ => Err(TessMapError::ForbiddenDeinterleavedMapping),
+    }
+  }
+
+  pub fn as_inst_slice_mut<'a, V>(&mut self) -> Result<BufferSliceMut<V>, TessMapError> where V: Vertex<'a> {
+    match self.instance_buffers.len() {
+      0 => Err(TessMapError::ForbiddenAttributelessMapping),
+
+      1 => {
+        let vb = &mut self.instance_buffers[0];
         let target_fmt = V::vertex_fmt(); // costs a bit
 
         if vb.fmt != target_fmt {
