@@ -151,7 +151,7 @@ pub trait VertexAttribSem: Sized {
 ///
 /// Vertex attribute types can be associated with only one semantics.
 pub trait HasSemantics {
-  type Sem;
+  type Sem: VertexAttribSem;
 
   const VERTEX_ATTRIB_SEM: Self::Sem;
 }
