@@ -1,9 +1,77 @@
+//! The `Vertex` derive proc-macro.
+//!
+//! That proc-macro allows you to create custom vertex types easily without having to care about
+//! implementing the required traits for your types to be usable with the rest of the crate.
+//!
+//! # The `Vertex` trait
+//!
+//! The [`Vertex`] trait must be implemented if you want to use a type as vertex (passed-in via
+//! slices to [`Tess`]). Either you can decide to implement it on your own, or you could just let
+//! this crate do the job for you.
+//!
+//! > Important: the [`Vertex`] trait is `unsafe`, which means that all of its implementors must be
+//! > as well. This is due to the fact that vertex formats include information about raw-level
+//! > GPU memory and a bad implementation can have undefined behaviors.
+//!
+//! # Deriving `Vertex`
+//!
+//! You can derive the [`Vertex`] trait if your type follows these conditions:
+//!
+//!   - It must be a `struct` with named fields. This is just a temporary limitation that will get
+//!     dropped as soon as the crate is stable enough.
+//!   - Its fields must have a type that implements [`VertexAttrib`]. This is mandatory so that the
+//!     backend knows enough about the types used in the structure to correctly align memory, pick
+//!     the right types, etc.
+//!   - Its fields must have a type that implements [`HasSemantics`] as well. This trait is just a
+//!     type family that associates a single constant (i.e. the semantics) that the vertex attribute
+//!     uses.
+//!
+//! Once all those requirements are met, you can derive [`Vertex`] pretty easily.
+//!
+//! > Note: feel free to look at the [`VertexAttribSem`] proc-macro as well, that provides a way
+//! > to generate semantics types in order to completely both implement [`VertexAttribSem`] for an
+//! > `enum` of your choice, but also generate *field* types you can use when defining your vertex
+//! > type.
+//!
+//! ## Syntax
+//!
+//! The syntax is the following:
+//!
+//! ```rust
+//! # use luminance_derive::{Vertex, VertexAttribSem};
+//!
+//! // visit the VertexAttribSem proc-macro documentation for further details
+//! #[derive(Clone, Copy, Debug, PartialEq, VertexAttribSem)]
+//! enum Semantics {
+//!   #[sem(name = "position", repr = "[f32; 3]", type_name = "VertexPosition")]
+//!   Position,
+//!   #[sem(name = "color", repr = "[f32; 4]", type_name = "VertexColor")]
+//!   Color
+//! }
+//!
+//! #[derive(Clone, Copy, Debug, PartialEq, Vertex)] // just add Vertex to the list of derived traits
+//! #[vertex(sem = "Semantics")] // specify the semantics to use for this type
+//! struct MyVertex {
+//!   position: VertexPosition,
+//!   color: VertexColor
+//! }
+//! ```
+//!
+//! Besides the `Semantics`-related code, this will:
+//!
+//!   - Create a type called `MyVertex`, a struct that will hold a single vertex.
+//!   - Implement `Vertex for MyVertex`.
+//!
+//! The proc-macro also supports an optional `#[vertex(instanced = "<bool>")]` attribute. This
+//! attribute allows you to specify whether an attribute is instanced.
+
 use crate::attrib::{AttrError, get_field_attr_once};
 use proc_macro::TokenStream;
 use quote::quote;
 use std::fmt;
 use syn::{Attribute, DataStruct, Fields, Ident, LitBool, Type};
 
+// accepted sub keys for the "vertex" key
 const KNOWN_SUBKEYS: &[&str] = &["sem", "instanced"];
 
 #[derive(Debug)]
