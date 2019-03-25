@@ -1194,7 +1194,6 @@ where S: Semantics {
   for desc in S::semantics_set() {
     match get_vertex_attrib_location(raw, &desc.name) {
       Ok(_) => {
-        println!("binding {:?}", desc);
         let index = desc.index as GLuint;
 
         // we are not interested in the location as we’re about to change it to what we’ve
@@ -1202,7 +1201,6 @@ where S: Semantics {
         #[cfg(feature = "std")]
         {
           let c_name = CString::new(desc.name.as_bytes()).unwrap();
-          println!("  gl::BindAttribLocation({}, {}, {})", raw.handle, index, desc.name);
           unsafe { gl::BindAttribLocation(raw.handle, index, c_name.as_ptr() as *const GLchar) };
         }
 
