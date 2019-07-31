@@ -17,5 +17,3 @@ script:
   - cargo --version
   - cargo build
   - cargo test
-  # luminance examples
-  - cd luminance/examples && cargo check --verbose
