@@ -2,10 +2,13 @@
 //!
 //! A GPU buffer is a typed continuous region of data. It has a size and can hold several elements.
 //!
-//! Buffers are created with the `new` associated function. You pass in the number of elements you
-//! want in the buffer along with the `GraphicsContext` to create the buffer in.
+//! Buffers are created with the [`Buffer::new`] associated function. You pass in the number of
+//! elements you want in the buffer along with the [`GraphicsContext`] to create the buffer in.
 //!
-//! ```ignore
+//! ```
+//! use luminance::buffer::Buffer;
+//! # let mut ctx = unsafe { std::mem::uninitialized() };
+//!
 //! let buffer: Buffer<f32> = Buffer::new(&mut ctx, 5);
 //! ```
 //!
@@ -18,39 +21,47 @@
 //!
 //! However, you cannot change their size at runtime.
 //!
+//! Another important point is the fact that creating a buffer with [`Buffer::new`] allocates the
+//! array on the GPU but leaves it uninitialized. You will have to fill its memory by hand. Or
+//! you can use the [`Buffer::from_slice`] method, which both allocates and initializes:
+//!
+//! ```
+//! let buffer = Buffer::from_slice(&mut ctx, &[1, 2, 3]);
+//! ```
+//!
 //! # Writing to a buffer
 //!
-//! `Buffer`s support several write methods. The simple one is *clearing*. That is, replacing the
-//! whole content of the buffer with a single value. Use the `clear` function to do so.
+//! [`Buffer`]s support several write methods. The simple one is _clearing_. That is, replacing the
+//! whole content of the buffer with a single value. Use the [`Buffer::clear`] function to do so.
 //!
-//! ```ignore
+//! ```
 //! buffer.clear(0.);
 //! ```
 //!
-//! If you want to clear the buffer by providing a value for each elements, you want *filling*. Use
-//! the `fill` function:
+//! If you want to clear the buffer by providing a value for each elements, you want _filling_
+//! instead. Use the [`Buffer::fill`] function:
 //!
-//! ```ignore
-//! buffer.fill([1., 2., 3., 4., 5.]);
+//! ```
+//! buffer.fill([1, 2, 3]);
 //! ```
 //!
-//! You want to change a value at a given index? Easy, you can use the `set` function:
+//! You want to change a value at a given index? Easy, you can use the [`Buffer::set`] function:
 //!
-//! ```ignore
-//! buffer.set(3, 3.14);
+//! ```
+//! buffer.set(2, 42);
 //! ```
 //!
 //! # Reading from the buffer
 //!
-//! You can either retrieve the `whole` content of the `Buffer` or `get` a value with an index.
+//! You can either retrieve the _whole_ content of the [`Buffer`] or _get_ a value with an index.
 //!
-//! ```ignore
+//! ```
 //! // get the whole content
 //! let all_elems = buffer.whole();
-//! assert_eq!(all_elems, vec![1., 2., 3., 3.14, 5.]); // admit floating equalities
+//! assert_eq!(all_elems, vec![1, 2, 42]);
 //!
-//! // get the element at index 3
-//! assert_eq!(buffer.at(3), Some(3.14));
+//! // get the element at index 2
+//! assert_eq!(buffer.at(2), Some(42));
 //! ```
 //!
 //! # Uniform buffer
@@ -61,6 +72,14 @@
 //! In order to use your buffers in a uniform context, the inner type has to implement
 //! `UniformBlock`. Keep in mind alignment must be respected and is a bit peculiar. TODO: explain
 //! std140 here.
+//!
+//! [`Buffer`]: crate::buffer::Buffer
+//! [`Buffer::new`]: crate::buffer::Buffer::new
+//! [`Buffer::from_slice`]: crate::buffer::Buffer::from_slice
+//! [`Buffer::clear`]: crate::buffer::Buffer::clear
+//! [`Buffer::fill`]: crate::buffer::Buffer::fill
+//! [`Buffer::set`]: crate::buffer::Buffer::set
+//! [`GraphicsContext`]: crate::context::GraphicsContext
 
 #[cfg(feature = "std")]
 use std::cell::RefCell;
@@ -301,8 +320,8 @@ impl<T> Buffer<T> {
   }
 
   /// Fill the whole buffer with an array.
-  pub fn fill(&self, values: &[T]) -> Result<(), BufferError> {
-    self.write_whole(values)
+  pub fn fill<V>(&self, values: V) -> Result<(), BufferError> where V: AsRef<[T]> {
+    self.write_whole(values.as_ref())
   }
 
   /// Convert a buffer to its raw representation.
@@ -357,7 +376,7 @@ pub struct RawBuffer {
 
 impl RawBuffer {
   /// Obtain an immutable slice view into the buffer.
-  pub fn as_slice<T>(&self) -> Result<BufferSlice<T>, BufferError> {
+  pub(crate) fn as_slice<T>(&self) -> Result<BufferSlice<T>, BufferError> {
     unsafe {
       self.state.borrow_mut().bind_array_buffer(self.handle);
 
@@ -372,7 +391,7 @@ impl RawBuffer {
   }
 
   /// Obtain a mutable slice view into the buffer.
-  pub fn as_slice_mut<T>(&mut self) -> Result<BufferSliceMut<T>, BufferError> {
+  pub(crate) fn as_slice_mut<T>(&mut self) -> Result<BufferSliceMut<T>, BufferError> {
     unsafe {
       self.state.borrow_mut().bind_array_buffer(self.handle);
 
@@ -388,7 +407,7 @@ impl RawBuffer {
 
   // Get the underlying GPU handle.
   #[inline(always)]
-  pub fn handle(&self) -> GLuint {
+  pub(crate) fn handle(&self) -> GLuint {
     self.handle
   }
 
