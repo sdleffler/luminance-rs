@@ -5,27 +5,24 @@
 //! Buffers are created with the [`Buffer::new`] associated function. You pass in the number of
 //! elements you want in the buffer along with the [`GraphicsContext`] to create the buffer in.
 //!
-//! ```
-//! use luminance::buffer::Buffer;
-//! # let mut ctx = unsafe { std::mem::uninitialized() };
-//!
+//! ```ignore
 //! let buffer: Buffer<f32> = Buffer::new(&mut ctx, 5);
 //! ```
 //!
-//! Once the buffer is created, you can perform several operations on them:
+//! Once the buffer is created, you can perform several operations on it:
 //!
-//! - Writing to them.
-//! - Reading from them.
-//! - Passing them around as uniforms.
+//! - Writing to it.
+//! - Reading from it.
+//! - Passing it around as uniforms.
 //! - Etc.
 //!
-//! However, you cannot change their size at runtime.
+//! However, you cannot change their size at runtime currently.
 //!
 //! Another important point is the fact that creating a buffer with [`Buffer::new`] allocates the
 //! array on the GPU but leaves it uninitialized. You will have to fill its memory by hand. Or
 //! you can use the [`Buffer::from_slice`] method, which both allocates and initializes:
 //!
-//! ```
+//! ```ignore
 //! let buffer = Buffer::from_slice(&mut ctx, &[1, 2, 3]);
 //! ```
 //!
@@ -34,20 +31,20 @@
 //! [`Buffer`]s support several write methods. The simple one is _clearing_. That is, replacing the
 //! whole content of the buffer with a single value. Use the [`Buffer::clear`] function to do so.
 //!
-//! ```
+//! ```ignore
 //! buffer.clear(0.);
 //! ```
 //!
 //! If you want to clear the buffer by providing a value for each elements, you want _filling_
 //! instead. Use the [`Buffer::fill`] function:
 //!
-//! ```
+//! ```ignore
 //! buffer.fill([1, 2, 3]);
 //! ```
 //!
 //! You want to change a value at a given index? Easy, you can use the [`Buffer::set`] function:
 //!
-//! ```
+//! ```ignore
 //! buffer.set(2, 42);
 //! ```
 //!
@@ -55,7 +52,7 @@
 //!
 //! You can either retrieve the _whole_ content of the [`Buffer`] or _get_ a value with an index.
 //!
-//! ```
+//! ```ignore
 //! // get the whole content
 //! let all_elems = buffer.whole();
 //! assert_eq!(all_elems, vec![1, 2, 42]);
