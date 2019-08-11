@@ -517,12 +517,12 @@ impl Tess {
     }
   }
 
-  pub fn as_slice<V>(&self) -> Result<BufferSlice<V>, TessMapError> where V: Vertex {
+  pub fn as_slice<V>(&mut self) -> Result<BufferSlice<V>, TessMapError> where V: Vertex {
     match self.vertex_buffers.len() {
       0 => Err(TessMapError::ForbiddenAttributelessMapping),
 
       1 => {
-        let vb = &self.vertex_buffers[0];
+        let vb = &mut self.vertex_buffers[0];
         let target_fmt = V::vertex_desc(); // costs a bit
 
         if vb.fmt != target_fmt {
@@ -555,9 +555,9 @@ impl Tess {
     }
   }
 
-  pub fn as_index_slice<I>(&self) -> Result<BufferSlice<I>, TessMapError> where I: TessIndex {
+  pub fn as_index_slice<I>(&mut self) -> Result<BufferSlice<I>, TessMapError> where I: TessIndex {
     match self.index_state {
-      Some(IndexedDrawState { ref _buffer, ref index_type, .. }) => {
+      Some(IndexedDrawState { ref mut _buffer, ref index_type, .. }) => {
         let target_fmt = I::INDEX_TYPE;
 
         if *index_type != target_fmt {
@@ -590,12 +590,12 @@ impl Tess {
     }
   }
 
-  pub fn as_inst_slice<V>(&self) -> Result<BufferSlice<V>, TessMapError> where V: Vertex {
+  pub fn as_inst_slice<V>(&mut self) -> Result<BufferSlice<V>, TessMapError> where V: Vertex {
     match self.instance_buffers.len() {
       0 => Err(TessMapError::ForbiddenAttributelessMapping),
 
       1 => {
-        let vb = &self.instance_buffers[0];
+        let vb = &mut self.instance_buffers[0];
         let target_fmt = V::vertex_desc(); // costs a bit
 
         if vb.fmt != target_fmt {
