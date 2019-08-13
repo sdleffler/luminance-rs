@@ -4,14 +4,20 @@
 //! factor – respectively, *srcK* and *dstK*. *src* is the pixel being computed, and *dst* is the
 //! pixel that is already stored in the framebuffer.
 //!
-//! The pixels can be blended in several ways. See the documentation of `Equation` for further
+//! The pixels can be blended in several ways. See the documentation of [`Equation`] for further
 //! details.
 //!
-//! The factors are encoded with `Factor`.
+//! The factors are encoded with [`Factor`].
+//!
+//! [`Equation`]: crate::blending::Equation
+//! [`Factor`]: crate::blending::Factor
 
+/// Whether or not enable blending.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) enum BlendingState {
+  /// Enable blending.
   On,
+  /// Disable blending.
   Off,
 }
 

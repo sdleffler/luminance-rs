@@ -7,11 +7,11 @@
 [![crates.io](https://img.shields.io/crates/v/luminance.svg)](https://crates.io/crates/luminance)
 ![License](https://img.shields.io/badge/license-BSD3-blue.svg?style=flat)
 
-**luminance** is an effort to make graphics rendering simple and elegant.
+[luminance] is an effort to make graphics rendering simple and elegant.
 
-The aims of **luminance** are:
+The aims of [luminance] are:
 
-  - Bringing a **safe**, **type-safe** and **stateless** API.
+  - Bringing a **safe**, **type-safe** and **stateless** API to the Rust graphics ecosystem.
   - Providing a simple and easy interface; that is, exposing core concepts without anything
     extra – just the bare stuff. This is not a 3D or a video game engine. It’s a set of building
     blocks and graphics primitives you can use to construct more specific abstractions,
@@ -25,30 +25,40 @@ The aims of **luminance** are:
   - Need-driven: every piece of code added in the project must come from a real use case. If you
     feel something is missing, feel free to open an issue or even contribute! Issue trackers
     exist for bug tracking but also for feature requests.
-  - The [gfx-hal] crate is already a good crate, so **luminance** must stand out by providing an
+  - The [gfx-hal] crate is already a good crate, so [luminance] must stand out by providing an
     easier crate for people who just want to write some graphics code without having to cope
-    with _too low-level_ details. The crate is low-level but not as much as [gfx-hal].
+    with _too low-level_ details. The crate is low-level but not as much as [gfx-hal], though.
+    The goal is to be _performant enough_ and still have an elegant and easy interface.
+
+An important point before starting: some people ask about how to _easily render something_.
+[luminance] is flexible enough to allow people to do rendering as they want and, thus, doesn’t
+include default shaders or such. So if you are looking for something that has already
+_everything_ embedded, you’re not looking at the right crate.
+
+[luminance] is shipped with almost no _data_ — i.e. no default shader, tessellations, etc. You
+can probably find crates adding those, though. ;)
 
 # What’s included?
 
-**luminance** is a rendering crate, not a 3D engine nor a video game framework. As so, it doesn’t
+[luminance] is a rendering crate, not a 3D engine nor a video game framework. As so, it doesn’t
 include specific concepts, such as lights, materials, asset management nor scene description. It
 only provides a rendering library you can plug in whatever you want to.
 
   > There are several so-called 3D-engines out there on [crates.io](https://crates.io). Feel
   > free to have a look around.
 
-However, **luminance** comes in with several interesting features that might interest you.
+However, [luminance] comes in with several interesting features that might interest you.
 
 ## Features set
 
-  - **Buffers**: buffers are way to communicate with the GPU; they represent regions of memory
+  - **Buffers**: buffers are ways to communicate with the GPU; they represent regions of memory
     you can write to and read from. There’re several kinds of buffers you can create, among
-    *vertex and index buffers*, *shader buffers*, *uniform buffers*, and so on and so forth….
+    *vertex and index buffers*, *uniform buffers*, and so on and so forth…. They look like
+    regular array but have some differences you might be aware of.
   - **Framebuffers**: framebuffers are used to hold renders. Each time you want to perform a
     render, you need to perform it into a framebuffer. Framebuffers can then be combined with
     each other to produce effects and design render layers.
-  - **Shaders**: **luminance** supports five kinds of shader stages:
+  - **Shaders**: [luminance] supports five kinds of shader stages:
       - Tessellation control shaders.
       - Tessellation evaluation shaders.
       - Vertex shaders.
@@ -69,7 +79,7 @@ However, **luminance** comes in with several interesting features that might int
 
 # How to dig in?
 
-**luminance** is written to be fairly simple. The documentation is very transparent about what the
+[luminance] is written to be fairly simple. The documentation is very transparent about what the
 library does and several articles will appear as the development goes on. Keep tuned! The
 [online documentation](https://docs.rs/luminance) is also a good link to have around.
 
@@ -78,7 +88,7 @@ library does and several articles will appear as the development goes on. Keep t
 Currently, **luminance is powered by OpenGL 3.3**: it’s the default. That version of OpenGL is
 old enough to support a wide range of devices out there. However, it’s possible that your device
 is older or that you target the Web or Android / iOS. In that case, you should have a look at
-the set of feature flags, which offers the possibility to compile **luminance** on several
+the set of feature flags, which offers the possibility to compile [luminance] on several
 platforms.
 
 ## Feature flags
@@ -86,20 +96,26 @@ platforms.
   - `default = ["std"]`
   - `std`: Compile against the standard library. If you disable that feature, you get a tinier
     executable but you’re responsible for lots of stuff. **Currently, that feature is not well
-    tested and very experimental; use with care and caution.**
+    tested and very experimental; use with care and caution and please provide feedback on
+    the issue tracker if you try it out!**
 
 # Windowing
 
-**luminance** does not provide a way to create windows because it’s important that it not depend
+[luminance] does not provide a way to create windows because it’s important that it not depend
 on windowing libraries – so that end-users can use whatever they like. Furthermore, such
 libraries typically implement windowing and events features, which have nothing to do with our
 initial purpose.
 
+Nevertheless, an ecosystem effort exists towards [luminance]: [luminance-windowing]. That
+crate provides a windowing API that is implemented by other crates, such as [luminance-glfw].
+You don’t have to use them, though. If you’re interested into how you should setup windowing for
+[luminance] to work, this very documentation explains it in the [`GraphicsContext`] section.
+
 # User-guide and contributor-guide
 
-If you just plan to use **luminance**, just read the *User-guide* section.
+If you just plan to use [luminance], just read the *User-guide* section.
 
-If you plan to contribute to **luminance** (by writing a windowing crate or hacking on **luminance**
+If you plan to contribute to [luminance] (by writing a windowing crate or hacking on [luminance]
 directly), feel free to read the *Contributor-guide* section after having read the *User-guide*
 section as well.
 
@@ -108,32 +124,32 @@ section as well.
 ### Creating a context
 
 In order to get started, you need to create an object which type implements [`GraphicsContext`].
-**luminance** ships with the trait but no implementor. You need to head over
+[luminance] ships with the trait but no implementor. You need to head over
 [crates.io and search for luminance crates](https://crates.io/search?q=luminance) to find a
 windowing backend first.
 
 Such a backend should expose a type which implements [`GraphicsContext`]. You can create one per
-thread. That limitation enables **luminance** not to perform plenty of runtime branching,
+thread. That limitation enables [luminance] not to perform plenty of runtime branching,
 minimizing the runtime overhead.
 
 > If you really want several contexts, you will need several OS threads.
 
-[`GraphicsContext`] is the entry-point of everything **luminance** provides. Feel free to dig in
-its documentation for further information on how to use **luminance**. Most objects you can
-create will need a mutable reference to such a context object. Even though **luminance** is
+[`GraphicsContext`] is the entry-point of everything [luminance] provides. Feel free to dig in
+its documentation for further information on how to use [luminance]. Most objects you can
+create will need a mutable reference to such a context object. Even though [luminance] is
 stateless in terms of global state, it still requires to have an object representing the GPU
 somehow.
 
 ### Understanding the pipeline architecture
 
-**luminance** has a very particular way of doing graphics. It represents a typical _graphics
+[luminance] has a very particular way of doing graphics. It represents a typical _graphics
 pipeline_ via a typed [AST] that is embedded into your code. As you might already know, when you
 write code, you’re actually creating an [AST]: expressions, assignments, bindings, conditions,
 function calls, etc. They all represent a typed tree that represents your program.
 
-**luminance** uses that property to create a dependency between resources your GPU needs to
+[luminance] uses that property to create a dependency between resources your GPU needs to
 have in order to perform a render. Typical engines, libraries and frameworks require you to
-explicitly _bind_ something; instead, **luminance** requires you to go deeper in the [AST] by
+explicitly _bind_ something; instead, [luminance] requires you to go deeper in the [AST] by
 creating a new lower node to mark the dependency.
 
 It might be weird at first but you’ll see how simple and easy it is. If you want to perform a
@@ -185,7 +201,13 @@ Framebuffer ─> Shader ─> RenderState ─> Tess
 ```
 
 You can now clearly see the [AST]s and the relationships between objects. Those are encoded
-in **luminance** within your code directly: lambdas / closures.
+in [luminance] within your code directly: lambdas / closures.
+
+> If you have followed thoroughly, you might have noticed that you cannot, with such [AST]s,
+> shade a triangle with another shader but using the same render state as another node. That
+> was a decision that was needed to be made: how should we allow the [AST] to be shared?
+> In terms of graphics pipeline, [luminance] tries to do the best thing to minimize the number
+> of GPU context switches and CPU <=> GPU bandwidth congestion.
 
 ### The lambda & closure design
 
@@ -201,12 +223,12 @@ a new version of `tronfibulate` that will have, as input, a `Zoo`. Contravarianc
 while covariance maps forwards (i.e. if you have `Bar -> Quux`, you can adapt `tronfibulate` to
 create a new function that will output `Quux` value).
 
-All this to say that a contravariant dependency is pretty interesting in our case since we will
-be able to adapt and create new functions just by contra-mapping the input. In terms of
-combinational power, that is gold.
+All this to say that a dependency (which is contravariant) is pretty interesting in our case
+since we will be able to adapt and create new functions just by contra-mapping the input. In
+terms of combinational power, that is gold.
 
-Now, let’s try to represent `AST1` with contravariance and, hence, functions, using pseud-code
-(this is not real **luminance** excerpt).
+Now, let’s try to represent `AST1` with contravariance and, hence, functions, using pseudo-code
+(this is not real [luminance] excerpt).
 
 ```ignore
 // AST1
@@ -271,7 +293,7 @@ use_framebuffer(framebuffer, || {
 );
 ```
 
-The **luminance** equivalent is a bit more complex because it implies some objects that need
+The [luminance] equivalent is a bit more complex because it implies some objects that need
 to be introduced first.
 
 ### [`Pipeline`]
@@ -308,20 +330,40 @@ A [`RenderGate`] is the second to last gate you will be handling. It allows you 
 _render state_ nodes in your [AST], creating a new level for you to render tessellations with
 an obvious, final gate: the [`TessGate`].
 
+The kind of object that node manipulates is [`RenderState`].
+
 ### [`TessGate`]
 
 The [`TessGate`] is the final gate you use in an [AST]. It’s used to create _tessellation
 nodes_. Those are used to render actual [`Tess`]. You cannot go any deeper in the [AST] at that
 stage.
 
-[`TessGate`]s don’t immediately use [`Tess]` as inputs. They use [`TessSlice`]. That type is
+[`TessGate`]s don’t immediately use [`Tess`] as inputs. They use [`TessSlice`]. That type is
 a simple GPU slice into a GPU tessellation ([`Tess`]). It can be obtained from a [`Tess`] via
 the [`TessSliceIndex`] trait.
 
 ## Contributor-guide
 
-You want to hack around **luminance** or provide a windowing crate? Everything you have to know is
+You want to hack around [luminance] or provide a windowing crate? Everything you have to know is
 described in this section.
+
+### What it means to be a luminance windowing backend
+
+[luminance] doesn’t know anything about the context it executes in. That means that it doesn’t
+know whether it’s used within the SDL, GLFW, glutin, Qt or an embedded specific hardware such
+as the Nintendo Switch. That is actually powerful, because it allows [luminance] to be
+completely agnostic of the execution platform it’s running on: one problem less.
+
+However, the connection between [luminance] and the execution context must be correctly done.
+Currently, several points must be enforced:
+
+  - The _OpenGL version_ must be **3.3**.
+  - The _OpenGL profile_ must be **core**.
+  - OpenGL _forward compatibility_ must be enabled.
+
+Those rules might change and be adapted regarding the _feature flags_ that are enabled. For
+instance, if you use a feature flag that allows to use _OpenGL 2.1_, then you should use a
+**2.1** _OpenGL version_.
 
 ### [`GraphicsContext`], [`GraphicsState`] and TLS
 
@@ -332,7 +374,7 @@ In order to implement [`GraphicsContext`], you need to know several points:
     thread, you might get (or not) an `Ok(state)`. If not, a descriptive error is returned.
   - You’re advised to `map` and `map_err` over the [`GraphicsState::new`] returned value to implement your
     own `new` function for your backend type because of the restriction of having only one context per
-    thread in **luminance**.
+    thread in [luminance].
 
 [gfx-hal]: https://crates.io/crates/gfx-hal
 [`GraphicsContext`]: crate::context::GraphicsContext
@@ -351,5 +393,8 @@ In order to implement [`GraphicsContext`], you need to know several points:
 [`ProgramInterface::query`]: crate::shader::program::ProgramInterface::query
 [`TessGate`]: crate::pipeline::TessGate
 [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
+[luminance]: crate
+[luminance-windowing]: https://crates.io/crates/luminance-windowing
+[luminance-glfw]: https://crates.io/crates/luminance-glfw
 
 <!-- cargo-sync-readme end -->

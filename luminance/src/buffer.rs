@@ -2,55 +2,69 @@
 //!
 //! A GPU buffer is a typed continuous region of data. It has a size and can hold several elements.
 //!
-//! Buffers are created with the `new` associated function. You pass in the number of elements you
-//! want in the buffer along with the `GraphicsContext` to create the buffer in.
+//! Once the buffer is created, you can perform several operations on it:
+//!
+//! - Writing to it.
+//! - Reading from it.
+//! - Passing it around as uniforms.
+//! - Etc.
+//!
+//! Buffers are created with the [`Buffer::new`] associated function, which is `unsafe`. You pass in
+//! the number of elements you want in the buffer along with the [`GraphicsContext`] to create the
+//! buffer in.
 //!
 //! ```ignore
 //! let buffer: Buffer<f32> = Buffer::new(&mut ctx, 5);
 //! ```
 //!
-//! Once the buffer is created, you can perform several operations on them:
+//! Another important point is the fact that creating a buffer with [`Buffer::new`] allocates the
+//! array on the GPU but leaves it _uninitialized_. You will have to fill its memory by hand. Or
+//! you can use the [`Buffer::from_slice`] method, which both allocates and initializes:
 //!
-//! - Writing to them.
-//! - Reading from them.
-//! - Passing them around as uniforms.
-//! - Etc.
+//! ```ignore
+//! let buffer = Buffer::from_slice(&mut ctx, [1, 2, 3]);
+//! ```
 //!
-//! However, you cannot change their size at runtime.
+//! If you would like to allocate a buffer and initialize it with the same value everywhere, you
+//! can use [`Buffer::repeat`].
+//!
+//! ```ignore
+//! let buffer = Buffer::repeat(&mut ctx, 3, 0); // same as Buffer::from_slice(&mut ctx, [0, 0, 0])
+//! ```
 //!
 //! # Writing to a buffer
 //!
-//! `Buffer`s support several write methods. The simple one is *clearing*. That is, replacing the
-//! whole content of the buffer with a single value. Use the `clear` function to do so.
+//! [`Buffer`]s support several write methods. The simple one is _clearing_. That is, replacing the
+//! whole content of the buffer with a single value. Use the [`Buffer::clear`] function to do so.
 //!
 //! ```ignore
 //! buffer.clear(0.);
 //! ```
 //!
-//! If you want to clear the buffer by providing a value for each elements, you want *filling*. Use
-//! the `fill` function:
+//! If you want to clear the buffer by providing a value for each elements, you want _filling_
+//! instead. Use the [`Buffer::fill`] function:
 //!
 //! ```ignore
-//! buffer.fill([1., 2., 3., 4., 5.]);
+//! buffer.fill([1, 2, 3]);
 //! ```
 //!
-//! You want to change a value at a given index? Easy, you can use the `set` function:
+//! You want to change a value at a given index? Easy, you can use the [`Buffer::set`] function:
 //!
 //! ```ignore
-//! buffer.set(3, 3.14);
+//! buffer.set(2, 42);
 //! ```
 //!
 //! # Reading from the buffer
 //!
-//! You can either retrieve the `whole` content of the `Buffer` or `get` a value with an index.
+//! You can either retrieve the _whole_ content of the [`Buffer`] or _get_ a value with an index.
 //!
 //! ```ignore
 //! // get the whole content
 //! let all_elems = buffer.whole();
-//! assert_eq!(all_elems, vec![1., 2., 3., 3.14, 5.]); // admit floating equalities
+//! assert_eq!(all_elems, vec![1, 2, 42]);
 //!
-//! // get the element at index 3
-//! assert_eq!(buffer.at(3), Some(3.14));
+//! // get the element at index 2
+//! assert_eq!(buffer.at(2), Some(42));
 //! ```
 //!
 //! # Uniform buffer
@@ -59,8 +73,18 @@
 //! rendering time and which content will be available for a shader to read (no write).
 //!
 //! In order to use your buffers in a uniform context, the inner type has to implement
-//! `UniformBlock`. Keep in mind alignment must be respected and is a bit peculiar. TODO: explain
+//! [`UniformBlock`]. Keep in mind alignment must be respected and is a bit peculiar. TODO: explain
 //! std140 here.
+//!
+//! [`Buffer`]: crate::buffer::Buffer
+//! [`Buffer::new`]: crate::buffer::Buffer::new
+//! [`Buffer::from_slice`]: crate::buffer::Buffer::from_slice
+//! [`Buffer::repeat`]: crate::buffer::Buffer::repeat
+//! [`Buffer::clear`]: crate::buffer::Buffer::clear
+//! [`Buffer::fill`]: crate::buffer::Buffer::fill
+//! [`Buffer::set`]: crate::buffer::Buffer::set
+//! [`GraphicsContext`]: crate::context::GraphicsContext
+//! [`UniformBlock`]: crate::buffer::UniformBlock
 
 #[cfg(feature = "std")]
 use std::cell::RefCell;
@@ -154,24 +178,27 @@ impl fmt::Display for BufferError {
   }
 }
 
-/// A `Buffer` is a GPU region you can picture as an array. It has a static size and cannot be
-/// resized. The size is expressed in number of elements lying in the buffer – not in bytes.
+/// A [`Buffer`] is a GPU region you can picture as an array.
+///
+/// You’re strongly advised to use either [`Buffer::from_slice`] or [`Buffer::repeat`] to create a
+/// [`Buffer`]. The [`Buffer::new`] should only be used if you know what you’re doing.
 pub struct Buffer<T> {
   raw: RawBuffer,
   _t: PhantomData<T>,
 }
 
 impl<T> Buffer<T> {
-  /// Create a new `Buffer` with a given number of elements.
-  pub fn new<C>(ctx: &mut C, len: usize) -> Buffer<T> where C: GraphicsContext {
+  /// Create a new [`Buffer`] with a given number of elements.
+  ///
+  /// That function leaves the buffer _uninitialized_, which is `unsafe`. If you prefer not to use
+  /// any `unsafe` function, feel free to use [`Buffer::from_slice`] or [`Buffer::repeat`] instead.
+  pub unsafe fn new<C>(ctx: &mut C, len: usize) -> Buffer<T> where C: GraphicsContext {
     let mut buffer: GLuint = 0;
     let bytes = mem::size_of::<T>() * len;
 
-    unsafe {
-      gl::GenBuffers(1, &mut buffer);
-      ctx.state().borrow_mut().bind_array_buffer(buffer);
-      gl::BufferData(gl::ARRAY_BUFFER, bytes as isize, ptr::null(), gl::STREAM_DRAW);
-    }
+    gl::GenBuffers(1, &mut buffer);
+    ctx.state().borrow_mut().bind_array_buffer(buffer);
+    gl::BufferData(gl::ARRAY_BUFFER, bytes as isize, ptr::null(), gl::STREAM_DRAW);
 
     Buffer {
       raw: RawBuffer {
@@ -185,8 +212,14 @@ impl<T> Buffer<T> {
   }
 
   /// Create a buffer out of a slice.
-  pub fn from_slice<C>(ctx: &mut C, slice: &[T]) -> Buffer<T> where C: GraphicsContext {
+  pub fn from_slice<C, S>(
+    ctx: &mut C,
+    slice: S
+  ) -> Buffer<T>
+  where C: GraphicsContext,
+        S: AsRef<[T]> {
     let mut buffer: GLuint = 0;
+    let slice = slice.as_ref();
     let len = slice.len();
     let bytes = mem::size_of::<T>() * len;
 
@@ -212,9 +245,17 @@ impl<T> Buffer<T> {
     }
   }
 
-  /// Retrieve an element from the `Buffer`.
+  /// Create a new [`Buffer`] with a given number of elements and ininitialize all the elements to
+  /// the same value.
+  pub fn repeat<C>(ctx: &mut C, len: usize, value: T) -> Self where C: GraphicsContext, T: Copy {
+    let mut buf = unsafe { Self::new(ctx, len) };
+    buf.clear(value).unwrap();
+    buf
+  }
+
+  /// Retrieve an element from the [`Buffer`].
   ///
-  /// Checks boundaries.
+  /// This version checks boundaries.
   pub fn at(&self, i: usize) -> Option<T> where T: Copy {
     if i >= self.len {
       return None;
@@ -232,7 +273,7 @@ impl<T> Buffer<T> {
     }
   }
 
-  /// Retrieve the whole content of the `Buffer`.
+  /// Retrieve the whole content of the [`Buffer`].
   pub fn whole(&self) -> Vec<T> where T: Copy {
     unsafe {
       self.raw.state.borrow_mut().bind_array_buffer(self.handle);
@@ -246,9 +287,9 @@ impl<T> Buffer<T> {
     }
   }
 
-  /// Set a value at a given index in the `Buffer`.
+  /// Set a value at a given index in the [`Buffer`].
   ///
-  /// Checks boundaries.
+  /// This version checks boundaries.
   pub fn set(&mut self, i: usize, x: T) -> Result<(), BufferError> where T: Copy {
     if i >= self.len {
       return Err(BufferError::Overflow(i, self.len));
@@ -269,10 +310,11 @@ impl<T> Buffer<T> {
   /// Write a whole slice into a buffer.
   ///
   /// If the slice you pass in has less items than the length of the buffer, you’ll get a
-  /// `BufferError::TooFewValues` error. If it has more, you’ll get `BufferError::TooManyValues`.
+  /// [`BufferError::TooFewValues`] error. If it has more, you’ll get
+  /// [`BufferError::TooManyValues`].
   ///
   /// This function won’t write anything on any error.
-  pub fn write_whole(&self, values: &[T]) -> Result<(), BufferError> {
+  pub fn write_whole(&mut self, values: &[T]) -> Result<(), BufferError> {
     let len = values.len();
     let in_bytes = len * mem::size_of::<T>();
 
@@ -295,19 +337,19 @@ impl<T> Buffer<T> {
     Ok(())
   }
 
-  /// Fill the `Buffer` with a single value.
-  pub fn clear(&self, x: T) -> Result<(), BufferError> where T: Copy {
+  /// Fill the [`Buffer`] with a single value.
+  pub fn clear(&mut self, x: T) -> Result<(), BufferError> where T: Copy {
     self.write_whole(&vec![x; self.len])
   }
 
   /// Fill the whole buffer with an array.
-  pub fn fill(&self, values: &[T]) -> Result<(), BufferError> {
-    self.write_whole(values)
+  pub fn fill<V>(&mut self, values: V) -> Result<(), BufferError> where V: AsRef<[T]> {
+    self.write_whole(values.as_ref())
   }
 
   /// Convert a buffer to its raw representation.
   ///
-  /// Becareful: once you have called this function, it is not possible to go back to a `Buffer<_>`.
+  /// Becareful: once you have called this function, it is not possible to go back to a [`Buffer`].
   pub fn to_raw(self) -> RawBuffer {
     let raw = RawBuffer {
       handle: self.raw.handle,
@@ -322,7 +364,7 @@ impl<T> Buffer<T> {
   }
 
   /// Obtain an immutable slice view into the buffer.
-  pub fn as_slice(&self) -> Result<BufferSlice<T>, BufferError> {
+  pub fn as_slice(&mut self) -> Result<BufferSlice<T>, BufferError> {
     self.raw.as_slice()
   }
 
@@ -357,7 +399,7 @@ pub struct RawBuffer {
 
 impl RawBuffer {
   /// Obtain an immutable slice view into the buffer.
-  pub fn as_slice<T>(&self) -> Result<BufferSlice<T>, BufferError> {
+  pub(crate) fn as_slice<T>(&mut self) -> Result<BufferSlice<T>, BufferError> {
     unsafe {
       self.state.borrow_mut().bind_array_buffer(self.handle);
 
@@ -372,7 +414,7 @@ impl RawBuffer {
   }
 
   /// Obtain a mutable slice view into the buffer.
-  pub fn as_slice_mut<T>(&mut self) -> Result<BufferSliceMut<T>, BufferError> {
+  pub(crate) fn as_slice_mut<T>(&mut self) -> Result<BufferSliceMut<T>, BufferError> {
     unsafe {
       self.state.borrow_mut().bind_array_buffer(self.handle);
 
@@ -388,7 +430,7 @@ impl RawBuffer {
 
   // Get the underlying GPU handle.
   #[inline(always)]
-  pub fn handle(&self) -> GLuint {
+  pub(crate) fn handle(&self) -> GLuint {
     self.handle
   }
 
@@ -412,6 +454,10 @@ impl<T> From<Buffer<T>> for RawBuffer {
 }
 
 /// A buffer slice mapped into GPU memory.
+///
+/// Such a slice allows you to read the data contained in a buffer directly via a Rust slice.
+/// While a buffer is mapped, the buffer is _sealed_ and no one can use it. You need to drop the
+/// [`BufferSlice`] in order to unlock the buffer.
 pub struct BufferSlice<'a, T> where T: 'a {
   // Borrowed raw buffer.
   raw: &'a RawBuffer,
@@ -445,7 +491,11 @@ impl<'a, 'b, T> IntoIterator for &'b BufferSlice<'a, T> where T: 'a {
   }
 }
 
-/// A buffer mutable slice into GPU memory.
+/// A mutable buffer slice mapped into GPU memory.
+///
+/// Such a slice allows you to read the data contained in a buffer directly via a Rust slice.
+/// While a buffer is mapped, the buffer is _sealed_ and no one can use it. You need to drop the
+/// [`BufferSliceMut`] in order to unlock the buffer.
 pub struct BufferSliceMut<'a, T> where T: 'a {
   // Borrowed buffer.
   raw: &'a RawBuffer,
