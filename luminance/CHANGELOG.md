@@ -1,6 +1,13 @@
+# 0.31.1
+
+> Fri Aug 23th 2019
+
+  - Re-upload of `0.31.0` to fix the cyclic dependency interdiction from crates.io with
+    [luminance-derive].
+
 # 0.31
 
-> ?
+> Fri Aug 23th 2019
 
 ## Bug fixes
 

@@ -1,6 +1,6 @@
 # 0.3
 
-> ?
+> Fri Aug 23th 2019
 
 ## Major changes
 
