@@ -104,6 +104,8 @@ You should try both ways and see which one fits the best for you!
 [luminance]: ./luminance
 [luminance-derive]: ./luminance-derive
 [luminance-windowing]: ./luminance-windowing
+[luminance-glfw]: ./luminance-glfw
+[luminance-glutin]: ./luminance-glutin
 [glutin]: https://crates.io/crates/glutin
 [gfx-hal]: https://crates.io/crates/gfx-hal
 [Vulkan]: https://www.khronos.org/vulkan
