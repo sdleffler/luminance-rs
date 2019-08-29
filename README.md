@@ -8,6 +8,15 @@
 [![docs.rs](https://docs.rs/luminance/badge.svg)](https://docs.rs/luminance/)
 ![License](https://img.shields.io/badge/license-BSD3-blue.svg?style=flat)
 
+
+<!-- vim-markdown-toc GFM -->
+
+* [History](#history)
+* [The luminance ecosystem](#the-luminance-ecosystem)
+* [Learning](#learning)
+
+<!-- vim-markdown-toc -->
+
 # History
 
 **luminance** is an effort to make graphics rendering simple and elegant. It was originally imagined,
@@ -76,6 +85,21 @@ It is currently composed of four different crates:
   - [luminance-glfw]: an implementation of [luminance-windowing] for [GLFW](https://www.glfw.org)
     (via [glfw](https://crates.io/crates/glfw)).
   - [luminance-glutin]: an implementation of [luminance-windowing] for [glutin].
+
+# Learning
+
+[luminance] has two main and official mechanisms to learn:
+
+  - The [examples](luminance/examples). They are like unit tests: each introduces and focuses on a
+    very specific aspect or feature. You should read them if you are interested in given feature.
+    They’re not well suited to learn from scratch and they are weaker than a structured tutorial but
+    more concise.
+  - The [wiki](https://github.com/phaazon/luminance-rs/wiki). It contains various chapters,
+    including tutorials and onboarding newcomers. It will not provide you with the best description
+    of a given feature as it focuses more on the overall comprehension and explaining than code
+    directly.
+
+You should try both ways and see which one fits the best for you!
 
 [luminance]: ./luminance
 [luminance-derive]: ./luminance-derive
