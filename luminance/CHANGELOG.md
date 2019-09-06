@@ -1,6 +1,14 @@
+# 0.33
+
+> Fri Sept 6th 2019
+
+  - Add support for specifying the number of instances to render with `TessSlice`. The methods to
+    specify that parameter are the same as the regular, 1-instance version ones but with the prefix
+    `inst_` instead of `one_`.
+
 # 0.32
 
-> Tue Sep 3rd 2019
+> Tue Sept 3rd 2019
 
 ## Bug fixes
 

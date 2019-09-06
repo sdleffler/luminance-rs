@@ -1,6 +1,12 @@
+# 0.4
+
+> Fri Sept 6th 2019
+
+  - Support of `luminance-0.33`.
+
 # 0.3.1
 
-> Tue Sep 3rd 2019
+> Tue Sept 3rd 2019
 
   - Support of `luminance-0.32`.
 
