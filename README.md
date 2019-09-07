@@ -14,6 +14,7 @@
 * [History](#history)
 * [The luminance ecosystem](#the-luminance-ecosystem)
 * [Learning](#learning)
+* [Dependent projects](#dependent-projects)
 
 <!-- vim-markdown-toc -->
 
@@ -100,6 +101,16 @@ It is currently composed of four different crates:
     directly.
 
 You should try both ways and see which one fits the best for you!
+
+# Dependent projects
+
+Those projects use luminance:
+
+- [Céleri Rémoulade](https://github.com/phaazon/celeri-remoulade).
+  - A demoscene production by [@phaazon](https://github.com/phaazon), released at Evoke 2016 in the PC Demo category.
+- [Outline 2017 Invitro](https://github.com/phaazon/outline-2017-invitro).
+  - A demoscene production by [@phaazon](https://github.com/phaazon),
+  released at Revision 2017 in the PC Demo category.
 
 [luminance]: ./luminance
 [luminance-derive]: ./luminance-derive
