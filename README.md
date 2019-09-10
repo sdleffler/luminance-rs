@@ -2,11 +2,11 @@
   <b>luminance</b>, the elegant, safe, type-safe, stateless <i>and simple</i> graphics crate
 </h1>
 
-[![Talk on IRC!](https://img.shields.io/badge/chat-%23luminance%40irc.freenode.net-blueviolet)](https://webchat.freenode.net)
-[![Build Status](https://travis-ci.org/phaazon/luminance-rs.svg?branch=master)](https://travis-ci.org/phaazon/luminance-rs)
-[![crates.io](https://img.shields.io/crates/v/luminance.svg)](https://crates.io/crates/luminance)
+[![Talk on IRC!](https://img.shields.io/badge/IRC-%23luminance%40irc.freenode.net-blueviolet?logo=wechat)](https://webchat.freenode.net)
+[![Build Status](https://img.shields.io/travis/phaazon/luminance-rs?logo=travis)](https://travis-ci.org/phaazon/luminance-rs)
+[![crates.io](https://img.shields.io/crates/v/luminance.svg?logo=rust)](https://crates.io/crates/luminance)
 [![docs.rs](https://docs.rs/luminance/badge.svg)](https://docs.rs/luminance/)
-![License](https://img.shields.io/badge/license-BSD3-blue.svg?style=flat)
+![License](https://img.shields.io/crates/l/luminance)
 
 
 <!-- vim-markdown-toc GFM -->
