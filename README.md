@@ -21,7 +21,7 @@
 # History
 
 **luminance** is an effort to make graphics rendering simple and elegant. It was originally imagined,
-designed and implemented by @phaazon in Haskell ([here](https://hackage.haskell.org/package/luminance))
+designed and implemented by [@phaazon](https://github.com/phaazon) in Haskell ([here](https://hackage.haskell.org/package/luminance))
 and eventually ported to Rust in 2016. The core concepts remained the same and the crate has been
 slowly evolving ever since. At first used only by @phaazon for his Rust demoscene productions (
 example [here](https://github.com/phaazon/celeri-remoulade) and
