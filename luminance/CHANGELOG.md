@@ -1,3 +1,9 @@
+# 0.34.1
+
+> Wed Sept 11th 2019
+
+  - Re-release with `[dev-dependencies]` updated for other crates
+
 # 0.34
 
 > Wed Sept 11th 2019
