@@ -1,3 +1,9 @@
+# 0.4
+
+> Thur Sep 12th 2019
+
+  - Fix SemVer issues with ranges and duplicated dependencies.
+
 # 0.3.1
 
 > Thur Sep 12th 2019
