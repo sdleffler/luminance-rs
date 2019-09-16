@@ -286,7 +286,7 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
 
     let vb = VertexBuffer {
       fmt: V::vertex_desc(),
-      buf: Buffer::from_slice(self.ctx, vertices).to_raw(),
+      buf: Buffer::from_slice(self.ctx, vertices).into_raw(),
     };
 
     self.vertex_buffers.push(vb);
@@ -300,7 +300,7 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
 
     let vb = VertexBuffer {
       fmt: V::vertex_desc(),
-      buf: Buffer::from_slice(self.ctx, instances).to_raw(),
+      buf: Buffer::from_slice(self.ctx, instances).into_raw(),
     };
 
     self.instance_buffers.push(vb);
@@ -313,7 +313,7 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
     let indices = indices.as_ref();
 
     // create a new raw buffer containing the indices and turn it into a vertex buffer
-    let buf = Buffer::from_slice(self.ctx, indices).to_raw();
+    let buf = Buffer::from_slice(self.ctx, indices).into_raw();
 
     self.index_buffer = Some((buf, I::INDEX_TYPE));
 

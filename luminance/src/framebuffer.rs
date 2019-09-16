@@ -391,9 +391,7 @@ where L: Layerable,
   fn reify_textures<C, I>(_: &mut C, _: D::Size, _: usize, _: &mut I) -> Self::ColorTextures
   where
     C: GraphicsContext,
-    I: Iterator<Item = GLuint>,
-  {
-    ()
+    I: Iterator<Item = GLuint> {
   }
 }
 
@@ -500,7 +498,6 @@ where L: Layerable,
   fn reify_texture<C, T>(_: &mut C, _: D::Size, _: usize, _: T) -> Self::DepthTexture
   where C: GraphicsContext,
         T: Into<Option<GLuint>> {
-    ()
   }
 }
 

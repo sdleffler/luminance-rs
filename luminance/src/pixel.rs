@@ -51,7 +51,7 @@ pub struct PixelFormat {
 
 impl PixelFormat {
   /// Does a [`PixelFormat`] represent a color?
-  pub fn is_color_pixel(&self) -> bool {
+  pub fn is_color_pixel(self) -> bool {
     match self.format {
       Format::Depth(_) => false,
       _ => true,
@@ -59,12 +59,12 @@ impl PixelFormat {
   }
 
   /// Does a [`PixelFormat`] represent depth information?
-  pub fn is_depth_pixel(&self) -> bool {
+  pub fn is_depth_pixel(self) -> bool {
     !self.is_color_pixel()
   }
 
   /// Return the number of canals.
-  pub fn canals_len(&self) -> usize {
+  pub fn canals_len(self) -> usize {
     match self.format {
       Format::R(_) => 1,
       Format::RG(_, _) => 2,
@@ -110,8 +110,8 @@ pub enum Format {
 
 impl Format {
   /// Size (in bytes) of a pixel that a format represents.
-  pub fn size(&self) -> usize {
-    let bits = match *self {
+  pub fn size(self) -> usize {
+    let bits = match self {
       Format::R(r) => r.bits(),
       Format::RG(r, g) => r.bits() + g.bits(),
       Format::RGB(r, g, b) => r.bits() + g.bits() + b.bits(),
