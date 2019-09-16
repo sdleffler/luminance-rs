@@ -1230,6 +1230,7 @@ fn uniform_type_match(program: GLuint, name: &str, ty: Type) -> Result<(), Unifo
 }
 
 // Check if a [`Type`] matches the OpenGL counterpart.
+#[allow(clippy::cognitive_complexity)]
 fn check_types_match(name: &str, ty: Type, glty: GLuint) -> Result<(), UniformWarning> {
   match ty {
     // scalars
