@@ -817,7 +817,7 @@ impl Drop for Tess {
 
 // Give OpenGL types information on the content of the VBO by setting vertex descriptors and pointers
 // to buffer memory.
-fn set_vertex_pointers(descriptors: &VertexDesc) {
+fn set_vertex_pointers(descriptors: &[VertexBufferDesc]) {
   // this function sets the vertex attribute pointer for the input list by computing:
   //   - The vertex attribute ID: this is the “rank” of the attribute in the input list (order
   //     matters, for short).
@@ -833,7 +833,7 @@ fn set_vertex_pointers(descriptors: &VertexDesc) {
 }
 
 // Compute offsets for all the vertex components according to the alignments provided.
-fn aligned_offsets(descriptor: &VertexDesc) -> Vec<usize> {
+fn aligned_offsets(descriptor: &[VertexBufferDesc]) -> Vec<usize> {
   let mut offsets = Vec::with_capacity(descriptor.len());
   let mut off = 0;
 
@@ -871,7 +871,7 @@ fn dim_as_size(d: VertexAttribDim) -> GLint {
 
 // Weight in bytes of a single vertex, taking into account padding so that the vertex stay correctly
 // aligned.
-fn offset_based_vertex_weight(descriptors: &VertexDesc, offsets: &[usize]) -> usize {
+fn offset_based_vertex_weight(descriptors: &[VertexBufferDesc], offsets: &[usize]) -> usize {
   if descriptors.is_empty() || offsets.is_empty() {
     return 0;
   }
