@@ -32,7 +32,7 @@ impl RenderState {
   }
 
   /// Blending configuration.
-  pub fn blending(&self) -> Option<(Equation, Factor, Factor)> {
+  pub fn blending(self) -> Option<(Equation, Factor, Factor)> {
     self.blending
   }
 
@@ -42,7 +42,7 @@ impl RenderState {
   }
 
   /// Depth test configuration.
-  pub fn depth_test(&self) -> DepthTest {
+  pub fn depth_test(self) -> DepthTest {
     self.depth_test
   }
 
@@ -56,7 +56,7 @@ impl RenderState {
   }
 
   /// Face culling configuration.
-  pub fn face_culling(&self) -> Option<FaceCulling> {
+  pub fn face_culling(self) -> Option<FaceCulling> {
     self.face_culling
   }
 }

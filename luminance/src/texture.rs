@@ -547,7 +547,7 @@ where L: Layerable,
   ///     here.
   ///   - The `sampler` parameter allows to customize the way the texture will be sampled in
   ///     shader stages. Refer to the documentation of [`Sampler`] for further details.
-  pub fn new<C>(ctx: &mut C, size: D::Size, mipmaps: usize, sampler: &Sampler) -> Result<Self, TextureError>
+  pub fn new<C>(ctx: &mut C, size: D::Size, mipmaps: usize, sampler: Sampler) -> Result<Self, TextureError>
   where C: GraphicsContext {
     let mipmaps = mipmaps + 1; // + 1 prevent having 0 mipmaps
     let mut texture = 0;
@@ -583,7 +583,7 @@ where L: Layerable,
   }
 
   /// Convert a texture to its raw representation.
-  pub fn to_raw(self) -> RawTexture {
+  pub fn into_raw(self) -> RawTexture {
     let raw = unsafe { ptr::read(&self.raw) };
 
     // forget self so that we don’t call drop on it after the function has returned
@@ -782,7 +782,7 @@ pub(crate) unsafe fn create_texture<L, D>(
   size: D::Size,
   mipmaps: usize,
   pf: PixelFormat,
-  sampler: &Sampler,
+  sampler: Sampler,
 ) -> Result<(), TextureError>
 where L: Layerable,
       D: Dimensionable {
@@ -995,7 +995,7 @@ fn set_texture_levels(target: GLenum, mipmaps: usize) {
   }
 }
 
-fn apply_sampler_to_texture(target: GLenum, sampler: &Sampler) {
+fn apply_sampler_to_texture(target: GLenum, sampler: Sampler) {
   unsafe {
     gl::TexParameteri(target, gl::TEXTURE_WRAP_R, opengl_wrap(sampler.wrap_r) as GLint);
     gl::TexParameteri(target, gl::TEXTURE_WRAP_S, opengl_wrap(sampler.wrap_s) as GLint);

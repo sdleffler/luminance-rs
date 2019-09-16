@@ -73,10 +73,10 @@ impl Stage {
       Self::source(handle, src);
       gl::CompileShader(handle);
 
-      let mut compiled: GLint = gl::FALSE as GLint;
+      let mut compiled: GLint = gl::FALSE.into();
       gl::GetShaderiv(handle, gl::COMPILE_STATUS, &mut compiled);
 
-      if compiled == (gl::TRUE as GLint) {
+      if compiled == gl::TRUE.into() {
         Ok(Stage { handle, ty })
       } else {
         let mut log_len: GLint = 0;

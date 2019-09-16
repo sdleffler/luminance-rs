@@ -857,11 +857,11 @@ fn off_align(off: usize, align: usize) -> usize {
 
 // Weight in bytes of a vertex component.
 fn component_weight(f: &VertexAttribDesc) -> usize {
-  dim_as_size(&f.dim) as usize * f.unit_size
+  dim_as_size(f.dim) as usize * f.unit_size
 }
 
-fn dim_as_size(d: &VertexAttribDim) -> GLint {
-  match *d {
+fn dim_as_size(d: VertexAttribDim) -> GLint {
+  match d {
     VertexAttribDim::Dim1 => 1,
     VertexAttribDim::Dim2 => 2,
     VertexAttribDim::Dim3 => 3,
@@ -892,11 +892,11 @@ fn set_component_format(stride: GLsizei, off: usize, desc: &VertexBufferDesc) {
       VertexAttribType::Floating => {
         gl::VertexAttribPointer(
           index,
-          dim_as_size(&attrib_desc.dim),
+          dim_as_size(attrib_desc.dim),
           opengl_sized_type(&attrib_desc),
           gl::FALSE,
           stride,
-          ptr::null::<c_void>().offset(off as isize),
+          ptr::null::<c_void>().add(off),
         );
       }
 
@@ -905,10 +905,10 @@ fn set_component_format(stride: GLsizei, off: usize, desc: &VertexBufferDesc) {
         // non-normalized integrals / booleans
         gl::VertexAttribIPointer(
           index,
-          dim_as_size(&attrib_desc.dim),
+          dim_as_size(attrib_desc.dim),
           opengl_sized_type(&attrib_desc),
           stride,
-          ptr::null::<c_void>().offset(off as isize),
+          ptr::null::<c_void>().add(off),
         );
       }
 
@@ -916,11 +916,11 @@ fn set_component_format(stride: GLsizei, off: usize, desc: &VertexBufferDesc) {
         // normalized integrals
         gl::VertexAttribPointer(
           index,
-          dim_as_size(&attrib_desc.dim),
+          dim_as_size(attrib_desc.dim),
           opengl_sized_type(&attrib_desc),
           gl::TRUE,
           stride,
-          ptr::null::<c_void>().offset(off as isize),
+          ptr::null::<c_void>().add(off),
         );
       }
     }
@@ -1168,11 +1168,11 @@ pub trait TessSliceIndex<Idx> {
 }
 
 impl TessSliceIndex<RangeFull> for Tess {
-  fn slice<'a>(&self, _: RangeFull) -> TessSlice {
+  fn slice(&self, _: RangeFull) -> TessSlice {
     TessSlice::one_whole(self)
   }
 
-  fn inst_slice<'a>(&self, _: RangeFull, inst_nb: usize) -> TessSlice {
+  fn inst_slice(&self, _: RangeFull, inst_nb: usize) -> TessSlice {
     TessSlice::inst_whole(self, inst_nb)
   }
 }

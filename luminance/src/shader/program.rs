@@ -100,10 +100,10 @@ impl RawProgram {
     unsafe {
       gl::LinkProgram(handle);
 
-      let mut linked: GLint = gl::FALSE as GLint;
+      let mut linked: GLint = gl::FALSE.into();
       gl::GetProgramiv(handle, gl::LINK_STATUS, &mut linked);
 
-      if linked == (gl::TRUE as GLint) {
+      if linked == gl::TRUE.into() {
         Ok(())
       } else {
         let mut log_len: GLint = 0;
@@ -245,7 +245,7 @@ impl<S, Out, Uni> Program<S, Out, Uni> where S: Semantics {
   }
 
   /// Get the program interface associated with this program.
-  pub(crate) fn interface<'a>(&'a self) -> ProgramInterface<'a, Uni> {
+  pub(crate) fn interface(&self) -> ProgramInterface<Uni> {
     let raw_program = &self.raw;
     let uniform_interface = &self.uni_iface;
 

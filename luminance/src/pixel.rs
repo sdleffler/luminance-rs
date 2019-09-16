@@ -140,8 +140,8 @@ pub enum Size {
 
 impl Size {
   /// Size (in bits).
-  pub fn bits(&self) -> usize {
-    match *self {
+  pub fn bits(self) -> usize {
+    match self {
       Size::Eight => 8,
       Size::Ten => 10,
       Size::Eleven => 11,
