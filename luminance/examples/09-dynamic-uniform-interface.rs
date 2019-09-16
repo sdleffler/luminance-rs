@@ -44,7 +44,7 @@ fn main() {
   // notice that we don’t set a uniform interface here: we’re going to look it up on the fly
   let program = Program::<Semantics, (), ()>::from_strings(None, VS, None, FS)
     .expect("program creation")
-    .0;
+    .ignore_warnings();
 
   let triangle = TessBuilder::new(&mut surface)
     .add_vertices(TRI_VERTICES)
