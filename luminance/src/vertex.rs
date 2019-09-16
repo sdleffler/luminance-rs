@@ -194,7 +194,7 @@ pub unsafe trait VertexAttrib {
 ///
 /// > Note: feel free to use the [luminance-derive] crate to automatically derive this trait from
 /// > an `enum`.
-pub trait Semantics: Sized {
+pub trait Semantics: Sized + Copy {
   /// Retrieve the semantics index of this semantics.
   fn index(&self) -> usize;
   /// Get the name of this semantics.
