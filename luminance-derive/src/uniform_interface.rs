@@ -26,7 +26,7 @@ impl fmt::Display for DeriveUniformInterfaceError {
   }
 }
 
-pub(crate) fn generate_uniform_interface_impl<'a>(
+pub(crate) fn generate_uniform_interface_impl(
   ident: Ident,
   struct_: DataStruct
 ) -> Result<TokenStream, DeriveUniformInterfaceError> {

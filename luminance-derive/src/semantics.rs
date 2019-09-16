@@ -17,7 +17,7 @@ impl fmt::Display for SemanticsImplError {
       SemanticsImplError::AttributeErrors(ref errs) => {
         for err in errs {
           err.fmt(f)?;
-          writeln!(f, "").unwrap();
+          writeln!(f).unwrap();
         }
 
         Ok(())

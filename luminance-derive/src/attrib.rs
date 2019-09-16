@@ -44,26 +44,22 @@ pub(crate) fn get_field_attr_once<'a, A, T>(
         let nested = &ml.nested;
 
         for nested in nested.into_iter() {
-          match nested {
-            NestedMeta::Meta(Meta::NameValue(ref mnv)) => {
-              if mnv.path.is_ident(sub_key) {
-                if lit.is_some() {
-                  return Err(AttrError::Several(field_ident.clone(), key.to_owned(), sub_key.to_owned()));
-                }
+          if let NestedMeta::Meta(Meta::NameValue(ref mnv)) = nested {
+            if mnv.path.is_ident(sub_key) {
+              if lit.is_some() {
+                return Err(AttrError::Several(field_ident.clone(), key.to_owned(), sub_key.to_owned()));
+              }
 
-                if let Lit::Str(ref strlit) = mnv.lit {
-                  lit = Some(strlit.parse().map_err(|_| AttrError::CannotParseAttribute(field_ident.clone(), key.to_owned(), sub_key.to_owned()))?);
-                }
-              } else {
-                let ident_str = mnv.path.segments.first().map(|seg| seg.ident.to_string()).unwrap_or_else(|| String::new());
+              if let Lit::Str(ref strlit) = mnv.lit {
+                lit = Some(strlit.parse().map_err(|_| AttrError::CannotParseAttribute(field_ident.clone(), key.to_owned(), sub_key.to_owned()))?);
+              }
+            } else {
+              let ident_str = mnv.path.segments.first().map(|seg| seg.ident.to_string()).unwrap_or_else(String::new);
 
-                if !known_subkeys.contains(&ident_str.as_str()) {
-                  return Err(AttrError::UnknownSubKey(field_ident.clone(), key.to_owned(), ident_str));
-                }
+              if !known_subkeys.contains(&ident_str.as_str()) {
+                return Err(AttrError::UnknownSubKey(field_ident.clone(), key.to_owned(), ident_str));
               }
             }
-
-            _ => ()
           }
         }
       }
@@ -72,7 +68,7 @@ pub(crate) fn get_field_attr_once<'a, A, T>(
     }
   }
 
-  lit.ok_or(AttrError::CannotFindAttribute(field_ident.clone(), key.to_owned(), sub_key.to_owned()))
+  lit.ok_or_else(|| AttrError::CannotFindAttribute(field_ident.clone(), key.to_owned(), sub_key.to_owned()))
 }
 
 /// Get and parse an attribute on a field or a variant that must appear only once with the following
@@ -94,24 +90,20 @@ pub(crate) fn get_field_flag_once<'a, A>(
         let nested = &ml.nested;
 
         for nested in nested.into_iter() {
-          match nested {
-            NestedMeta::Meta(Meta::Path(ref path)) => {
-              if path.is_ident(sub_key) {
-                if flag {
-                  return Err(AttrError::Several(field_ident.clone(), key.to_owned(), sub_key.to_owned()));
-                }
+          if let NestedMeta::Meta(Meta::Path(ref path)) = nested {
+            if path.is_ident(sub_key) {
+              if flag {
+                return Err(AttrError::Several(field_ident.clone(), key.to_owned(), sub_key.to_owned()));
+              }
 
-                flag = true;
-              } else {
-                let ident_str = path.segments.first().map(|seg| seg.ident.to_string()).unwrap_or_else(|| String::new());
+              flag = true;
+            } else {
+              let ident_str = path.segments.first().map(|seg| seg.ident.to_string()).unwrap_or_else(String::new);
 
-                if !known_subkeys.contains(&ident_str.as_str()) {
-                  return Err(AttrError::UnknownSubKey(field_ident.clone(), key.to_owned(), ident_str));
-                }
+              if !known_subkeys.contains(&ident_str.as_str()) {
+                return Err(AttrError::UnknownSubKey(field_ident.clone(), key.to_owned(), ident_str));
               }
             }
-
-            _ => ()
           }
         }
       }
