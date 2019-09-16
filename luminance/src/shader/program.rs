@@ -367,8 +367,7 @@ impl<'a> UniformBuilder<'a> {
       _ => self.ask_uniform(name)?,
     };
 
-    uniform_type_match(self.raw.handle, name, T::ty())
-      .map_err(|err| UniformWarning::TypeMismatch(name.to_owned(), err))?;
+    uniform_type_match(self.raw.handle, name, T::ty())?;
 
     Ok(uniform)
   }
@@ -530,7 +529,19 @@ pub enum UniformWarning {
   /// and the type that got reflected from the backend in the shaders.
   ///
   /// The first `String` is the name of the uniform; the second one gives the type mismatch.
-  TypeMismatch(String, String),
+  TypeMismatch(String, Type),
+}
+
+impl UniformWarning {
+  /// Create an inactive uniform warning.
+  pub fn inactive<N>(name: N) -> Self where N: Into<String> {
+    UniformWarning::Inactive(name.into())
+  }
+
+  /// Create a type mismatch.
+  pub fn type_mismatch<N>(name: N, ty: Type) -> Self where N: Into<String> {
+    UniformWarning::TypeMismatch(name.into(), ty)
+  }
 }
 
 impl fmt::Display for UniformWarning {
@@ -674,6 +685,45 @@ pub enum Type {
   // buffer
   /// Buffer binding; used for UBOs.
   BufferBinding,
+}
+
+impl fmt::Display for Type {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    match *self {
+      Type::Int => f.write_str("int"),
+      Type::UInt => f.write_str("uint"),
+      Type::Float => f.write_str("float"),
+      Type::Bool => f.write_str("bool"),
+      Type::IVec2 => f.write_str("ivec2"),
+      Type::IVec3 => f.write_str("ivec3"),
+      Type::IVec4 => f.write_str("ivec4"),
+      Type::UIVec2 => f.write_str("uvec2"),
+      Type::UIVec3 => f.write_str("uvec3"),
+      Type::UIVec4 => f.write_str("uvec4"),
+      Type::Vec2 => f.write_str("vec2"),
+      Type::Vec3 => f.write_str("vec3"),
+      Type::Vec4 => f.write_str("vec4"),
+      Type::BVec2 => f.write_str("bvec2"),
+      Type::BVec3 => f.write_str("bvec3"),
+      Type::BVec4 => f.write_str("bvec4"),
+      Type::M22 => f.write_str("mat2"),
+      Type::M33 => f.write_str("mat3"),
+      Type::M44 => f.write_str("mat4"),
+      Type::ISampler1D => f.write_str("isampler1D"),
+      Type::ISampler2D => f.write_str("isampler2D"),
+      Type::ISampler3D => f.write_str("isampler3D"),
+      Type::UISampler1D => f.write_str("uSampler1D"),
+      Type::UISampler2D => f.write_str("uSampler2D"),
+      Type::UISampler3D => f.write_str("uSampler3D"),
+      Type::Sampler1D => f.write_str("sampler1D"),
+      Type::Sampler2D => f.write_str("sampler2D"),
+      Type::Sampler3D => f.write_str("sampler3D"),
+      Type::ICubemap => f.write_str("isamplerCube"),
+      Type::UICubemap => f.write_str("usamplerCube"),
+      Type::Cubemap => f.write_str("samplerCube"),
+      Type::BufferBinding => f.write_str("buffer binding"),
+    }
+  }
 }
 
 /// Types that can behave as `Uniform`.
@@ -1102,9 +1152,9 @@ unsafe impl<'a> Uniformable for &'a [[bool; 4]] {
 }
 
 // Check whether a shader program’s uniform type matches the type we have chosen.
-fn uniform_type_match(program: GLuint, name: &str, ty: Type) -> Result<(), String> {
+fn uniform_type_match(program: GLuint, name: &str, ty: Type) -> Result<(), UniformWarning> {
   let mut size: GLint = 0;
-  let mut typ: GLuint = 0;
+  let mut glty: GLuint = 0;
 
   unsafe {
     // get the max length of the returned names
@@ -1149,7 +1199,7 @@ fn uniform_type_match(program: GLuint, name: &str, ty: Type) -> Result<(), Strin
       max_len,
       null_mut(),
       &mut size,
-      &mut typ,
+      &mut glty,
       name_.as_mut_ptr(),
     );
   }
@@ -1159,57 +1209,47 @@ fn uniform_type_match(program: GLuint, name: &str, ty: Type) -> Result<(), Strin
     return Ok(());
   }
 
-  // helper function for error reporting
-  let type_mismatch = |t| {
-    #[cfg(feature = "std")]
-    {
-      Err(format!("requested {} doesn’t match", t))
-    }
+  check_types_match(name, ty, glty)
+}
 
-    #[cfg(not(feature = "std"))]
-    {
-      let mut reason = String::new();
-      let _ = write!(&mut reason, "requested {} doesn’t match", t);
-      Err(reason)
-    }
-  };
-
+// Check if a [`Type`] matches the OpenGL counterpart.
+fn check_types_match(name: &str, ty: Type, glty: GLuint) -> Result<(), UniformWarning> {
   match ty {
     // scalars
-    Type::Int if typ != gl::INT => type_mismatch("int"),
-    Type::UInt if typ != gl::UNSIGNED_INT => type_mismatch("uint"),
-    Type::Float if typ != gl::FLOAT => type_mismatch("float"),
-    Type::Bool if typ != gl::BOOL => type_mismatch("bool"),
+    Type::Int if glty != gl::INT => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::UInt if glty != gl::UNSIGNED_INT => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::Float if glty != gl::FLOAT => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::Bool if glty != gl::BOOL => Err(UniformWarning::type_mismatch(name, ty)),
     // vectors
-    Type::IVec2 if typ != gl::INT_VEC2 => type_mismatch("ivec2"),
-    Type::IVec3 if typ != gl::INT_VEC3 => type_mismatch("ivec3"),
-    Type::IVec4 if typ != gl::INT_VEC4 => type_mismatch("ivec4"),
-    Type::UIVec2 if typ != gl::UNSIGNED_INT_VEC2 => type_mismatch("uvec2"),
-    Type::UIVec3 if typ != gl::UNSIGNED_INT_VEC3 => type_mismatch("uvec3"),
-    Type::UIVec4 if typ != gl::UNSIGNED_INT_VEC4 => type_mismatch("uvec4"),
-    Type::Vec2 if typ != gl::FLOAT_VEC2 => type_mismatch("vec2"),
-    Type::Vec3 if typ != gl::FLOAT_VEC3 => type_mismatch("vec3"),
-    Type::Vec4 if typ != gl::FLOAT_VEC4 => type_mismatch("vec4"),
-    Type::BVec2 if typ != gl::BOOL_VEC2 => type_mismatch("bvec2"),
-    Type::BVec3 if typ != gl::BOOL_VEC3 => type_mismatch("bvec3"),
-    Type::BVec4 if typ != gl::BOOL_VEC4 => type_mismatch("bvec4"),
+    Type::IVec2 if glty != gl::INT_VEC2 => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::IVec3 if glty != gl::INT_VEC3 => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::IVec4 if glty != gl::INT_VEC4 => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::UIVec2 if glty != gl::UNSIGNED_INT_VEC2 => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::UIVec3 if glty != gl::UNSIGNED_INT_VEC3 => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::UIVec4 if glty != gl::UNSIGNED_INT_VEC4 => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::Vec2 if glty != gl::FLOAT_VEC2 => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::Vec3 if glty != gl::FLOAT_VEC3 => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::Vec4 if glty != gl::FLOAT_VEC4 => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::BVec2 if glty != gl::BOOL_VEC2 => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::BVec3 if glty != gl::BOOL_VEC3 => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::BVec4 if glty != gl::BOOL_VEC4 => Err(UniformWarning::type_mismatch(name, ty)),
     // matrices
-    Type::M22 if typ != gl::FLOAT_MAT2 => type_mismatch("mat2"),
-    Type::M33 if typ != gl::FLOAT_MAT3 => type_mismatch("mat3"),
-    Type::M44 if typ != gl::FLOAT_MAT4 => type_mismatch("mat4"),
+    Type::M22 if glty != gl::FLOAT_MAT2 => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::M33 if glty != gl::FLOAT_MAT3 => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::M44 if glty != gl::FLOAT_MAT4 => Err(UniformWarning::type_mismatch(name, ty)),
     // textures
-    Type::ISampler1D if typ != gl::INT_SAMPLER_1D => type_mismatch("isampler1D"),
-    Type::ISampler2D if typ != gl::INT_SAMPLER_2D => type_mismatch("isampler2D"),
-    Type::ISampler3D if typ != gl::INT_SAMPLER_3D => type_mismatch("isampler3D"),
-    Type::UISampler1D if typ != gl::UNSIGNED_INT_SAMPLER_1D => type_mismatch("usampler1D"),
-    Type::UISampler2D if typ != gl::UNSIGNED_INT_SAMPLER_2D => type_mismatch("usampler2D"),
-    Type::UISampler3D if typ != gl::UNSIGNED_INT_SAMPLER_3D => type_mismatch("usampler3D"),
-    Type::Sampler1D if typ != gl::SAMPLER_1D => type_mismatch("sampler1D"),
-    Type::Sampler2D if typ != gl::SAMPLER_2D => type_mismatch("sampler2D"),
-    Type::Sampler3D if typ != gl::SAMPLER_3D => type_mismatch("sampler3D"),
-    Type::ICubemap if typ != gl::INT_SAMPLER_CUBE => type_mismatch("isamplerCube"),
-    Type::UICubemap if typ != gl::UNSIGNED_INT_SAMPLER_CUBE => type_mismatch("usamplerCube"),
-    Type::Cubemap if typ != gl::SAMPLER_CUBE => type_mismatch("samplerCube"),
+    Type::ISampler1D if glty != gl::INT_SAMPLER_1D => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::ISampler2D if glty != gl::INT_SAMPLER_2D => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::ISampler3D if glty != gl::INT_SAMPLER_3D => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::UISampler1D if glty != gl::UNSIGNED_INT_SAMPLER_1D => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::UISampler2D if glty != gl::UNSIGNED_INT_SAMPLER_2D => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::UISampler3D if glty != gl::UNSIGNED_INT_SAMPLER_3D => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::Sampler1D if glty != gl::SAMPLER_1D => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::Sampler2D if glty != gl::SAMPLER_2D => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::Sampler3D if glty != gl::SAMPLER_3D => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::ICubemap if glty != gl::INT_SAMPLER_CUBE => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::UICubemap if glty != gl::UNSIGNED_INT_SAMPLER_CUBE => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::Cubemap if glty != gl::SAMPLER_CUBE => Err(UniformWarning::type_mismatch(name, ty)),
     _ => Ok(()),
   }
 }
