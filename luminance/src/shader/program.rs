@@ -261,7 +261,7 @@ impl<S, Out, Uni> Program<S, Out, Uni> where S: Semantics {
   /// uniform interface and if the new uniform interface is correctly generated, return the same
   /// shader program updated with the new uniform interface. If the generation of the new uniform
   /// interface fails, this function will return the program with the former uniform interface.
-  pub fn adapt<Q>(self) -> Result<BuiltProgram<S, Out, Q>, (ProgramError, Self)>
+  pub fn adapt<Q>(self) -> Result<BuiltProgram<S, Out, Q>, AdaptationFailure<S, Out, Uni>>
   where Q: UniformInterface {
     self.adapt_env(())
   }
@@ -275,7 +275,7 @@ impl<S, Out, Uni> Program<S, Out, Uni> where S: Semantics {
   pub fn adapt_env<Q, E>(
     self,
     env: E,
-  ) -> Result<BuiltProgram<S, Out, Q>, (ProgramError, Self)>
+  ) -> Result<BuiltProgram<S, Out, Q>, AdaptationFailure<S, Out, Uni>>
   where Q: UniformInterface<E> {
     // first, try to create the new uniform interface
     let new_uni_iface = create_uniform_interface(&self.raw, env);
@@ -297,7 +297,8 @@ impl<S, Out, Uni> Program<S, Out, Uni> where S: Semantics {
       Err(iface_err) => {
         // we couldn’t generate the new uniform interface; return the error(s) that occurred and the
         // the untouched former program
-        Err((iface_err, self))
+        let failure = AdaptationFailure { program: self, error: iface_err };
+        Err(failure)
       }
     }
   }
@@ -306,9 +307,17 @@ impl<S, Out, Uni> Program<S, Out, Uni> where S: Semantics {
   ///
   /// This function might be needed for when you want to update the uniform interface but still
   /// enforce that the type must remain the same.
-  pub fn readapt_env<E>(self, env: E) -> Result<BuiltProgram<S, Out, Uni>, (ProgramError, Self)>
+  pub fn readapt_env<E>(self, env: E) -> Result<BuiltProgram<S, Out, Uni>, AdaptationFailure<S, Out, Uni>>
   where Uni: UniformInterface<E> {
     self.adapt_env(env)
+  }
+}
+
+impl<S, Out, Uni> Deref for Program<S, Out, Uni> {
+  type Target = RawProgram;
+
+  fn deref(&self) -> &Self::Target {
+    &self.raw
   }
 }
 
@@ -329,11 +338,18 @@ impl<S, Out, Uni> BuiltProgram<S, Out, Uni> {
   }
 }
 
-impl<S, Out, Uni> Deref for Program<S, Out, Uni> {
-  type Target = RawProgram;
+/// A [`Program`] uniform adaptation that has failed.
+pub struct AdaptationFailure<S, Out, Uni> {
+  /// Program used before trying to adapt.
+  pub program: Program<S, Out, Uni>,
+  /// Program error that prevented to adapt.
+  pub error: ProgramError
+}
 
-  fn deref(&self) -> &Self::Target {
-    &self.raw
+impl<S, Out, Uni> AdaptationFailure<S, Out, Uni> {
+  /// Get the program and ignore the error.
+  pub fn ignore_error(self) -> Program<S, Out, Uni> {
+    self.program
   }
 }
 
