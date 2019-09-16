@@ -142,7 +142,7 @@ fn main_loop(mut surface: GlfwSurface) {
   let start_t = Instant::now();
   let back_buffer = surface.back_buffer().unwrap();
 
-  let (program, _): (Program<Semantics, (), ShaderInterface>, _) = Program::from_strings(None, VS_STR, None, FS_STR).unwrap();
+  let program: Program<Semantics, (), ShaderInterface> = Program::from_strings(None, VS_STR, None, FS_STR).unwrap().ignore_warnings();
 
   let projection = perspective(FOVY, surface.width() as f32 / surface.height() as f32, Z_NEAR, Z_FAR);
   let view = Matrix4::<f32>::look_at(Point3::new(2., 2., 2.), Point3::origin(), Vector3::unit_y());
