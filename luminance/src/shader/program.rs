@@ -153,7 +153,7 @@ impl<S, Out, Uni> Program<S, Out, Uni> where S: Semantics {
     vertex: &Stage,
     geometry: G,
     fragment: &Stage,
-  ) -> Result<(Self, Vec<ProgramWarning>), ProgramError>
+  ) -> Result<BuiltProgram<S, Out, Uni>, ProgramError>
   where Uni: UniformInterface,
         T: Into<Option<(&'a Stage, &'a Stage)>>,
         G: Into<Option<&'a Stage>> {
@@ -166,7 +166,7 @@ impl<S, Out, Uni> Program<S, Out, Uni> where S: Semantics {
     vertex: &str,
     geometry: G,
     fragment: &str,
-  ) -> Result<(Self, Vec<ProgramWarning>), ProgramError>
+  ) -> Result<BuiltProgram<S, Out, Uni>, ProgramError>
   where Uni: UniformInterface,
         T: Into<Option<(&'a str, &'a str)>>,
         G: Into<Option<&'a str>> {
@@ -180,7 +180,7 @@ impl<S, Out, Uni> Program<S, Out, Uni> where S: Semantics {
     geometry: G,
     fragment: &Stage,
     env: E,
-  ) -> Result<(Self, Vec<ProgramWarning>), ProgramError>
+  ) -> Result<BuiltProgram<S, Out, Uni>, ProgramError>
   where Uni: UniformInterface<E>,
         T: Into<Option<(&'a Stage, &'a Stage)>>,
         G: Into<Option<&'a Stage>> {
@@ -200,7 +200,7 @@ impl<S, Out, Uni> Program<S, Out, Uni> where S: Semantics {
       _out: PhantomData,
     };
 
-    Ok((program, warnings))
+    Ok(BuiltProgram { program, warnings })
   }
 
   /// Create a new program by consuming strings.
@@ -210,7 +210,7 @@ impl<S, Out, Uni> Program<S, Out, Uni> where S: Semantics {
     geometry: G,
     fragment: &str,
     env: E,
-  ) -> Result<(Self, Vec<ProgramWarning>), ProgramError>
+  ) -> Result<BuiltProgram<S, Out, Uni>, ProgramError>
   where Uni: UniformInterface<E>,
         T: Into<Option<(&'a str, &'a str)>>,
         G: Into<Option<&'a str>> {
@@ -308,6 +308,23 @@ impl<S, Out, Uni> Program<S, Out, Uni> where S: Semantics {
   pub fn readapt_env<E>(self, env: E) -> Result<(Self, Vec<UniformWarning>), (ProgramError, Self)>
   where Uni: UniformInterface<E> {
     self.adapt_env(env)
+  }
+}
+
+/// A built program with potential warnings.
+///
+/// The sole purpose of this type is to be destructured when a program is built.
+pub struct BuiltProgram<S, Out, Uni> {
+  /// Built program.
+  pub program: Program<S, Out, Uni>,
+  /// Potential warnings.
+  pub warnings: Vec<ProgramWarning>,
+}
+
+impl<S, Out, Uni> BuiltProgram<S, Out, Uni> {
+  /// Get the program and ignore the warnings.
+  pub fn ignore_warnings(self) -> Program<S, Out, Uni> {
+    self.program
   }
 }
 
