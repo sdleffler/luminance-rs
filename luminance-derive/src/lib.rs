@@ -7,19 +7,19 @@
 //!
 //! This macro allows to derive the [`Vertex`] trait for a custom `struct` type.
 //!
-//! [See the full documentation here](https://docs.rs/luminance-derive/latest/vertex/index.html)
+//! [See the full documentation here](https://docs.rs/luminance-derive/latest/luminance_derive/derive.Vertex.html)
 //!
 //! # `Semantics`
 //!
 //! This macro allows to derive the [`Semantics`] trait for a custom `enum` type.
 //!
-//! [See the full documentation here](https://docs.rs/luminance-derive/latest/semantics/index.html)
+//! [See the full documentation here](https://docs.rs/luminance-derive/latest/luminance_derive/derive.Semantics.html)
 //!
 //! # `UniformInterface`
 //!
 //! This macro allows to derive the [`UniformInterface`] trait for a custom `struct` type.
 //!
-//! [See the full documentation here](https://docs.rs/luminance-derive/latest/uniform_interface/index.html)
+//! [See the full documentation here](https://docs.rs/luminance-derive/latest/luminance_derive/derive.UniformInterface.html)
 //!
 //! [luminance]: https://docs.rs/luminance
 //! [`Vertex`]: https://docs.rs/luminance/latest/luminance/vertex/trait.Vertex.html
