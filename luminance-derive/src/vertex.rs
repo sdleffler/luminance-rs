@@ -66,6 +66,10 @@ where A: Iterator<Item = &'a Attribute> + Clone {
   }).map_err(StructImplError::FieldError)?;
 
   match struct_.fields {
+    Fields::Unnamed(unnamed_fields) => {
+      unimplemented!("unnamed fields support");
+    }
+
     Fields::Named(named_fields) => {
       let mut indexed_vertex_attrib_descs = Vec::new();
       let mut fields_types = Vec::new();
