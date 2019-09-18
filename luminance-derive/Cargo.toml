@@ -19,6 +19,7 @@ maintenance = { status = "actively-developed" }
 proc-macro = true
 
 [dependencies]
+proc-macro2 = "1"
 quote = "1"
 syn = "1"
 
