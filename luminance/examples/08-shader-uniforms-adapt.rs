@@ -19,7 +19,7 @@ mod common;
 use crate::common::{Semantics, Vertex, VertexPosition, VertexColor};
 use luminance::context::GraphicsContext as _;
 use luminance::render_state::RenderState;
-use luminance::shader::program::{Program, Uniform};
+use luminance::shader::program::{AdaptationFailure, Program, Uniform};
 use luminance::tess::{Mode, TessBuilder};
 use luminance_derive::UniformInterface;
 use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowEvent, WindowDim, WindowOpt};
@@ -61,18 +61,18 @@ impl ProgramMode {
   fn toggle(self) -> Self {
     match self {
       ProgramMode::First(p) => match p.adapt() {
-        Ok((x, _)) => ProgramMode::Second(x),
-        Err((e, y)) => {
-          eprintln!("unable to switch to second uniform interface: {:?}", e);
-          ProgramMode::First(y)
+        Ok(program) => ProgramMode::Second(program.ignore_warnings()),
+        Err(AdaptationFailure { program, error }) => {
+          eprintln!("unable to switch to second uniform interface: {:?}", error);
+          ProgramMode::First(program)
         }
       },
 
       ProgramMode::Second(p) => match p.adapt() {
-        Ok((x, _)) => ProgramMode::First(x),
-        Err((e, y)) => {
-          eprintln!("unable to switch to first uniform interface: {:?}", e);
-          ProgramMode::Second(y)
+        Ok(program) => ProgramMode::First(program.ignore_warnings()),
+        Err(AdaptationFailure { program, error } ) => {
+          eprintln!("unable to switch to first uniform interface: {:?}", error);
+          ProgramMode::Second(program)
         }
       },
     }
@@ -90,7 +90,7 @@ fn main() {
   let mut program = ProgramMode::First(
     Program::<Semantics, (), ShaderInterface1>::from_strings(None, VS, None, FS)
       .expect("program creation")
-      .0,
+      .ignore_warnings(),
   );
 
   let triangle = TessBuilder::new(&mut surface)

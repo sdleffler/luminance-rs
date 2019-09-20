@@ -61,13 +61,13 @@ struct Vertex {
 // The vertices. We define two triangles.
 const TRI_VERTICES: [Vertex; 6] = [
   // First triangle – an RGB one.
-  Vertex { pos: VertexPosition::new([0.5, -0.5]), rgb: VertexColor::new([0, 255, 0]) },
-  Vertex { pos: VertexPosition::new([0.0, 0.5]), rgb: VertexColor::new([0, 0, 255]) },
-  Vertex { pos: VertexPosition::new([-0.5, -0.5]), rgb: VertexColor::new([255, 0, 0]) },
+  Vertex::new(VertexPosition::new([0.5, -0.5]), VertexColor::new([0, 255, 0])),
+  Vertex::new(VertexPosition::new([0.0, 0.5]), VertexColor::new([0, 0, 255])),
+  Vertex::new(VertexPosition::new([-0.5, -0.5]), VertexColor::new([255, 0, 0])),
   // Second triangle, a purple one, positioned differently.
-  Vertex { pos: VertexPosition::new([-0.5, 0.5]), rgb: VertexColor::new([255, 51, 255]) },
-  Vertex { pos: VertexPosition::new([0.0, -0.5]), rgb: VertexColor::new([51, 255, 255]) },
-  Vertex { pos: VertexPosition::new([0.5, 0.5]), rgb: VertexColor::new([51, 51, 255]) },
+  Vertex::new(VertexPosition::new([-0.5, 0.5]), VertexColor::new([255, 51, 255])),
+  Vertex::new(VertexPosition::new([0.0, -0.5]), VertexColor::new([51, 255, 255])),
+  Vertex::new(VertexPosition::new([0.5, 0.5]), VertexColor::new([51, 51, 255])),
 ];
 
 // A small struct wrapper used to deinterleave positions.
@@ -143,7 +143,9 @@ fn main() {
 
   // We need a program to “shade” our triangles and to tell luminance which is the input vertex
   // type, and we’re not interested in the other two type variables for this sample.
-  let (program, _) = Program::<Semantics, (), ()>::from_strings(None, VS, None, FS).expect("program creation");
+  let program = Program::<Semantics, (), ()>::from_strings(None, VS, None, FS)
+    .expect("program creation")
+    .ignore_warnings();
 
   // Create tessellation for direct geometry; that is, tessellation that will render vertices by
   // taking one after another in the provided slice.

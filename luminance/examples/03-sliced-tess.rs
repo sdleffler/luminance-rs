@@ -63,7 +63,9 @@ fn main() {
   )
   .expect("GLFW surface creation");
 
-  let (program, _) = Program::<Semantics, (), ()>::from_strings(None, VS, None, FS).expect("program creation");
+  let program = Program::<Semantics, (), ()>::from_strings(None, VS, None, FS)
+    .expect("program creation")
+    .ignore_warnings();
 
   // create a single GPU tessellation that holds both the triangles (like in 01-hello-world)
   let triangles = TessBuilder::new(&mut surface)

@@ -8,6 +8,8 @@
 //! [`VertexAttribDim`]: crate::vertex::VertexAttribDim
 //! [`VertexAttribType`]: crate::vertex::VertexAttribType
 
+use std::fmt::Debug;
+
 /// A type that can be used as a [`Vertex`] has to implement that trait – it must provide an
 /// associated [`VertexDesc`] value via a function call. This associated value gives enough
 /// information on the types being used as attributes to reify enough memory data to align and, size
@@ -194,7 +196,7 @@ pub unsafe trait VertexAttrib {
 ///
 /// > Note: feel free to use the [luminance-derive] crate to automatically derive this trait from
 /// > an `enum`.
-pub trait Semantics: Sized {
+pub trait Semantics: Sized + Copy + Clone + Debug {
   /// Retrieve the semantics index of this semantics.
   fn index(&self) -> usize;
   /// Get the name of this semantics.

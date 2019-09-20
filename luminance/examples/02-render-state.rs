@@ -68,7 +68,9 @@ fn main() {
   )
   .expect("GLFW surface creation");
 
-  let (program, _) = Program::<Semantics, (), ()>::from_strings(None, VS, None, FS).expect("program creation");
+  let program = Program::<Semantics, (), ()>::from_strings(None, VS, None, FS)
+    .expect("program creation")
+    .ignore_warnings();
 
   // create a red and blue triangles
   let red_triangle = TessBuilder::new(&mut surface)

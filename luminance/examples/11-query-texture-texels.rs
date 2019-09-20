@@ -59,7 +59,9 @@ fn main() {
 
   // we need a program to “shade” our triangles and to tell luminance which is the input vertex
   // type, and we’re not interested in the other two type variables for this sample
-  let (program, _) = Program::<Semantics, (), ()>::from_strings(None, VS, None, FS).expect("program creation");
+  let program = Program::<Semantics, (), ()>::from_strings(None, VS, None, FS)
+    .expect("program creation")
+    .ignore_warnings();
 
   // create tessellation for direct geometry; that is, tessellation that will render vertices by
   // taking one after another in the provided slice

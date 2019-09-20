@@ -54,7 +54,7 @@ struct Obj {
 }
 
 impl Obj {
-  fn to_tess<C>(self, ctx: &mut C) -> Result<Tess, TessError> where C: GraphicsContext {
+  fn into_tess<C>(self, ctx: &mut C) -> Result<Tess, TessError> where C: GraphicsContext {
     TessBuilder::new(ctx)
       .set_mode(Mode::Triangle)
       .add_vertices(self.vertices)
@@ -72,11 +72,11 @@ impl Obj {
     let obj_set = obj::parse(file_content).map_err(|e| format!("cannot parse: {:?}", e))?;
     let objects = obj_set.objects;
 
-    verify!(objects.len() == 1).ok_or("expecting a single object".to_owned())?;
+    verify!(objects.len() == 1).ok_or_else(|| "expecting a single object".to_owned())?;
 
     let object = objects.into_iter().next().unwrap();
 
-    verify!(object.geometry.len() == 1).ok_or("expecting a single geometry".to_owned())?;
+    verify!(object.geometry.len() == 1).ok_or_else(|| "expecting a single geometry".to_owned())?;
 
     let geometry = object.geometry.into_iter().next().unwrap();
 
@@ -97,10 +97,10 @@ impl Obj {
             indices.push(*vertex_index);
           } else {
             let p = object.vertices[key.0];
-            let n = object.normals[key.2.ok_or("missing normal for a vertex".to_owned())?];
+            let n = object.normals[key.2.ok_or_else(|| "missing normal for a vertex".to_owned())?];
             let position = VPos::new([p.x as f32, p.y as f32, p.z as f32]);
             let normal = VNor::new([n.x as f32, n.y as f32, n.z as f32]);
-            let vertex = Vertex { position, normal };
+            let vertex = Vertex::new(position, normal);
             let vertex_index = vertices.len() as VertexIndex;
 
             vertex_cache.insert(*key, vertex_index);
@@ -134,15 +134,15 @@ fn main() {
 }
 
 fn main_loop(mut surface: GlfwSurface) {
-  let path = env::args().skip(1).next().expect("first argument must be the path of the .obj file to view");
+  let path = env::args().nth(1).expect("first argument must be the path of the .obj file to view");
   println!("loading {}", path);
 
-  let mesh = Obj::load(path).unwrap().to_tess(&mut surface).unwrap();
+  let mesh = Obj::load(path).unwrap().into_tess(&mut surface).unwrap();
 
   let start_t = Instant::now();
   let back_buffer = surface.back_buffer().unwrap();
 
-  let (program, _): (Program<Semantics, (), ShaderInterface>, _) = Program::from_strings(None, VS_STR, None, FS_STR).unwrap();
+  let program: Program<Semantics, (), ShaderInterface> = Program::from_strings(None, VS_STR, None, FS_STR).unwrap().ignore_warnings();
 
   let projection = perspective(FOVY, surface.width() as f32 / surface.height() as f32, Z_NEAR, Z_FAR);
   let view = Matrix4::<f32>::look_at(Point3::new(2., 2., 2.), Point3::origin(), Vector3::unit_y());

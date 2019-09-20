@@ -1,3 +1,11 @@
+# 0.4.0
+
+> ?
+
+## Minor changes
+
+  - Add support for struct-tuple when deriving `Vertex`.
+
 # 0.3.0
 
 > Thur Sep 12th 2019

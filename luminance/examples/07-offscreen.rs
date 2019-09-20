@@ -13,7 +13,7 @@ use luminance::framebuffer::Framebuffer;
 use luminance::pipeline::BoundTexture;
 use luminance::pixel::{RGBA32F, Floating};
 use luminance::render_state::RenderState;
-use luminance::shader::program::{Program, Uniform};
+use luminance::shader::program::{BuiltProgram, Program, Uniform};
 use luminance::tess::{Mode, TessBuilder};
 use luminance::texture::{Dim2, Flat};
 use luminance_derive::UniformInterface;
@@ -51,8 +51,10 @@ fn main() {
   )
   .expect("GLFW surface creation");
 
-  let (program, _) = Program::<Semantics, (), ()>::from_strings(None, VS, None, FS).expect("program creation");
-  let (copy_program, warnings) =
+  let program = Program::<Semantics, (), ()>::from_strings(None, VS, None, FS)
+    .expect("program creation")
+    .ignore_warnings();
+  let BuiltProgram { program: copy_program, warnings } =
     Program::<(), (), ShaderInterface>::from_strings(None, COPY_VS, None, COPY_FS)
       .expect("copy program creation");
 

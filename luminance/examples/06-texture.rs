@@ -50,14 +50,14 @@ fn run(texture_path: &Path) {
     WindowDim::Windowed(width, height),
     "Hello, world!",
     WindowOpt::default(),
-  )
-  .expect("GLFW surface creation");
+  ).expect("GLFW surface creation");
 
   let tex = load_from_disk(&mut surface, img);
 
   // set the uniform interface to our type so that we can read textures from the shader
-  let (program, _) =
-    Program::<(), (), ShaderInterface>::from_strings(None, VS, None, FS).expect("program creation");
+  let program = Program::<(), (), ShaderInterface>::from_strings(None, VS, None, FS)
+    .expect("program creation")
+    .ignore_warnings();
 
   // we’ll use an attributeless render here to display a quad on the screen (two triangles); there
   // are over ways to cover the whole screen but this is easier for you to understand; the
@@ -129,7 +129,7 @@ fn load_from_disk(surface: &mut GlfwSurface, img: image::RgbImage) -> Texture<Fl
   // create the luminance texture; the third argument is the number of mipmaps we want (leave it
   // to 0 for now) and the latest is the sampler to use when sampling the texels in the
   // shader (we’ll just use the default one)
-  let tex = Texture::new(surface, [width, height], 0, &Sampler::default())
+  let tex = Texture::new(surface, [width, height], 0, Sampler::default())
     .expect("luminance texture creation");
 
   // the first argument disables mipmap generation (we don’t care so far)

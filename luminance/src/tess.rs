@@ -286,7 +286,7 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
 
     let vb = VertexBuffer {
       fmt: V::vertex_desc(),
-      buf: Buffer::from_slice(self.ctx, vertices).to_raw(),
+      buf: Buffer::from_slice(self.ctx, vertices).into_raw(),
     };
 
     self.vertex_buffers.push(vb);
@@ -300,7 +300,7 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
 
     let vb = VertexBuffer {
       fmt: V::vertex_desc(),
-      buf: Buffer::from_slice(self.ctx, instances).to_raw(),
+      buf: Buffer::from_slice(self.ctx, instances).into_raw(),
     };
 
     self.instance_buffers.push(vb);
@@ -313,7 +313,7 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
     let indices = indices.as_ref();
 
     // create a new raw buffer containing the indices and turn it into a vertex buffer
-    let buf = Buffer::from_slice(self.ctx, indices).to_raw();
+    let buf = Buffer::from_slice(self.ctx, indices).into_raw();
 
     self.index_buffer = Some((buf, I::INDEX_TYPE));
 
@@ -817,7 +817,7 @@ impl Drop for Tess {
 
 // Give OpenGL types information on the content of the VBO by setting vertex descriptors and pointers
 // to buffer memory.
-fn set_vertex_pointers(descriptors: &VertexDesc) {
+fn set_vertex_pointers(descriptors: &[VertexBufferDesc]) {
   // this function sets the vertex attribute pointer for the input list by computing:
   //   - The vertex attribute ID: this is the “rank” of the attribute in the input list (order
   //     matters, for short).
@@ -833,7 +833,7 @@ fn set_vertex_pointers(descriptors: &VertexDesc) {
 }
 
 // Compute offsets for all the vertex components according to the alignments provided.
-fn aligned_offsets(descriptor: &VertexDesc) -> Vec<usize> {
+fn aligned_offsets(descriptor: &[VertexBufferDesc]) -> Vec<usize> {
   let mut offsets = Vec::with_capacity(descriptor.len());
   let mut off = 0;
 
@@ -857,11 +857,11 @@ fn off_align(off: usize, align: usize) -> usize {
 
 // Weight in bytes of a vertex component.
 fn component_weight(f: &VertexAttribDesc) -> usize {
-  dim_as_size(&f.dim) as usize * f.unit_size
+  dim_as_size(f.dim) as usize * f.unit_size
 }
 
-fn dim_as_size(d: &VertexAttribDim) -> GLint {
-  match *d {
+fn dim_as_size(d: VertexAttribDim) -> GLint {
+  match d {
     VertexAttribDim::Dim1 => 1,
     VertexAttribDim::Dim2 => 2,
     VertexAttribDim::Dim3 => 3,
@@ -871,7 +871,7 @@ fn dim_as_size(d: &VertexAttribDim) -> GLint {
 
 // Weight in bytes of a single vertex, taking into account padding so that the vertex stay correctly
 // aligned.
-fn offset_based_vertex_weight(descriptors: &VertexDesc, offsets: &[usize]) -> usize {
+fn offset_based_vertex_weight(descriptors: &[VertexBufferDesc], offsets: &[usize]) -> usize {
   if descriptors.is_empty() || offsets.is_empty() {
     return 0;
   }
@@ -892,11 +892,11 @@ fn set_component_format(stride: GLsizei, off: usize, desc: &VertexBufferDesc) {
       VertexAttribType::Floating => {
         gl::VertexAttribPointer(
           index,
-          dim_as_size(&attrib_desc.dim),
+          dim_as_size(attrib_desc.dim),
           opengl_sized_type(&attrib_desc),
           gl::FALSE,
           stride,
-          ptr::null::<c_void>().offset(off as isize),
+          ptr::null::<c_void>().add(off),
         );
       }
 
@@ -905,10 +905,10 @@ fn set_component_format(stride: GLsizei, off: usize, desc: &VertexBufferDesc) {
         // non-normalized integrals / booleans
         gl::VertexAttribIPointer(
           index,
-          dim_as_size(&attrib_desc.dim),
+          dim_as_size(attrib_desc.dim),
           opengl_sized_type(&attrib_desc),
           stride,
-          ptr::null::<c_void>().offset(off as isize),
+          ptr::null::<c_void>().add(off),
         );
       }
 
@@ -916,11 +916,11 @@ fn set_component_format(stride: GLsizei, off: usize, desc: &VertexBufferDesc) {
         // normalized integrals
         gl::VertexAttribPointer(
           index,
-          dim_as_size(&attrib_desc.dim),
+          dim_as_size(attrib_desc.dim),
           opengl_sized_type(&attrib_desc),
           gl::TRUE,
           stride,
-          ptr::null::<c_void>().offset(off as isize),
+          ptr::null::<c_void>().add(off),
         );
       }
     }
@@ -1168,11 +1168,11 @@ pub trait TessSliceIndex<Idx> {
 }
 
 impl TessSliceIndex<RangeFull> for Tess {
-  fn slice<'a>(&self, _: RangeFull) -> TessSlice {
+  fn slice(&self, _: RangeFull) -> TessSlice {
     TessSlice::one_whole(self)
   }
 
-  fn inst_slice<'a>(&self, _: RangeFull, inst_nb: usize) -> TessSlice {
+  fn inst_slice(&self, _: RangeFull, inst_nb: usize) -> TessSlice {
     TessSlice::inst_whole(self, inst_nb)
   }
 }

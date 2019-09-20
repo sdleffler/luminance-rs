@@ -26,7 +26,9 @@ fn main() {
   .expect("GLFW surface creation");
 
   // we don’t use a Vertex type anymore (i.e. attributeless, so we use the unit () type)
-  let (program, _) = Program::<(), (), ()>::from_strings(None, VS, None, FS).expect("program creation");
+  let program = Program::<(), (), ()>::from_strings(None, VS, None, FS)
+    .expect("program creation")
+    .ignore_warnings();
 
   // yet, we still need to tell luminance to render a certain number of vertices (even if we send no
   // attributes / data); in our case, we’ll just render a triangle, which has three vertices

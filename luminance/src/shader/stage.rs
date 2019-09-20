@@ -73,10 +73,10 @@ impl Stage {
       Self::source(handle, src);
       gl::CompileShader(handle);
 
-      let mut compiled: GLint = gl::FALSE as GLint;
+      let mut compiled: GLint = gl::FALSE.into();
       gl::GetShaderiv(handle, gl::COMPILE_STATUS, &mut compiled);
 
-      if compiled == (gl::TRUE as GLint) {
+      if compiled == gl::TRUE.into() {
         Ok(Stage { handle, ty })
       } else {
         let mut log_len: GLint = 0;
@@ -151,9 +151,9 @@ fn glsl_pragma_src(src: &str) -> String {
   pragma
 }
 
-const GLSL_PRAGMA: &'static str = "\
-                                   #version 330 core\n\
-                                   #extension GL_ARB_separate_shader_objects : require\n";
+const GLSL_PRAGMA: &str =
+"#version 330 core\n\
+#extension GL_ARB_separate_shader_objects : require\n";
 
 fn opengl_shader_type(t: Type) -> GLenum {
   match t {

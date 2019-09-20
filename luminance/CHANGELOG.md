@@ -1,3 +1,25 @@
+# 0.36
+
+> ?
+
+## Major changes
+
+  - Change some function signatures to take arguments by copy instead of by borrowing. Clippy found
+    those to be better and will yield better performance. The public APIs are then affected. You
+    should be able to quickly merge by removing some references. ;)
+  - Uniform type mismatch got strengtened (proper `Type` being returned as errors instead of opaque
+    `String`).
+  - Remove pair-based `Program` construction; i.e. `(Program<S, Out, Uni>, Vec<ProgramWarning>)` now
+    becomes `BuiltProgram<S, Out, Uni>`. If you don’t care about warnings, instead of
+    `let (program, _) = …`, you can simply call the `ignore_warnings()` method on `BuiltProgram`.
+  - Remove pair-based `Program` adapt and readapt constructs. You now use the `AdaptationFailure`
+    type. It has an `ignore_error` method you can use to get back the `Program` you call the
+    adapt method on if it fails.
+
+## Patch changes
+
+  - Use `cargo clippy` to fix several warnings.
+
 # 0.35
 
 > Thur Sep 12th 2019

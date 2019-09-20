@@ -267,7 +267,7 @@ impl<T> Buffer<T> {
       self.raw.state.borrow_mut().bind_array_buffer(self.handle, Bind::Cached);
       let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *const T;
 
-      let x = *ptr.offset(i as isize);
+      let x = *ptr.add(i);
 
       let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
 
@@ -301,7 +301,7 @@ impl<T> Buffer<T> {
       self.raw.state.borrow_mut().bind_array_buffer(self.handle, Bind::Cached);
       let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::WRITE_ONLY) as *mut T;
 
-      *ptr.offset(i as isize) = x;
+      *ptr.add(i) = x;
 
       let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
     }
@@ -352,7 +352,7 @@ impl<T> Buffer<T> {
   /// Convert a buffer to its raw representation.
   ///
   /// Becareful: once you have called this function, it is not possible to go back to a [`Buffer`].
-  pub fn to_raw(self) -> RawBuffer {
+  pub fn into_raw(self) -> RawBuffer {
     let raw = RawBuffer {
       handle: self.raw.handle,
       bytes: self.raw.bytes,
@@ -441,6 +441,12 @@ impl RawBuffer {
   pub fn len(&self) -> usize {
     self.len
   }
+
+  /// Check whether the buffer is empty.
+  #[inline(always)]
+  pub fn is_empty(&self) -> bool {
+    self.len == 0
+  }
 }
 
 impl Drop for RawBuffer {
@@ -454,7 +460,7 @@ impl Drop for RawBuffer {
 
 impl<T> From<Buffer<T>> for RawBuffer {
   fn from(buffer: Buffer<T>) -> Self {
-    buffer.to_raw()
+    buffer.into_raw()
   }
 }
 
@@ -492,7 +498,7 @@ impl<'a, 'b, T> IntoIterator for &'b BufferSlice<'a, T> where T: 'a {
   type Item = &'b T;
 
   fn into_iter(self) -> Self::IntoIter {
-    self.deref().into_iter()
+    self.deref().iter()
   }
 }
 
@@ -522,7 +528,7 @@ impl<'a, 'b, T> IntoIterator for &'b BufferSliceMut<'a, T> where T: 'a {
   type Item = &'b T;
 
   fn into_iter(self) -> Self::IntoIter {
-    self.deref().into_iter()
+    self.iter()
   }
 }
 
@@ -531,7 +537,7 @@ impl<'a, 'b, T> IntoIterator for &'b mut BufferSliceMut<'a, T> where T: 'a {
   type Item = &'b mut T;
 
   fn into_iter(self) -> Self::IntoIter {
-    self.deref_mut().into_iter()
+    self.iter_mut()
   }
 }
 

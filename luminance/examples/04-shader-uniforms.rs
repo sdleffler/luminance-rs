@@ -52,8 +52,10 @@ fn main() {
   .expect("GLFW surface creation");
 
   // see the use of our uniform interface here as thirds type variable
-  let (program, _) =
-    Program::<Semantics, (), ShaderInterface>::from_strings(None, VS, None, FS).expect("program creation");
+  let program =
+    Program::<Semantics, (), ShaderInterface>::from_strings(None, VS, None, FS)
+    .expect("program creation")
+    .ignore_warnings();
 
   let triangle = TessBuilder::new(&mut surface)
     .add_vertices(TRI_VERTICES)

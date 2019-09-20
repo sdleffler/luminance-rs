@@ -213,7 +213,7 @@ where L: Layerable,
       } else {
         for (i, (format, texture)) in color_formats.iter().zip(&textures).enumerate() {
           ctx.state().borrow_mut().bind_texture(target, *texture);
-          create_texture::<L, D>(target, size, mipmaps, *format, &Default::default())
+          create_texture::<L, D>(target, size, mipmaps, *format, Default::default())
             .map_err(FramebufferError::TextureError)?;
           gl::FramebufferTexture(gl::FRAMEBUFFER, gl::COLOR_ATTACHMENT0 + i as GLenum, *texture, 0);
         }
@@ -231,7 +231,7 @@ where L: Layerable,
         let texture = textures.pop().unwrap();
 
         ctx.state().borrow_mut().bind_texture(target, texture);
-        create_texture::<L, D>(target, size, mipmaps, format, &Default::default())
+        create_texture::<L, D>(target, size, mipmaps, format, Default::default())
           .map_err(FramebufferError::TextureError)?;
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, texture, 0);
 
@@ -391,9 +391,7 @@ where L: Layerable,
   fn reify_textures<C, I>(_: &mut C, _: D::Size, _: usize, _: &mut I) -> Self::ColorTextures
   where
     C: GraphicsContext,
-    I: Iterator<Item = GLuint>,
-  {
-    ()
+    I: Iterator<Item = GLuint> {
   }
 }
 
@@ -500,7 +498,6 @@ where L: Layerable,
   fn reify_texture<C, T>(_: &mut C, _: D::Size, _: usize, _: T) -> Self::DepthTexture
   where C: GraphicsContext,
         T: Into<Option<GLuint>> {
-    ()
   }
 }
 

@@ -44,3 +44,21 @@ fn derive_simple_semantics() {
 
   assert_eq!(Vertex::vertex_desc(), expected_desc);
 }
+
+#[test]
+fn derive_struct_tuple_vertex() {
+  #[derive(Clone, Copy, Debug, Eq, PartialEq, Semantics)]
+  pub enum Semantics {
+    #[sem(name = "position", repr = "[f32; 3]", wrapper = "VertexPosition")]
+    Position,
+    #[sem(name = "normal", repr = "[f32; 3]", wrapper = "VertexNormal")]
+    Normal,
+    #[sem(name = "color", repr = "[u8; 4]", wrapper = "VertexColor")]
+    Color
+  }
+
+  #[derive(Clone, Copy, Debug, Vertex)]
+  #[repr(C)]
+  #[vertex(sem = "Semantics")]
+  struct Vertex(VertexPosition, VertexNormal, #[vertex(normalized = "true")] VertexColor);
+}
