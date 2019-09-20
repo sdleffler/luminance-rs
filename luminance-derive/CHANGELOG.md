@@ -1,10 +1,19 @@
 # 0.4.0
 
-> ?
+> Fri Sep 20th 2019
+
+## Major changes
+
+  - Add `new` methods for types annotated with `Vertex`. This is considered a breaking change as
+    it would break your code if you already have a `new` method, which is very likely.
 
 ## Minor changes
 
   - Add support for struct-tuple when deriving `Vertex`.
+
+## Patch changes
+
+  - Empty `Semantics` types are forbidden and now reported correctly as errors.
 
 # 0.3.0
 

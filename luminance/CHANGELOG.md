@@ -1,6 +1,6 @@
 # 0.36
 
-> ?
+> Fri Sep 20th 2019
 
 ## Major changes
 
@@ -15,6 +15,12 @@
   - Remove pair-based `Program` adapt and readapt constructs. You now use the `AdaptationFailure`
     type. It has an `ignore_error` method you can use to get back the `Program` you call the
     adapt method on if it fails.
+  - `Semantics` types must now implement `Copy`, `Clone` and `Debug`. It was already required before
+    if you were using [luminance-derive] but it’s now more explicit.
+
+## Minor changes
+
+  - Add the `viewer` binary in [bin](bin).
 
 ## Patch changes
 

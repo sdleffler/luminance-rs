@@ -1,3 +1,11 @@
+# 0.10
+
+> Fri Sep 20th 2019
+
+## Minor changes
+
+  - Add the `log-errors` feature-flags, allowing not to fail on GLFW errors but instead log them.
+
 # 0.9
 
 > Thur Sep 12th 2019
