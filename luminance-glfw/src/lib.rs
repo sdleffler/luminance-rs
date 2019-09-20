@@ -72,7 +72,12 @@ impl Surface for GlfwSurface {
   type Event = WindowEvent;
 
   fn new(dim: WindowDim, title: &str, win_opt: WindowOpt) -> Result<Self, Self::Error> {
-    let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).map_err(GlfwSurfaceError::InitError)?;
+    #[cfg(feature = "log-errors")]
+    let error_cbk = glfw::LOG_ERRORS;
+    #[cfg(not(feature = "log-errors"))]
+    let error_cbk = glfw::FAIL_ON_ERRORS;
+
+    let mut glfw = glfw::init(error_cbk).map_err(GlfwSurfaceError::InitError)?;
 
     // OpenGL hints
     glfw.window_hint(glfw::WindowHint::OpenGlProfile(glfw::OpenGlProfileHint::Core));
