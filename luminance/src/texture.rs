@@ -225,6 +225,7 @@ pub trait Dimensionable {
   /// Amount of pixels this size represents.
   ///
   /// For 2D sizes, it represents the area; for 3D sizes, the volume; etc.
+  /// For cubemaps, it represents the side length of the cube.
   fn count(size: Self::Size) -> usize;
 }
 
@@ -398,7 +399,7 @@ impl Dimensionable for Cubemap {
 
   fn count(size: Self::Size) -> usize {
     let size = size as usize;
-    size * size * size
+    size * size
   }
 }
 
