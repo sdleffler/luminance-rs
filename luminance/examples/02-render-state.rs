@@ -14,7 +14,6 @@ mod common;
 use crate::common::{Semantics, Vertex, VertexPosition, VertexColor};
 use luminance::blending::{Equation, Factor};
 use luminance::context::GraphicsContext as _;
-use luminance::depth_test::DepthTest;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, TessBuilder};
@@ -127,7 +126,7 @@ fn main() {
           let render_state = RenderState::default()
           // let’s disable the depth test so that every fragment (i.e. pixels) will rendered to every
           // time we have to draw a part of a triangle
-          .set_depth_test(DepthTest::Off)
+          .set_depth_test(None)
           // set the blending we decided earlier
           .set_blending(blending);
 
