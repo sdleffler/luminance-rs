@@ -118,6 +118,7 @@ use core::ops::Deref;
 use crate::blending::BlendingState;
 use crate::buffer::{Buffer, RawBuffer};
 use crate::context::GraphicsContext;
+use crate::depth_test::DepthTest;
 use crate::face_culling::FaceCullingState;
 use crate::framebuffer::{ColorSlot, DepthSlot, Framebuffer};
 use crate::metagl::*;
@@ -442,7 +443,12 @@ impl<'a, C> RenderGate<'a, C> where C: ?Sized + GraphicsContext {
         }
       }
 
-      gfx_state.set_depth_test(rdr_st.depth_test);
+      if let Some(depth_comparison) = rdr_st.depth_test {
+        gfx_state.set_depth_test(DepthTest::On);
+        gfx_state.set_depth_test_comparison(depth_comparison);
+      } else {
+        gfx_state.set_depth_test(DepthTest::Off);
+      }
 
       match rdr_st.face_culling {
         Some(face_culling) => {

@@ -4,7 +4,7 @@ use gl::types::*;
 
 /// Whether or not depth test should be enabled.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum DepthTest {
+pub(crate) enum DepthTest {
   /// The depth test is enabled.
   On,
   /// The depth test is disabled.
@@ -13,7 +13,7 @@ pub enum DepthTest {
 
 /// Depth comparison to perform while depth test. `a` is the incoming fragment’s depth and b is the
 /// fragment’s depth that is already stored.
-#[derive(Clone, Copy, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum DepthComparison {
   /// Depth test never succeeds.
   Never,
