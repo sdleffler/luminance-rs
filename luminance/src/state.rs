@@ -15,7 +15,7 @@ use core::fmt;
 use core::marker::PhantomData;
 
 use crate::blending::{BlendingState, Equation, Factor};
-use crate::depth_test::DepthTest;
+use crate::depth_test::{DepthComparison, DepthTest};
 use crate::face_culling::{FaceCullingMode, FaceCullingOrder, FaceCullingState};
 use crate::metagl::*;
 use crate::vertex_restart::VertexRestart;
@@ -42,6 +42,7 @@ pub struct GraphicsState {
 
   // depth test
   depth_test: DepthTest,
+  depth_test_comparison: DepthComparison,
 
   // face culling
   face_culling_state: FaceCullingState,
@@ -110,6 +111,7 @@ impl GraphicsState {
       let blending_equation = get_ctx_blending_equation()?;
       let blending_func = get_ctx_blending_factors()?;
       let depth_test = get_ctx_depth_test()?;
+      let depth_test_comparison = DepthComparison::Less;
       let face_culling_state = get_ctx_face_culling_state()?;
       let face_culling_order = get_ctx_face_culling_order()?;
       let face_culling_mode = get_ctx_face_culling_mode()?;
@@ -129,6 +131,7 @@ impl GraphicsState {
         blending_equation,
         blending_func,
         depth_test,
+        depth_test_comparison,
         face_culling_state,
         face_culling_order,
         face_culling_mode,
@@ -178,6 +181,16 @@ impl GraphicsState {
       }
 
       self.depth_test = depth_test;
+    }
+  }
+
+  pub(crate) unsafe fn set_depth_test_comparison(
+    &mut self,
+    depth_test_comparison: DepthComparison
+  ) {
+    if self.depth_test_comparison != depth_test_comparison {
+      gl::DepthFunc(depth_test_comparison.to_glenum());
+      self.depth_test_comparison = depth_test_comparison;
     }
   }
 
