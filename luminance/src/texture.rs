@@ -1102,7 +1102,8 @@ where L: Layerable,
             encoding,
             texels.as_ptr() as *const c_void,
           )
-        },
+        }
+
         Dim::Dim2 => unsafe {
           gl::TexSubImage2D(
             target,
@@ -1115,7 +1116,8 @@ where L: Layerable,
             encoding,
             texels.as_ptr() as *const c_void,
           )
-        },
+        }
+
         Dim::Dim3 => unsafe {
           gl::TexSubImage3D(
             target,
@@ -1130,7 +1132,8 @@ where L: Layerable,
             encoding,
             texels.as_ptr() as *const c_void,
           )
-        },
+        }
+
         Dim::Cubemap => unsafe {
           gl::TexSubImage2D(
             gl::TEXTURE_CUBE_MAP_POSITIVE_X + D::z_offset(off),
@@ -1143,10 +1146,12 @@ where L: Layerable,
             encoding,
             texels.as_ptr() as *const c_void,
           )
-        },
-      },
+        }
+      }
+
       Layering::Layered => unimplemented!("Layering::Layered not implemented yet"),
-    },
+    }
+
     None => return Err(TextureError::UnsupportedPixelFormat(pf))
   }
 
