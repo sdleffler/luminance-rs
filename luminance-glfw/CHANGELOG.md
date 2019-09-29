@@ -1,40 +1,46 @@
+# 0.11
+
+> Sun Sep 20th 2019
+
+- Support of `luminance-0.37`.
+
 # 0.10
 
 > Fri Sep 20th 2019
 
 ## Minor changes
 
-  - Add the `log-errors` feature-flags, allowing not to fail on GLFW errors but instead log them.
+- Add the `log-errors` feature-flags, allowing not to fail on GLFW errors but instead log them.
 
 # 0.9
 
 > Thur Sep 12th 2019
 
-  - Fix SemVer issues with ranges and duplicated dependencies.
+- Fix SemVer issues with ranges and duplicated dependencies.
 
 # 0.8.1
 
 > Thur Sep 12th 2019
 
-  - Support of `luminance-0.35`.
+- Support of `luminance-0.35`.
 
 # 0.8
 
 > Wed Sep 11th 2019
 
-  - Support of `luminance-0.34`.
+- Support of `luminance-0.34`.
 
 # 0.7
 
 > Fri Sep 6th 2019
 
-  - Support of `luminance-0.33`.
+- Support of `luminance-0.33`.
 
 # 0.6.1
 
 > Tue Sep 3rd 2019
 
-  - Support of `luminance-0.32`.
+- Support of `luminance-0.32`.
 
 # 0.6
 
@@ -42,23 +48,23 @@
 
 ## Major changes
 
-  - Move `swap_buffers` from `GraphicsContext` to `Surface` in [luminance-windowing].
+- Move `swap_buffers` from `GraphicsContext` to `Surface` in [luminance-windowing].
 
 ## Minor changes
 
-  - The `WindowOpt` now has support for multisampling. See the `WindowOpt::set_num_samples` for
-    further details.
-  - Migrate to Rust Edition 2018.
-  - Implement dynamic edition of windowing types properties. That allows to change data on-the-fly,
-    such as the cursor mode.
+- The `WindowOpt` now has support for multisampling. See the `WindowOpt::set_num_samples` for
+  further details.
+- Migrate to Rust Edition 2018.
+- Implement dynamic edition of windowing types properties. That allows to change data on-the-fly,
+  such as the cursor mode.
 
 ## Patch & misc changes
 
-  - Add more CI testing.
-  - Massive documentation rewrite (among the use of `#![deny(missing_docs)]`. The situation is still
-    not perfect and patch versions will be released to fix and update the documentation. Step by
-    step.
-  - Massive dependencies update. Special thanks to @eijebong for his help!
+- Add more CI testing.
+- Massive documentation rewrite (among the use of `#![deny(missing_docs)]`. The situation is still
+  not perfect and patch versions will be released to fix and update the documentation. Step by
+  step.
+- Massive dependencies update. Special thanks to @eijebong for his help!
 
 # 0.5.4
 
