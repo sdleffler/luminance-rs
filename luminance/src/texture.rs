@@ -973,18 +973,20 @@ fn create_cubemap_storage(
   for level in 0..mipmaps {
     let s = s / 2u32.pow(level as u32);
 
-    unsafe {
-      gl::TexImage2D(
-        gl::TEXTURE_CUBE_MAP,
-        level as GLint,
-        iformat as GLint,
-        s as GLsizei,
-        s as GLsizei,
-        0,
-        format,
-        encoding,
-        ptr::null(),
-      )
+    for face in 0..6 {
+      unsafe {
+        gl::TexImage2D(
+          gl::TEXTURE_CUBE_MAP_POSITIVE_X + face,
+          level as GLint,
+          iformat as GLint,
+          s as GLsizei,
+          s as GLsizei,
+          0,
+          format,
+          encoding,
+          ptr::null(),
+        )
+      };
     };
   }
 }
@@ -1164,15 +1166,13 @@ where L: Layerable,
           )
         },
         Dim::Cubemap => unsafe {
-          gl::TexSubImage3D(
-            target,
+          gl::TexSubImage2D(
+            gl::TEXTURE_CUBE_MAP_POSITIVE_X + D::z_offset(off),
             0,
             D::x_offset(off) as GLint,
             D::y_offset(off) as GLint,
-            (gl::TEXTURE_CUBE_MAP_POSITIVE_X + D::z_offset(off)) as GLint,
             D::width(size) as GLsizei,
             D::width(size) as GLsizei,
-            1,
             format,
             encoding,
             texels.as_ptr() as *const c_void,
