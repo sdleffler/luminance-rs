@@ -109,6 +109,7 @@ use core::ops::{Deref, DerefMut};
 use core::ptr;
 
 use crate::context::GraphicsContext;
+pub use crate::depth_test::DepthComparison;
 use crate::metagl::*;
 use crate::pixel::{opengl_pixel_format, Pixel, PixelFormat};
 use crate::state::GraphicsState;
@@ -158,28 +159,6 @@ pub enum MagFilter {
   Nearest,
   /// Linear interpolation between surrounding pixels.
   Linear,
-}
-
-/// Depth comparison to perform while depth test. `a` is the incoming fragment’s depth and b is the
-/// fragment’s depth that is already stored.
-#[derive(Clone, Copy, Debug)]
-pub enum DepthComparison {
-  /// Depth test never succeeds.
-  Never,
-  /// Depth test always succeeds.
-  Always,
-  /// Depth test succeeds if `a == b`.
-  Equal,
-  /// Depth test succeeds if `a != b`.
-  NotEqual,
-  /// Depth test succeeds if `a < b`.
-  Less,
-  /// Depth test succeeds if `a <= b`.
-  LessOrEqual,
-  /// Depth test succeeds if `a > b`.
-  Greater,
-  /// Depth test succeeds if `a >= b`.
-  GreaterOrEqual,
 }
 
 /// Reify a type into a `Dim`.
@@ -1018,7 +997,7 @@ fn apply_sampler_to_texture(target: GLenum, sampler: Sampler) {
         gl::TexParameteri(
           target,
           gl::TEXTURE_COMPARE_FUNC,
-          opengl_depth_comparison(fun) as GLint,
+          fun.to_glenum() as GLint,
         );
         gl::TexParameteri(
           target,
@@ -1056,19 +1035,6 @@ fn opengl_mag_filter(filter: MagFilter) -> GLenum {
   match filter {
     MagFilter::Nearest => gl::NEAREST,
     MagFilter::Linear => gl::LINEAR,
-  }
-}
-
-fn opengl_depth_comparison(fun: DepthComparison) -> GLenum {
-  match fun {
-    DepthComparison::Never => gl::NEVER,
-    DepthComparison::Always => gl::ALWAYS,
-    DepthComparison::Equal => gl::EQUAL,
-    DepthComparison::NotEqual => gl::NOTEQUAL,
-    DepthComparison::Less => gl::LESS,
-    DepthComparison::LessOrEqual => gl::LEQUAL,
-    DepthComparison::Greater => gl::GREATER,
-    DepthComparison::GreaterOrEqual => gl::GEQUAL,
   }
 }
 

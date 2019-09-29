@@ -4,7 +4,7 @@
 //! blending, depth test or face culling operations.
 
 use crate::blending::{Equation, Factor};
-use crate::depth_test::DepthTest;
+use crate::depth_test::DepthComparison;
 use crate::face_culling::FaceCulling;
 
 /// GPU render state.
@@ -16,7 +16,7 @@ pub struct RenderState {
   /// Blending configuration.
   pub(crate) blending: Option<(Equation, Factor, Factor)>,
   /// Depth test configuration.
-  pub(crate) depth_test: DepthTest,
+  pub(crate) depth_test: Option<DepthComparison>,
   /// Face culling configuration.
   pub(crate) face_culling: Option<FaceCulling>,
 }
@@ -37,12 +37,13 @@ impl RenderState {
   }
 
   /// Override the depth test configuration.
-  pub fn set_depth_test(self, depth_test: DepthTest) -> Self {
+  pub fn set_depth_test<D>(self, depth_test: D) -> Self where D: Into<Option<DepthComparison>> {
+    let depth_test = depth_test.into();
     RenderState { depth_test, ..self }
   }
 
   /// Depth test configuration.
-  pub fn depth_test(self) -> DepthTest {
+  pub fn depth_test(self) -> Option<DepthComparison> {
     self.depth_test
   }
 
@@ -65,12 +66,12 @@ impl Default for RenderState {
   /// The default `RenderState`.
   ///
   ///   - `blending`: `None`
-  ///   - `depth_test`: `DepthTest::On`
+  ///   - `depth_test`: `Some(DepthComparison::Less)`
   ///   - `face_culling`: `None`
   fn default() -> Self {
     RenderState {
       blending: None,
-      depth_test: DepthTest::On,
+      depth_test: Some(DepthComparison::Less),
       face_culling: None,
     }
   }
