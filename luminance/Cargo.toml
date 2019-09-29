@@ -22,9 +22,3 @@ std = ["gl"]
 [dependencies.gl]
 version = "0.13"
 optional = true
-
-[dev-dependencies]
-image = "0.22"
-luminance-derive = "0.5"
-luminance-glfw = "0.11"
-luminance-glutin = "0.6"
