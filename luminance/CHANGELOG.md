@@ -1,6 +1,12 @@
+# 0.37.1
+
+> Sun Sep 29th 2019
+
+- Release with `[dev-dependencies]` updated.
+
 # 0.37
 
-> Sun Sep 20th 2019
+> Sun Sep 29th 2019
 
 ## Major changes
 
