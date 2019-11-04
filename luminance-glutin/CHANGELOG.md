@@ -1,3 +1,9 @@
+# 0.6.1
+
+> Tue Nov 5th 2017
+
+- Expose more `glutin` symbols on the public interface.
+
 # 0.6
 
 > Sun Sep 29th 2019
