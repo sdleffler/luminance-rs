@@ -8,7 +8,8 @@
 use gl;
 pub use glutin::{
   ContextError, CreationError, DeviceEvent, DeviceId, ElementState, Event, KeyboardInput,
-  ModifiersState, MouseScrollDelta, Touch, TouchPhase, VirtualKeyCode, WindowEvent, WindowId
+  ModifiersState, MouseScrollDelta, Touch, TouchPhase, VirtualKeyCode, WindowEvent, WindowId,
+  MouseButton
 };
 pub use glutin::dpi::{LogicalPosition, LogicalSize};
 pub use luminance_windowing::{CursorMode, Surface, WindowDim, WindowOpt};
