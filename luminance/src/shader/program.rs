@@ -219,7 +219,7 @@ impl<S, Out, Uni> Program<S, Out, Uni> where S: Semantics {
         let tcs =
           Stage::new(stage::Type::TessellationControlShader, tcs_str).map_err(ProgramError::StageError)?;
         let tes =
-          Stage::new(stage::Type::TessellationControlShader, tes_str).map_err(ProgramError::StageError)?;
+          Stage::new(stage::Type::TessellationEvaluationShader, tes_str).map_err(ProgramError::StageError)?;
         Some((tcs, tes))
       }
       None => None,
