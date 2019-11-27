@@ -15,6 +15,7 @@
 //! - [`Mode::Triangle`]; _triangles_.
 //! - [`Mode::TriangleFan`]; _triangle fans_, a way of connecting triangles.
 //! - [`Mode::TriangleStrip`]; _triangle strips_, another way of connecting triangles.
+//! - [`Mode::Patch`]; _patches_, the primitives that tessellation shaders operate on.
 //!
 //! Those kinds of tessellation are designated by the [`Mode`] type. You will also come across the
 //! name of _primitive mode_ to designate such an idea.
@@ -40,6 +41,7 @@
 //! [`Mode::Triangle`]: crate::tess::Mode::Triangle
 //! [`Mode::TriangleFan`]: crate::tess::Mode::TriangleFan
 //! [`Mode::TriangleStrip`]: crate::tess::Mode::TriangleStrip
+//! [`Mode::Patch`]: crate::tess::Mode::Patch
 //! [`BufferSlice`]: crate::buffer::BufferSlice
 //! [`BufferSliceMut`]: crate::buffer::BufferSliceMut
 //! [`Tess`]: crate::tess::Tess
@@ -128,7 +130,7 @@ pub enum Mode {
   TriangleFan,
   /// A triangle strip, defined by at least three points and zero or many other ones.
   ///
-  /// This mode is a bit different from [`Mode::TriangleStrip`]. The first two vertices define the
+  /// This mode is a bit different from [`Mode::TriangleFan`]. The first two vertices define the
   /// first edge of the first triangle. Then, for each new vertex, a new triangle is created by
   /// taking the very previous vertex and the last to very previous vertex. What it means is that
   /// every time a triangle is created, the next vertex will share the edge that was created to
@@ -138,6 +140,11 @@ pub enum Mode {
   ///
   /// > This kind of primitive mode allows the usage of _primitive restart_.
   TriangleStrip,
+  /// A general purpose primitive with _n_ vertices, for use in tessellation shaders.
+  ///
+  /// If you want to employ tesselation shaders, this is the only primitive mode you can use. The
+  /// number of vertices in each primitive is set with [`TessBuilder::set_patch_vertex_nb`].
+  Patch,
 }
 
 /// Error that can occur while trying to map GPU tessellation to host code.
@@ -253,6 +260,7 @@ pub struct TessBuilder<'a, C> {
   vert_nb: usize,
   instance_buffers: Vec<VertexBuffer>,
   inst_nb: usize,
+  patch_vert_nb: usize,
 }
 
 impl<'a, C> TessBuilder<'a, C> {
@@ -269,6 +277,7 @@ impl<'a, C> TessBuilder<'a, C> {
       vert_nb: 0,
       instance_buffers: Vec::new(),
       inst_nb: 0,
+      patch_vert_nb: 0,
     }
   }
 }
@@ -353,6 +362,13 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
     self
   }
 
+  /// Set the number of vertices in each patch. This has no effect unless the primitive mode is
+  /// [`Mode::Patch`]
+  pub fn set_patch_vertex_nb(mut self, nb: usize) -> Self {
+    self.patch_vert_nb = nb;
+    self
+  }
+
   /// Build the [`Tess`].
   pub fn build(self) -> Result<Tess, TessError> {
     // try to deduce the number of vertices to render if it’s not specified
@@ -367,6 +383,18 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
 
     unsafe {
       let mut gfx_st = self.ctx.state().borrow_mut();
+
+      if let Mode::Patch = self.mode {
+          if self.patch_vert_nb == 0 {
+              return Err(TessError::PatchModeError(
+                  "patch primitive mode without patch vertex number".to_owned()
+              ));
+          }
+      } else if self.patch_vert_nb > 0 {
+          return Err(TessError::PatchModeError(
+              "patch vertex number without patch primitive mode".to_owned()
+          ));
+      }
 
       gl::GenVertexArrays(1, &mut vao);
 
@@ -408,6 +436,7 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
         mode: opengl_mode(self.mode),
         vert_nb,
         inst_nb,
+        patch_vert_nb: self.patch_vert_nb,
         vao,
         vertex_buffers: self.vertex_buffers,
         instance_buffers: self.instance_buffers,
@@ -529,7 +558,9 @@ pub enum TessError {
   /// Length incoherency in vertex, index or instance buffers.
   LengthIncoherency(usize),
   /// Overflow when accessing underlying buffers.
-  Overflow(usize, usize)
+  Overflow(usize, usize),
+  /// Error related to patch primitive mode
+  PatchModeError(String),
 }
 
 /// Possible tessellation index types.
@@ -618,6 +649,7 @@ pub struct Tess {
   mode: GLenum,
   vert_nb: usize,
   inst_nb: usize,
+  patch_vert_nb: usize,
   vao: GLenum,
   vertex_buffers: Vec<VertexBuffer>,
   instance_buffers: Vec<VertexBuffer>,
@@ -634,6 +666,10 @@ impl Tess {
     unsafe {
       let mut gfx_st = ctx.state().borrow_mut();
       gfx_st.bind_vertex_array(self.vao, Bind::Cached);
+
+      if self.mode == opengl_mode(Mode::Patch) {
+          gfx_st.set_patch_vertex_nb(self.patch_vert_nb);
+      }
 
       if let Some(index_state) = self.index_state.as_ref() {
         // indexed render
@@ -957,6 +993,7 @@ fn opengl_mode(mode: Mode) -> GLenum {
     Mode::Triangle => gl::TRIANGLES,
     Mode::TriangleFan => gl::TRIANGLE_FAN,
     Mode::TriangleStrip => gl::TRIANGLE_STRIP,
+    Mode::Patch => gl::PATCHES,
   }
 }
 
