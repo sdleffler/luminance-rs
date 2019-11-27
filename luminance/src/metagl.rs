@@ -240,6 +240,7 @@ mod meta {
     pub const TRIANGLE_STRIP: GLenum = 5;
     pub const TRIANGLES: GLenum = 4;
     pub const PATCHES: GLenum = 14;
+    pub const PATCH_VERTICES: GLenum = 36466;
     pub const UNIFORM_BUFFER: GLenum = 35345;
     pub const UNSIGNED_BYTE: GLenum = 5121;
     pub const UNSIGNED_INT: GLenum = 5125;
