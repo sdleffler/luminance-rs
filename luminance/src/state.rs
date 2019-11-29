@@ -242,9 +242,10 @@ impl GraphicsState {
     }
   }
 
-  pub(crate) unsafe fn set_patch_vertex_nb(&mut self, state: usize) {
-    if self.patch_vertex_nb != state {
-      gl::PatchParameteri(gl::PATCH_VERTICES, state as i32);
+  pub(crate) unsafe fn set_patch_vertex_nb(&mut self, nb: usize) {
+    if self.patch_vertex_nb != nb {
+      gl::PatchParameteri(gl::PATCH_VERTICES, nb as GLint);
+      self.patch_vertex_nb = nb;
     }
   }
 
