@@ -362,8 +362,27 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
     self
   }
 
-  /// Set the number of vertices in each patch. This has no effect unless the primitive mode is
-  /// [`Mode::Patch`]
+  /// Set the number of vertices per patch. For example, if you want to render four triangles:
+  /// ```no_run
+  /// # use std::{rc::Rc, cell::RefCell};
+  /// # use luminance::{context::GraphicsContext, state::GraphicsState};
+  /// # struct Ctx;
+  /// # unsafe impl GraphicsContext for Ctx {
+  /// #     fn state(&self) -> &Rc<RefCell<GraphicsState>> {
+  /// #         unimplemented!()
+  /// #     }
+  /// # };
+  /// # let context = &mut Ctx;
+  /// use luminance::tess::{Mode, TessBuilder};
+  ///
+  /// let tess = TessBuilder::new(context)
+  ///   .set_mode(Mode::Patch)
+  ///   .set_patch_vertex_nb(3)
+  ///   .set_vertex_nb(12)
+  ///   .build()
+  ///   .unwrap();
+  /// ```
+  /// If the primitive mode is not [`Mode::Patch`], this setting has no effect.
   pub fn set_patch_vertex_nb(mut self, nb: usize) -> Self {
     self.patch_vert_nb = nb;
     self
