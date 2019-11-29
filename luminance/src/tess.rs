@@ -386,14 +386,8 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
 
       if let Mode::Patch = self.mode {
           if self.patch_vert_nb == 0 {
-              return Err(TessError::PatchModeError(
-                  "patch primitive mode without patch vertex number".to_owned()
-              ));
+              return Err(TessError::PatchVertexNumberRequired);
           }
-      } else if self.patch_vert_nb > 0 {
-          return Err(TessError::PatchModeError(
-              "patch vertex number without patch primitive mode".to_owned()
-          ));
       }
 
       gl::GenVertexArrays(1, &mut vao);
@@ -559,8 +553,8 @@ pub enum TessError {
   LengthIncoherency(usize),
   /// Overflow when accessing underlying buffers.
   Overflow(usize, usize),
-  /// Error related to patch primitive mode
-  PatchModeError(String),
+  /// In Patch mode, you must specify the number of vertices per patch.
+  PatchVertexNumberRequired,
 }
 
 /// Possible tessellation index types.
