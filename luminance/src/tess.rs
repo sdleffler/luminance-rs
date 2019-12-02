@@ -141,10 +141,10 @@ pub enum Mode {
   /// > This kind of primitive mode allows the usage of _primitive restart_.
   TriangleStrip,
   /// A general purpose primitive with _n_ vertices, for use in tessellation shaders.
-  ///
-  /// If you want to employ tesselation shaders, this is the only primitive mode you can use. The
-  /// number of vertices in each primitive is set with [`TessBuilder::set_patch_vertex_nb`].
-  Patch,
+  /// For example, `Mode::Patch(3)` represents triangle patches, so every three vertices in the
+  /// buffer form a patch.
+  /// If you want to employ tesselation shaders, this is the only primitive mode you can use.
+  Patch(usize),
 }
 
 /// Error that can occur while trying to map GPU tessellation to host code.
@@ -260,7 +260,6 @@ pub struct TessBuilder<'a, C> {
   vert_nb: usize,
   instance_buffers: Vec<VertexBuffer>,
   inst_nb: usize,
-  patch_vert_nb: usize,
 }
 
 impl<'a, C> TessBuilder<'a, C> {
@@ -277,7 +276,6 @@ impl<'a, C> TessBuilder<'a, C> {
       vert_nb: 0,
       instance_buffers: Vec::new(),
       inst_nb: 0,
-      patch_vert_nb: 0,
     }
   }
 }
@@ -362,32 +360,6 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
     self
   }
 
-  /// Set the number of vertices per patch. For example, if you want to render four triangles:
-  /// ```no_run
-  /// # use std::{rc::Rc, cell::RefCell};
-  /// # use luminance::{context::GraphicsContext, state::GraphicsState};
-  /// # struct Ctx;
-  /// # unsafe impl GraphicsContext for Ctx {
-  /// #     fn state(&self) -> &Rc<RefCell<GraphicsState>> {
-  /// #         unimplemented!()
-  /// #     }
-  /// # };
-  /// # let context = &mut Ctx;
-  /// use luminance::tess::{Mode, TessBuilder};
-  ///
-  /// let tess = TessBuilder::new(context)
-  ///   .set_mode(Mode::Patch)
-  ///   .set_patch_vertex_nb(3)
-  ///   .set_vertex_nb(12)
-  ///   .build()
-  ///   .unwrap();
-  /// ```
-  /// If the primitive mode is not [`Mode::Patch`], this setting has no effect.
-  pub fn set_patch_vertex_nb(mut self, nb: usize) -> Self {
-    self.patch_vert_nb = nb;
-    self
-  }
-
   /// Build the [`Tess`].
   pub fn build(self) -> Result<Tess, TessError> {
     // try to deduce the number of vertices to render if it’s not specified
@@ -403,11 +375,10 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
     unsafe {
       let mut gfx_st = self.ctx.state().borrow_mut();
 
-      if let Mode::Patch = self.mode {
-          if self.patch_vert_nb == 0 {
-              return Err(TessError::PatchVertexNumberRequired);
-          }
-      }
+      let patch_vert_nb = match self.mode {
+          Mode::Patch(nb) => nb,
+          _ => 0,
+      };
 
       gl::GenVertexArrays(1, &mut vao);
 
@@ -449,7 +420,7 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
         mode: opengl_mode(self.mode),
         vert_nb,
         inst_nb,
-        patch_vert_nb: self.patch_vert_nb,
+        patch_vert_nb,
         vao,
         vertex_buffers: self.vertex_buffers,
         instance_buffers: self.instance_buffers,
@@ -571,9 +542,7 @@ pub enum TessError {
   /// Length incoherency in vertex, index or instance buffers.
   LengthIncoherency(usize),
   /// Overflow when accessing underlying buffers.
-  Overflow(usize, usize),
-  /// In Patch mode, you must specify the number of vertices per patch.
-  PatchVertexNumberRequired,
+  Overflow(usize, usize)
 }
 
 /// Possible tessellation index types.
@@ -680,7 +649,7 @@ impl Tess {
       let mut gfx_st = ctx.state().borrow_mut();
       gfx_st.bind_vertex_array(self.vao, Bind::Cached);
 
-      if self.mode == opengl_mode(Mode::Patch) {
+      if self.mode == gl::PATCHES {
           gfx_st.set_patch_vertex_nb(self.patch_vert_nb);
       }
 
@@ -1006,7 +975,7 @@ fn opengl_mode(mode: Mode) -> GLenum {
     Mode::Triangle => gl::TRIANGLES,
     Mode::TriangleFan => gl::TRIANGLE_FAN,
     Mode::TriangleStrip => gl::TRIANGLE_STRIP,
-    Mode::Patch => gl::PATCHES,
+    Mode::Patch(_) => gl::PATCHES,
   }
 }
 
