@@ -143,7 +143,7 @@ pub enum Mode {
   /// A general purpose primitive with _n_ vertices, for use in tessellation shaders.
   /// For example, `Mode::Patch(3)` represents triangle patches, so every three vertices in the
   /// buffer form a patch.
-  /// If you want to employ tesselation shaders, this is the only primitive mode you can use.
+  /// If you want to employ tessellation shaders, this is the only primitive mode you can use.
   Patch(usize),
 }
 
