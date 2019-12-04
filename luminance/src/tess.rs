@@ -15,6 +15,7 @@
 //! - [`Mode::Triangle`]; _triangles_.
 //! - [`Mode::TriangleFan`]; _triangle fans_, a way of connecting triangles.
 //! - [`Mode::TriangleStrip`]; _triangle strips_, another way of connecting triangles.
+//! - [`Mode::Patch`]; _patches_, the primitives that tessellation shaders operate on.
 //!
 //! Those kinds of tessellation are designated by the [`Mode`] type. You will also come across the
 //! name of _primitive mode_ to designate such an idea.
@@ -40,6 +41,7 @@
 //! [`Mode::Triangle`]: crate::tess::Mode::Triangle
 //! [`Mode::TriangleFan`]: crate::tess::Mode::TriangleFan
 //! [`Mode::TriangleStrip`]: crate::tess::Mode::TriangleStrip
+//! [`Mode::Patch`]: crate::tess::Mode::Patch
 //! [`BufferSlice`]: crate::buffer::BufferSlice
 //! [`BufferSliceMut`]: crate::buffer::BufferSliceMut
 //! [`Tess`]: crate::tess::Tess
@@ -128,7 +130,7 @@ pub enum Mode {
   TriangleFan,
   /// A triangle strip, defined by at least three points and zero or many other ones.
   ///
-  /// This mode is a bit different from [`Mode::TriangleStrip`]. The first two vertices define the
+  /// This mode is a bit different from [`Mode::TriangleFan`]. The first two vertices define the
   /// first edge of the first triangle. Then, for each new vertex, a new triangle is created by
   /// taking the very previous vertex and the last to very previous vertex. What it means is that
   /// every time a triangle is created, the next vertex will share the edge that was created to
@@ -138,6 +140,11 @@ pub enum Mode {
   ///
   /// > This kind of primitive mode allows the usage of _primitive restart_.
   TriangleStrip,
+  /// A general purpose primitive with _n_ vertices, for use in tessellation shaders.
+  /// For example, `Mode::Patch(3)` represents triangle patches, so every three vertices in the
+  /// buffer form a patch.
+  /// If you want to employ tessellation shaders, this is the only primitive mode you can use.
+  Patch(usize),
 }
 
 /// Error that can occur while trying to map GPU tessellation to host code.
@@ -368,6 +375,11 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
     unsafe {
       let mut gfx_st = self.ctx.state().borrow_mut();
 
+      let patch_vert_nb = match self.mode {
+          Mode::Patch(nb) => nb,
+          _ => 0,
+      };
+
       gl::GenVertexArrays(1, &mut vao);
 
       // force binding the vertex array so that previously bound vertex arrays (possibly the same
@@ -408,6 +420,7 @@ impl<'a, C> TessBuilder<'a, C> where C: GraphicsContext {
         mode: opengl_mode(self.mode),
         vert_nb,
         inst_nb,
+        patch_vert_nb,
         vao,
         vertex_buffers: self.vertex_buffers,
         instance_buffers: self.instance_buffers,
@@ -618,6 +631,7 @@ pub struct Tess {
   mode: GLenum,
   vert_nb: usize,
   inst_nb: usize,
+  patch_vert_nb: usize,
   vao: GLenum,
   vertex_buffers: Vec<VertexBuffer>,
   instance_buffers: Vec<VertexBuffer>,
@@ -634,6 +648,10 @@ impl Tess {
     unsafe {
       let mut gfx_st = ctx.state().borrow_mut();
       gfx_st.bind_vertex_array(self.vao, Bind::Cached);
+
+      if self.mode == gl::PATCHES {
+          gfx_st.set_patch_vertex_nb(self.patch_vert_nb);
+      }
 
       if let Some(index_state) = self.index_state.as_ref() {
         // indexed render
@@ -957,6 +975,7 @@ fn opengl_mode(mode: Mode) -> GLenum {
     Mode::Triangle => gl::TRIANGLES,
     Mode::TriangleFan => gl::TRIANGLE_FAN,
     Mode::TriangleStrip => gl::TRIANGLE_STRIP,
+    Mode::Patch(_) => gl::PATCHES,
   }
 }
 

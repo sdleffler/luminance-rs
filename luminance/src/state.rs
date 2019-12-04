@@ -52,6 +52,9 @@ pub struct GraphicsState {
   // vertex restart
   vertex_restart: VertexRestart,
 
+  // patch primitive vertex number
+  patch_vertex_nb: usize,
+
   // texture
   current_texture_unit: GLenum,
   bound_textures: Vec<(GLenum, GLuint)>,
@@ -116,6 +119,7 @@ impl GraphicsState {
       let face_culling_order = get_ctx_face_culling_order()?;
       let face_culling_mode = get_ctx_face_culling_mode()?;
       let vertex_restart = get_ctx_vertex_restart()?;
+      let patch_vertex_nb = 0;
       let current_texture_unit = get_ctx_current_texture_unit()?;
       let bound_textures = vec![(gl::TEXTURE_2D, 0); 48]; // 48 is the platform minimal requirement
       let bound_uniform_buffers = vec![0; 36]; // 36 is the platform minimal requirement
@@ -136,6 +140,7 @@ impl GraphicsState {
         face_culling_order,
         face_culling_mode,
         vertex_restart,
+        patch_vertex_nb,
         current_texture_unit,
         bound_textures,
         bound_uniform_buffers,
@@ -234,6 +239,13 @@ impl GraphicsState {
         VertexRestart::On => gl::Enable(gl::PRIMITIVE_RESTART),
         VertexRestart::Off => gl::Disable(gl::PRIMITIVE_RESTART),
       }
+    }
+  }
+
+  pub(crate) unsafe fn set_patch_vertex_nb(&mut self, nb: usize) {
+    if self.patch_vertex_nb != nb {
+      gl::PatchParameteri(gl::PATCH_VERTICES, nb as GLint);
+      self.patch_vertex_nb = nb;
     }
   }
 
