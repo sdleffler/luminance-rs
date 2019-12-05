@@ -1,3 +1,16 @@
+# 0.38
+
+> ?
+
+## Major changes
+
+- The `tess::Mode::Patch` variant was added. It was missing, implying that no one could actually
+  use tessellation shaders.
+
+## Patch changes
+
+- Tessellation shaders were created with the wrong internal representation. That’s fixed.
+
 # 0.37.1
 
 > Sun Sep 29th 2019
