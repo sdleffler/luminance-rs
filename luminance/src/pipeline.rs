@@ -193,7 +193,7 @@ impl<'a, C> Builder<'a, C> where C: ?Sized + GraphicsContext {
   pub fn pipeline<'b, L, D, CS, DS, F>(
     &'b mut self,
     framebuffer: &Framebuffer<L, D, CS, DS>,
-    state: &PipelineState,
+    pipeline_state: &PipelineState,
     f: F,
   )
   where L: Layerable,
@@ -202,9 +202,9 @@ impl<'a, C> Builder<'a, C> where C: ?Sized + GraphicsContext {
         DS: DepthSlot<L, D>,
         F: FnOnce(Pipeline<'b>, ShadingGate<'b, C>) {
     unsafe {
-      self.ctx.state()
-        .borrow_mut()
-        .bind_draw_framebuffer(framebuffer.handle());
+      let mut state = self.ctx.state().borrow_mut();
+
+      state.bind_draw_framebuffer(framebuffer.handle());
 
       let PipelineState {
         clear_color,
@@ -212,19 +212,19 @@ impl<'a, C> Builder<'a, C> where C: ?Sized + GraphicsContext {
         clear_depth_enabled,
         viewport,
         srgb_enabled,
-      } = *state;
+      } = *pipeline_state;
 
       match viewport {
         Viewport::Whole => {
-          self.ctx.state().borrow_mut().set_viewport([0, 0, framebuffer.width() as GLint, framebuffer.height() as GLint]);
+          state.set_viewport([0, 0, framebuffer.width() as GLint, framebuffer.height() as GLint]);
         }
 
         Viewport::Specific { x, y, width, height } => {
-          self.ctx.state().borrow_mut().set_viewport([x as GLint, y as GLint, width as GLint, height as GLint]);
+          state.set_viewport([x as GLint, y as GLint, width as GLint, height as GLint]);
         }
       }
 
-      gl::ClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
+      state.set_clear_color([clear_color[0] as _, clear_color[1] as _, clear_color[2] as _, clear_color[3] as _]);
 
       if clear_color_enabled || clear_depth_enabled {
         let color_bit = if clear_color_enabled { gl::COLOR_BUFFER_BIT } else { 0 };
@@ -232,7 +232,7 @@ impl<'a, C> Builder<'a, C> where C: ?Sized + GraphicsContext {
         gl::Clear(color_bit | depth_bit);
       }
 
-      self.ctx.state().borrow_mut().enable_srgb_framebuffer(srgb_enabled);
+      state.enable_srgb_framebuffer(srgb_enabled);
     }
 
     let binding_stack = &self.binding_stack;

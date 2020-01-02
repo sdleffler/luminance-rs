@@ -38,6 +38,9 @@ pub struct GraphicsState {
   // viewport
   viewport: [GLint; 4],
 
+  // clear buffers
+  clear_color: [GLfloat; 4],
+
   // blending
   blending_state: BlendingState,
   blending_equation: Equation,
@@ -117,6 +120,7 @@ impl GraphicsState {
   pub(crate) fn get_from_context() -> Result<Self, StateQueryError> {
     unsafe {
       let viewport = get_ctx_viewport()?;
+      let clear_color = get_ctx_clear_color()?;
       let blending_state = get_ctx_blending_state()?;
       let blending_equation = get_ctx_blending_equation()?;
       let blending_func = get_ctx_blending_factors()?;
@@ -140,6 +144,7 @@ impl GraphicsState {
       Ok(GraphicsState {
         _a: PhantomData,
         viewport,
+        clear_color,
         blending_state,
         blending_equation,
         blending_func,
@@ -167,6 +172,13 @@ impl GraphicsState {
     if self.viewport != viewport {
       gl::Viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
       self.viewport = viewport;
+    }
+  }
+
+  pub(crate) unsafe fn set_clear_color(&mut self, clear_color: [GLfloat; 4]) {
+    if self.clear_color != clear_color {
+      gl::ClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
+      self.clear_color = clear_color;
     }
   }
 
@@ -465,6 +477,12 @@ impl fmt::Display for StateQueryError {
 unsafe fn get_ctx_viewport() -> Result<[GLint; 4], StateQueryError> {
   let mut data = [0; 4];
   gl::GetIntegerv(gl::VIEWPORT, data.as_mut_ptr());
+  Ok(data)
+}
+
+unsafe fn get_ctx_clear_color() -> Result<[GLfloat; 4], StateQueryError> {
+  let mut data = [0.; 4];
+  gl::GetFloatv(gl::COLOR_CLEAR_VALUE, data.as_mut_ptr());
   Ok(data)
 }
 
