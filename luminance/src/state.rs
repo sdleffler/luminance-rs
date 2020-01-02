@@ -76,6 +76,9 @@ pub struct GraphicsState {
 
   // shader program
   current_program: GLuint,
+
+  // framebuffer sRGB
+  srgb_framebuffer_enabled: bool,
 }
 
 impl GraphicsState {
@@ -128,6 +131,7 @@ impl GraphicsState {
       let bound_draw_framebuffer = get_ctx_bound_draw_framebuffer()?;
       let bound_vertex_array = get_ctx_bound_vertex_array()?;
       let current_program = get_ctx_current_program()?;
+      let srgb_framebuffer_enabled = get_ctx_srgb_framebuffer_enabled()?;
 
       Ok(GraphicsState {
         _a: PhantomData,
@@ -149,6 +153,7 @@ impl GraphicsState {
         bound_draw_framebuffer,
         bound_vertex_array,
         current_program,
+        srgb_framebuffer_enabled,
       })
     }
   }
@@ -346,6 +351,16 @@ impl GraphicsState {
       self.current_program = handle;
     }
   }
+
+  pub(crate) unsafe fn enable_srgb_framebuffer(&mut self, enable: bool) {
+    if self.srgb_framebuffer_enabled != enable {
+      if enable {
+        gl::Enable(gl::FRAMEBUFFER_SRGB);
+      } else {
+        gl::Disable(gl::FRAMEBUFFER_SRGB);
+      }
+    }
+  }
 }
 
 /// Should the binding be cached or forced to the provided value?
@@ -409,6 +424,8 @@ pub enum StateQueryError {
   UnknownFaceCullingMode(GLenum),
   /// Corrupted vertex restart state.
   UnknownVertexRestartState(GLboolean),
+  /// Corrupted sRGB framebuffer state.
+  UnknownSRGBFramebufferState(GLboolean),
 }
 
 impl fmt::Display for StateQueryError {
@@ -426,6 +443,7 @@ impl fmt::Display for StateQueryError {
       StateQueryError::UnknownFaceCullingOrder(ref o) => write!(f, "unknown face culling order: {}", o),
       StateQueryError::UnknownFaceCullingMode(ref m) => write!(f, "unknown face culling mode: {}", m),
       StateQueryError::UnknownVertexRestartState(ref s) => write!(f, "unknown vertex restart state: {}", s),
+      StateQueryError::UnknownSRGBFramebufferState(ref s) => write!(f, "unknown sRGB framebuffer state: {}", s),
     }
   }
 }
@@ -563,4 +581,14 @@ unsafe fn get_ctx_current_program() -> Result<GLuint, StateQueryError> {
   let mut used = 0 as GLint;
   gl::GetIntegerv(gl::CURRENT_PROGRAM, &mut used);
   Ok(used as GLuint)
+}
+
+unsafe fn get_ctx_srgb_framebuffer_enabled() -> Result<bool, StateQueryError> {
+  let state = gl::IsEnabled(gl::FRAMEBUFFER_SRGB);
+
+  match state {
+    gl::TRUE => Ok(true),
+    gl::FALSE => Ok(false),
+    _ => Err(StateQueryError::UnknownSRGBFramebufferState(state)),
+  }
 }

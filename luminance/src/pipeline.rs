@@ -232,11 +232,7 @@ impl<'a, C> Builder<'a, C> where C: ?Sized + GraphicsContext {
         gl::Clear(color_bit | depth_bit);
       }
 
-      if srgb_enabled {
-        gl::Enable(gl::FRAMEBUFFER_SRGB);
-      } else {
-        gl::Disable(gl::FRAMEBUFFER_SRGB);
-      }
+      self.ctx.state().borrow_mut().enable_srgb_framebuffer(srgb_enabled);
     }
 
     let binding_stack = &self.binding_stack;
