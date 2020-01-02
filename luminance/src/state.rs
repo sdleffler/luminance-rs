@@ -364,13 +364,15 @@ impl GraphicsState {
     }
   }
 
-  pub(crate) unsafe fn enable_srgb_framebuffer(&mut self, enable: bool) {
-    if self.srgb_framebuffer_enabled != enable {
-      if enable {
+  pub(crate) unsafe fn enable_srgb_framebuffer(&mut self, srgb_framebuffer_enabled: bool) {
+    if self.srgb_framebuffer_enabled != srgb_framebuffer_enabled {
+      if srgb_framebuffer_enabled {
         gl::Enable(gl::FRAMEBUFFER_SRGB);
       } else {
         gl::Disable(gl::FRAMEBUFFER_SRGB);
       }
+
+      self.srgb_framebuffer_enabled = srgb_framebuffer_enabled;
     }
   }
 }
