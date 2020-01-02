@@ -14,7 +14,10 @@ use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, TessBuilder};
 use luminance_derive::{Semantics, Vertex};
-use luminance_glutin::{GlutinSurface, ElementState, Event, KeyboardInput, Surface, VirtualKeyCode, WindowDim, WindowEvent, WindowOpt};
+use luminance_glutin::{
+  ElementState, Event, GlutinSurface, KeyboardInput, Surface, VirtualKeyCode, WindowDim,
+  WindowEvent, WindowOpt,
+};
 
 // We get the shader at compile time from local files
 const VS: &'static str = include_str!("simple-vs.glsl");
@@ -36,7 +39,7 @@ pub enum Semantics {
   // - The underlying representation is [u8; 3], which is a uvec3 in GLSL.
   // - The wrapper type you can use to handle such a semantics is VertexColor.
   #[sem(name = "color", repr = "[u8; 3]", wrapper = "VertexColor")]
-  Color
+  Color,
 }
 
 // Our vertex type.
@@ -56,19 +59,37 @@ struct Vertex {
   // the vertex buffers. If you set it to "false" or ignore it, you will get non-normalized integer
   // values (i.e. value ranging from 0 to 255 for u8, for instance).
   #[vertex(normalized = "true")]
-  rgb: VertexColor
+  rgb: VertexColor,
 }
 
 // The vertices. We define two triangles.
 const TRI_VERTICES: [Vertex; 6] = [
   // First triangle – an RGB one.
-  Vertex { pos: VertexPosition::new([0.5, -0.5]), rgb: VertexColor::new([0, 255, 0]) },
-  Vertex { pos: VertexPosition::new([0.0, 0.5]), rgb: VertexColor::new([0, 0, 255]) },
-  Vertex { pos: VertexPosition::new([-0.5, -0.5]), rgb: VertexColor::new([255, 0, 0]) },
+  Vertex {
+    pos: VertexPosition::new([0.5, -0.5]),
+    rgb: VertexColor::new([0, 255, 0]),
+  },
+  Vertex {
+    pos: VertexPosition::new([0.0, 0.5]),
+    rgb: VertexColor::new([0, 0, 255]),
+  },
+  Vertex {
+    pos: VertexPosition::new([-0.5, -0.5]),
+    rgb: VertexColor::new([255, 0, 0]),
+  },
   // Second triangle, a purple one, positioned differently.
-  Vertex { pos: VertexPosition::new([-0.5, 0.5]), rgb: VertexColor::new([255, 51, 255]) },
-  Vertex { pos: VertexPosition::new([0.0, -0.5]), rgb: VertexColor::new([51, 255, 255]) },
-  Vertex { pos: VertexPosition::new([0.5, 0.5]), rgb: VertexColor::new([51, 51, 255]) },
+  Vertex {
+    pos: VertexPosition::new([-0.5, 0.5]),
+    rgb: VertexColor::new([255, 51, 255]),
+  },
+  Vertex {
+    pos: VertexPosition::new([0.0, -0.5]),
+    rgb: VertexColor::new([51, 255, 255]),
+  },
+  Vertex {
+    pos: VertexPosition::new([0.5, 0.5]),
+    rgb: VertexColor::new([51, 51, 255]),
+  },
 ];
 
 // A small struct wrapper used to deinterleave positions.
@@ -76,7 +97,7 @@ const TRI_VERTICES: [Vertex; 6] = [
 #[derive(Clone, Copy, Debug, PartialEq, Vertex)]
 #[vertex(sem = "Semantics")]
 struct Positions {
-  pos: VertexPosition
+  pos: VertexPosition,
 }
 
 // A small struct wrapper used to deinterleave colors.
@@ -85,26 +106,50 @@ struct Positions {
 #[vertex(sem = "Semantics")]
 struct Colors {
   #[vertex(normalized = "true")]
-  color: VertexColor
+  color: VertexColor,
 }
 
 // The vertices, deinterleaved versions. We still define two triangles.
 const TRI_DEINT_POS_VERTICES: &[Positions] = &[
-  Positions { pos: VertexPosition::new([0.5, -0.5]) },
-  Positions { pos: VertexPosition::new([0.0, 0.5]) },
-  Positions { pos: VertexPosition::new([-0.5, -0.5]) },
-  Positions { pos: VertexPosition::new([-0.5, 0.5]) },
-  Positions { pos: VertexPosition::new([0.0, -0.5]) },
-  Positions { pos: VertexPosition::new([0.5, 0.5]) },
+  Positions {
+    pos: VertexPosition::new([0.5, -0.5]),
+  },
+  Positions {
+    pos: VertexPosition::new([0.0, 0.5]),
+  },
+  Positions {
+    pos: VertexPosition::new([-0.5, -0.5]),
+  },
+  Positions {
+    pos: VertexPosition::new([-0.5, 0.5]),
+  },
+  Positions {
+    pos: VertexPosition::new([0.0, -0.5]),
+  },
+  Positions {
+    pos: VertexPosition::new([0.5, 0.5]),
+  },
 ];
 
 const TRI_DEINT_COLOR_VERTICES: &[Colors] = &[
-  Colors { color: VertexColor::new([0, 255, 0]) },
-  Colors { color: VertexColor::new([0, 0, 255]) },
-  Colors { color: VertexColor::new([255, 0, 0]) },
-  Colors { color: VertexColor::new([255, 51, 255]) },
-  Colors { color: VertexColor::new([51, 255, 255]) },
-  Colors { color: VertexColor::new([51, 51, 255]) },
+  Colors {
+    color: VertexColor::new([0, 255, 0]),
+  },
+  Colors {
+    color: VertexColor::new([0, 0, 255]),
+  },
+  Colors {
+    color: VertexColor::new([255, 0, 0]),
+  },
+  Colors {
+    color: VertexColor::new([255, 51, 255]),
+  },
+  Colors {
+    color: VertexColor::new([51, 255, 255]),
+  },
+  Colors {
+    color: VertexColor::new([51, 51, 255]),
+  },
 ];
 
 // Indices into TRI_VERTICES to use to build up the triangles.
@@ -140,7 +185,8 @@ fn main() {
     WindowDim::Windowed(960, 540),
     "Hello, world!",
     WindowOpt::default(),
-  ).expect("Glutin surface creation");
+  )
+  .expect("Glutin surface creation");
 
   // We need a program to “shade” our triangles and to tell luminance which is the input vertex
   // type, and we’re not interested in the other two type variables for this sample.
@@ -198,23 +244,26 @@ fn main() {
       if let Event::WindowEvent { event, .. } = event {
         match event {
           // If we close the window or press escape, quit the main loop (i.e. quit the application).
-          WindowEvent::CloseRequested | WindowEvent::Destroyed |
-          WindowEvent::KeyboardInput {
-            input: KeyboardInput {
-              state: ElementState::Released,
-              virtual_keycode: Some(VirtualKeyCode::Escape),
-              ..
-            },
+          WindowEvent::CloseRequested
+          | WindowEvent::Destroyed
+          | WindowEvent::KeyboardInput {
+            input:
+              KeyboardInput {
+                state: ElementState::Released,
+                virtual_keycode: Some(VirtualKeyCode::Escape),
+                ..
+              },
             ..
           } => break 'app,
 
           // If we hit the spacebar, change the kind of tessellation.
           WindowEvent::KeyboardInput {
-            input: KeyboardInput {
-              state: ElementState::Released,
-              virtual_keycode: Some(VirtualKeyCode::Space),
-              ..
-            },
+            input:
+              KeyboardInput {
+                state: ElementState::Released,
+                virtual_keycode: Some(VirtualKeyCode::Space),
+                ..
+              },
             ..
           } => {
             demo = demo.toggle();
@@ -239,9 +288,10 @@ fn main() {
 
     // Create a new dynamic pipeline that will render to the back buffer and must clear it with
     // pitch black prior to do any render to it.
-    surface
-      .pipeline_builder()
-      .pipeline(&back_buffer, &PipelineState::default(), |_, mut shd_gate| {
+    surface.pipeline_builder().pipeline(
+      &back_buffer,
+      &PipelineState::default(),
+      |_, mut shd_gate| {
         // Start shading with our program.
         shd_gate.shade(&program, |_, mut rdr_gate| {
           // Start rendering things with the default render state provided by luminance.
@@ -258,7 +308,8 @@ fn main() {
             tess_gate.render(tess);
           });
         });
-      });
+      },
+    );
 
     // Finally, swap the backbuffer with the frontbuffer in order to render our triangles onto your
     // screen.

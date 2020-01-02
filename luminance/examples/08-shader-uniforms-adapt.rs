@@ -16,14 +16,14 @@
 
 mod common;
 
-use crate::common::{Semantics, Vertex, VertexPosition, VertexColor};
+use crate::common::{Semantics, Vertex, VertexColor, VertexPosition};
 use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
 use luminance::shader::program::{AdaptationFailure, Program, Uniform};
 use luminance::tess::{Mode, TessBuilder};
 use luminance_derive::UniformInterface;
-use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowEvent, WindowDim, WindowOpt};
+use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowDim, WindowEvent, WindowOpt};
 use std::time::Instant;
 
 const VS: &'static str = include_str!("adapt-vs.glsl");
@@ -31,9 +31,18 @@ const FS: &'static str = include_str!("displacement-fs.glsl");
 
 // Only one triangle this time.
 const TRI_VERTICES: [Vertex; 3] = [
-  Vertex { pos: VertexPosition::new([0.5, -0.5]), rgb: VertexColor::new([1., 0., 0.]) },
-  Vertex { pos: VertexPosition::new([0.0, 0.5]), rgb: VertexColor::new([0., 1., 0.]) },
-  Vertex { pos: VertexPosition::new([-0.5, -0.5]), rgb: VertexColor::new([0., 0., 1.]) },
+  Vertex {
+    pos: VertexPosition::new([0.5, -0.5]),
+    rgb: VertexColor::new([1., 0., 0.]),
+  },
+  Vertex {
+    pos: VertexPosition::new([0.0, 0.5]),
+    rgb: VertexColor::new([0., 1., 0.]),
+  },
+  Vertex {
+    pos: VertexPosition::new([-0.5, -0.5]),
+    rgb: VertexColor::new([0., 0., 1.]),
+  },
 ];
 
 /// First uniform interface.
@@ -41,7 +50,7 @@ const TRI_VERTICES: [Vertex; 3] = [
 struct ShaderInterface1 {
   #[uniform(name = "t")]
   time: Uniform<f32>,
-  triangle_size: Uniform<f32>
+  triangle_size: Uniform<f32>,
 }
 
 /// Second uniform interface.
@@ -49,7 +58,7 @@ struct ShaderInterface1 {
 struct ShaderInterface2 {
   #[uniform(name = "t")]
   time: Uniform<f32>,
-  triangle_pos: Uniform<[f32; 2]>
+  triangle_pos: Uniform<[f32; 2]>,
 }
 
 // Which interface to use?
@@ -71,7 +80,7 @@ impl ProgramMode {
 
       ProgramMode::Second(p) => match p.adapt() {
         Ok(program) => ProgramMode::First(program.ignore_warnings()),
-        Err(AdaptationFailure { program, error } ) => {
+        Err(AdaptationFailure { program, error }) => {
           eprintln!("unable to switch to first uniform interface: {:?}", error);
           ProgramMode::Second(program)
         }
@@ -155,9 +164,10 @@ fn main() {
     let t64 = elapsed.as_secs() as f64 + (elapsed.subsec_millis() as f64 * 1e-3);
     let t = t64 as f32;
 
-    surface
-      .pipeline_builder()
-      .pipeline(&back_buffer, &PipelineState::default(), |_, mut shd_gate| {
+    surface.pipeline_builder().pipeline(
+      &back_buffer,
+      &PipelineState::default(),
+      |_, mut shd_gate| {
         match program {
           // if we use the first interface, we just need to pass the time and the triangle position
           ProgramMode::First(ref program) => {
@@ -185,7 +195,8 @@ fn main() {
             });
           }
         }
-      });
+      },
+    );
 
     surface.swap_buffers();
   }

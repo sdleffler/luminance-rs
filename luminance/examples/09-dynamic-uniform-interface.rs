@@ -15,13 +15,13 @@
 
 mod common;
 
-use crate::common::{Semantics, Vertex, VertexPosition, VertexColor};
+use crate::common::{Semantics, Vertex, VertexColor, VertexPosition};
 use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, TessBuilder};
-use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowEvent, WindowDim, WindowOpt};
+use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowDim, WindowEvent, WindowOpt};
 use std::time::Instant;
 
 const VS: &'static str = include_str!("displacement-vs.glsl");
@@ -29,9 +29,18 @@ const FS: &'static str = include_str!("displacement-fs.glsl");
 
 // Only one triangle this time.
 const TRI_VERTICES: [Vertex; 3] = [
-  Vertex { pos: VertexPosition::new([0.5, -0.5]), rgb: VertexColor::new([1., 0., 0.]) },
-  Vertex { pos: VertexPosition::new([0.0, 0.5]), rgb: VertexColor::new([0., 1., 0.]) },
-  Vertex { pos: VertexPosition::new([-0.5, -0.5]), rgb: VertexColor::new([0., 0., 1.]) },
+  Vertex {
+    pos: VertexPosition::new([0.5, -0.5]),
+    rgb: VertexColor::new([1., 0., 0.]),
+  },
+  Vertex {
+    pos: VertexPosition::new([0.0, 0.5]),
+    rgb: VertexColor::new([0., 1., 0.]),
+  },
+  Vertex {
+    pos: VertexPosition::new([-0.5, -0.5]),
+    rgb: VertexColor::new([0., 0., 1.]),
+  },
 ];
 
 fn main() {
@@ -106,9 +115,10 @@ fn main() {
     let t64 = elapsed.as_secs() as f64 + (elapsed.subsec_millis() as f64 * 1e-3);
     let t = t64 as f32;
 
-    surface
-      .pipeline_builder()
-      .pipeline(&back_buffer, &PipelineState::default(), |_, mut shd_gate| {
+    surface.pipeline_builder().pipeline(
+      &back_buffer,
+      &PipelineState::default(),
+      |_, mut shd_gate| {
         shd_gate.shade(&program, |iface, mut rdr_gate| {
           let query = iface.query();
 
@@ -130,7 +140,8 @@ fn main() {
             tess_gate.render(&triangle);
           });
         });
-      });
+      },
+    );
 
     surface.swap_buffers();
   }

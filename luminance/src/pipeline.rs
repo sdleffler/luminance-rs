@@ -124,7 +124,9 @@ use crate::framebuffer::{ColorSlot, DepthSlot, Framebuffer};
 use crate::metagl::*;
 use crate::pixel::{Pixel, SamplerType, Type as PxType};
 use crate::render_state::RenderState;
-use crate::shader::program::{Program, ProgramInterface, Type, Uniform, UniformInterface, Uniformable};
+use crate::shader::program::{
+  Program, ProgramInterface, Type, Uniform, UniformInterface, Uniformable,
+};
 use crate::state::GraphicsState;
 use crate::tess::TessSlice;
 use crate::texture::{Dim, Dimensionable, Layerable, Texture};
@@ -157,13 +159,19 @@ impl BindingStack {
 }
 
 /// An opaque type used to create pipelines.
-pub struct Builder<'a, C> where C: ?Sized {
+pub struct Builder<'a, C>
+where
+  C: ?Sized,
+{
   ctx: &'a mut C,
   binding_stack: Rc<RefCell<BindingStack>>,
   _borrow: PhantomData<&'a mut ()>,
 }
 
-impl<'a, C> Builder<'a, C> where C: ?Sized + GraphicsContext {
+impl<'a, C> Builder<'a, C>
+where
+  C: ?Sized + GraphicsContext,
+{
   /// Create a new `Builder`.
   ///
   /// Even though you call this function by yourself, you’re likely to prefer using
@@ -195,12 +203,13 @@ impl<'a, C> Builder<'a, C> where C: ?Sized + GraphicsContext {
     framebuffer: &Framebuffer<L, D, CS, DS>,
     pipeline_state: &PipelineState,
     f: F,
-  )
-  where L: Layerable,
-        D: Dimensionable,
-        CS: ColorSlot<L, D>,
-        DS: DepthSlot<L, D>,
-        F: FnOnce(Pipeline<'b>, ShadingGate<'b, C>) {
+  ) where
+    L: Layerable,
+    D: Dimensionable,
+    CS: ColorSlot<L, D>,
+    DS: DepthSlot<L, D>,
+    F: FnOnce(Pipeline<'b>, ShadingGate<'b, C>),
+  {
     unsafe {
       let mut state = self.ctx.state().borrow_mut();
 
@@ -216,19 +225,42 @@ impl<'a, C> Builder<'a, C> where C: ?Sized + GraphicsContext {
 
       match viewport {
         Viewport::Whole => {
-          state.set_viewport([0, 0, framebuffer.width() as GLint, framebuffer.height() as GLint]);
+          state.set_viewport([
+            0,
+            0,
+            framebuffer.width() as GLint,
+            framebuffer.height() as GLint,
+          ]);
         }
 
-        Viewport::Specific { x, y, width, height } => {
+        Viewport::Specific {
+          x,
+          y,
+          width,
+          height,
+        } => {
           state.set_viewport([x as GLint, y as GLint, width as GLint, height as GLint]);
         }
       }
 
-      state.set_clear_color([clear_color[0] as _, clear_color[1] as _, clear_color[2] as _, clear_color[3] as _]);
+      state.set_clear_color([
+        clear_color[0] as _,
+        clear_color[1] as _,
+        clear_color[2] as _,
+        clear_color[3] as _,
+      ]);
 
       if clear_color_enabled || clear_depth_enabled {
-        let color_bit = if clear_color_enabled { gl::COLOR_BUFFER_BIT } else { 0 };
-        let depth_bit = if clear_depth_enabled { gl::DEPTH_BUFFER_BIT } else { 0 };
+        let color_bit = if clear_color_enabled {
+          gl::COLOR_BUFFER_BIT
+        } else {
+          0
+        };
+        let depth_bit = if clear_depth_enabled {
+          gl::DEPTH_BUFFER_BIT
+        } else {
+          0
+        };
         gl::Clear(color_bit | depth_bit);
       }
 
@@ -239,7 +271,7 @@ impl<'a, C> Builder<'a, C> where C: ?Sized + GraphicsContext {
     let p = Pipeline { binding_stack };
     let shd_gt = ShadingGate {
       ctx: self.ctx,
-      binding_stack
+      binding_stack,
     };
 
     f(p, shd_gt);
@@ -262,7 +294,7 @@ pub enum Viewport {
     width: u32,
     /// The height of the viewport.
     height: u32,
-  }
+  },
 }
 
 /// Various customization options for pipelines.
@@ -309,7 +341,10 @@ impl PipelineState {
 
   /// Set the clear color.
   pub fn set_clear_color(self, clear_color: [f32; 4]) -> Self {
-    Self { clear_color, ..self }
+    Self {
+      clear_color,
+      ..self
+    }
   }
 
   /// Check whether the pipeline’s framebuffer’s color buffers will be cleared.
@@ -319,7 +354,10 @@ impl PipelineState {
 
   /// Enable clearing color buffers.
   pub fn enable_clear_color(self, clear_color_enabled: bool) -> Self {
-    Self { clear_color_enabled, ..self }
+    Self {
+      clear_color_enabled,
+      ..self
+    }
   }
 
   /// Check whether the pipeline’s framebuffer’s depth buffer will be cleared.
@@ -329,7 +367,10 @@ impl PipelineState {
 
   /// Enable clearing depth buffers.
   pub fn enable_clear_depth(self, clear_depth_enabled: bool) -> Self {
-    Self { clear_depth_enabled, ..self }
+    Self {
+      clear_depth_enabled,
+      ..self
+    }
   }
 
   /// Get the viewport.
@@ -349,7 +390,10 @@ impl PipelineState {
 
   /// Enable sRGB linearization.
   pub fn enable_srgb(self, srgb_enabled: bool) -> Self {
-    Self { srgb_enabled, ..self }
+    Self {
+      srgb_enabled,
+      ..self
+    }
   }
 }
 
@@ -369,9 +413,11 @@ impl<'a> Pipeline<'a> {
     &'a self,
     texture: &'a Texture<L, D, P>,
   ) -> BoundTexture<'a, L, D, P::SamplerType>
-  where L: 'a + Layerable,
-        D: 'a + Dimensionable,
-        P: 'a + Pixel {
+  where
+    L: 'a + Layerable,
+    D: 'a + Dimensionable,
+    P: 'a + Pixel,
+  {
     let mut bstack = self.binding_stack.borrow_mut();
 
     let unit = bstack.free_texture_units.pop().unwrap_or_else(|| {
@@ -394,7 +440,9 @@ impl<'a> Pipeline<'a> {
   ///
   /// The buffer remains bound as long as the return value lives.
   pub fn bind_buffer<T>(&'a self, buffer: &'a T) -> BoundBuffer<'a, T>
-  where T: Deref<Target = RawBuffer> {
+  where
+    T: Deref<Target = RawBuffer>,
+  {
     let mut bstack = self.binding_stack.borrow_mut();
 
     let binding = bstack.free_buffer_bindings.pop().unwrap_or_else(|| {
@@ -418,18 +466,22 @@ impl<'a> Pipeline<'a> {
 /// An opaque type representing a bound texture in a `Builder`. You may want to pass such an object
 /// to a shader’s uniform’s update.
 pub struct BoundTexture<'a, L, D, S>
-where L: 'a + Layerable,
-      D: 'a + Dimensionable,
-      S: 'a + SamplerType, {
+where
+  L: 'a + Layerable,
+  D: 'a + Dimensionable,
+  S: 'a + SamplerType,
+{
   unit: u32,
   binding_stack: &'a Rc<RefCell<BindingStack>>,
   _t: PhantomData<&'a (L, D, S)>,
 }
 
 impl<'a, L, D, S> BoundTexture<'a, L, D, S>
-where L: 'a + Layerable,
-      D: 'a + Dimensionable,
-      S: 'a + SamplerType {
+where
+  L: 'a + Layerable,
+  D: 'a + Dimensionable,
+  S: 'a + SamplerType,
+{
   fn new(binding_stack: &'a Rc<RefCell<BindingStack>>, unit: u32) -> Self {
     BoundTexture {
       unit,
@@ -440,9 +492,11 @@ where L: 'a + Layerable,
 }
 
 impl<'a, L, D, S> Drop for BoundTexture<'a, L, D, S>
-where L: 'a + Layerable,
-      D: 'a + Dimensionable,
-      S: 'a + SamplerType {
+where
+  L: 'a + Layerable,
+  D: 'a + Dimensionable,
+  S: 'a + SamplerType,
+{
   fn drop(&mut self) {
     let mut bstack = self.binding_stack.borrow_mut();
     // place the unit into the free list
@@ -451,9 +505,11 @@ where L: 'a + Layerable,
 }
 
 unsafe impl<'a, 'b, L, D, S> Uniformable for &'b BoundTexture<'a, L, D, S>
-where L: 'a + Layerable,
-      D: 'a + Dimensionable,
-      S: 'a + SamplerType {
+where
+  L: 'a + Layerable,
+  D: 'a + Dimensionable,
+  S: 'a + SamplerType,
+{
   fn update(self, u: &Uniform<Self>) {
     unsafe { gl::Uniform1i(u.index(), self.unit as GLint) }
   }
@@ -489,7 +545,10 @@ where L: 'a + Layerable,
 
 /// An opaque type representing a bound buffer in a `Builder`. You may want to pass such an object
 /// to a shader’s uniform’s update.
-pub struct BoundBuffer<'a, T> where T: 'a {
+pub struct BoundBuffer<'a, T>
+where
+  T: 'a,
+{
   binding: u32,
   binding_stack: &'a Rc<RefCell<BindingStack>>,
   _t: PhantomData<&'a Buffer<T>>,
@@ -524,17 +583,25 @@ unsafe impl<'a, 'b, T> Uniformable for &'b BoundBuffer<'a, T> {
 }
 
 /// A shading gate provides you with a way to run shaders on rendering commands.
-pub struct ShadingGate<'a, C> where C: ?Sized {
+pub struct ShadingGate<'a, C>
+where
+  C: ?Sized,
+{
   ctx: &'a mut C,
   binding_stack: &'a Rc<RefCell<BindingStack>>,
 }
 
-impl<'a, C> ShadingGate<'a, C> where C: ?Sized + GraphicsContext {
+impl<'a, C> ShadingGate<'a, C>
+where
+  C: ?Sized + GraphicsContext,
+{
   /// Run a shader on a set of rendering commands.
   pub fn shade<'b, In, Out, Uni, F>(&'b mut self, program: &Program<In, Out, Uni>, f: F)
-  where In: Semantics,
-        Uni: UniformInterface,
-        F: FnOnce(ProgramInterface<Uni>, RenderGate<'b, C>) {
+  where
+    In: Semantics,
+    Uni: UniformInterface,
+    F: FnOnce(ProgramInterface<Uni>, RenderGate<'b, C>),
+  {
     unsafe {
       let bstack = self.binding_stack.borrow_mut();
       bstack.state.borrow_mut().use_program(program.handle());
@@ -551,14 +618,23 @@ impl<'a, C> ShadingGate<'a, C> where C: ?Sized + GraphicsContext {
 }
 
 /// Render gate, allowing you to alter the render state and render tessellations.
-pub struct RenderGate<'a, C> where C: ?Sized {
+pub struct RenderGate<'a, C>
+where
+  C: ?Sized,
+{
   ctx: &'a mut C,
   binding_stack: &'a Rc<RefCell<BindingStack>>,
 }
 
-impl<'a, C> RenderGate<'a, C> where C: ?Sized + GraphicsContext {
+impl<'a, C> RenderGate<'a, C>
+where
+  C: ?Sized + GraphicsContext,
+{
   /// Alter the render state and draw tessellations.
-  pub fn render<'b, F>(&'b mut self, rdr_st: RenderState, f: F) where F: FnOnce(TessGate<'b, C>) {
+  pub fn render<'b, F>(&'b mut self, rdr_st: RenderState, f: F)
+  where
+    F: FnOnce(TessGate<'b, C>),
+  {
     unsafe {
       let bstack = self.binding_stack.borrow_mut();
       let mut gfx_state = bstack.state.borrow_mut();
@@ -593,22 +669,29 @@ impl<'a, C> RenderGate<'a, C> where C: ?Sized + GraphicsContext {
       }
     }
 
-    let tess_gate = TessGate {
-      ctx: self.ctx,
-    };
+    let tess_gate = TessGate { ctx: self.ctx };
 
     f(tess_gate);
   }
 }
 
 /// Render tessellations.
-pub struct TessGate<'a, C> where C: ?Sized {
+pub struct TessGate<'a, C>
+where
+  C: ?Sized,
+{
   ctx: &'a mut C,
 }
 
-impl<'a, C> TessGate<'a, C> where C: ?Sized + GraphicsContext {
+impl<'a, C> TessGate<'a, C>
+where
+  C: ?Sized + GraphicsContext,
+{
   /// Render a tessellation.
-  pub fn render<'b, T>(&'b mut self, tess: T) where T: Into<TessSlice<'b>> {
+  pub fn render<'b, T>(&'b mut self, tess: T)
+  where
+    T: Into<TessSlice<'b>>,
+  {
     tess.into().render(self.ctx);
   }
 }

@@ -13,14 +13,14 @@
 
 mod common;
 
-use crate::common::{Semantics, Vertex, VertexPosition, VertexColor};
+use crate::common::{Semantics, Vertex, VertexColor, VertexPosition};
 use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
 use luminance::shader::program::{Program, Uniform};
 use luminance::tess::{Mode, TessBuilder};
 use luminance_derive::UniformInterface;
-use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowEvent, WindowDim, WindowOpt};
+use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowDim, WindowEvent, WindowOpt};
 use std::time::Instant;
 
 const VS: &'static str = include_str!("displacement-vs.glsl");
@@ -28,9 +28,18 @@ const FS: &'static str = include_str!("displacement-fs.glsl");
 
 // Only one triangle this time.
 const TRI_VERTICES: [Vertex; 3] = [
-  Vertex { pos: VertexPosition::new([0.5, -0.5]), rgb: VertexColor::new([1., 0., 0.]) },
-  Vertex { pos: VertexPosition::new([0.0, 0.5]), rgb: VertexColor::new([0., 1., 0.]) },
-  Vertex { pos: VertexPosition::new([-0.5, -0.5]), rgb: VertexColor::new([0., 0., 1.]) },
+  Vertex {
+    pos: VertexPosition::new([0.5, -0.5]),
+    rgb: VertexColor::new([1., 0., 0.]),
+  },
+  Vertex {
+    pos: VertexPosition::new([0.0, 0.5]),
+    rgb: VertexColor::new([0., 1., 0.]),
+  },
+  Vertex {
+    pos: VertexPosition::new([-0.5, -0.5]),
+    rgb: VertexColor::new([0., 0., 1.]),
+  },
 ];
 
 // Create a uniform interface. This is a type that will be used to customize the shader. In our
@@ -41,7 +50,7 @@ const TRI_VERTICES: [Vertex; 3] = [
 struct ShaderInterface {
   #[uniform(name = "t")]
   time: Uniform<f32>,
-  triangle_pos: Uniform<[f32; 2]>
+  triangle_pos: Uniform<[f32; 2]>,
 }
 
 fn main() {
@@ -53,8 +62,7 @@ fn main() {
   .expect("GLFW surface creation");
 
   // see the use of our uniform interface here as thirds type variable
-  let program =
-    Program::<Semantics, (), ShaderInterface>::from_strings(None, VS, None, FS)
+  let program = Program::<Semantics, (), ShaderInterface>::from_strings(None, VS, None, FS)
     .expect("program creation")
     .ignore_warnings();
 
@@ -115,15 +123,15 @@ fn main() {
       resize = false;
     }
 
-
     // get the current monotonic time
     let elapsed = start_t.elapsed();
     let t64 = elapsed.as_secs() as f64 + (elapsed.subsec_millis() as f64 * 1e-3);
     let t = t64 as f32;
 
-    surface
-      .pipeline_builder()
-      .pipeline(&back_buffer, &PipelineState::default(), |_, mut shd_gate| {
+    surface.pipeline_builder().pipeline(
+      &back_buffer,
+      &PipelineState::default(),
+      |_, mut shd_gate| {
         // notice the iface free variable, which type is &ShaderInterface
         shd_gate.shade(&program, |iface, mut rdr_gate| {
           // update the time and triangle position on the GPU shader program
@@ -135,7 +143,8 @@ fn main() {
             tess_gate.render(&triangle);
           });
         });
-      });
+      },
+    );
 
     surface.swap_buffers();
   }

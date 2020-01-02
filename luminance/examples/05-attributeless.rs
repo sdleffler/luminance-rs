@@ -13,7 +13,7 @@ use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, TessBuilder};
-use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowEvent, WindowDim, WindowOpt};
+use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowDim, WindowEvent, WindowOpt};
 
 const VS: &'static str = include_str!("attributeless-vs.glsl");
 const FS: &'static str = include_str!("simple-fs.glsl");
@@ -60,9 +60,10 @@ fn main() {
       resize = true;
     }
 
-    surface
-      .pipeline_builder()
-      .pipeline(&back_buffer, &PipelineState::default(), |_, mut shd_gate| {
+    surface.pipeline_builder().pipeline(
+      &back_buffer,
+      &PipelineState::default(),
+      |_, mut shd_gate| {
         shd_gate.shade(&program, |_, mut rdr_gate| {
           rdr_gate.render(RenderState::default(), |mut tess_gate| {
             // render the tessellation to the surface the regular way and let the vertex shader’s
@@ -70,7 +71,8 @@ fn main() {
             tess_gate.render(&tess);
           });
         });
-      });
+      },
+    );
 
     surface.swap_buffers();
   }

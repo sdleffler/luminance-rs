@@ -11,27 +11,45 @@
 
 mod common;
 
-use crate::common::{Semantics, Vertex, VertexPosition, VertexColor};
+use crate::common::{Semantics, Vertex, VertexColor, VertexPosition};
 use luminance::blending::{Equation, Factor};
 use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, TessBuilder};
-use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowEvent, WindowDim, WindowOpt};
+use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowDim, WindowEvent, WindowOpt};
 
 const VS: &'static str = include_str!("simple-vs.glsl");
 const FS: &'static str = include_str!("simple-fs.glsl");
 
 pub const TRI_RED_BLUE_VERTICES: [Vertex; 6] = [
   // first triangle – a red one
-  Vertex { pos: VertexPosition::new([0.5, -0.5]), rgb: VertexColor::new([1., 0., 0.]) },
-  Vertex { pos: VertexPosition::new([0.0, 0.5]), rgb: VertexColor::new([1., 0., 0.]) },
-  Vertex { pos: VertexPosition::new([-0.5, -0.5]), rgb: VertexColor::new([1., 0., 0.]) },
+  Vertex {
+    pos: VertexPosition::new([0.5, -0.5]),
+    rgb: VertexColor::new([1., 0., 0.]),
+  },
+  Vertex {
+    pos: VertexPosition::new([0.0, 0.5]),
+    rgb: VertexColor::new([1., 0., 0.]),
+  },
+  Vertex {
+    pos: VertexPosition::new([-0.5, -0.5]),
+    rgb: VertexColor::new([1., 0., 0.]),
+  },
   // second triangle, a blue one
-  Vertex { pos: VertexPosition::new([-0.5, 0.5]), rgb: VertexColor::new([0., 0., 1.]) },
-  Vertex { pos: VertexPosition::new([0.0, -0.5]), rgb: VertexColor::new([0., 0., 1.]) },
-  Vertex { pos: VertexPosition::new([0.5, 0.5]), rgb: VertexColor::new([0., 0., 1.]) },
+  Vertex {
+    pos: VertexPosition::new([-0.5, 0.5]),
+    rgb: VertexColor::new([0., 0., 1.]),
+  },
+  Vertex {
+    pos: VertexPosition::new([0.0, -0.5]),
+    rgb: VertexColor::new([0., 0., 1.]),
+  },
+  Vertex {
+    pos: VertexPosition::new([0.5, 0.5]),
+    rgb: VertexColor::new([0., 0., 1.]),
+  },
 ];
 
 // Convenience type to demonstrate how the depth test influences the rendering of two triangles.
@@ -120,9 +138,10 @@ fn main() {
       resize = false;
     }
 
-    surface
-      .pipeline_builder()
-      .pipeline(&back_buffer, &PipelineState::default(), |_, mut shd_gate| {
+    surface.pipeline_builder().pipeline(
+      &back_buffer,
+      &PipelineState::default(),
+      |_, mut shd_gate| {
         shd_gate.shade(&program, |_, mut rdr_gate| {
           let render_state = RenderState::default()
           // let’s disable the depth test so that every fragment (i.e. pixels) will rendered to every
@@ -143,7 +162,8 @@ fn main() {
             }
           });
         });
-      });
+      },
+    );
 
     surface.swap_buffers();
   }
