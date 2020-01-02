@@ -206,7 +206,13 @@ impl<'a, C> Builder<'a, C> where C: ?Sized + GraphicsContext {
         .borrow_mut()
         .bind_draw_framebuffer(framebuffer.handle());
 
-      let PipelineState { clear_color, clear_color_enabled, clear_depth_enabled, viewport } = *state;
+      let PipelineState {
+        clear_color,
+        clear_color_enabled,
+        clear_depth_enabled,
+        viewport,
+        srgb_enabled,
+      } = *state;
 
       match viewport {
         Viewport::Whole => {
@@ -225,6 +231,8 @@ impl<'a, C> Builder<'a, C> where C: ?Sized + GraphicsContext {
         let depth_bit = if clear_depth_enabled { gl::DEPTH_BUFFER_BIT } else { 0 };
         gl::Clear(color_bit | depth_bit);
       }
+
+      self.ctx.state().borrow_mut().enable_srgb_framebuffer(srgb_enabled);
     }
 
     let binding_stack = &self.binding_stack;
@@ -263,7 +271,8 @@ pub struct PipelineState {
   clear_color: [f32; 4],
   clear_color_enabled: bool,
   clear_depth_enabled: bool,
-  viewport: Viewport
+  viewport: Viewport,
+  srgb_enabled: bool,
 }
 
 impl Default for PipelineState {
@@ -273,12 +282,14 @@ impl Default for PipelineState {
   /// - Color is always cleared.
   /// - Depth is always cleared.
   /// - The viewport uses the whole framebuffer’s.
+  /// - sRGB encoding is disabled.
   fn default() -> Self {
     PipelineState {
       clear_color: [0., 0., 0., 1.],
       clear_color_enabled: true,
       clear_depth_enabled: true,
       viewport: Viewport::Whole,
+      srgb_enabled: false,
     }
   }
 }
@@ -329,6 +340,16 @@ impl PipelineState {
   /// Set the viewport.
   pub fn set_viewport(self, viewport: Viewport) -> Self {
     Self { viewport, ..self }
+  }
+
+  /// Check whether sRGB linearization is enabled.
+  pub fn is_srgb_enabled(&self) -> bool {
+    self.srgb_enabled
+  }
+
+  /// Enable sRGB linearization.
+  pub fn enable_srgb(self, srgb_enabled: bool) -> Self {
+    Self { srgb_enabled, ..self }
   }
 }
 
