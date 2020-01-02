@@ -13,7 +13,7 @@
 
 use luminance::blending::{Equation, Factor};
 use luminance::context::GraphicsContext as _;
-use luminance::pipeline::BoundTexture;
+use luminance::pipeline::{BoundTexture, PipelineState};
 use luminance::pixel::{NormRGB8UI, NormUnsigned};
 use luminance::render_state::RenderState;
 use luminance::shader::program::{Program, Uniform};
@@ -96,7 +96,7 @@ fn run(texture_path: &Path) {
     // and use it in the shader
     surface
       .pipeline_builder()
-      .pipeline(&back_buffer, [0., 0., 0., 0.], |pipeline, mut shd_gate| {
+      .pipeline(&back_buffer, &PipelineState::default(), |pipeline, mut shd_gate| {
         // bind our fancy texture to the GPU: it gives us a bound texture we can use with the shader
         let bound_tex = pipeline.bind_texture(&tex);
 

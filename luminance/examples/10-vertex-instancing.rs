@@ -10,6 +10,7 @@ use crate::common::{
   Instance, Semantics, Vertex, VertexPosition, VertexColor, VertexInstancePosition, VertexWeight
 };
 use luminance::context::GraphicsContext;
+use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, TessBuilder};
@@ -110,7 +111,7 @@ fn main() {
 
     surface
       .pipeline_builder()
-      .pipeline(&back_buffer, [0., 0., 0., 0.], |_, mut shd_gate| {
+      .pipeline(&back_buffer, &PipelineState::default(), |_, mut shd_gate| {
         shd_gate.shade(&program, |iface, mut rdr_gate| {
           let query = iface.query();
 

@@ -11,11 +11,12 @@ use common::{Semantics, Vertex, VertexColor, VertexPosition};
 use image::{ColorType, save_buffer};
 use luminance::context::GraphicsContext as _;
 use luminance::framebuffer::Framebuffer;
+use luminance::pipeline::PipelineState;
+use luminance::pixel::NormRGBA8UI;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, TessBuilder};
 use luminance::texture::{Flat, Dim2};
-use luminance::pixel::NormRGBA8UI;
 use luminance_derive::Vertex;
 use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowEvent, WindowDim, WindowOpt};
 
@@ -93,7 +94,7 @@ fn main() {
     // pitch black prior to do any render to it
     surface
       .pipeline_builder()
-      .pipeline(&fb, [0., 0., 0., 0.], |_, mut shd_gate| {
+      .pipeline(&fb, &PipelineState::default(), |_, mut shd_gate| {
         // start shading with our program
         shd_gate.shade(&program, |_, mut rdr_gate| {
           // start rendering things with the default render state provided by luminance
