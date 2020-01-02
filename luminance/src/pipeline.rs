@@ -216,11 +216,11 @@ impl<'a, C> Builder<'a, C> where C: ?Sized + GraphicsContext {
 
       match viewport {
         Viewport::Whole => {
-          gl::Viewport(0, 0, framebuffer.width() as GLint, framebuffer.height() as GLint);
+          self.ctx.state().borrow_mut().set_viewport([0, 0, framebuffer.width() as GLint, framebuffer.height() as GLint]);
         }
 
         Viewport::Specific { x, y, width, height } => {
-          gl::Viewport(x as GLint, y as GLint, width as GLint, height as GLint);
+          self.ctx.state().borrow_mut().set_viewport([x as GLint, y as GLint, width as GLint, height as GLint]);
         }
       }
 
