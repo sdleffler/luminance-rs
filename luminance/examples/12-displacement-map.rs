@@ -17,7 +17,7 @@
 
 use luminance::blending::{Equation, Factor};
 use luminance::context::GraphicsContext as _;
-use luminance::pipeline::BoundTexture;
+use luminance::pipeline::{BoundTexture, PipelineState};
 use luminance::pixel::{NormRGB8UI, NormUnsigned};
 use luminance::render_state::RenderState;
 use luminance::shader::program::{Program, Uniform};
@@ -143,7 +143,7 @@ fn main() {
 
         surface.pipeline_builder().pipeline(
             &back_buffer,
-            [0.0, 0.0, 0.0, 0.0],
+            &PipelineState::default(),
             |pipeline, mut shading_gate| {
                 let bound_texture = pipeline.bind_texture(&tex);
                 let bound_displacement_1 = pipeline.bind_texture(&displacement_tex_1);

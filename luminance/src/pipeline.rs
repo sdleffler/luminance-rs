@@ -193,7 +193,7 @@ impl<'a, C> Builder<'a, C> where C: ?Sized + GraphicsContext {
   pub fn pipeline<'b, L, D, CS, DS, F>(
     &'b mut self,
     framebuffer: &Framebuffer<L, D, CS, DS>,
-    clear_color: [f32; 4],
+    state: &PipelineState,
     f: F,
   )
   where L: Layerable,
@@ -206,9 +206,25 @@ impl<'a, C> Builder<'a, C> where C: ?Sized + GraphicsContext {
         .borrow_mut()
         .bind_draw_framebuffer(framebuffer.handle());
 
-      gl::Viewport(0, 0, framebuffer.width() as GLint, framebuffer.height() as GLint);
+      let PipelineState { clear_color, clear_color_enabled, clear_depth_enabled, viewport } = *state;
+
+      match viewport {
+        Viewport::Whole => {
+          gl::Viewport(0, 0, framebuffer.width() as GLint, framebuffer.height() as GLint);
+        }
+
+        Viewport::Specific { x, y, width, height } => {
+          gl::Viewport(x as GLint, y as GLint, width as GLint, height as GLint);
+        }
+      }
+
       gl::ClearColor(clear_color[0], clear_color[1], clear_color[2], clear_color[3]);
-      gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT);
+
+      if clear_color_enabled || clear_depth_enabled {
+        let color_bit = if clear_color_enabled { gl::COLOR_BUFFER_BIT } else { 0 };
+        let depth_bit = if clear_depth_enabled { gl::DEPTH_BUFFER_BIT } else { 0 };
+        gl::Clear(color_bit | depth_bit);
+      }
     }
 
     let binding_stack = &self.binding_stack;
@@ -219,6 +235,100 @@ impl<'a, C> Builder<'a, C> where C: ?Sized + GraphicsContext {
     };
 
     f(p, shd_gt);
+  }
+}
+
+/// The viewport being part of the [`PipelineState`].
+#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
+pub enum Viewport {
+  /// The whole viewport is used. The position and dimension of the viewport rectangle are
+  /// extracted from the framebuffer.
+  Whole,
+  /// The viewport is specific and the rectangle area is user-defined.
+  Specific {
+    /// The lower position on the X axis to start the viewport rectangle at.
+    x: u32,
+    /// The lower position on the Y axis to start the viewport rectangle at.
+    y: u32,
+    /// The width of the viewport.
+    width: u32,
+    /// The height of the viewport.
+    height: u32,
+  }
+}
+
+/// Various customization options for pipelines.
+#[derive(Clone, Debug)]
+pub struct PipelineState {
+  clear_color: [f32; 4],
+  clear_color_enabled: bool,
+  clear_depth_enabled: bool,
+  viewport: Viewport
+}
+
+impl Default for PipelineState {
+  /// Default [`PipelineState`]:
+  ///
+  /// - Clear color: `[0, 0, 0, 1]`.
+  /// - Color is always cleared.
+  /// - Depth is always cleared.
+  /// - The viewport uses the whole framebuffer’s.
+  fn default() -> Self {
+    PipelineState {
+      clear_color: [0., 0., 0., 1.],
+      clear_color_enabled: true,
+      clear_depth_enabled: true,
+      viewport: Viewport::Whole,
+    }
+  }
+}
+
+impl PipelineState {
+  /// Create a default [`PipelineState`].
+  ///
+  /// See the documentation of the [`Default`] for further details.
+  pub fn new() -> Self {
+    Self::default()
+  }
+
+  /// Get the clear color.
+  pub fn clear_color(&self) -> [f32; 4] {
+    self.clear_color
+  }
+
+  /// Set the clear color.
+  pub fn set_clear_color(self, clear_color: [f32; 4]) -> Self {
+    Self { clear_color, ..self }
+  }
+
+  /// Check whether the pipeline’s framebuffer’s color buffers will be cleared.
+  pub fn is_clear_color_enabled(&self) -> bool {
+    self.clear_color_enabled
+  }
+
+  /// Enable clearing color buffers.
+  pub fn enable_clear_color(self, clear_color_enabled: bool) -> Self {
+    Self { clear_color_enabled, ..self }
+  }
+
+  /// Check whether the pipeline’s framebuffer’s depth buffer will be cleared.
+  pub fn is_clear_depth_enabled(&self) -> bool {
+    self.clear_depth_enabled
+  }
+
+  /// Enable clearing depth buffers.
+  pub fn enable_clear_depth(self, clear_depth_enabled: bool) -> Self {
+    Self { clear_depth_enabled, ..self }
+  }
+
+  /// Get the viewport.
+  pub fn viewport(&self) -> Viewport {
+    self.viewport
+  }
+
+  /// Set the viewport.
+  pub fn set_viewport(self, viewport: Viewport) -> Self {
+    Self { viewport, ..self }
   }
 }
 

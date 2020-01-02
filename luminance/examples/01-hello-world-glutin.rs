@@ -9,6 +9,7 @@
 //! https://docs.rs/luminance
 
 use luminance::context::GraphicsContext;
+use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, TessBuilder};
@@ -240,7 +241,7 @@ fn main() {
     // pitch black prior to do any render to it.
     surface
       .pipeline_builder()
-      .pipeline(&back_buffer, [0., 0., 0., 0.], |_, mut shd_gate| {
+      .pipeline(&back_buffer, &PipelineState::default(), |_, mut shd_gate| {
         // Start shading with our program.
         shd_gate.shade(&program, |_, mut rdr_gate| {
           // Start rendering things with the default render state provided by luminance.

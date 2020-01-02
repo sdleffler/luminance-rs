@@ -18,6 +18,7 @@ mod common;
 
 use crate::common::{Semantics, Vertex, VertexPosition, VertexColor};
 use luminance::context::GraphicsContext as _;
+use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
 use luminance::shader::program::{AdaptationFailure, Program, Uniform};
 use luminance::tess::{Mode, TessBuilder};
@@ -156,7 +157,7 @@ fn main() {
 
     surface
       .pipeline_builder()
-      .pipeline(&back_buffer, [0., 0., 0., 0.], |_, mut shd_gate| {
+      .pipeline(&back_buffer, &PipelineState::default(), |_, mut shd_gate| {
         match program {
           // if we use the first interface, we just need to pass the time and the triangle position
           ProgramMode::First(ref program) => {

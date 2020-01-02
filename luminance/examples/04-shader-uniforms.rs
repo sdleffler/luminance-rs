@@ -15,6 +15,7 @@ mod common;
 
 use crate::common::{Semantics, Vertex, VertexPosition, VertexColor};
 use luminance::context::GraphicsContext as _;
+use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
 use luminance::shader::program::{Program, Uniform};
 use luminance::tess::{Mode, TessBuilder};
@@ -122,7 +123,7 @@ fn main() {
 
     surface
       .pipeline_builder()
-      .pipeline(&back_buffer, [0., 0., 0., 0.], |_, mut shd_gate| {
+      .pipeline(&back_buffer, &PipelineState::default(), |_, mut shd_gate| {
         // notice the iface free variable, which type is &ShaderInterface
         shd_gate.shade(&program, |iface, mut rdr_gate| {
           // update the time and triangle position on the GPU shader program

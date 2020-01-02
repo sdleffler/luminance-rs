@@ -10,7 +10,7 @@ mod common;
 use crate::common::{Semantics, Vertex, VertexPosition, VertexColor};
 use luminance::context::GraphicsContext as _;
 use luminance::framebuffer::Framebuffer;
-use luminance::pipeline::BoundTexture;
+use luminance::pipeline::{BoundTexture, PipelineState};
 use luminance::pixel::{RGBA32F, Floating};
 use luminance::render_state::RenderState;
 use luminance::shader::program::{BuiltProgram, Program, Uniform};
@@ -115,7 +115,7 @@ fn main() {
     let mut builder = surface.pipeline_builder();
 
     // render the triangle in the offscreen framebuffer first
-    builder.pipeline(&offscreen_buffer, [0., 0., 0., 0.], |_, mut shd_gate| {
+    builder.pipeline(&offscreen_buffer, &PipelineState::default(), |_, mut shd_gate| {
       shd_gate.shade(&program, |_, mut rdr_gate| {
         rdr_gate.render(RenderState::default(), |mut tess_gate| {
           // we render the triangle here by asking for the whole triangle
@@ -125,7 +125,7 @@ fn main() {
     });
 
     // read from the offscreen framebuffer and output it into the back buffer
-    builder.pipeline(&back_buffer, [0., 0., 0., 0.], |pipeline, mut shd_gate| {
+    builder.pipeline(&back_buffer, &PipelineState::default(), |pipeline, mut shd_gate| {
       // we must bind the offscreen framebuffer color content so that we can pass it to a shader
       let bound_texture = pipeline.bind_texture(offscreen_buffer.color_slot());
 
