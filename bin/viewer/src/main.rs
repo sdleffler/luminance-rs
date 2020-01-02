@@ -1,6 +1,7 @@
 use cgmath::{EuclideanSpace, Matrix4, Point3, Rad, Vector3, perspective};
 use luminance::context::GraphicsContext;
 use luminance::linear::M44;
+use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
 use luminance::shader::program::{Program, Uniform};
 use luminance::tess::{Mode, Tess, TessBuilder, TessError, TessSliceIndex};
@@ -161,7 +162,8 @@ fn main_loop(mut surface: GlfwSurface) {
     let t = start_t.elapsed().as_millis() as f32 * 1e-3;
     let color = [t.cos(), t.sin(), 0.5, 1.];
 
-    surface.pipeline_builder().pipeline(&back_buffer, color, |_, mut shd_gate| {
+    let pipeline_state = PipelineState::default().set_clear_color(color);
+    surface.pipeline_builder().pipeline(&back_buffer, &pipeline_state, |_, mut shd_gate| {
       shd_gate.shade(&program, |iface, mut rdr_gate| {
         iface.projection.update(projection.into());
         iface.view.update(view.into());
