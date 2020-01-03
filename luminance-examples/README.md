@@ -87,3 +87,4 @@ Query texture texels from a framebuffer and output them as a rendered image on y
 
 Use a grayscale texture to implement _displacement map_ on a color map.
 
+![](../docs/imgs/displacement_map.gif)
