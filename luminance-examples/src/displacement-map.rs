@@ -28,8 +28,8 @@ use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowDim, WindowEvent, 
 use std::env;
 use std::time::Instant;
 
-const VS: &str = include_str!("./12-displacement-map-resources/displacement-map-vs.glsl");
-const FS: &str = include_str!("./12-displacement-map-resources/displacement-map-fs.glsl");
+const VS: &str = include_str!("./displacement-map-resources/displacement-map-vs.glsl");
+const FS: &str = include_str!("./displacement-map-resources/displacement-map-fs.glsl");
 
 #[derive(UniformInterface)]
 struct ShaderInterface {
@@ -53,14 +53,14 @@ fn main() {
   let (width, height) = texture_image.dimensions();
 
   let displacement_map_1 = image::load_from_memory_with_format(
-    include_bytes!("./12-displacement-map-resources/displacement_1.png"),
+    include_bytes!("./displacement-map-resources/displacement_1.png"),
     image::ImageFormat::PNG,
   )
   .expect("Could not load displacement map")
   .to_rgb();
 
   let displacement_map_2 = image::load_from_memory_with_format(
-    include_bytes!("./12-displacement-map-resources/displacement_2.png"),
+    include_bytes!("./displacement-map-resources/displacement_2.png"),
     image::ImageFormat::PNG,
   )
   .expect("Could not load displacement map")
@@ -68,7 +68,7 @@ fn main() {
 
   let mut surface = GlfwSurface::new(
     WindowDim::Windowed(width, height),
-    "texture_demo",
+    "Displacement Map",
     WindowOpt::default(),
   )
   .expect("Could not create GLFW surface");
