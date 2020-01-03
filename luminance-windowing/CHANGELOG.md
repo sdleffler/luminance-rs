@@ -1,3 +1,9 @@
+# 0.8.1
+
+> Sun Sep 29th 2019
+
+- Support of `luminance-0.38`.
+
 # 0.8
 
 > Sun Sep 29th 2019
