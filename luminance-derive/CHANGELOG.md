@@ -1,6 +1,6 @@
 # 0.5.1
 
-> Fri Jan 3rd 2020
+> Sat Jan 4th 2020
 
 - Support of `luminance-0.38`.
 
