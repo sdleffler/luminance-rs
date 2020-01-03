@@ -192,7 +192,7 @@ fn main_loop(mut surface: GlfwSurface) {
           iface.projection.update(projection.into());
           iface.view.update(view.into());
 
-          rdr_gate.render(RenderState::default(), |mut tess_gate| {
+          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
             tess_gate.render(mesh.slice(..));
           });
         });

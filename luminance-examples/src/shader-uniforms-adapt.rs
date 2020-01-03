@@ -175,7 +175,7 @@ fn main() {
               iface.time.update(t);
               iface.triangle_size.update(t.cos().powf(2.));
 
-              rdr_gate.render(RenderState::default(), |mut tess_gate| {
+              rdr_gate.render(&RenderState::default(), |mut tess_gate| {
                 tess_gate.render(&triangle);
               });
             });
@@ -189,7 +189,7 @@ fn main() {
               // iface.triangle_pos.update(triangle_pos); // uncomment this to see a nice error ;)
               iface.triangle_pos.update(triangle_pos);
 
-              rdr_gate.render(RenderState::default(), |mut tess_gate| {
+              rdr_gate.render(&RenderState::default(), |mut tess_gate| {
                 tess_gate.render(&triangle);
               });
             });

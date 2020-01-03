@@ -138,7 +138,7 @@ fn main() {
           iface.time.update(t);
           iface.triangle_pos.update(triangle_pos);
 
-          rdr_gate.render(RenderState::default(), |mut tess_gate| {
+          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
             // render the dynamically selected slice
             tess_gate.render(&triangle);
           });

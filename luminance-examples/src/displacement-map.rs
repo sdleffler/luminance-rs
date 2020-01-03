@@ -155,7 +155,7 @@ fn main() {
             .window_dimensions
             .update([back_buffer.width() as f32, back_buffer.height() as f32]);
 
-          render_gate.render(render_state, |mut tess_gate| {
+          render_gate.render(&render_state, |mut tess_gate| {
             tess_gate.render(&tess);
           })
         });

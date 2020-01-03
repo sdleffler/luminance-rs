@@ -136,7 +136,7 @@ fn main() {
           //  eprintln!("{:?}", e);
           //}
 
-          rdr_gate.render(RenderState::default(), |mut tess_gate| {
+          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
             tess_gate.render(&triangle);
           });
         });

@@ -128,7 +128,7 @@ fn main() {
       &PipelineState::default(),
       |_, mut shd_gate| {
         shd_gate.shade(&program, |_, mut rdr_gate| {
-          rdr_gate.render(RenderState::default(), |mut tess_gate| {
+          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
             let slice = match slice_method {
               // the red triangle is at slice [..3]; you can also use the TessSlice::one_sub
               // combinator if the start element is 0; it’s also possible to use [..=2] for

@@ -631,7 +631,7 @@ where
   C: ?Sized + GraphicsContext,
 {
   /// Alter the render state and draw tessellations.
-  pub fn render<'b, F>(&'b mut self, rdr_st: RenderState, f: F)
+  pub fn render<'b, F>(&'b mut self, rdr_st: &RenderState, f: F)
   where
     F: FnOnce(TessGate<'b, C>),
   {

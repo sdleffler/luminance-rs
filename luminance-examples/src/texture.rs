@@ -71,7 +71,7 @@ fn run(texture_path: &Path) {
 
   let mut back_buffer = surface.back_buffer().unwrap();
   let render_st =
-    RenderState::default().set_blending((Equation::Additive, Factor::SrcAlpha, Factor::Zero));
+    &RenderState::default().set_blending((Equation::Additive, Factor::SrcAlpha, Factor::Zero));
   let mut resize = false;
 
   println!("rendering!");

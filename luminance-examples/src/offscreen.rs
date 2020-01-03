@@ -131,7 +131,7 @@ fn main() {
       &PipelineState::default(),
       |_, mut shd_gate| {
         shd_gate.shade(&program, |_, mut rdr_gate| {
-          rdr_gate.render(RenderState::default(), |mut tess_gate| {
+          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
             // we render the triangle here by asking for the whole triangle
             tess_gate.render(&triangle);
           });
@@ -151,7 +151,7 @@ fn main() {
           // we update the texture with the bound texture
           iface.texture.update(&bound_texture);
 
-          rdr_gate.render(RenderState::default(), |mut tess_gate| {
+          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
             // this will render the attributeless quad with the offscreen framebuffer color slot
             // bound for the shader to fetch from
             tess_gate.render(&quad);

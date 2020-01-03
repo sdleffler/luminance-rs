@@ -144,7 +144,7 @@ fn main() {
             time_u.update(t);
           }
 
-          rdr_gate.render(RenderState::default(), |mut tess_gate| {
+          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
             tess_gate.render(&triangle);
           });
         });
