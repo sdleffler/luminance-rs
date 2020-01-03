@@ -15,7 +15,7 @@ use luminance::pixel::{Floating, RGBA32F};
 use luminance::render_state::RenderState;
 use luminance::shader::program::{BuiltProgram, Program, Uniform};
 use luminance::tess::{Mode, TessBuilder};
-use luminance::texture::{Dim2, Flat};
+use luminance::texture::{Dim2, Flat, Sampler};
 use luminance_derive::UniformInterface;
 use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowDim, WindowEvent, WindowOpt};
 
@@ -90,8 +90,9 @@ fn main() {
   let mut back_buffer = surface.back_buffer().unwrap();
   // offscreen buffer that we will render in the first place
   let size = surface.size();
-  let mut offscreen_buffer = Framebuffer::<Flat, Dim2, RGBA32F, ()>::new(&mut surface, size, 0)
-    .expect("framebuffer creation");
+  let mut offscreen_buffer =
+    Framebuffer::<Flat, Dim2, RGBA32F, ()>::new(&mut surface, size, 0, Sampler::default())
+      .expect("framebuffer creation");
 
   // hack to update the offscreen buffer if needed; this is needed because we cannot update the
   // offscreen buffer from within the event loop
@@ -117,7 +118,8 @@ fn main() {
       back_buffer = surface.back_buffer().unwrap();
       // ditto for the offscreen framebuffer
       let size = surface.size();
-      offscreen_buffer = Framebuffer::new(&mut surface, size, 0).expect("framebuffer recreation");
+      offscreen_buffer = Framebuffer::new(&mut surface, size, 0, Sampler::default())
+        .expect("framebuffer recreation");
 
       resize = false;
     }
