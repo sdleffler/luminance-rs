@@ -19,6 +19,9 @@
 ## Minor changes
 
 - Add support for _sRGB_ framebuffer linearization. This is part of the `PipelineState`.
+- Add two _sRGB_ pixel formats:
+  - `SRGB8UI`, for an 8-bit unsigned integral sRGB pixel format.
+  - `SRGBA8UI`, for an 8-bit unsigned integral sRGB (with alpha linear alpha channel) pixel format.
 - It’s now possible to decide whether _color buffers_ and _depth buffers_ will be cleared when
   running a pipeline.
 - It’s now possible to override the viewport when running a pipeline. See the documentation of

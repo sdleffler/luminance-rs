@@ -70,6 +70,8 @@ impl PixelFormat {
       Format::RG(_, _) => 2,
       Format::RGB(_, _, _) => 3,
       Format::RGBA(_, _, _, _) => 4,
+      Format::SRGB(_, _, _) => 3,
+      Format::SRGBA(_, _, _, _) => 4,
       Format::Depth(_) => 1,
     }
   }
@@ -104,6 +106,10 @@ pub enum Format {
   RGB(Size, Size, Size),
   /// Holds red, green, blue and alpha channels.
   RGBA(Size, Size, Size, Size),
+  /// Holds a red, green and blue channels in sRGB colorspace.
+  SRGB(Size, Size, Size),
+  /// Holds a red, green and blue channels in sRGB colorspace, plus an alpha channel.
+  SRGBA(Size, Size, Size, Size),
   /// Holds a depth channel.
   Depth(Size),
 }
@@ -116,6 +122,8 @@ impl Format {
       Format::RG(r, g) => r.bits() + g.bits(),
       Format::RGB(r, g, b) => r.bits() + g.bits() + b.bits(),
       Format::RGBA(r, g, b, a) => r.bits() + g.bits() + b.bits() + a.bits(),
+      Format::SRGB(r, g, b) => r.bits() + g.bits() + b.bits(),
+      Format::SRGBA(r, g, b, a) => r.bits() + g.bits() + b.bits() + a.bits(),
       Format::Depth(d) => d.bits(),
     };
 
@@ -947,6 +955,34 @@ impl_Pixel!(
 impl_ColorPixel!(R11G11B10F);
 impl_RenderablePixel!(R11G11B10F);
 
+/// An 8-bit unsigned integral red, green and blue pixel format in sRGB colorspace.
+#[derive(Clone, Copy, Debug)]
+pub struct SRGB8UI;
+
+impl_Pixel!(
+  SRGB8UI,
+  (u8, u8, u8),
+  u8,
+  NormUnsigned,
+  Format::SRGB(Size::Eight, Size::Eight, Size::Eight)
+);
+impl_ColorPixel!(SRGB8UI);
+impl_RenderablePixel!(SRGB8UI);
+
+/// An 8-bit unsigned integral red, green and blue pixel format in sRGB colorspace, with linear alpha channel.
+#[derive(Clone, Copy, Debug)]
+pub struct SRGBA8UI;
+
+impl_Pixel!(
+  SRGBA8UI,
+  (u8, u8, u8, u8),
+  u8,
+  NormUnsigned,
+  Format::SRGBA(Size::Eight, Size::Eight, Size::Eight, Size::Eight)
+);
+impl_ColorPixel!(SRGBA8UI);
+impl_RenderablePixel!(SRGBA8UI);
+
 /// A depth 32-bit floating pixel format.
 #[derive(Clone, Copy, Debug)]
 pub struct Depth32F;
@@ -1125,6 +1161,20 @@ pub(crate) fn opengl_pixel_format(pf: PixelFormat) -> Option<(GLenum, GLenum, GL
       Format::RGBA(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo),
       Type::Floating,
     ) => Some((gl::RGBA, gl::RGBA32F, gl::FLOAT)),
+
+    // sRGB
+    (Format::SRGB(Size::Eight, Size::Eight, Size::Eight), Type::NormUnsigned) => {
+      Some((gl::RGB, gl::SRGB8, gl::UNSIGNED_BYTE))
+    }
+    (Format::SRGB(Size::Eight, Size::Eight, Size::Eight), Type::NormIntegral) => {
+      Some((gl::RGB, gl::SRGB8, gl::BYTE))
+    }
+    (Format::SRGBA(Size::Eight, Size::Eight, Size::Eight, Size::Eight), Type::NormUnsigned) => {
+      Some((gl::RGBA, gl::SRGB8_ALPHA8, gl::UNSIGNED_BYTE))
+    }
+    (Format::SRGBA(Size::Eight, Size::Eight, Size::Eight, Size::Eight), Type::NormIntegral) => {
+      Some((gl::RGBA, gl::SRGB8_ALPHA8, gl::BYTE))
+    }
 
     (Format::Depth(Size::ThirtyTwo), Type::Floating) => {
       Some((gl::DEPTH_COMPONENT, gl::DEPTH_COMPONENT32F, gl::FLOAT))
