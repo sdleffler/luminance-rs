@@ -23,10 +23,10 @@
 **luminance** is an effort to make graphics rendering simple and elegant. It was originally imagined,
 designed and implemented by [@phaazon](https://github.com/phaazon) in Haskell ([here](https://hackage.haskell.org/package/luminance))
 and eventually ported to Rust in 2016. The core concepts remained the same and the crate has been
-slowly evolving ever since. At first used only by @phaazon for his Rust demoscene productions (
+slowly evolving ever since. At first, used only by @phaazon for his Rust demoscene productions (
 example [here](https://github.com/phaazon/celeri-remoulade) and
 [here](https://github.com/phaazon/outline-2017-invitro), using
-[spectra](https://crates.io/crates/spectra)) and a bunch of curious peeps, it has more visibility
+[spectra](https://crates.io/crates/spectra)) and a bunch of curious peeps, it now has more visibility
 among the graphics ecosystem of Rust.
 
 Currently, such an ecosystem is spread into several crates, ideas and people. It is highly
@@ -35,7 +35,7 @@ recommended to read the great article about the ecosystem by @Icefoxen, [here](h
 However, **luminance** is a bit different from what it was initially imagined for. People are
 looking for an easy-to-use crate, with good abstractions and safe-guards against all the _bad_ and
 _dangerous_ graphics API caveats. **luminance** has always been about providing a safe, type-safe
-and elegant API (being Haskell-based makes it heavily use type systems, for instance) but it has
+and elegant API (being Haskell-based makes it heavily use the type system, for instance) but it has
 now a more accurate place in the ecosystem. Where [gfx-hal] provides you with an experience focused
 on down-to-metal performance and an API very similar to [Vulkan]’s, **luminance** provides an API
 that is, for sure, a bit less low-level — and hence, yes, it’s likely you will not have the same
