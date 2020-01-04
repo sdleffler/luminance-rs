@@ -3,6 +3,7 @@
 > Sat Jan 4th 2020
 
 - Support of `luminance-0.38`.
+- Re-export `glutin::MouseButton`.
 
 # 0.6.1
 

@@ -6,10 +6,34 @@
 
 - The `tess::Mode::Patch` variant was added. It was missing, implying that no one could actually
   use tessellation shaders.
+- Add the `PipelineState` type. This type is an evolution over what a `Pipeline` can be customized
+  with. Before `PipelineState`, only the _clear color_ could be set. `PipelineState` encapsulates
+  several other possibilities. If you would like to replace your code from `luminance-0.37` that
+  was using a color before, you can simply use `PipelineState::default().set_clear_color(_)` as
+  a one-liner drop-in alternative.
+- The `RenderState` argument of `RenderGate::render` is now taken by reference.
+- To create a `Framebuffer`, it is now required to pass another argument: a `Sampler`. This mirrors
+  the way textures are created and was asked independently by several people. If you don’t care,
+  just pass `Sampler::default()`.
+
+## Minor changes
+
+- Add support for _sRGB_ framebuffer linearization. This is part of the `PipelineState`.
+- It’s now possible to decide whether _color buffers_ and _depth buffers_ will be cleared when
+  running a pipeline.
+- It’s now possible to override the viewport when running a pipeline. See the documentation of
+  `Viewport`.
 
 ## Patch changes
 
 - Tessellation shaders were created with the wrong internal representation. That’s fixed.
+- Add displacement map example.
+- README.md update.
+- Internal optimization with GPU state tracking.
+- Examples were removed from the `luminance` crate and put into a `luminance-examples` crate.
+  This small changes has been required for a while to prevent a weird cyclic dependency apocalypse
+  when updating to crates.io.
+- Support of `gl-0.14`.
 
 # 0.37.1
 

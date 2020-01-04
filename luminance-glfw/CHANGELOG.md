@@ -3,6 +3,7 @@
 > Sat Jan 4th 2020
 
 - Support of `luminance-0.38`.
+- Support of `glfw-0.34`.
 
 # 0.11
 
