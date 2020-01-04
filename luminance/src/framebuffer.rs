@@ -184,7 +184,7 @@ where
   CS: ColorSlot<L, D>,
   DS: DepthSlot<L, D>,
 {
-  /// Create a new farmebuffer.
+  /// Create a new framebuffer.
   ///
   /// You’re always handed at least the base level of the texture. If you require any *additional*
   /// levels, you can pass the number via the `mipmaps` parameter.

@@ -34,6 +34,7 @@
   This small changes has been required for a while to prevent a weird cyclic dependency apocalypse
   when updating to crates.io.
 - Support of `gl-0.14`.
+- Fix some typo in documentation.
 
 # 0.37.1
 
