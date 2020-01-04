@@ -47,8 +47,8 @@ use crate::metagl::*;
 use crate::pixel::{ColorPixel, DepthPixel, PixelFormat, RenderablePixel};
 use crate::state::{Bind, GraphicsState};
 use crate::texture::{
-  create_texture, opengl_target, Dim2, Dimensionable, Flat, Layerable, RawTexture, Texture,
-  TextureError,
+  create_texture, opengl_target, Dim2, Dimensionable, Flat, Layerable, RawTexture, Sampler,
+  Texture, TextureError,
 };
 
 /// Framebuffer error.
@@ -192,6 +192,7 @@ where
     ctx: &mut C,
     size: D::Size,
     mipmaps: usize,
+    sampler: Sampler,
   ) -> Result<Framebuffer<L, D, CS, DS>, FramebufferError>
   where
     C: GraphicsContext,
@@ -220,7 +221,7 @@ where
       } else {
         for (i, (format, texture)) in color_formats.iter().zip(&textures).enumerate() {
           ctx.state().borrow_mut().bind_texture(target, *texture);
-          create_texture::<L, D>(target, size, mipmaps, *format, Default::default())
+          create_texture::<L, D>(target, size, mipmaps, *format, sampler)
             .map_err(FramebufferError::TextureError)?;
           gl::FramebufferTexture(
             gl::FRAMEBUFFER,

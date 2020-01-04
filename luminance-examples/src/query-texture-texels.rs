@@ -16,7 +16,7 @@ use luminance::pixel::NormRGBA8UI;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, TessBuilder};
-use luminance::texture::{Dim2, Flat};
+use luminance::texture::{Dim2, Flat, Sampler};
 use luminance_derive::Vertex;
 use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowDim, WindowEvent, WindowOpt};
 
@@ -96,7 +96,13 @@ fn main() {
 
   // the back buffer, which we will make our render into (we make it mutable so that we can change
   // it whenever the window dimensions change)
-  let fb = Framebuffer::<Flat, Dim2, NormRGBA8UI, ()>::new(&mut surface, [960, 540], 0).unwrap();
+  let fb = Framebuffer::<Flat, Dim2, NormRGBA8UI, ()>::new(
+    &mut surface,
+    [960, 540],
+    0,
+    Sampler::default(),
+  )
+  .unwrap();
 
   'app: loop {
     // for all the events on the surface
