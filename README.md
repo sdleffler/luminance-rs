@@ -113,6 +113,8 @@ Those projects use luminance:
   released at Revision 2017 in the PC Demo category.
 - [Dali Renderer](https://github.com/austinjones/dali-rs)
   - A rendering library by [@austinjones](https://github.com/austinjones), designed to generate high-resolution digital paintings to be printed on canvas.
+- [Rx](https://rx.cloudhead.io)
+  - A modern and minimalist pixel editor. Rx's GL backend is built on `luminance`.
 
 [luminance]: ./luminance
 [luminance-derive]: ./luminance-derive
