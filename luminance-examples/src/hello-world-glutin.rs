@@ -8,16 +8,14 @@
 //!
 //! https://docs.rs/luminance
 
+use glutin::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
 use luminance::context::GraphicsContext;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, TessBuilder};
 use luminance_derive::{Semantics, Vertex};
-use luminance_glutin::{
-  ElementState, Event, GlutinSurface, KeyboardInput, Surface, VirtualKeyCode, WindowDim,
-  WindowEvent, WindowOpt,
-};
+use luminance_glutin::{GlutinSurface, WindowDim, WindowOpt};
 
 // We get the shader at compile time from local files
 const VS: &'static str = include_str!("simple-vs.glsl");
@@ -238,9 +236,10 @@ fn main() {
   println!("now rendering {:?}", demo);
 
   let mut resized = false;
+  let mut quit_app = false;
   'app: loop {
     // For all the events on the surface.
-    for event in surface.poll_events() {
+    surface.event_loop.poll_events(|event| {
       if let Event::WindowEvent { event, .. } = event {
         match event {
           // If we close the window or press escape, quit the main loop (i.e. quit the application).
@@ -254,7 +253,7 @@ fn main() {
                 ..
               },
             ..
-          } => break 'app,
+          } => quit_app = true,
 
           // If we hit the spacebar, change the kind of tessellation.
           WindowEvent::KeyboardInput {
@@ -278,6 +277,10 @@ fn main() {
           _ => (),
         }
       }
+    });
+
+    if quit_app {
+      break 'app;
     }
 
     if resized {

@@ -1,3 +1,14 @@
+# 0.8
+
+> Mon Jan 6th 2020
+
+## Breaking changes
+
+- Rework the interface to make it easier for people to have access to all the underlying `glutin`
+  types.
+- The `luminance-windowing` interface is now just use as convenience to create a windowed context.
+  The `Surface` trait is not implemented anymore as it’s subject to be deprecated very soon.
+
 # 0.7
 
 > Sat Jan 4th 2020

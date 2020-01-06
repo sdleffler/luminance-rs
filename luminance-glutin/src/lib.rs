@@ -6,28 +6,24 @@
 #![deny(missing_docs)]
 
 use gl;
-pub use glutin::dpi::{LogicalPosition, LogicalSize};
-pub use glutin::{
-  ContextError, CreationError, DeviceEvent, DeviceId, ElementState, Event, KeyboardInput,
-  ModifiersState, MouseButton, MouseScrollDelta, Touch, TouchPhase, VirtualKeyCode, WindowEvent,
-  WindowId,
-};
-pub use luminance_windowing::{CursorMode, Surface, WindowDim, WindowOpt};
-
-use glutin::dpi::PhysicalSize;
+pub use glutin::dpi::PhysicalSize;
 use glutin::{
   Api, ContextBuilder, EventsLoop, GlProfile, GlRequest, PossiblyCurrent, WindowBuilder,
   WindowedContext,
 };
+pub use glutin::{ContextError, CreationError};
 use luminance::context::GraphicsContext;
+use luminance::framebuffer::Framebuffer;
 use luminance::state::{GraphicsState, StateQueryError};
+use luminance::texture::{Dim2, Flat};
+pub use luminance_windowing::{CursorMode, Surface, WindowDim, WindowOpt};
 use std::cell::RefCell;
 use std::os::raw::c_void;
 use std::rc::Rc;
 
 /// Error that might occur when creating a Glutin surface.
 #[derive(Debug)]
-pub enum Error {
+pub enum GlutinError {
   /// Something went wrong when creating the Glutin surface. The carried [`CreationError`] provides
   /// more information.
   CreationError(CreationError),
@@ -37,15 +33,15 @@ pub enum Error {
   GraphicsStateError(StateQueryError),
 }
 
-impl From<CreationError> for Error {
+impl From<CreationError> for GlutinError {
   fn from(e: CreationError) -> Self {
-    Error::CreationError(e)
+    GlutinError::CreationError(e)
   }
 }
 
-impl From<ContextError> for Error {
+impl From<ContextError> for GlutinError {
   fn from(e: ContextError) -> Self {
-    Error::ContextError(e)
+    GlutinError::ContextError(e)
   }
 }
 
@@ -55,12 +51,11 @@ impl From<ContextError> for Error {
 ///
 /// [luminance]: https://crates.io/crates/luminance
 pub struct GlutinSurface {
-  ctx: WindowedContext<PossiblyCurrent>,
-  event_loop: EventsLoop,
+  /// The windowed context.
+  pub ctx: WindowedContext<PossiblyCurrent>,
+  /// Associated events loop.
+  pub event_loop: EventsLoop,
   gfx_state: Rc<RefCell<GraphicsState>>,
-  opts: WindowOpt,
-  // a list of event that has happened
-  event_queue: Vec<Event>,
 }
 
 unsafe impl GraphicsContext for GlutinSurface {
@@ -69,11 +64,9 @@ unsafe impl GraphicsContext for GlutinSurface {
   }
 }
 
-impl Surface for GlutinSurface {
-  type Error = Error;
-  type Event = Event;
-
-  fn new(dim: WindowDim, title: &str, win_opt: WindowOpt) -> Result<Self, Self::Error> {
+impl GlutinSurface {
+  /// Create a new [`GlutinSurface`] from scratch.
+  pub fn new(dim: WindowDim, title: &str, win_opt: WindowOpt) -> Result<Self, GlutinError> {
     let event_loop = EventsLoop::new();
 
     let window_builder = WindowBuilder::new().with_title(title);
@@ -107,61 +100,33 @@ impl Surface for GlutinSurface {
 
     ctx.window().show();
 
-    let gfx_state = GraphicsState::new().map_err(Error::GraphicsStateError)?;
+    let gfx_state = GraphicsState::new().map_err(GlutinError::GraphicsStateError)?;
     let surface = GlutinSurface {
       ctx,
       event_loop,
       gfx_state: Rc::new(RefCell::new(gfx_state)),
-      opts: win_opt,
-      event_queue: Vec::new(),
     };
 
     Ok(surface)
   }
 
-  fn opts(&self) -> &WindowOpt {
-    &self.opts
-  }
-
-  fn set_cursor_mode(&mut self, mode: CursorMode) -> &mut Self {
-    match mode {
-      CursorMode::Visible => self.ctx.window().hide_cursor(false),
-      CursorMode::Invisible | CursorMode::Disabled => self.ctx.window().hide_cursor(true),
-    }
-
-    self.opts = self.opts.set_cursor_mode(mode);
-    self
-  }
-
-  fn set_num_samples<S>(&mut self, _samples: S) -> &mut Self
-  where
-    S: Into<Option<u32>>,
-  {
-    panic!("not supported")
-  }
-
-  fn size(&self) -> [u32; 2] {
+  /// Get the underlying size (in physical pixels) of the surface.
+  ///
+  /// This is equivalent to getting the inner size of the windowed context and converting it to
+  /// a physical size by using the HiDPI factor of the windowed context.
+  pub fn size(&self) -> [u32; 2] {
     let logical = self.ctx.window().get_inner_size().unwrap();
     let (w, h) = PhysicalSize::from_logical(logical, self.ctx.window().get_hidpi_factor()).into();
     [w, h]
   }
 
-  fn wait_events<'a>(&'a mut self) -> Box<dyn Iterator<Item = Self::Event> + 'a> {
-    panic!("not implemented yet")
+  /// Get access to the back buffer.
+  pub fn back_buffer(&mut self) -> Result<Framebuffer<Flat, Dim2, (), ()>, GlutinError> {
+    Ok(Framebuffer::back_buffer(self, self.size()))
   }
 
-  fn poll_events<'a>(&'a mut self) -> Box<dyn Iterator<Item = Self::Event> + 'a> {
-    self.event_queue.clear();
-
-    let queue = &mut self.event_queue;
-    self.event_loop.poll_events(|event| {
-      queue.push(event);
-    });
-
-    Box::new(self.event_queue.iter().cloned())
-  }
-
-  fn swap_buffers(&mut self) {
-    self.ctx.swap_buffers().unwrap();
+  /// Swap the back and front buffers.
+  pub fn swap_buffers(&mut self) {
+    let _ = self.ctx.swap_buffers();
   }
 }
