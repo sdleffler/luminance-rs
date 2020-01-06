@@ -1,3 +1,9 @@
+# 0.8.1
+
+> Mon Jan 6th 2020
+
+- Add `Display` implementation for `GlutinError`.
+
 # 0.8
 
 > Mon Jan 6th 2020

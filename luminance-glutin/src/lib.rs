@@ -18,6 +18,7 @@ use luminance::state::{GraphicsState, StateQueryError};
 use luminance::texture::{Dim2, Flat};
 pub use luminance_windowing::{CursorMode, Surface, WindowDim, WindowOpt};
 use std::cell::RefCell;
+use std::fmt;
 use std::os::raw::c_void;
 use std::rc::Rc;
 
@@ -31,6 +32,18 @@ pub enum GlutinError {
   ContextError(ContextError),
   /// Graphics state error that might occur when querying the initial state.
   GraphicsStateError(StateQueryError),
+}
+
+impl fmt::Display for GlutinError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    match *self {
+      GlutinError::CreationError(ref e) => write!(f, "Glutin surface creation error: {}", e),
+      GlutinError::ContextError(ref e) => write!(f, "Glutin OpenGL context creation error: {}", e),
+      GlutinError::GraphicsStateError(ref e) => {
+        write!(f, "OpenGL graphics state initialization error: {}", e)
+      }
+    }
+  }
 }
 
 impl From<CreationError> for GlutinError {
