@@ -761,18 +761,30 @@ pub enum Type {
   ISampler2D,
   /// Signed integral 3D texture sampler.
   ISampler3D,
+  /// Signed integral 1D array texture sampler.
+  ISampler1DArray,
+  /// Signed integral 2D array texture sampler.
+  ISampler2DArray,
   /// Unsigned integral 1D texture sampler.
   UISampler1D,
   /// Unsigned integral 2D texture sampler.
   UISampler2D,
   /// Unsigned integral 3D texture sampler.
   UISampler3D,
+  /// Unsigned integral 1D array texture sampler.
+  UISampler1DArray,
+  /// Unsigned integral 2D array texture sampler.
+  UISampler2DArray,
   /// Floating-point 1D texture sampler.
   Sampler1D,
   /// Floating-point 2D texture sampler.
   Sampler2D,
   /// Floating-point 3D texture sampler.
   Sampler3D,
+  /// Floating-point 1D array texture sampler.
+  Sampler1DArray,
+  /// Floating-point 2D array texture sampler.
+  Sampler2DArray,
   /// Signed cubemap sampler.
   ICubemap,
   /// Unsigned cubemap sampler.
@@ -810,12 +822,18 @@ impl fmt::Display for Type {
       Type::ISampler1D => f.write_str("isampler1D"),
       Type::ISampler2D => f.write_str("isampler2D"),
       Type::ISampler3D => f.write_str("isampler3D"),
+      Type::ISampler1DArray => f.write_str("isampler1DArray"),
+      Type::ISampler2DArray => f.write_str("isampler2DArray"),
       Type::UISampler1D => f.write_str("usampler1D"),
       Type::UISampler2D => f.write_str("usampler2D"),
       Type::UISampler3D => f.write_str("usampler3D"),
+      Type::UISampler1DArray => f.write_str("usampler1DArray"),
+      Type::UISampler2DArray => f.write_str("usampler2DArray"),
       Type::Sampler1D => f.write_str("sampler1D"),
       Type::Sampler2D => f.write_str("sampler2D"),
       Type::Sampler3D => f.write_str("sampler3D"),
+      Type::Sampler1DArray => f.write_str("sampler1DArray"),
+      Type::Sampler2DArray => f.write_str("sampler2DArray"),
       Type::ICubemap => f.write_str("isamplerCube"),
       Type::UICubemap => f.write_str("usamplerCube"),
       Type::Cubemap => f.write_str("samplerCube"),
@@ -1350,6 +1368,8 @@ fn check_types_match(name: &str, ty: Type, glty: GLuint) -> Result<(), UniformWa
     Type::ISampler1D if glty != gl::INT_SAMPLER_1D => Err(UniformWarning::type_mismatch(name, ty)),
     Type::ISampler2D if glty != gl::INT_SAMPLER_2D => Err(UniformWarning::type_mismatch(name, ty)),
     Type::ISampler3D if glty != gl::INT_SAMPLER_3D => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::ISampler1DArray if glty != gl::INT_SAMPLER_1D_ARRAY => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::ISampler2DArray if glty != gl::INT_SAMPLER_2D_ARRAY => Err(UniformWarning::type_mismatch(name, ty)),
     Type::UISampler1D if glty != gl::UNSIGNED_INT_SAMPLER_1D => {
       Err(UniformWarning::type_mismatch(name, ty))
     }
@@ -1359,9 +1379,17 @@ fn check_types_match(name: &str, ty: Type, glty: GLuint) -> Result<(), UniformWa
     Type::UISampler3D if glty != gl::UNSIGNED_INT_SAMPLER_3D => {
       Err(UniformWarning::type_mismatch(name, ty))
     }
+    Type::UISampler1DArray if glty != gl::UNSIGNED_INT_SAMPLER_1D_ARRAY => {
+      Err(UniformWarning::type_mismatch(name, ty))
+    }
+    Type::UISampler2DArray if glty != gl::UNSIGNED_INT_SAMPLER_2D_ARRAY => {
+      Err(UniformWarning::type_mismatch(name, ty))
+    }
     Type::Sampler1D if glty != gl::SAMPLER_1D => Err(UniformWarning::type_mismatch(name, ty)),
     Type::Sampler2D if glty != gl::SAMPLER_2D => Err(UniformWarning::type_mismatch(name, ty)),
     Type::Sampler3D if glty != gl::SAMPLER_3D => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::Sampler1DArray if glty != gl::SAMPLER_1D_ARRAY => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::Sampler2DArray if glty != gl::SAMPLER_2D_ARRAY => Err(UniformWarning::type_mismatch(name, ty)),
     Type::ICubemap if glty != gl::INT_SAMPLER_CUBE => Err(UniformWarning::type_mismatch(name, ty)),
     Type::UICubemap if glty != gl::UNSIGNED_INT_SAMPLER_CUBE => {
       Err(UniformWarning::type_mismatch(name, ty))
