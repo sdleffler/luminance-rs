@@ -1,3 +1,12 @@
+# 0.5.2
+
+> Tue Jan 7th 2020
+
+- Add `Deref` and `DerefMut` implementors for semantics’ generated variant types. You can now
+  access the underlying (wrapped) repr type.
+- In the case of `Deref` and `DerefMut` not being enough, the underlying field can also be
+  directly accessed (it’s now `pub`).
+
 # 0.5.1
 
 > Sat Jan 4th 2020

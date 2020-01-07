@@ -96,7 +96,22 @@ pub(crate) fn generate_enum_semantics_impl(
           // vertex attrib type
           #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
           pub struct #ty_name {
-            repr: #repr_ty_name
+            pub repr: #repr_ty_name
+          }
+
+          // give access to the underlying field
+          impl std::ops::Deref for #ty_name {
+            type Target = #repr_ty_name;
+
+            fn deref(&self) -> &Self::Target {
+              &self.repr
+            }
+          }
+
+          impl std::ops::DerefMut for #ty_name {
+            fn deref_mut(&mut self) -> &mut Self::Target {
+              &mut self.repr
+            }
           }
 
           // convert from the repr type to the vertex attrib type
