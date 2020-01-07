@@ -828,6 +828,7 @@ where
         // 2D texture
         (Layering::Flat, Dim::Dim2) => {
           create_texture_2d_storage(
+            gl::TEXTURE_2D,
             format,
             iformat,
             encoding,
@@ -841,6 +842,7 @@ where
         // 3D texture
         (Layering::Flat, Dim::Dim3) => {
           create_texture_3d_storage(
+            gl::TEXTURE_3D,
             format,
             iformat,
             encoding,
@@ -926,6 +928,7 @@ fn create_texture_1d_storage(
 }
 
 fn create_texture_2d_storage(
+  target: GLenum,
   format: GLenum,
   iformat: GLenum,
   encoding: GLenum,
@@ -940,7 +943,7 @@ fn create_texture_2d_storage(
 
     unsafe {
       gl::TexImage2D(
-        gl::TEXTURE_2D,
+        target,
         level as GLint,
         iformat as GLint,
         w as GLsizei,
@@ -955,6 +958,7 @@ fn create_texture_2d_storage(
 }
 
 fn create_texture_3d_storage(
+  target: GLenum,
   format: GLenum,
   iformat: GLenum,
   encoding: GLenum,
@@ -971,7 +975,7 @@ fn create_texture_3d_storage(
 
     unsafe {
       gl::TexImage3D(
-        gl::TEXTURE_3D,
+        target,
         level as GLint,
         iformat as GLint,
         w as GLsizei,
