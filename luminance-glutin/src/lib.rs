@@ -8,8 +8,8 @@
 use gl;
 pub use glutin::dpi::PhysicalSize;
 use glutin::{
-  Api, ContextBuilder, EventsLoop, GlProfile, GlRequest, PossiblyCurrent, WindowBuilder,
-  WindowedContext,
+  Api, ContextBuilder, EventsLoop, GlProfile, GlRequest, NotCurrent, PossiblyCurrent,
+  WindowBuilder, WindowedContext,
 };
 pub use glutin::{ContextError, CreationError};
 use luminance::context::GraphicsContext;
@@ -78,6 +78,46 @@ unsafe impl GraphicsContext for GlutinSurface {
 }
 
 impl GlutinSurface {
+  /// Create a new [`GlutinSurface`] by consuming a [`WindowBuilder`].
+  ///
+  /// This is an alternative method to [`new`] that is more flexible as you have access to the
+  /// whole `glutin` types.
+  ///
+  /// `window_builder` is the default object when passed to your closure and `ctx_builder` is
+  /// already initialized for the OpenGL context (you’re not supposed to change it!).
+  pub fn from_builders<WB, CB>(window_builder: WB, ctx_builder: CB) -> Result<Self, GlutinError>
+  where
+    WB: FnOnce(WindowBuilder) -> WindowBuilder,
+    CB: FnOnce(ContextBuilder<NotCurrent>) -> ContextBuilder<NotCurrent>,
+  {
+    let event_loop = EventsLoop::new();
+
+    let window_builder = window_builder(WindowBuilder::new());
+
+    let windowed_ctx = ctx_builder(
+      ContextBuilder::new()
+        .with_gl(GlRequest::Specific(Api::OpenGl, (3, 3)))
+        .with_gl_profile(GlProfile::Core),
+    )
+    .build_windowed(window_builder, &event_loop)?;
+
+    let ctx = unsafe { windowed_ctx.make_current().map_err(|(_, e)| e)? };
+
+    // init OpenGL
+    gl::load_with(|s| ctx.get_proc_address(s) as *const c_void);
+
+    ctx.window().show();
+
+    let gfx_state = GraphicsState::new().map_err(GlutinError::GraphicsStateError)?;
+    let surface = GlutinSurface {
+      ctx,
+      event_loop,
+      gfx_state: Rc::new(RefCell::new(gfx_state)),
+    };
+
+    Ok(surface)
+  }
+
   /// Create a new [`GlutinSurface`] from scratch.
   pub fn new(dim: WindowDim, title: &str, win_opt: WindowOpt) -> Result<Self, GlutinError> {
     let event_loop = EventsLoop::new();
@@ -104,12 +144,6 @@ impl GlutinSurface {
 
     // init OpenGL
     gl::load_with(|s| ctx.get_proc_address(s) as *const c_void);
-
-    match win_opt.cursor_mode() {
-      CursorMode::Visible => ctx.window().hide_cursor(false),
-      // glutin doesn’t support disabled cursors; default to invisible
-      CursorMode::Invisible | CursorMode::Disabled => ctx.window().hide_cursor(true),
-    }
 
     ctx.window().show();
 

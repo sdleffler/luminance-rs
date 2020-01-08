@@ -1,3 +1,10 @@
+# 0.8.2
+
+> Wed Jan 8th 2020
+
+- Add `GlutinSurface::from_builders`. That function can be used to create a new window and OpenGL
+  context by explicitly building those objects in closures.
+
 # 0.8.1
 
 > Mon Jan 6th 2020

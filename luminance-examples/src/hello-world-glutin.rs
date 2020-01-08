@@ -15,7 +15,7 @@ use luminance::render_state::RenderState;
 use luminance::shader::program::Program;
 use luminance::tess::{Mode, TessBuilder};
 use luminance_derive::{Semantics, Vertex};
-use luminance_glutin::{GlutinSurface, WindowDim, WindowOpt};
+use luminance_glutin::GlutinSurface;
 
 // We get the shader at compile time from local files
 const VS: &'static str = include_str!("simple-vs.glsl");
@@ -179,10 +179,15 @@ impl TessMethod {
 
 fn main() {
   // First thing first: we create a new surface to render to and get events from.
-  let mut surface = GlutinSurface::new(
-    WindowDim::Windowed(960, 540),
-    "Hello, world!",
-    WindowOpt::default(),
+  // We use the `GlutinSurface::from_builders` to build a custom window and context
+  // to use.
+  let mut surface = GlutinSurface::from_builders(
+    |win_builder| {
+      win_builder
+        .with_title("Hello, world!")
+        .with_dimensions((960, 540).into())
+    },
+    |ctx_builder| ctx_builder.with_double_buffer(Some(true)),
   )
   .expect("Glutin surface creation");
 
