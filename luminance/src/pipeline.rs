@@ -539,6 +539,18 @@ where
       (PxType::Integral, Dim::Cubemap) => Type::ICubemap,
       (PxType::Unsigned, Dim::Cubemap) => Type::UICubemap,
       (PxType::Floating, Dim::Cubemap) => Type::Cubemap,
+
+      (PxType::NormIntegral, Dim::Dim1Array) => unimplemented!(),
+      (PxType::NormUnsigned, Dim::Dim1Array) => unimplemented!(),
+      (PxType::Integral, Dim::Dim1Array) => unimplemented!(),
+      (PxType::Unsigned, Dim::Dim1Array) => unimplemented!(),
+      (PxType::Floating, Dim::Dim1Array) => unimplemented!(),
+
+      (PxType::NormIntegral, Dim::Dim2Array) => unimplemented!(),
+      (PxType::NormUnsigned, Dim::Dim2Array) => unimplemented!(),
+      (PxType::Integral, Dim::Dim2Array) => unimplemented!(),
+      (PxType::Unsigned, Dim::Dim2Array) => unimplemented!(),
+      (PxType::Floating, Dim::Dim2Array) => unimplemented!(),
     }
   }
 }
