@@ -14,10 +14,10 @@
 //!
 //! Those combinations are encoded by several types. First of all, `Texture<L, D, P>` is the
 //! polymorphic type used to represent textures. The `L` type variable is the *layering type* of
-//! the texture. It can either be `Flat` or `Layered`. The `D` type variable is the dimension of the
-//! texture. It can either be `Dim1`, `Dim2`, `Dim3`, `Cubemap`, `Dim1Array` or `Dim2Array`.
-//! Finally, the `P` type variable is the pixel format the texture follows. See the `pixel` module
-//! for further details about pixel formats.
+//! the texture. It can either be `Flat`. The `D` type variable is the dimension of the texture. It
+//! can either be `Dim1`, `Dim2`, `Dim3`, `Cubemap`, `Dim1Array` or `Dim2Array`.  Finally, the `P`
+//! type variable is the pixel format the texture follows. See the `pixel` module for further
+//! details about pixel formats.
 //!
 //! Additionally, all textures have between 0 or several *mipmaps*. Mipmaps are additional layers of
 //! texels used to perform trilinear filtering in most applications. Those are low-definition images
@@ -495,8 +495,6 @@ pub trait Layerable {
 pub enum Layering {
   /// Non-layered.
   Flat,
-  /// Layered.
-  Layered,
 }
 
 /// Flat texture hint.
@@ -508,19 +506,6 @@ pub struct Flat;
 impl Layerable for Flat {
   fn layering() -> Layering {
     Layering::Flat
-  }
-}
-
-/// Layered texture hint.
-///
-/// A layered texture has an extra coordinate to access the layer and can be thought of as an array
-/// of textures.
-#[derive(Clone, Copy, Debug)]
-pub struct Layered;
-
-impl Layerable for Layered {
-  fn layering() -> Layering {
-    Layering::Layered
   }
 }
 
@@ -864,7 +849,6 @@ pub(crate) fn opengl_target(l: Layering, d: Dim) -> GLenum {
       Dim::Dim1Array => gl::TEXTURE_1D_ARRAY,
       Dim::Dim2Array => gl::TEXTURE_2D_ARRAY,
     },
-    Layering::Layered => unimplemented!(),
   }
 }
 
@@ -966,27 +950,6 @@ where
             mipmaps,
           );
           Ok(())
-        }
-
-        _ => {
-          #[cfg(feature = "std")]
-          {
-            Err(TextureError::TextureStorageCreationFailed(format!(
-              "unsupported texture OpenGL pixel format: {:?}",
-              glf
-            )))
-          }
-
-          #[cfg(not(feature = "std"))]
-          {
-            let mut reason = String::new();
-            let _ = write!(
-              &mut reason,
-              "unsupported texture OpenGL pixel format: {:?}",
-              glf
-            );
-            Err(TextureError::TextureStorageCreationFailed(reason))
-          }
         }
       }
     }
@@ -1344,8 +1307,6 @@ where
           )
         },
       },
-
-      Layering::Layered => unimplemented!("Layering::Layered not implemented yet"),
     },
 
     None => return Err(TextureError::UnsupportedPixelFormat(pf)),
