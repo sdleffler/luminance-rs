@@ -95,7 +95,7 @@ It is currently composed of four different crates:
     including tutorials and onboarding newcomers. It will not provide you with the best description
     of a given feature as it focuses more on the overall comprehension and explaining than code
     directly. It also fits people who don’t know anything about rendering.
-  - The [examples](luminance/examples/README.md). They are like unit tests: each introduces and
+  - The [examples](luminance-examples/README.md). They are like unit tests: each introduces and
     focuses on a very specific aspect or feature. You should read them if you are interested in
     a specific feature. They’re not well suited to learn from scratch and they are weaker than a
     structured tutorial but more concise.
