@@ -8,7 +8,11 @@
 //!
 //! https://docs.rs/luminance
 
-use glutin::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent};
+use glutin::{
+  dpi::PhysicalSize,
+  event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
+  event_loop::ControlFlow,
+};
 use luminance::context::GraphicsContext;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
@@ -181,11 +185,11 @@ fn main() {
   // First thing first: we create a new surface to render to and get events from.
   // We use the `GlutinSurface::from_builders` to build a custom window and context
   // to use.
-  let mut surface = GlutinSurface::from_builders(
+  let (mut surface, event_loop) = GlutinSurface::from_builders(
     |win_builder| {
       win_builder
         .with_title("Hello, world!")
-        .with_dimensions((960, 540).into())
+        .with_inner_size(PhysicalSize::new(960, 540))
     },
     |ctx_builder| ctx_builder.with_double_buffer(Some(true)),
   )
@@ -240,87 +244,77 @@ fn main() {
   let mut demo = TessMethod::Direct;
   println!("now rendering {:?}", demo);
 
-  let mut resized = false;
-  let mut quit_app = false;
-  'app: loop {
-    // For all the events on the surface.
-    surface.event_loop.poll_events(|event| {
-      if let Event::WindowEvent { event, .. } = event {
-        match event {
-          // If we close the window or press escape, quit the main loop (i.e. quit the application).
-          WindowEvent::CloseRequested
-          | WindowEvent::Destroyed
-          | WindowEvent::KeyboardInput {
-            input:
-              KeyboardInput {
-                state: ElementState::Released,
-                virtual_keycode: Some(VirtualKeyCode::Escape),
-                ..
-              },
-            ..
-          } => quit_app = true,
+  event_loop.run(move |event, _, control_flow| {
+    *control_flow = ControlFlow::Poll;
 
-          // If we hit the spacebar, change the kind of tessellation.
-          WindowEvent::KeyboardInput {
-            input:
-              KeyboardInput {
-                state: ElementState::Released,
-                virtual_keycode: Some(VirtualKeyCode::Space),
-                ..
-              },
-            ..
-          } => {
-            demo = demo.toggle();
-            println!("now rendering {:?}", demo);
-          }
-
-          // Handle window resizing.
-          WindowEvent::Resized(_) | WindowEvent::HiDpiFactorChanged(_) => {
-            resized = true;
-          }
-
-          _ => (),
+    match event {
+      Event::WindowEvent { event, .. } => match event {
+        // If we hit the spacebar, change the kind of tessellation.
+        WindowEvent::KeyboardInput {
+          input:
+            KeyboardInput {
+              state: ElementState::Released,
+              virtual_keycode: Some(VirtualKeyCode::Space),
+              ..
+            },
+          ..
+        } => {
+          demo = demo.toggle();
+          println!("now rendering {:?}", demo);
         }
-      }
-    });
-
-    if quit_app {
-      break 'app;
-    }
-
-    if resized {
-      // Simply ask another backbuffer at the right dimension (no allocation / reallocation).
-      back_buffer = surface.back_buffer().unwrap();
-      resized = false;
-    }
-
-    // Create a new dynamic pipeline that will render to the back buffer and must clear it with
-    // pitch black prior to do any render to it.
-    surface.pipeline_builder().pipeline(
-      &back_buffer,
-      &PipelineState::default(),
-      |_, mut shd_gate| {
-        // Start shading with our program.
-        shd_gate.shade(&program, |_, mut rdr_gate| {
-          // Start rendering things with the default render state provided by luminance.
-          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-            // Pick the right tessellation to use depending on the mode chosen.
-            let tess = match demo {
-              TessMethod::Direct => &direct_triangles,
-              TessMethod::Indexed => &indexed_triangles,
-              TessMethod::DirectDeinterleaved => &direct_deinterleaved_triangles,
-              TessMethod::IndexedDeinterleaved => &indexed_deinterleaved_triangles,
-            };
-
-            // Render the tessellation to the surface.
-            tess_gate.render(tess);
-          });
-        });
+        // Handle window resizing.
+        WindowEvent::Resized(_) | WindowEvent::ScaleFactorChanged { .. } => {
+          back_buffer = surface.back_buffer().unwrap();
+        }
+        WindowEvent::CloseRequested
+        | WindowEvent::Destroyed
+        | WindowEvent::KeyboardInput {
+          input:
+            KeyboardInput {
+              state: ElementState::Released,
+              virtual_keycode: Some(VirtualKeyCode::Escape),
+              ..
+            },
+          ..
+        } => {
+          *control_flow = ControlFlow::Exit;
+        }
+        _ => {}
       },
-    );
+      Event::MainEventsCleared => {
+        surface.ctx.window().request_redraw();
+      }
+      Event::RedrawRequested(_) => {
+        // Create a new dynamic pipeline that will render to the back buffer and must clear it with
+        // pitch black prior to do any render to it.
+        surface.pipeline_builder().pipeline(
+          &back_buffer,
+          &PipelineState::default(),
+          |_, mut shd_gate| {
+            // Start shading with our program.
+            shd_gate.shade(&program, |_, mut rdr_gate| {
+              // Start rendering things with the default render state provided by luminance.
+              rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+                // Pick the right tessellation to use depending on the mode chosen.
+                let tess = match demo {
+                  TessMethod::Direct => &direct_triangles,
+                  TessMethod::Indexed => &indexed_triangles,
+                  TessMethod::DirectDeinterleaved => &direct_deinterleaved_triangles,
+                  TessMethod::IndexedDeinterleaved => &indexed_deinterleaved_triangles,
+                };
 
-    // Finally, swap the backbuffer with the frontbuffer in order to render our triangles onto your
-    // screen.
-    surface.swap_buffers();
-  }
+                // Render the tessellation to the surface.
+                tess_gate.render(tess);
+              });
+            });
+          },
+        );
+
+        // Finally, swap the backbuffer with the frontbuffer in order to render our triangles onto your
+        // screen.
+        surface.swap_buffers();
+      }
+      _ => {}
+    };
+  });
 }
