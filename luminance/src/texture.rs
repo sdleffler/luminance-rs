@@ -14,10 +14,10 @@
 //!
 //! Those combinations are encoded by several types. First of all, `Texture<L, D, P>` is the
 //! polymorphic type used to represent textures. The `L` type variable is the *layering type* of
-//! the texture. It can either be `Flat` or `Layered`. The `D` type variable is the dimension of the
-//! texture. It can either be `Dim1`, `Dim2`, `Dim3` or `Cubemap`. Finally, the `P` type variable
-//! is the pixel format the texture follows. See the `pixel` module for further details about pixel
-//! formats.
+//! the texture. It can either be `Flat`. The `D` type variable is the dimension of the texture. It
+//! can either be `Dim1`, `Dim2`, `Dim3`, `Cubemap`, `Dim1Array` or `Dim2Array`.  Finally, the `P`
+//! type variable is the pixel format the texture follows. See the `pixel` module for further
+//! details about pixel formats.
 //!
 //! Additionally, all textures have between 0 or several *mipmaps*. Mipmaps are additional layers of
 //! texels used to perform trilinear filtering in most applications. Those are low-definition images
@@ -227,6 +227,10 @@ pub enum Dim {
   Dim3,
   /// Cubemap (i.e. a cube defining 6 faces — akin to 4D).
   Cubemap,
+  /// 1D array.
+  Dim1Array,
+  /// 2D array.
+  Dim2Array,
 }
 
 /// 1D dimension.
@@ -402,6 +406,84 @@ pub enum CubeFace {
   NegativeZ,
 }
 
+/// 1D array dimension.
+#[derive(Clone, Copy, Debug)]
+pub struct Dim1Array;
+
+impl Dimensionable for Dim1Array {
+  type Offset = (u32, u32);
+  type Size = (u32, u32);
+
+  const ZERO_OFFSET: Self::Offset = (0, 0);
+
+  fn dim() -> Dim {
+    Dim::Dim1Array
+  }
+
+  fn width(size: Self::Size) -> u32 {
+    size.0
+  }
+
+  fn height(size: Self::Size) -> u32 {
+    size.1
+  }
+
+  fn x_offset(off: Self::Offset) -> u32 {
+    off.0
+  }
+
+  fn y_offset(off: Self::Offset) -> u32 {
+    off.1
+  }
+
+  fn count((width, layer): Self::Size) -> usize {
+    width as usize * layer as usize
+  }
+}
+
+/// 3D dimension.
+#[derive(Clone, Copy, Debug)]
+pub struct Dim2Array;
+
+impl Dimensionable for Dim2Array {
+  type Offset = ([u32; 2], u32);
+  type Size = ([u32; 2], u32);
+
+  const ZERO_OFFSET: Self::Offset = ([0, 0], 0);
+
+  fn dim() -> Dim {
+    Dim::Dim2Array
+  }
+
+  fn width(size: Self::Size) -> u32 {
+    size.0[0]
+  }
+
+  fn height(size: Self::Size) -> u32 {
+    size.0[1]
+  }
+
+  fn depth(size: Self::Size) -> u32 {
+    size.1
+  }
+
+  fn x_offset(off: Self::Offset) -> u32 {
+    off.0[0]
+  }
+
+  fn y_offset(off: Self::Offset) -> u32 {
+    off.0[1]
+  }
+
+  fn z_offset(off: Self::Offset) -> u32 {
+    off.1
+  }
+
+  fn count(([width, height], layer): Self::Size) -> usize {
+    width as usize * height as usize * layer as usize
+  }
+}
+
 /// Trait used to reify a type into a `Layering`.
 pub trait Layerable {
   /// Reify to `Layering`.
@@ -413,8 +495,6 @@ pub trait Layerable {
 pub enum Layering {
   /// Non-layered.
   Flat,
-  /// Layered.
-  Layered,
 }
 
 /// Flat texture hint.
@@ -426,19 +506,6 @@ pub struct Flat;
 impl Layerable for Flat {
   fn layering() -> Layering {
     Layering::Flat
-  }
-}
-
-/// Layered texture hint.
-///
-/// A layered texture has an extra coordinate to access the layer and can be thought of as an array
-/// of textures.
-#[derive(Clone, Copy, Debug)]
-pub struct Layered;
-
-impl Layerable for Layered {
-  fn layering() -> Layering {
-    Layering::Layered
   }
 }
 
@@ -779,12 +846,8 @@ pub(crate) fn opengl_target(l: Layering, d: Dim) -> GLenum {
       Dim::Dim2 => gl::TEXTURE_2D,
       Dim::Dim3 => gl::TEXTURE_3D,
       Dim::Cubemap => gl::TEXTURE_CUBE_MAP,
-    },
-    Layering::Layered => match d {
-      Dim::Dim1 => gl::TEXTURE_1D_ARRAY,
-      Dim::Dim2 => gl::TEXTURE_2D_ARRAY,
-      Dim::Dim3 => unimplemented!("3D textures array not supported"),
-      Dim::Cubemap => gl::TEXTURE_CUBE_MAP_ARRAY,
+      Dim::Dim1Array => gl::TEXTURE_1D_ARRAY,
+      Dim::Dim2Array => gl::TEXTURE_2D_ARRAY,
     },
   }
 }
@@ -828,6 +891,7 @@ where
         // 2D texture
         (Layering::Flat, Dim::Dim2) => {
           create_texture_2d_storage(
+            gl::TEXTURE_2D,
             format,
             iformat,
             encoding,
@@ -841,6 +905,7 @@ where
         // 3D texture
         (Layering::Flat, Dim::Dim3) => {
           create_texture_3d_storage(
+            gl::TEXTURE_3D,
             format,
             iformat,
             encoding,
@@ -858,25 +923,33 @@ where
           Ok(())
         }
 
-        _ => {
-          #[cfg(feature = "std")]
-          {
-            Err(TextureError::TextureStorageCreationFailed(format!(
-              "unsupported texture OpenGL pixel format: {:?}",
-              glf
-            )))
-          }
+        // 1D array texture
+        (Layering::Flat, Dim::Dim1Array) => {
+          create_texture_2d_storage(
+            gl::TEXTURE_1D_ARRAY,
+            format,
+            iformat,
+            encoding,
+            D::width(size),
+            D::height(size),
+            mipmaps,
+          );
+          Ok(())
+        }
 
-          #[cfg(not(feature = "std"))]
-          {
-            let mut reason = String::new();
-            let _ = write!(
-              &mut reason,
-              "unsupported texture OpenGL pixel format: {:?}",
-              glf
-            );
-            Err(TextureError::TextureStorageCreationFailed(reason))
-          }
+        // 2D array texture
+        (Layering::Flat, Dim::Dim2Array) => {
+          create_texture_3d_storage(
+            gl::TEXTURE_2D_ARRAY,
+            format,
+            iformat,
+            encoding,
+            D::width(size),
+            D::height(size),
+            D::depth(size),
+            mipmaps,
+          );
+          Ok(())
         }
       }
     }
@@ -926,6 +999,7 @@ fn create_texture_1d_storage(
 }
 
 fn create_texture_2d_storage(
+  target: GLenum,
   format: GLenum,
   iformat: GLenum,
   encoding: GLenum,
@@ -940,7 +1014,7 @@ fn create_texture_2d_storage(
 
     unsafe {
       gl::TexImage2D(
-        gl::TEXTURE_2D,
+        target,
         level as GLint,
         iformat as GLint,
         w as GLsizei,
@@ -955,6 +1029,7 @@ fn create_texture_2d_storage(
 }
 
 fn create_texture_3d_storage(
+  target: GLenum,
   format: GLenum,
   iformat: GLenum,
   encoding: GLenum,
@@ -971,7 +1046,7 @@ fn create_texture_3d_storage(
 
     unsafe {
       gl::TexImage3D(
-        gl::TEXTURE_3D,
+        target,
         level as GLint,
         iformat as GLint,
         w as GLsizei,
@@ -1201,9 +1276,37 @@ where
             texels.as_ptr() as *const c_void,
           )
         },
-      },
 
-      Layering::Layered => unimplemented!("Layering::Layered not implemented yet"),
+        Dim::Dim1Array => unsafe {
+          gl::TexSubImage2D(
+            target,
+            0,
+            D::x_offset(off) as GLint,
+            D::y_offset(off) as GLint,
+            D::width(size) as GLsizei,
+            D::height(size) as GLsizei,
+            format,
+            encoding,
+            texels.as_ptr() as *const c_void,
+          )
+        },
+
+        Dim::Dim2Array => unsafe {
+          gl::TexSubImage3D(
+            target,
+            0,
+            D::x_offset(off) as GLint,
+            D::y_offset(off) as GLint,
+            D::z_offset(off) as GLint,
+            D::width(size) as GLsizei,
+            D::height(size) as GLsizei,
+            D::depth(size) as GLsizei,
+            format,
+            encoding,
+            texels.as_ptr() as *const c_void,
+          )
+        },
+      },
     },
 
     None => return Err(TextureError::UnsupportedPixelFormat(pf)),

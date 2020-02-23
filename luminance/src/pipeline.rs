@@ -539,6 +539,18 @@ where
       (PxType::Integral, Dim::Cubemap) => Type::ICubemap,
       (PxType::Unsigned, Dim::Cubemap) => Type::UICubemap,
       (PxType::Floating, Dim::Cubemap) => Type::Cubemap,
+
+      (PxType::NormIntegral, Dim::Dim1Array) => Type::Sampler1DArray,
+      (PxType::NormUnsigned, Dim::Dim1Array) => Type::Sampler1DArray,
+      (PxType::Integral, Dim::Dim1Array) => Type::ISampler1DArray,
+      (PxType::Unsigned, Dim::Dim1Array) => Type::UISampler1DArray,
+      (PxType::Floating, Dim::Dim1Array) => Type::Sampler1DArray,
+
+      (PxType::NormIntegral, Dim::Dim2Array) => Type::Sampler2DArray,
+      (PxType::NormUnsigned, Dim::Dim2Array) => Type::Sampler2DArray,
+      (PxType::Integral, Dim::Dim2Array) => Type::ISampler2DArray,
+      (PxType::Unsigned, Dim::Dim2Array) => Type::UISampler2DArray,
+      (PxType::Floating, Dim::Dim2Array) => Type::Sampler2DArray,
     }
   }
 }
