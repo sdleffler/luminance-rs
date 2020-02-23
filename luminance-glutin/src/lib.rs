@@ -6,17 +6,20 @@
 #![deny(missing_docs)]
 
 use gl;
-pub use glutin::dpi::PhysicalSize;
+pub use glutin;
 use glutin::{
-  Api, ContextBuilder, EventsLoop, GlProfile, GlRequest, NotCurrent, PossiblyCurrent,
-  WindowBuilder, WindowedContext,
+  event_loop::EventLoop,
+  window::WindowBuilder,
+  Api, ContextBuilder, ContextError, CreationError, GlProfile, GlRequest, NotCurrent,
+  PossiblyCurrent, WindowedContext,
 };
-pub use glutin::{ContextError, CreationError};
+
 use luminance::context::GraphicsContext;
 use luminance::framebuffer::Framebuffer;
 use luminance::state::{GraphicsState, StateQueryError};
 use luminance::texture::{Dim2, Flat};
 pub use luminance_windowing::{CursorMode, Surface, WindowDim, WindowOpt};
+
 use std::cell::RefCell;
 use std::fmt;
 use std::os::raw::c_void;
@@ -66,8 +69,6 @@ impl From<ContextError> for GlutinError {
 pub struct GlutinSurface {
   /// The windowed context.
   pub ctx: WindowedContext<PossiblyCurrent>,
-  /// Associated events loop.
-  pub event_loop: EventsLoop,
   gfx_state: Rc<RefCell<GraphicsState>>,
 }
 
@@ -85,12 +86,12 @@ impl GlutinSurface {
   ///
   /// `window_builder` is the default object when passed to your closure and `ctx_builder` is
   /// already initialized for the OpenGL context (you’re not supposed to change it!).
-  pub fn from_builders<WB, CB>(window_builder: WB, ctx_builder: CB) -> Result<Self, GlutinError>
+  pub fn from_builders<WB, CB>(window_builder: WB, ctx_builder: CB) -> Result<(Self, EventLoop<()>), GlutinError>
   where
     WB: FnOnce(WindowBuilder) -> WindowBuilder,
     CB: FnOnce(ContextBuilder<NotCurrent>) -> ContextBuilder<NotCurrent>,
   {
-    let event_loop = EventsLoop::new();
+    let event_loop = EventLoop::new();
 
     let window_builder = window_builder(WindowBuilder::new());
 
@@ -106,37 +107,25 @@ impl GlutinSurface {
     // init OpenGL
     gl::load_with(|s| ctx.get_proc_address(s) as *const c_void);
 
-    ctx.window().show();
+    ctx.window().set_visible(true);
 
     let gfx_state = GraphicsState::new().map_err(GlutinError::GraphicsStateError)?;
     let surface = GlutinSurface {
       ctx,
-      event_loop,
       gfx_state: Rc::new(RefCell::new(gfx_state)),
     };
 
-    Ok(surface)
+    Ok((surface, event_loop))
   }
 
   /// Create a new [`GlutinSurface`] from scratch.
-  pub fn new(dim: WindowDim, title: &str, win_opt: WindowOpt) -> Result<Self, GlutinError> {
-    let event_loop = EventsLoop::new();
-
-    let window_builder = WindowBuilder::new().with_title(title);
-    let window_builder = match dim {
-      WindowDim::Windowed(w, h) => window_builder.with_dimensions((w, h).into()),
-      WindowDim::Fullscreen => {
-        window_builder.with_fullscreen(Some(event_loop.get_primary_monitor()))
-      }
-      WindowDim::FullscreenRestricted(w, h) => window_builder
-        .with_dimensions((w, h).into())
-        .with_fullscreen(Some(event_loop.get_primary_monitor())),
-    };
+  pub fn new(window_builder: WindowBuilder, samples: u16) -> Result<(Self, EventLoop<()>), GlutinError> {
+    let event_loop = EventLoop::new();
 
     let windowed_ctx = ContextBuilder::new()
       .with_gl(GlRequest::Specific(Api::OpenGl, (3, 3)))
       .with_gl_profile(GlProfile::Core)
-      .with_multisampling(win_opt.num_samples().unwrap_or(0) as u16)
+      .with_multisampling(samples)
       .with_double_buffer(Some(true))
       .build_windowed(window_builder, &event_loop)?;
 
@@ -145,16 +134,15 @@ impl GlutinSurface {
     // init OpenGL
     gl::load_with(|s| ctx.get_proc_address(s) as *const c_void);
 
-    ctx.window().show();
+    ctx.window().set_visible(true);
 
     let gfx_state = GraphicsState::new().map_err(GlutinError::GraphicsStateError)?;
     let surface = GlutinSurface {
       ctx,
-      event_loop,
       gfx_state: Rc::new(RefCell::new(gfx_state)),
     };
 
-    Ok(surface)
+    Ok((surface, event_loop))
   }
 
   /// Get the underlying size (in physical pixels) of the surface.
@@ -162,9 +150,8 @@ impl GlutinSurface {
   /// This is equivalent to getting the inner size of the windowed context and converting it to
   /// a physical size by using the HiDPI factor of the windowed context.
   pub fn size(&self) -> [u32; 2] {
-    let logical = self.ctx.window().get_inner_size().unwrap();
-    let (w, h) = PhysicalSize::from_logical(logical, self.ctx.window().get_hidpi_factor()).into();
-    [w, h]
+    let size = self.ctx.window().inner_size();
+    [size.width, size.height]
   }
 
   /// Get access to the back buffer.
