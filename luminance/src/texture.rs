@@ -618,7 +618,7 @@ where
   {
     let mipmaps = mipmaps + 1; // + 1 prevent having 0 mipmaps
     let mut texture = 0;
-    let target = opengl_target(L::layering(), D::dim());
+    let target = opengl_target(D::dim());
 
     unsafe {
       gl::GenTextures(1, &mut texture);
@@ -839,16 +839,14 @@ pub enum GenMipmaps {
   No,
 }
 
-pub(crate) fn opengl_target(l: Layering, d: Dim) -> GLenum {
-  match l {
-    Layering::Flat => match d {
-      Dim::Dim1 => gl::TEXTURE_1D,
-      Dim::Dim2 => gl::TEXTURE_2D,
-      Dim::Dim3 => gl::TEXTURE_3D,
-      Dim::Cubemap => gl::TEXTURE_CUBE_MAP,
-      Dim::Dim1Array => gl::TEXTURE_1D_ARRAY,
-      Dim::Dim2Array => gl::TEXTURE_2D_ARRAY,
-    },
+pub(crate) fn opengl_target(d: Dim) -> GLenum {
+  match d {
+    Dim::Dim1 => gl::TEXTURE_1D,
+    Dim::Dim2 => gl::TEXTURE_2D,
+    Dim::Dim3 => gl::TEXTURE_3D,
+    Dim::Cubemap => gl::TEXTURE_CUBE_MAP,
+    Dim::Dim1Array => gl::TEXTURE_1D_ARRAY,
+    Dim::Dim2Array => gl::TEXTURE_2D_ARRAY,
   }
 }
 

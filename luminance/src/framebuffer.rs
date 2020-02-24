@@ -201,7 +201,7 @@ where
     let mut handle: GLuint = 0;
     let color_formats = CS::color_formats();
     let depth_format = DS::depth_format();
-    let target = opengl_target(L::layering(), D::dim());
+    let target = opengl_target(D::dim());
     let mut textures = vec![0; color_formats.len() + if depth_format.is_some() { 1 } else { 0 }];
     let mut depth_texture: Option<GLuint> = None;
     let mut depth_renderbuffer: Option<GLuint> = None;
@@ -445,7 +445,7 @@ where
       let raw = RawTexture::new(
         ctx.state().clone(),
         color_texture,
-        opengl_target(L::layering(), D::dim()),
+        opengl_target(D::dim()),
       );
       Texture::from_raw(raw, size, mipmaps)
     }
@@ -570,7 +570,7 @@ where
       let raw = RawTexture::new(
         ctx.state().clone(),
         texture.into().unwrap(),
-        opengl_target(L::layering(), D::dim()),
+        opengl_target(D::dim()),
       );
       Texture::from_raw(raw, size, mipmaps)
     }
