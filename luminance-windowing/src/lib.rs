@@ -30,7 +30,7 @@
 
 use luminance::context::GraphicsContext;
 use luminance::framebuffer::Framebuffer;
-use luminance::texture::{Dim2, Flat};
+use luminance::texture::Dim2;
 
 /// Dimension metrics.
 ///
@@ -178,7 +178,7 @@ pub trait Surface: GraphicsContext + Sized {
   fn swap_buffers(&mut self);
 
   /// Get access to the back buffer.
-  fn back_buffer(&mut self) -> Result<Framebuffer<Flat, Dim2, (), ()>, Self::Error> {
+  fn back_buffer(&mut self) -> Result<Framebuffer<Dim2, (), ()>, Self::Error> {
     Ok(Framebuffer::back_buffer(self, self.size()))
   }
 }
