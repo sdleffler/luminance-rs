@@ -15,7 +15,7 @@ use luminance::pixel::{Floating, RGBA32F};
 use luminance::render_state::RenderState;
 use luminance::shader::program::{BuiltProgram, Program, Uniform};
 use luminance::tess::{Mode, TessBuilder};
-use luminance::texture::{Dim2, Flat, Sampler};
+use luminance::texture::{Dim2, Sampler};
 use luminance_derive::UniformInterface;
 use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowDim, WindowEvent, WindowOpt};
 
@@ -49,7 +49,7 @@ const TRI_VERTICES: [Vertex; 3] = [
 struct ShaderInterface {
   // we only need the source texture (from the framebuffer) to fetch from
   #[uniform(unbound, name = "source_texture")]
-  texture: Uniform<&'static BoundTexture<'static, Flat, Dim2, Floating>>,
+  texture: Uniform<&'static BoundTexture<'static, Dim2, Floating>>,
 }
 
 fn main() {
@@ -91,7 +91,7 @@ fn main() {
   // offscreen buffer that we will render in the first place
   let size = surface.size();
   let mut offscreen_buffer =
-    Framebuffer::<Flat, Dim2, RGBA32F, ()>::new(&mut surface, size, 0, Sampler::default())
+    Framebuffer::<Dim2, RGBA32F, ()>::new(&mut surface, size, 0, Sampler::default())
       .expect("framebuffer creation");
 
   // hack to update the offscreen buffer if needed; this is needed because we cannot update the

@@ -22,7 +22,7 @@ use luminance::pixel::{NormRGB8UI, NormUnsigned};
 use luminance::render_state::RenderState;
 use luminance::shader::program::{Program, Uniform};
 use luminance::tess::{Mode, TessBuilder};
-use luminance::texture::{Dim2, Flat, GenMipmaps, Sampler, Texture};
+use luminance::texture::{Dim2, GenMipmaps, Sampler, Texture};
 use luminance_derive::UniformInterface;
 use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowDim, WindowEvent, WindowOpt};
 use std::env;
@@ -33,9 +33,9 @@ const FS: &str = include_str!("./displacement-map-resources/displacement-map-fs.
 
 #[derive(UniformInterface)]
 struct ShaderInterface {
-  image: Uniform<&'static BoundTexture<'static, Flat, Dim2, NormUnsigned>>,
-  displacement_map_1: Uniform<&'static BoundTexture<'static, Flat, Dim2, NormUnsigned>>,
-  displacement_map_2: Uniform<&'static BoundTexture<'static, Flat, Dim2, NormUnsigned>>,
+  image: Uniform<&'static BoundTexture<'static, Dim2, NormUnsigned>>,
+  displacement_map_1: Uniform<&'static BoundTexture<'static, Dim2, NormUnsigned>>,
+  displacement_map_2: Uniform<&'static BoundTexture<'static, Dim2, NormUnsigned>>,
   displacement_scale: Uniform<f32>,
   time: Uniform<f32>,
   window_dimensions: Uniform<[f32; 2]>,
@@ -75,13 +75,13 @@ fn main() {
 
   let texels = texture_image.into_raw();
   let tex =
-    Texture::<Flat, Dim2, NormRGB8UI>::new(&mut surface, [width, height], 0, Sampler::default())
+    Texture::<Dim2, NormRGB8UI>::new(&mut surface, [width, height], 0, Sampler::default())
       .expect("Could not create luminance texture");
   tex.upload_raw(GenMipmaps::No, &texels).unwrap();
 
   let texels = displacement_map_1.into_raw();
   let displacement_tex_1 =
-    Texture::<Flat, Dim2, NormRGB8UI>::new(&mut surface, [128, 128], 0, Sampler::default())
+    Texture::<Dim2, NormRGB8UI>::new(&mut surface, [128, 128], 0, Sampler::default())
       .expect("Could not create luminance texture");
   displacement_tex_1
     .upload_raw(GenMipmaps::No, &texels)
@@ -89,7 +89,7 @@ fn main() {
 
   let texels = displacement_map_2.into_raw();
   let displacement_tex_2 =
-    Texture::<Flat, Dim2, NormRGB8UI>::new(&mut surface, [101, 101], 0, Sampler::default())
+    Texture::<Dim2, NormRGB8UI>::new(&mut surface, [101, 101], 0, Sampler::default())
       .expect("Could not create luminance texture");
   displacement_tex_2
     .upload_raw(GenMipmaps::No, &texels)
