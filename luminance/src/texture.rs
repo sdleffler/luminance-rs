@@ -483,31 +483,6 @@ impl Dimensionable for Dim2Array {
   }
 }
 
-/// Trait used to reify a type into a `Layering`.
-pub trait Layerable {
-  /// Reify to `Layering`.
-  fn layering() -> Layering;
-}
-
-/// Texture layering. If a texture is layered, it has an extra coordinate to access the layer.
-#[derive(Clone, Copy, Debug)]
-pub enum Layering {
-  /// Non-layered.
-  Flat,
-}
-
-/// Flat texture hint.
-///
-/// A flat texture means it doesn’t have the concept of layers.
-#[derive(Clone, Copy, Debug)]
-pub struct Flat;
-
-impl Layerable for Flat {
-  fn layering() -> Layering {
-    Layering::Flat
-  }
-}
-
 /// Raw buffer. Any buffer can be converted to that type. However, keep in mind that even though
 /// type erasure is safe, creating a buffer from a raw buffer is not.
 pub struct RawTexture {
