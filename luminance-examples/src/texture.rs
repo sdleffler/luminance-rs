@@ -18,7 +18,7 @@ use luminance::pixel::{NormRGB8UI, NormUnsigned};
 use luminance::render_state::RenderState;
 use luminance::shader::program::{Program, Uniform};
 use luminance::tess::{Mode, TessBuilder};
-use luminance::texture::{Dim2, Flat, GenMipmaps, Sampler, Texture};
+use luminance::texture::{Dim2, GenMipmaps, Sampler, Texture};
 use luminance_derive::UniformInterface;
 use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowDim, WindowEvent, WindowOpt};
 use std::env; // used to get the CLI arguments
@@ -39,7 +39,7 @@ fn main() {
 #[derive(UniformInterface)]
 struct ShaderInterface {
   // the 'static lifetime acts as “anything” here
-  tex: Uniform<&'static BoundTexture<'static, Flat, Dim2, NormUnsigned>>,
+  tex: Uniform<&'static BoundTexture<'static, Dim2, NormUnsigned>>,
 }
 
 fn run(texture_path: &Path) {
@@ -129,7 +129,7 @@ fn read_image(path: &Path) -> Option<image::RgbImage> {
 fn load_from_disk(
   surface: &mut GlfwSurface,
   img: image::RgbImage,
-) -> Texture<Flat, Dim2, NormRGB8UI> {
+) -> Texture<Dim2, NormRGB8UI> {
   let (width, height) = img.dimensions();
   let texels = img.into_raw();
 

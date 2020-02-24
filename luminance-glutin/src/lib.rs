@@ -17,7 +17,7 @@ use glutin::{
 use luminance::context::GraphicsContext;
 use luminance::framebuffer::Framebuffer;
 use luminance::state::{GraphicsState, StateQueryError};
-use luminance::texture::{Dim2, Flat};
+use luminance::texture::Dim2;
 pub use luminance_windowing::{CursorMode, Surface, WindowDim, WindowOpt};
 
 use std::cell::RefCell;
@@ -155,7 +155,7 @@ impl GlutinSurface {
   }
 
   /// Get access to the back buffer.
-  pub fn back_buffer(&mut self) -> Result<Framebuffer<Flat, Dim2, (), ()>, GlutinError> {
+  pub fn back_buffer(&mut self) -> Result<Framebuffer<Dim2, (), ()>, GlutinError> {
     Ok(Framebuffer::back_buffer(self, self.size()))
   }
 
