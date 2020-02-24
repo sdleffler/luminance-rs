@@ -10,7 +10,7 @@
 
 use glutin::{
   dpi::PhysicalSize,
-  event::{ElementState, Event, KeyboardInput, VirtualKeyCode, WindowEvent},
+  event::{ElementState, Event, KeyboardInput, StartCause, VirtualKeyCode, WindowEvent},
   event_loop::ControlFlow,
 };
 use luminance::context::GraphicsContext;
@@ -245,9 +245,9 @@ fn main() {
   println!("now rendering {:?}", demo);
 
   event_loop.run(move |event, _, control_flow| {
-    *control_flow = ControlFlow::Poll;
 
     match event {
+      Event::NewEvent(StartCause::Init) => *control_flow = ControlFlow::Wait,
       Event::WindowEvent { event, .. } => match event {
         // If we hit the spacebar, change the kind of tessellation.
         WindowEvent::KeyboardInput {
