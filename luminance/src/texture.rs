@@ -12,12 +12,11 @@
 //! - cubemaps
 //! - array of textures (any of the types above)
 //!
-//! Those combinations are encoded by several types. First of all, `Texture<L, D, P>` is the
-//! polymorphic type used to represent textures. The `L` type variable is the *layering type* of
-//! the texture. It can either be `Flat`. The `D` type variable is the dimension of the texture. It
-//! can either be `Dim1`, `Dim2`, `Dim3`, `Cubemap`, `Dim1Array` or `Dim2Array`.  Finally, the `P`
-//! type variable is the pixel format the texture follows. See the `pixel` module for further
-//! details about pixel formats.
+//! Those combinations are encoded by several types. First of all, `Texture<D, P>` is the
+//! polymorphic type used to represent textures. The `D` type variable is the dimension of the
+//! texture. It can either be `Dim1`, `Dim2`, `Dim3`, `Cubemap`, `Dim1Array` or `Dim2Array`.
+//! Finally, the `P` type variable is the pixel format the texture follows. See the `pixel` module
+//! for further details about pixel formats.
 //!
 //! Additionally, all textures have between 0 or several *mipmaps*. Mipmaps are additional layers of
 //! texels used to perform trilinear filtering in most applications. Those are low-definition images
@@ -35,8 +34,8 @@
 //!
 //! Because textures might have different shapes, the types of their sizes and offsets vary. You
 //! have to look at the implementation of `Dimensionable::Size` and `Dimensionable::Offset` to know
-//! which type you have to pass. For instance, for a 2D texture – e.g. `Texture<Flat, Dim2, _>`, you
-//! have to pass a pair `(width, height)`.
+//! which type you have to pass. For instance, for a 2D texture – e.g. `Texture<Dim2, _>`, you have
+//! to pass a pair `(width, height)`.
 //!
 //! ## Samplers
 //!
@@ -543,24 +542,21 @@ impl RawTexture {
 
 /// Texture.
 ///
-/// `L` refers to the layering type; `D` refers to the dimension; `P` is the pixel format for the
+/// `D` refers to the dimension; `P` is the pixel format for the
 /// texels.
-pub struct Texture<L, D, P>
+pub struct Texture<D, P>
 where
-  L: Layerable,
   D: Dimensionable,
   P: Pixel,
 {
   raw: RawTexture,
   size: D::Size,
   mipmaps: usize, // number of mipmaps
-  _l: PhantomData<L>,
   _p: PhantomData<P>,
 }
 
-impl<L, D, P> Deref for Texture<L, D, P>
+impl<D, P> Deref for Texture<D, P>
 where
-  L: Layerable,
   D: Dimensionable,
   P: Pixel,
 {
@@ -571,9 +567,8 @@ where
   }
 }
 
-impl<L, D, P> DerefMut for Texture<L, D, P>
+impl<D, P> DerefMut for Texture<D, P>
 where
-  L: Layerable,
   D: Dimensionable,
   P: Pixel,
 {
@@ -582,9 +577,8 @@ where
   }
 }
 
-impl<L, D, P> Drop for Texture<L, D, P>
+impl<D, P> Drop for Texture<D, P>
 where
-  L: Layerable,
   D: Dimensionable,
   P: Pixel,
 {
@@ -593,9 +587,8 @@ where
   }
 }
 
-impl<L, D, P> Texture<L, D, P>
+impl<D, P> Texture<D, P>
 where
-  L: Layerable,
   D: Dimensionable,
   P: Pixel,
 {
@@ -624,7 +617,7 @@ where
       gl::GenTextures(1, &mut texture);
       ctx.state().borrow_mut().bind_texture(target, texture);
 
-      create_texture::<L, D>(target, size, mipmaps, P::pixel_format(), sampler)?;
+      create_texture::<D>(target, size, mipmaps, P::pixel_format(), sampler)?;
 
       let raw = RawTexture::new(ctx.state().clone(), texture, target);
 
@@ -632,7 +625,6 @@ where
         raw,
         size,
         mipmaps,
-        _l: PhantomData,
         _p: PhantomData,
       })
     }
@@ -644,7 +636,6 @@ where
       raw,
       size,
       mipmaps: mipmaps + 1,
-      _l: PhantomData,
       _p: PhantomData,
     }
   }
@@ -712,7 +703,7 @@ where
 
       gfx_state.bind_texture(self.target, self.handle);
 
-      upload_texels::<L, D, P, P::Encoding>(self.target, offset, size, texels)?;
+      upload_texels::<D, P, P::Encoding>(self.target, offset, size, texels)?;
 
       if gen_mipmaps == GenMipmaps::Yes {
         gl::GenerateMipmap(self.target);
@@ -750,7 +741,7 @@ where
 
       gfx_state.bind_texture(self.target, self.handle);
 
-      upload_texels::<L, D, P, P::RawEncoding>(self.target, offset, size, texels)?;
+      upload_texels::<D, P, P::RawEncoding>(self.target, offset, size, texels)?;
 
       if gen_mipmaps == GenMipmaps::Yes {
         gl::GenerateMipmap(self.target);
@@ -850,7 +841,7 @@ pub(crate) fn opengl_target(d: Dim) -> GLenum {
   }
 }
 
-pub(crate) unsafe fn create_texture<L, D>(
+pub(crate) unsafe fn create_texture<D>(
   target: GLenum,
   size: D::Size,
   mipmaps: usize,
@@ -858,21 +849,19 @@ pub(crate) unsafe fn create_texture<L, D>(
   sampler: Sampler,
 ) -> Result<(), TextureError>
 where
-  L: Layerable,
   D: Dimensionable,
 {
   set_texture_levels(target, mipmaps);
   apply_sampler_to_texture(target, sampler);
-  create_texture_storage::<L, D>(size, mipmaps, pf)
+  create_texture_storage::<D>(size, mipmaps, pf)
 }
 
-fn create_texture_storage<L, D>(
+fn create_texture_storage<D>(
   size: D::Size,
   mipmaps: usize,
   pf: PixelFormat,
 ) -> Result<(), TextureError>
 where
-  L: Layerable,
   D: Dimensionable,
 {
   match opengl_pixel_format(pf) {
@@ -1188,14 +1177,13 @@ fn set_pack_alignment(skip_bytes: usize) {
 }
 
 // Upload texels into the texture’s memory. Becareful of the type of texels you send down.
-fn upload_texels<L, D, P, T>(
+fn upload_texels<D, P, T>(
   target: GLenum,
   off: D::Offset,
   size: D::Size,
   texels: &[T],
 ) -> Result<(), TextureError>
 where
-  L: Layerable,
   D: Dimensionable,
   P: Pixel,
 {

@@ -129,7 +129,7 @@ use crate::shader::program::{
 };
 use crate::state::GraphicsState;
 use crate::tess::TessSlice;
-use crate::texture::{Dim, Dimensionable, Layerable, Texture};
+use crate::texture::{Dim, Dimensionable, Texture};
 use crate::vertex::Semantics;
 
 // A stack of bindings.
@@ -190,24 +190,21 @@ where
   ///
   /// A dynamic rendering pipeline is responsible of rendering into a `Framebuffer`.
   ///
-  /// `L` refers to the `Layering` of the underlying `Framebuffer`.
-  ///
   /// `D` refers to the `Dim` of the underlying `Framebuffer`.
   ///
   /// `CS` and `DS` are – respectively – the *color* and *depth* `Slot`(s) of the underlying
   /// `Framebuffer`.
   ///
   /// Pipelines also have a *clear color*, used to clear the framebuffer.
-  pub fn pipeline<'b, L, D, CS, DS, F>(
+  pub fn pipeline<'b, D, CS, DS, F>(
     &'b mut self,
-    framebuffer: &Framebuffer<L, D, CS, DS>,
+    framebuffer: &Framebuffer<D, CS, DS>,
     pipeline_state: &PipelineState,
     f: F,
   ) where
-    L: Layerable,
     D: Dimensionable,
-    CS: ColorSlot<L, D>,
-    DS: DepthSlot<L, D>,
+    CS: ColorSlot<D>,
+    DS: DepthSlot<D>,
     F: FnOnce(Pipeline<'b>, ShadingGate<'b, C>),
   {
     unsafe {
@@ -409,12 +406,11 @@ impl<'a> Pipeline<'a> {
   /// Bind a texture and return the bound texture.
   ///
   /// The texture remains bound as long as the return value lives.
-  pub fn bind_texture<L, D, P>(
+  pub fn bind_texture<D, P>(
     &'a self,
-    texture: &'a Texture<L, D, P>,
-  ) -> BoundTexture<'a, L, D, P::SamplerType>
+    texture: &'a Texture<D, P>,
+  ) -> BoundTexture<'a, D, P::SamplerType>
   where
-    L: 'a + Layerable,
     D: 'a + Dimensionable,
     P: 'a + Pixel,
   {
@@ -465,20 +461,18 @@ impl<'a> Pipeline<'a> {
 
 /// An opaque type representing a bound texture in a `Builder`. You may want to pass such an object
 /// to a shader’s uniform’s update.
-pub struct BoundTexture<'a, L, D, S>
+pub struct BoundTexture<'a, D, S>
 where
-  L: 'a + Layerable,
   D: 'a + Dimensionable,
   S: 'a + SamplerType,
 {
   unit: u32,
   binding_stack: &'a Rc<RefCell<BindingStack>>,
-  _t: PhantomData<&'a (L, D, S)>,
+  _t: PhantomData<&'a (D, S)>,
 }
 
-impl<'a, L, D, S> BoundTexture<'a, L, D, S>
+impl<'a, D, S> BoundTexture<'a, D, S>
 where
-  L: 'a + Layerable,
   D: 'a + Dimensionable,
   S: 'a + SamplerType,
 {
@@ -491,9 +485,8 @@ where
   }
 }
 
-impl<'a, L, D, S> Drop for BoundTexture<'a, L, D, S>
+impl<'a, D, S> Drop for BoundTexture<'a, D, S>
 where
-  L: 'a + Layerable,
   D: 'a + Dimensionable,
   S: 'a + SamplerType,
 {
@@ -504,9 +497,8 @@ where
   }
 }
 
-unsafe impl<'a, 'b, L, D, S> Uniformable for &'b BoundTexture<'a, L, D, S>
+unsafe impl<'a, 'b, D, S> Uniformable for &'b BoundTexture<'a, D, S>
 where
-  L: 'a + Layerable,
   D: 'a + Dimensionable,
   S: 'a + SamplerType,
 {

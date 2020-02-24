@@ -47,7 +47,7 @@ use crate::metagl::*;
 use crate::pixel::{ColorPixel, DepthPixel, PixelFormat, RenderablePixel};
 use crate::state::{Bind, GraphicsState};
 use crate::texture::{
-  create_texture, opengl_target, Dim2, Dimensionable, Flat, Layerable, RawTexture, Sampler,
+  create_texture, opengl_target, Dim2, Dimensionable, RawTexture, Sampler,
   Texture, TextureError,
 };
 
@@ -124,13 +124,12 @@ impl fmt::Display for IncompleteReason {
 /// A framebuffer can have zero or several color slots and it can have zero or one depth slot. If
 /// you use several color slots, you’ll be performing what’s called *MRT* (*M* ultiple *R* ender
 /// *T* argets), enabling to render to several textures at once.
-pub struct Framebuffer<L, D, CS, DS>
+pub struct Framebuffer<D, CS, DS>
 where
-  L: Layerable,
   D: Dimensionable,
   D::Size: Copy,
-  CS: ColorSlot<L, D>,
-  DS: DepthSlot<L, D>,
+  CS: ColorSlot<D>,
+  DS: DepthSlot<D>,
 {
   handle: GLuint,
   renderbuffer: Option<GLuint>,
@@ -139,11 +138,10 @@ where
   color_slot: CS::ColorTextures,
   depth_slot: DS::DepthTexture,
   state: Rc<RefCell<GraphicsState>>,
-  _l: PhantomData<L>,
   _d: PhantomData<D>,
 }
 
-impl Framebuffer<Flat, Dim2, (), ()> {
+impl Framebuffer<Dim2, (), ()> {
   /// Get the back buffer with the given dimension.
   pub fn back_buffer<C>(ctx: &mut C, size: <Dim2 as Dimensionable>::Size) -> Self
   where
@@ -157,32 +155,29 @@ impl Framebuffer<Flat, Dim2, (), ()> {
       color_slot: (),
       depth_slot: (),
       state: ctx.state().clone(),
-      _l: PhantomData,
       _d: PhantomData,
     }
   }
 }
 
-impl<L, D, CS, DS> Drop for Framebuffer<L, D, CS, DS>
+impl<D, CS, DS> Drop for Framebuffer<D, CS, DS>
 where
-  L: Layerable,
   D: Dimensionable,
   D::Size: Copy,
-  CS: ColorSlot<L, D>,
-  DS: DepthSlot<L, D>,
+  CS: ColorSlot<D>,
+  DS: DepthSlot<D>,
 {
   fn drop(&mut self) {
     self.destroy();
   }
 }
 
-impl<L, D, CS, DS> Framebuffer<L, D, CS, DS>
+impl<D, CS, DS> Framebuffer<D, CS, DS>
 where
-  L: Layerable,
   D: Dimensionable,
   D::Size: Copy,
-  CS: ColorSlot<L, D>,
-  DS: DepthSlot<L, D>,
+  CS: ColorSlot<D>,
+  DS: DepthSlot<D>,
 {
   /// Create a new framebuffer.
   ///
@@ -193,7 +188,7 @@ where
     size: D::Size,
     mipmaps: usize,
     sampler: Sampler,
-  ) -> Result<Framebuffer<L, D, CS, DS>, FramebufferError>
+  ) -> Result<Framebuffer<D, CS, DS>, FramebufferError>
   where
     C: GraphicsContext,
   {
@@ -221,7 +216,7 @@ where
       } else {
         for (i, (format, texture)) in color_formats.iter().zip(&textures).enumerate() {
           ctx.state().borrow_mut().bind_texture(target, *texture);
-          create_texture::<L, D>(target, size, mipmaps, *format, sampler)
+          create_texture::<D>(target, size, mipmaps, *format, sampler)
             .map_err(FramebufferError::TextureError)?;
           gl::FramebufferTexture(
             gl::FRAMEBUFFER,
@@ -244,7 +239,7 @@ where
         let texture = textures.pop().unwrap();
 
         ctx.state().borrow_mut().bind_texture(target, texture);
-        create_texture::<L, D>(target, size, mipmaps, format, Default::default())
+        create_texture::<D>(target, size, mipmaps, format, Default::default())
           .map_err(FramebufferError::TextureError)?;
         gl::FramebufferTexture(gl::FRAMEBUFFER, gl::DEPTH_ATTACHMENT, texture, 0);
 
@@ -282,7 +277,6 @@ where
         color_slot: CS::reify_textures(ctx, size, mipmaps, &mut textures.into_iter()),
         depth_slot: DS::reify_texture(ctx, size, mipmaps, depth_texture),
         state: ctx.state().clone(),
-        _l: PhantomData,
         _d: PhantomData,
       };
 
@@ -372,9 +366,8 @@ fn get_status() -> Result<(), IncompleteReason> {
 
 /// A framebuffer has a color slot. A color slot can either be empty (the *unit* type is used,`()`)
 /// or several color formats.
-pub unsafe trait ColorSlot<L, D>
+pub unsafe trait ColorSlot<D>
 where
-  L: Layerable,
   D: Dimensionable,
   D::Size: Copy,
 {
@@ -396,9 +389,8 @@ where
     I: Iterator<Item = GLuint>;
 }
 
-unsafe impl<L, D> ColorSlot<L, D> for ()
+unsafe impl<D> ColorSlot<D> for ()
 where
-  L: Layerable,
   D: Dimensionable,
   D::Size: Copy,
 {
@@ -416,14 +408,13 @@ where
   }
 }
 
-unsafe impl<L, D, P> ColorSlot<L, D> for P
+unsafe impl<D, P> ColorSlot<D> for P
 where
-  L: Layerable,
   D: Dimensionable,
   D::Size: Copy,
   Self: ColorPixel + RenderablePixel,
 {
-  type ColorTextures = Texture<L, D, P>;
+  type ColorTextures = Texture<D, P>;
 
   fn color_formats() -> Vec<PixelFormat> {
     vec![P::pixel_format()]
@@ -454,14 +445,13 @@ where
 
 macro_rules! impl_color_slot_tuple {
   ($($pf:ident),*) => {
-    unsafe impl<L, D, $($pf),*> ColorSlot<L, D> for ($($pf),*)
-    where L: Layerable,
-          D: Dimensionable,
+    unsafe impl<D, $($pf),*> ColorSlot<D> for ($($pf),*)
+    where D: Dimensionable,
           D::Size: Copy,
           $(
             $pf: ColorPixel + RenderablePixel
           ),* {
-      type ColorTextures = ($(Texture<L, D, $pf>),*);
+      type ColorTextures = ($(Texture<D, $pf>),*);
 
       fn color_formats() -> Vec<PixelFormat> {
         vec![$($pf::pixel_format()),*]
@@ -499,9 +489,8 @@ impl_color_slot_tuples!(P0, P1, P2, P3, P4, P5, P6, P7, P8, P9, P10, P11);
 
 /// A framebuffer has a depth slot. A depth slot can either be empty (the *unit* type is used, `()`)
 /// or a single depth format.
-pub unsafe trait DepthSlot<L, D>
+pub unsafe trait DepthSlot<D>
 where
-  L: Layerable,
   D: Dimensionable,
   D::Size: Copy,
 {
@@ -523,9 +512,8 @@ where
     T: Into<Option<GLuint>>;
 }
 
-unsafe impl<L, D> DepthSlot<L, D> for ()
+unsafe impl<D> DepthSlot<D> for ()
 where
-  L: Layerable,
   D: Dimensionable,
   D::Size: Copy,
 {
@@ -543,14 +531,13 @@ where
   }
 }
 
-unsafe impl<L, D, P> DepthSlot<L, D> for P
+unsafe impl<D, P> DepthSlot<D> for P
 where
-  L: Layerable,
   D: Dimensionable,
   D::Size: Copy,
   P: DepthPixel,
 {
-  type DepthTexture = Texture<L, D, P>;
+  type DepthTexture = Texture<D, P>;
 
   fn depth_format() -> Option<PixelFormat> {
     Some(P::pixel_format())
