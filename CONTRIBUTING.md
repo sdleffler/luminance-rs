@@ -17,6 +17,7 @@ open an issue / make a PR that doesn’t comply to this document.
   * [Git conventions](#git-conventions)
 * [Release process](#release-process)
   * [Overall process](#overall-process)
+  * [Changelogs update](#changelogs-update)
   * [Git tag](#git-tag)
 
 <!-- vim-markdown-toc -->
@@ -112,6 +113,15 @@ days at max). Those will be gathered inside a single update.
 
 Feature requests might be delayed a bit to be packed together as well but eventually get released, even if
 they’re small.
+
+## Changelogs update
+
+`CHANGELOG.md` files must be updated **before any release**. Especially, they must contain:
+
+- The version of the release.
+- The date of the release.
+- How to migrate from a minor to the next major.
+- Everything that a release has introduced, such as major, minor and patch changes.
 
 ## Git tag
 
