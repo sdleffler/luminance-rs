@@ -27,9 +27,9 @@ open an issue / make a PR that doesn’t comply to this document.
 This project is a _free  and  open-source_ project. It has no financial motivation nor support. I
 ([@phaazon]) would like to make it very clear that:
 
-- Sponsorship is not available. You cannot pay me to make me do things for you. That includes issues report,
+- Sponsorship is not available. You cannot pay me to make me do things for you. That includes issues reports,
   features requests and such.
-- If you still want to donate because you like the project and think I should be awarded, you are free to
+- If you still want to donate because you like the project and think I should be rewarded, you are free to
   give whatever you want.
 - However, keep in mind that donating doesn’t unlock any privilege people who don’t donate wouldn’t already
   have. This is very important as it would bias priorities. Donations must remain anonymous.
