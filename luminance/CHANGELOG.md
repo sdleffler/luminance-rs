@@ -1,3 +1,17 @@
+# 0.39
+
+> Sat Feb 20th 2020
+
+## Major changes
+
+- Remove the concept of _layering_ in textures. Textures’ layerings (i.e. either _flat_ or
+  _arrayed_) is now encoded directly in the dimension of the texture.
+
+## Minor changes
+
+- Add support for texture arrays. They can now be passed constructed and passed as uniforms to
+  shader programs.
+
 # 0.38
 
 > Sat Jan 4th 2020
