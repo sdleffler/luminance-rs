@@ -245,9 +245,8 @@ fn main() {
   println!("now rendering {:?}", demo);
 
   event_loop.run(move |event, _, control_flow| {
-
     match event {
-      Event::NewEvent(StartCause::Init) => *control_flow = ControlFlow::Wait,
+      Event::NewEvents(StartCause::Init) => *control_flow = ControlFlow::Wait,
       Event::WindowEvent { event, .. } => match event {
         // If we hit the spacebar, change the kind of tessellation.
         WindowEvent::KeyboardInput {
