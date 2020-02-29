@@ -14,6 +14,7 @@
 * [History](#history)
 * [The luminance ecosystem](#the-luminance-ecosystem)
 * [Learning](#learning)
+* [Contributing](#contributing)
 * [Dependent projects](#dependent-projects)
 
 <!-- vim-markdown-toc -->
@@ -101,6 +102,10 @@ It is currently composed of four different crates:
     structured tutorial but more concise.
 
 You should try both ways and see which one fits the best for you!
+
+# Contributing
+
+Please read the [CONTRIBUTING](CONTRIBUTING.md) document.
 
 # Dependent projects
 
