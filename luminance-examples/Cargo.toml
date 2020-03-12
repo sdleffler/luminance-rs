@@ -46,10 +46,10 @@ path = "src/render-state.rs"
 # [[bin]]
 # name = "shader-uniforms-adapt"
 # path = "src/shader-uniforms-adapt.rs"
-#
-# [[bin]]
-# name = "shader-uniforms"
-# path = "src/shader-uniforms.rs"
+
+[[bin]]
+name = "shader-uniforms"
+path = "src/shader-uniforms.rs"
 
 [[bin]]
 name = "sliced-tess"
