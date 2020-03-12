@@ -43,9 +43,9 @@ path = "src/query-texture-texels.rs"
 name = "render-state"
 path = "src/render-state.rs"
 
-# [[bin]]
-# name = "shader-uniforms-adapt"
-# path = "src/shader-uniforms-adapt.rs"
+[[bin]]
+name = "shader-uniforms-adapt"
+path = "src/shader-uniforms-adapt.rs"
 
 [[bin]]
 name = "shader-uniforms"
