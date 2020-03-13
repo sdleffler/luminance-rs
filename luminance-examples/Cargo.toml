@@ -55,9 +55,9 @@ path = "src/shader-uniforms.rs"
 name = "sliced-tess"
 path = "src/sliced-tess.rs"
 
-# [[bin]]
-# name = "texture"
-# path = "src/texture.rs"
+[[bin]]
+name = "texture"
+path = "src/texture.rs"
 
 [[bin]]
 name = "vertex-instancing"

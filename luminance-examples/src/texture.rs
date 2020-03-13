@@ -11,16 +11,19 @@
 //!
 //! https://docs.rs/luminance
 
+use glfw::{Action, Context as _, Key, WindowEvent};
+use luminance::backend::texture::Texture as TextureBackend;
 use luminance::blending::{Equation, Factor};
-use luminance::context::GraphicsContext as _;
-use luminance::pipeline::{BoundTexture, PipelineState};
+use luminance::context::GraphicsContext;
+use luminance::pipeline::{PipelineState, TextureBinding};
 use luminance::pixel::{NormRGB8UI, NormUnsigned};
 use luminance::render_state::RenderState;
-use luminance::shader::program::{Program, Uniform};
+use luminance::shader::{Program, Uniform};
 use luminance::tess::{Mode, TessBuilder};
 use luminance::texture::{Dim2, GenMipmaps, Sampler, Texture};
 use luminance_derive::UniformInterface;
-use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowDim, WindowEvent, WindowOpt};
+use luminance_glfw::GlfwSurface;
+use luminance_windowing::{WindowDim, WindowOpt};
 use std::env; // used to get the CLI arguments
 use std::path::Path;
 
@@ -38,16 +41,15 @@ fn main() {
 // we also need a special uniform interface here to pass the texture to the shader
 #[derive(UniformInterface)]
 struct ShaderInterface {
-  // the 'static lifetime acts as “anything” here
-  tex: Uniform<&'static BoundTexture<'static, Dim2, NormUnsigned>>,
+  tex: Uniform<TextureBinding<Dim2, NormUnsigned>>,
 }
 
 fn run(texture_path: &Path) {
   let img = read_image(texture_path).expect("error while reading image on disk");
   let (width, height) = img.dimensions();
 
-  let mut surface = GlfwSurface::new(
-    WindowDim::Windowed(width, height),
+  let mut surface = GlfwSurface::new_gl33(
+    WindowDim::Windowed { width, height },
     "Hello, world!",
     WindowOpt::default(),
   )
@@ -56,17 +58,18 @@ fn run(texture_path: &Path) {
   let tex = load_from_disk(&mut surface, img);
 
   // set the uniform interface to our type so that we can read textures from the shader
-  let program = Program::<(), (), ShaderInterface>::from_strings(None, VS, None, FS)
-    .expect("program creation")
-    .ignore_warnings();
+  let mut program =
+    Program::<_, (), (), ShaderInterface>::from_strings(&mut surface, VS, None, None, FS)
+      .expect("program creation")
+      .ignore_warnings();
 
   // we’ll use an attributeless render here to display a quad on the screen (two triangles); there
   // are over ways to cover the whole screen but this is easier for you to understand; the
   // TriangleFan creates triangles by connecting the third (and next) vertex to the first one
   let tess = TessBuilder::new(&mut surface)
-    .set_vertex_nb(4)
-    .set_mode(Mode::TriangleFan)
-    .build()
+    .and_then(|b| b.set_vertex_nb(4))
+    .and_then(|b| b.set_mode(Mode::TriangleFan))
+    .and_then(|b| b.build())
     .unwrap();
 
   let mut back_buffer = surface.back_buffer().unwrap();
@@ -77,7 +80,8 @@ fn run(texture_path: &Path) {
   println!("rendering!");
 
   'app: loop {
-    for event in surface.poll_events() {
+    surface.window.glfw.poll_events();
+    for (_, event) in surface.events_rx.try_iter() {
       match event {
         WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
 
@@ -96,17 +100,17 @@ fn run(texture_path: &Path) {
 
     // here, we need to bind the pipeline variable; it will enable us to bind the texture to the GPU
     // and use it in the shader
-    surface.pipeline_builder().pipeline(
+    let render = surface.pipeline_gate().pipeline(
       &back_buffer,
       &PipelineState::default(),
       |pipeline, mut shd_gate| {
         // bind our fancy texture to the GPU: it gives us a bound texture we can use with the shader
-        let bound_tex = pipeline.bind_texture(&tex);
+        let bound_tex = pipeline.bind_texture(&tex).unwrap();
 
-        shd_gate.shade(&program, |iface, mut rdr_gate| {
+        shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
           // update the texture; strictly speaking, this update doesn’t do much: it just tells the GPU
           // to use the texture passed as argument (no allocation or copy is performed)
-          iface.tex.update(&bound_tex);
+          iface.set(&uni.tex, bound_tex.binding());
 
           rdr_gate.render(render_st, |mut tess_gate| {
             // render the tessellation to the surface the regular way and let the vertex shader’s
@@ -117,7 +121,11 @@ fn run(texture_path: &Path) {
       },
     );
 
-    surface.swap_buffers();
+    if render.is_ok() {
+      surface.window.swap_buffers();
+    } else {
+      break 'app;
+    }
   }
 }
 
@@ -126,17 +134,18 @@ fn read_image(path: &Path) -> Option<image::RgbImage> {
   image::open(path).map(|img| img.flipv().to_rgb()).ok()
 }
 
-fn load_from_disk(
-  surface: &mut GlfwSurface,
-  img: image::RgbImage,
-) -> Texture<Dim2, NormRGB8UI> {
+fn load_from_disk<B>(surface: &mut B, img: image::RgbImage) -> Texture<B::Backend, Dim2, NormRGB8UI>
+where
+  B: GraphicsContext,
+  B::Backend: TextureBackend<Dim2, NormRGB8UI>,
+{
   let (width, height) = img.dimensions();
   let texels = img.into_raw();
 
   // create the luminance texture; the third argument is the number of mipmaps we want (leave it
   // to 0 for now) and the latest is the sampler to use when sampling the texels in the
   // shader (we’ll just use the default one)
-  let tex = Texture::new(surface, [width, height], 0, Sampler::default())
+  let mut tex = Texture::new(surface, [width, height], 0, Sampler::default())
     .expect("luminance texture creation");
 
   // the first argument disables mipmap generation (we don’t care so far)
