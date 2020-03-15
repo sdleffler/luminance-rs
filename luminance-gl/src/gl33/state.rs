@@ -1,30 +1,39 @@
 //! Graphics state.
 
-#[cfg(feature = "std")]
+use gl::types::*;
 use std::cell::RefCell;
-#[cfg(feature = "std")]
 use std::fmt;
-#[cfg(feature = "std")]
 use std::marker::PhantomData;
 
-#[cfg(not(feature = "std"))]
-use alloc::vec::Vec;
-#[cfg(not(feature = "std"))]
-use core::fmt;
-#[cfg(not(feature = "std"))]
-use core::marker::PhantomData;
+use crate::gl33::depth_test::depth_comparison_to_glenum;
+use luminance::blending::{Equation, Factor};
+use luminance::depth_test::DepthComparison;
+use luminance::face_culling::{FaceCullingMode, FaceCullingOrder};
+use luminance::vertex_restart::VertexRestart;
 
-use crate::blending::{BlendingState, Equation, Factor};
-use crate::depth_test::{DepthComparison, DepthTest};
-use crate::face_culling::{FaceCullingMode, FaceCullingOrder, FaceCullingState};
-use crate::metagl::*;
-use crate::vertex_restart::VertexRestart;
-
-// TLS synchronization barrier for `GraphicsState`.
+// TLS synchronization barrier for `GLState`.
 //
 // Note: disable on no_std.
-#[cfg(feature = "std")]
 thread_local!(static TLS_ACQUIRE_GFX_STATE: RefCell<Option<()>> = RefCell::new(Some(())));
+
+pub(crate) struct BindingStack {
+  pub(crate) next_texture_unit: u32,
+  pub(crate) free_texture_units: Vec<u32>,
+  pub(crate) next_buffer_binding: u32,
+  pub(crate) free_buffer_bindings: Vec<u32>,
+}
+
+impl BindingStack {
+  // Create a new, empty binding stack.
+  fn new() -> Self {
+    BindingStack {
+      next_texture_unit: 0,
+      free_texture_units: Vec::new(),
+      next_buffer_binding: 0,
+      free_buffer_bindings: Vec::new(),
+    }
+  }
+}
 
 /// The graphics state.
 ///
@@ -32,8 +41,11 @@ thread_local!(static TLS_ACQUIRE_GFX_STATE: RefCell<Option<()>> = RefCell::new(S
 /// as a forward-gate to all the exposed features from the low-level API but
 /// adds a small cache layer over it to prevent from issuing the same API call (with
 /// the same parameters).
-pub struct GraphicsState {
+pub struct GLState {
   _a: PhantomData<*const ()>, // !Send and !Sync
+
+  // binding stack
+  binding_stack: BindingStack,
 
   // viewport
   viewport: [GLint; 4],
@@ -65,6 +77,14 @@ pub struct GraphicsState {
   current_texture_unit: GLenum,
   bound_textures: Vec<(GLenum, GLuint)>,
 
+  // texture buffer used to optimize texture creation; regular textures typically will never ask
+  // for fetching from this set but framebuffers, who often generate several textures, might use
+  // this opportunity to get N textures (color, depth and stencil) at once, in a single CPU / GPU
+  // roundtrip
+  //
+  // fishy fishy
+  texture_swimming_pool: Vec<GLuint>,
+
   // uniform buffer
   bound_uniform_buffers: Vec<GLuint>,
 
@@ -87,38 +107,31 @@ pub struct GraphicsState {
   srgb_framebuffer_enabled: bool,
 }
 
-impl GraphicsState {
-  /// Create a new `GraphicsState`.
+impl GLState {
+  /// Create a new `GLState`.
   ///
   /// > Note: keep in mind you can create only one per thread. However, if you’re building without
   /// > standard library, this function will always return successfully. You have to take extra care
   /// > in this case.
-  pub fn new() -> Result<Self, StateQueryError> {
-    #[cfg(feature = "std")]
-    {
-      TLS_ACQUIRE_GFX_STATE.with(|rc| {
-        let mut inner = rc.borrow_mut();
+  pub(crate) fn new() -> Result<Self, StateQueryError> {
+    TLS_ACQUIRE_GFX_STATE.with(|rc| {
+      let mut inner = rc.borrow_mut();
 
-        match *inner {
-          Some(_) => {
-            inner.take();
-            Self::get_from_context()
-          }
-
-          None => Err(StateQueryError::UnavailableGraphicsState),
+      match *inner {
+        Some(_) => {
+          inner.take();
+          Self::get_from_context()
         }
-      })
-    }
 
-    #[cfg(not(feature = "std"))]
-    {
-      Self::get_from_context()
-    }
+        None => Err(StateQueryError::UnavailableGLState),
+      }
+    })
   }
 
   /// Get a `GraphicsContext` from the current OpenGL context.
-  pub(crate) fn get_from_context() -> Result<Self, StateQueryError> {
+  fn get_from_context() -> Result<Self, StateQueryError> {
     unsafe {
+      let binding_stack = BindingStack::new();
       let viewport = get_ctx_viewport()?;
       let clear_color = get_ctx_clear_color()?;
       let blending_state = get_ctx_blending_state()?;
@@ -133,6 +146,7 @@ impl GraphicsState {
       let patch_vertex_nb = 0;
       let current_texture_unit = get_ctx_current_texture_unit()?;
       let bound_textures = vec![(gl::TEXTURE_2D, 0); 48]; // 48 is the platform minimal requirement
+      let texture_swimming_pool = Vec::new();
       let bound_uniform_buffers = vec![0; 36]; // 36 is the platform minimal requirement
       let bound_array_buffer = 0;
       let bound_element_array_buffer = 0;
@@ -141,8 +155,9 @@ impl GraphicsState {
       let current_program = get_ctx_current_program()?;
       let srgb_framebuffer_enabled = get_ctx_srgb_framebuffer_enabled()?;
 
-      Ok(GraphicsState {
+      Ok(GLState {
         _a: PhantomData,
+        binding_stack,
         viewport,
         clear_color,
         blending_state,
@@ -157,6 +172,7 @@ impl GraphicsState {
         patch_vertex_nb,
         current_texture_unit,
         bound_textures,
+        texture_swimming_pool,
         bound_uniform_buffers,
         bound_array_buffer,
         bound_element_array_buffer,
@@ -165,6 +181,34 @@ impl GraphicsState {
         current_program,
         srgb_framebuffer_enabled,
       })
+    }
+  }
+
+  pub(crate) fn binding_stack_mut(&mut self) -> &mut BindingStack {
+    &mut self.binding_stack
+  }
+
+  pub(crate) fn generate_texture(&mut self) -> GLuint {
+    self.texture_swimming_pool.pop().unwrap_or_else(|| {
+      let mut texture = 0;
+
+      unsafe { gl::GenTextures(1, &mut texture) };
+      texture
+    })
+  }
+
+  /// Reserve at least a given number of textures.
+  pub(crate) fn reserve_textures(&mut self, nb: usize) {
+    let available = self.texture_swimming_pool.len();
+    let needed = nb.max(available) - available;
+
+    if needed > 0 {
+      // resize the internal buffer to hold all the new textures and create a slice starting from
+      // the previous end to the new end
+      self.texture_swimming_pool.resize(available + needed, 0);
+      let textures = &mut self.texture_swimming_pool[available..];
+
+      unsafe { gl::GenTextures(1, textures.as_mut_ptr()) };
     }
   }
 
@@ -228,7 +272,7 @@ impl GraphicsState {
     depth_test_comparison: DepthComparison,
   ) {
     if self.depth_test_comparison != depth_test_comparison {
-      gl::DepthFunc(depth_test_comparison.to_glenum());
+      gl::DepthFunc(depth_comparison_to_glenum(depth_test_comparison));
       self.depth_test_comparison = depth_test_comparison;
     }
   }
@@ -436,11 +480,11 @@ fn from_blending_factor(factor: Factor) -> GLenum {
 /// An error that might happen when the context is queried.
 #[derive(Debug)]
 pub enum StateQueryError {
-  /// The [`GraphicsState`] object is unavailable.
+  /// The [`GLState`] object is unavailable.
   ///
   /// That might occur if the current thread doesn’t support allocating a new graphics state. It
   /// might happen if you try to have more than one state on the same thread, for instance.
-  UnavailableGraphicsState,
+  UnavailableGLState,
   /// Corrupted blending state.
   UnknownBlendingState(GLboolean),
   /// Corrupted blending equation.
@@ -466,7 +510,7 @@ pub enum StateQueryError {
 impl fmt::Display for StateQueryError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
-      StateQueryError::UnavailableGraphicsState => write!(f, "unavailable graphics state"),
+      StateQueryError::UnavailableGLState => write!(f, "unavailable graphics state"),
       StateQueryError::UnknownBlendingState(ref s) => write!(f, "unknown blending state: {}", s),
       StateQueryError::UnknownBlendingEquation(ref e) => {
         write!(f, "unknown blending equation: {}", e)
@@ -654,4 +698,31 @@ unsafe fn get_ctx_srgb_framebuffer_enabled() -> Result<bool, StateQueryError> {
     gl::FALSE => Ok(false),
     _ => Err(StateQueryError::UnknownSRGBFramebufferState(state)),
   }
+}
+
+/// Whether or not enable blending.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) enum BlendingState {
+  /// Enable blending.
+  On,
+  /// Disable blending.
+  Off,
+}
+
+/// Whether or not depth test should be enabled.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) enum DepthTest {
+  /// The depth test is enabled.
+  On,
+  /// The depth test is disabled.
+  Off,
+}
+
+/// Should face culling be enabled?
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) enum FaceCullingState {
+  /// Enable face culling.
+  On,
+  /// Disable face culling.
+  Off,
 }

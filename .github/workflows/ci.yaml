@@ -39,13 +39,15 @@ jobs:
           . ~/.cargo/env
           cargo test --verbose
 
-  check-readme:
+  quality:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v1
-      - name: Install cargo-sync-readme
-        run: cargo install --force cargo-sync-readme
-      - name: Check
+      - name: Install dependencies
+        run: |
+          cargo install --force cargo-sync-readme
+          rustup component add rustfmt
+      - name: cargo sync-readme
         run: |
           cd $GITHUB_WORKSPACE/luminance
           cargo sync-readme -c
@@ -57,3 +59,5 @@ jobs:
           cargo sync-readme -c
           cd $GITHUB_WORKSPACE/luminance-glutin
           cargo sync-readme -c
+      - name: rustfmt
+        run: cargo fmt -- --check
