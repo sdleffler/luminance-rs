@@ -943,7 +943,7 @@ fn create_texture_1d_storage(
   mipmaps: usize,
 ) {
   for level in 0..mipmaps {
-    let w = w / 2u32.pow(level as u32);
+    let w = w / (1 << level as u32);
 
     unsafe {
       gl::TexImage1D(
@@ -970,7 +970,7 @@ fn create_texture_2d_storage(
   mipmaps: usize,
 ) {
   for level in 0..mipmaps {
-    let div = 2u32.pow(level as u32);
+    let div = 1 << level as u32;
     let w = w / div;
     let h = h / div;
 
@@ -1001,7 +1001,7 @@ fn create_texture_3d_storage(
   mipmaps: usize,
 ) {
   for level in 0..mipmaps {
-    let div = 2u32.pow(level as u32);
+    let div = 1 << level as u32;
     let w = w / div;
     let h = h / div;
     let d = d / div;
@@ -1031,7 +1031,7 @@ fn create_cubemap_storage(
   mipmaps: usize,
 ) {
   for level in 0..mipmaps {
-    let s = s / 2u32.pow(level as u32);
+    let s = s / (1 << level as u32);
 
     for face in 0..6 {
       unsafe {
