@@ -17,13 +17,16 @@
 mod common;
 
 use crate::common::{Semantics, Vertex, VertexColor, VertexPosition};
+use glfw::{Action, Context as _, Key, WindowEvent};
+use luminance::backend::shader::{Shader, Uniformable};
 use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
-use luminance::shader::program::{AdaptationFailure, Program, Uniform};
+use luminance::shader::{AdaptationFailure, Program, Uniform};
 use luminance::tess::{Mode, TessBuilder};
 use luminance_derive::UniformInterface;
-use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowDim, WindowEvent, WindowOpt};
+use luminance_glfw::GlfwSurface;
+use luminance_windowing::{WindowDim, WindowOpt};
 use std::time::Instant;
 
 const VS: &'static str = include_str!("adapt-vs.glsl");
@@ -62,12 +65,22 @@ struct ShaderInterface2 {
 }
 
 // Which interface to use?
-enum ProgramMode {
-  First(Program<Semantics, (), ShaderInterface1>),
-  Second(Program<Semantics, (), ShaderInterface2>),
+enum ProgramMode<S>
+where
+  S: Shader,
+  f32: Uniformable<S>,
+  [f32; 2]: Uniformable<S>,
+{
+  First(Program<S, Semantics, (), ShaderInterface1>),
+  Second(Program<S, Semantics, (), ShaderInterface2>),
 }
 
-impl ProgramMode {
+impl<S> ProgramMode<S>
+where
+  S: Shader,
+  f32: Uniformable<S>,
+  [f32; 2]: Uniformable<S>,
+{
   fn toggle(self) -> Self {
     match self {
       ProgramMode::First(p) => match p.adapt() {
@@ -90,23 +103,26 @@ impl ProgramMode {
 }
 
 fn main() {
-  let mut surface = GlfwSurface::new(
-    WindowDim::Windowed(960, 540),
+  let mut surface = GlfwSurface::new_gl33(
+    WindowDim::Windowed {
+      width: 960,
+      height: 540,
+    },
     "Hello, world!",
     WindowOpt::default(),
   )
   .expect("GLFW surface creation");
 
   let mut program = ProgramMode::First(
-    Program::<Semantics, (), ShaderInterface1>::from_strings(None, VS, None, FS)
+    Program::<_, Semantics, (), ShaderInterface1>::from_strings(&mut surface, VS, None, None, FS)
       .expect("program creation")
       .ignore_warnings(),
   );
 
   let triangle = TessBuilder::new(&mut surface)
-    .add_vertices(TRI_VERTICES)
-    .set_mode(Mode::Triangle)
-    .build()
+    .and_then(|b| b.add_vertices(TRI_VERTICES))
+    .and_then(|b| b.set_mode(Mode::Triangle))
+    .and_then(|b| b.build())
     .unwrap();
 
   let mut back_buffer = surface.back_buffer().unwrap();
@@ -115,7 +131,8 @@ fn main() {
   let mut resize = false;
 
   'app: loop {
-    for event in surface.poll_events() {
+    surface.window.glfw.poll_events();
+    for (_, event) in surface.events_rx.try_iter() {
       match event {
         WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
 
@@ -164,16 +181,16 @@ fn main() {
     let t64 = elapsed.as_secs() as f64 + (elapsed.subsec_millis() as f64 * 1e-3);
     let t = t64 as f32;
 
-    surface.pipeline_builder().pipeline(
+    let render = surface.pipeline_gate().pipeline(
       &back_buffer,
       &PipelineState::default(),
       |_, mut shd_gate| {
         match program {
           // if we use the first interface, we just need to pass the time and the triangle position
-          ProgramMode::First(ref program) => {
-            shd_gate.shade(&program, |iface, mut rdr_gate| {
-              iface.time.update(t);
-              iface.triangle_size.update(t.cos().powf(2.));
+          ProgramMode::First(ref mut program) => {
+            shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
+              iface.set(&uni.time, t);
+              iface.set(&uni.triangle_size, t.cos().powf(2.));
 
               rdr_gate.render(&RenderState::default(), |mut tess_gate| {
                 tess_gate.render(&triangle);
@@ -183,11 +200,11 @@ fn main() {
 
           // if we use the second interface, we just need to pass the time and we will make the size
           // grow by using the time
-          ProgramMode::Second(ref program) => {
-            shd_gate.shade(&program, |iface, mut rdr_gate| {
-              iface.time.update(t);
-              // iface.triangle_pos.update(triangle_pos); // uncomment this to see a nice error ;)
-              iface.triangle_pos.update(triangle_pos);
+          ProgramMode::Second(ref mut program) => {
+            shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
+              iface.set(&uni.time, t);
+              // iface.set(&uni.triangle_size, t.cos().powf(2.)); // uncomment this to see a nice error ;)
+              iface.set(&uni.triangle_pos, triangle_pos);
 
               rdr_gate.render(&RenderState::default(), |mut tess_gate| {
                 tess_gate.render(&triangle);
@@ -198,6 +215,10 @@ fn main() {
       },
     );
 
-    surface.swap_buffers();
+    if render.is_ok() {
+      surface.window.swap_buffers();
+    } else {
+      break 'app;
+    }
   }
 }

@@ -14,13 +14,15 @@
 mod common;
 
 use crate::common::{Semantics, Vertex, VertexColor, VertexPosition};
+use glfw::{Action, Context as _, Key, WindowEvent};
 use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
-use luminance::shader::program::{Program, Uniform};
+use luminance::shader::{Program, Uniform};
 use luminance::tess::{Mode, TessBuilder};
 use luminance_derive::UniformInterface;
-use luminance_glfw::{Action, GlfwSurface, Key, Surface, WindowDim, WindowEvent, WindowOpt};
+use luminance_glfw::GlfwSurface;
+use luminance_windowing::{WindowDim, WindowOpt};
 use std::time::Instant;
 
 const VS: &'static str = include_str!("displacement-vs.glsl");
@@ -54,22 +56,26 @@ struct ShaderInterface {
 }
 
 fn main() {
-  let mut surface = GlfwSurface::new(
-    WindowDim::Windowed(960, 540),
+  let mut surface = GlfwSurface::new_gl33(
+    WindowDim::Windowed {
+      width: 960,
+      height: 540,
+    },
     "Hello, world!",
     WindowOpt::default(),
   )
   .expect("GLFW surface creation");
 
   // see the use of our uniform interface here as thirds type variable
-  let program = Program::<Semantics, (), ShaderInterface>::from_strings(None, VS, None, FS)
-    .expect("program creation")
-    .ignore_warnings();
+  let mut program =
+    Program::<_, Semantics, (), ShaderInterface>::from_strings(&mut surface, VS, None, None, FS)
+      .expect("program creation")
+      .ignore_warnings();
 
   let triangle = TessBuilder::new(&mut surface)
-    .add_vertices(TRI_VERTICES)
-    .set_mode(Mode::Triangle)
-    .build()
+    .and_then(|b| b.add_vertices(TRI_VERTICES))
+    .and_then(|b| b.set_mode(Mode::Triangle))
+    .and_then(|b| b.build())
     .unwrap();
 
   let mut back_buffer = surface.back_buffer().unwrap();
@@ -82,7 +88,8 @@ fn main() {
   let mut resize = false;
 
   'app: loop {
-    for event in surface.poll_events() {
+    surface.window.glfw.poll_events();
+    for (_, event) in surface.events_rx.try_iter() {
       match event {
         WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
 
@@ -128,15 +135,15 @@ fn main() {
     let t64 = elapsed.as_secs() as f64 + (elapsed.subsec_millis() as f64 * 1e-3);
     let t = t64 as f32;
 
-    surface.pipeline_builder().pipeline(
+    let render = surface.pipeline_gate().pipeline(
       &back_buffer,
       &PipelineState::default(),
       |_, mut shd_gate| {
         // notice the iface free variable, which type is &ShaderInterface
-        shd_gate.shade(&program, |iface, mut rdr_gate| {
+        shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
           // update the time and triangle position on the GPU shader program
-          iface.time.update(t);
-          iface.triangle_pos.update(triangle_pos);
+          iface.set(&uni.time, t);
+          iface.set(&uni.triangle_pos, triangle_pos);
 
           rdr_gate.render(&RenderState::default(), |mut tess_gate| {
             // render the dynamically selected slice
@@ -146,6 +153,10 @@ fn main() {
       },
     );
 
-    surface.swap_buffers();
+    if render.is_ok() {
+      surface.window.swap_buffers();
+    } else {
+      break 'app;
+    }
   }
 }

@@ -1,4 +1,4 @@
-use luminance::shader::program::Uniform;
+use luminance::shader::Uniform;
 use luminance_derive::UniformInterface;
 
 #[test]
