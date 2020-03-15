@@ -291,92 +291,60 @@ fn uniform_type_match(program: GLuint, name: &str, ty: UniformType) -> Result<()
 
 #[allow(clippy::cognitive_complexity)]
 fn check_types_match(name: &str, ty: UniformType, glty: GLuint) -> Result<(), UniformWarning> {
-  match ty {
-    // scalars
-    UniformType::Int if glty != gl::INT => Err(UniformWarning::type_mismatch(name, ty)),
-    UniformType::UInt if glty != gl::UNSIGNED_INT => Err(UniformWarning::type_mismatch(name, ty)),
-    UniformType::Float if glty != gl::FLOAT => Err(UniformWarning::type_mismatch(name, ty)),
-    UniformType::Bool if glty != gl::BOOL => Err(UniformWarning::type_mismatch(name, ty)),
-    // vectors
-    UniformType::IVec2 if glty != gl::INT_VEC2 => Err(UniformWarning::type_mismatch(name, ty)),
-    UniformType::IVec3 if glty != gl::INT_VEC3 => Err(UniformWarning::type_mismatch(name, ty)),
-    UniformType::IVec4 if glty != gl::INT_VEC4 => Err(UniformWarning::type_mismatch(name, ty)),
-    UniformType::UIVec2 if glty != gl::UNSIGNED_INT_VEC2 => {
-      Err(UniformWarning::type_mismatch(name, ty))
+  // helper macro to check type mismatch for each variant
+  macro_rules! milkcheck {
+    ($ty:expr, $( ( $v:tt, $t:tt ) ),*) => {
+      match $ty {
+        $( UniformType::$v if glty != gl::$t => Err(UniformWarning::type_mismatch(name, ty)), )*
+        _ => Ok(())
+      }
     }
-    UniformType::UIVec3 if glty != gl::UNSIGNED_INT_VEC3 => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::UIVec4 if glty != gl::UNSIGNED_INT_VEC4 => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::Vec2 if glty != gl::FLOAT_VEC2 => Err(UniformWarning::type_mismatch(name, ty)),
-    UniformType::Vec3 if glty != gl::FLOAT_VEC3 => Err(UniformWarning::type_mismatch(name, ty)),
-    UniformType::Vec4 if glty != gl::FLOAT_VEC4 => Err(UniformWarning::type_mismatch(name, ty)),
-    UniformType::BVec2 if glty != gl::BOOL_VEC2 => Err(UniformWarning::type_mismatch(name, ty)),
-    UniformType::BVec3 if glty != gl::BOOL_VEC3 => Err(UniformWarning::type_mismatch(name, ty)),
-    UniformType::BVec4 if glty != gl::BOOL_VEC4 => Err(UniformWarning::type_mismatch(name, ty)),
-    // matrices
-    UniformType::M22 if glty != gl::FLOAT_MAT2 => Err(UniformWarning::type_mismatch(name, ty)),
-    UniformType::M33 if glty != gl::FLOAT_MAT3 => Err(UniformWarning::type_mismatch(name, ty)),
-    UniformType::M44 if glty != gl::FLOAT_MAT4 => Err(UniformWarning::type_mismatch(name, ty)),
-    // textures
-    UniformType::ISampler1D if glty != gl::INT_SAMPLER_1D => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::ISampler2D if glty != gl::INT_SAMPLER_2D => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::ISampler3D if glty != gl::INT_SAMPLER_3D => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::ISampler1DArray if glty != gl::INT_SAMPLER_1D_ARRAY => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::ISampler2DArray if glty != gl::INT_SAMPLER_2D_ARRAY => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::UISampler1D if glty != gl::UNSIGNED_INT_SAMPLER_1D => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::UISampler2D if glty != gl::UNSIGNED_INT_SAMPLER_2D => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::UISampler3D if glty != gl::UNSIGNED_INT_SAMPLER_3D => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::UISampler1DArray if glty != gl::UNSIGNED_INT_SAMPLER_1D_ARRAY => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::UISampler2DArray if glty != gl::UNSIGNED_INT_SAMPLER_2D_ARRAY => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::Sampler1D if glty != gl::SAMPLER_1D => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::Sampler2D if glty != gl::SAMPLER_2D => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::Sampler3D if glty != gl::SAMPLER_3D => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::Sampler1DArray if glty != gl::SAMPLER_1D_ARRAY => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::Sampler2DArray if glty != gl::SAMPLER_2D_ARRAY => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::ICubemap if glty != gl::INT_SAMPLER_CUBE => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::UICubemap if glty != gl::UNSIGNED_INT_SAMPLER_CUBE => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    UniformType::Cubemap if glty != gl::SAMPLER_CUBE => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    _ => Ok(()),
   }
+
+  milkcheck!(
+    ty,
+    // scalars
+    (Int, INT),
+    (UInt, UNSIGNED_INT),
+    (Float, FLOAT),
+    (Bool, BOOL),
+    // vectors
+    (IVec2, INT_VEC2),
+    (IVec3, INT_VEC3),
+    (IVec4, INT_VEC4),
+    (UIVec2, UNSIGNED_INT_VEC2),
+    (UIVec3, UNSIGNED_INT_VEC3),
+    (UIVec4, UNSIGNED_INT_VEC4),
+    (Vec2, FLOAT_VEC2),
+    (Vec3, FLOAT_VEC3),
+    (Vec4, FLOAT_VEC4),
+    (BVec2, BOOL_VEC2),
+    (BVec3, BOOL_VEC3),
+    (BVec4, BOOL_VEC4),
+    // matrices
+    (M22, FLOAT_MAT2),
+    (M33, FLOAT_MAT3),
+    (M44, FLOAT_MAT4),
+    // textures
+    (ISampler1D, INT_SAMPLER_1D),
+    (ISampler2D, INT_SAMPLER_2D),
+    (ISampler3D, INT_SAMPLER_3D),
+    (ISampler1DArray, INT_SAMPLER_1D_ARRAY),
+    (ISampler2DArray, INT_SAMPLER_2D_ARRAY),
+    (UISampler1D, UNSIGNED_INT_SAMPLER_1D),
+    (UISampler2D, UNSIGNED_INT_SAMPLER_2D),
+    (UISampler3D, UNSIGNED_INT_SAMPLER_3D),
+    (UISampler1DArray, UNSIGNED_INT_SAMPLER_1D_ARRAY),
+    (UISampler2DArray, UNSIGNED_INT_SAMPLER_2D_ARRAY),
+    (Sampler1D, SAMPLER_1D),
+    (Sampler2D, SAMPLER_2D),
+    (Sampler3D, SAMPLER_3D),
+    (Sampler1DArray, SAMPLER_1D_ARRAY),
+    (Sampler2DArray, SAMPLER_2D_ARRAY),
+    (ICubemap, INT_SAMPLER_CUBE),
+    (UICubemap, UNSIGNED_INT_SAMPLER_CUBE),
+    (Cubemap, SAMPLER_CUBE)
+  )
 }
 
 fn bind_vertex_attribs_locations<Sem>(program: &Program) -> Vec<VertexAttribWarning>
