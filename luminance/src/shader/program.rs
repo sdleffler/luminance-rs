@@ -1272,6 +1272,18 @@ unsafe impl<'a> Uniformable for &'a [[bool; 4]] {
   }
 }
 
+// Check if a [`Type`] matches the OpenGL counterpart.
+macro_rules! check_types_match {
+  ( $name: expr, $ty: expr, $glty: expr, $( $typ: path => $gl: path ),+) => {
+  match $ty {
+      $(
+        $typ if $glty != $gl => Err(UniformWarning::type_mismatch($name, $ty)),
+      )+
+      _ => Ok(())
+    }
+  }
+}
+
 // Check whether a shader program’s uniform type matches the type we have chosen.
 fn uniform_type_match(program: GLuint, name: &str, ty: Type) -> Result<(), UniformWarning> {
   let mut size: GLint = 0;
@@ -1335,68 +1347,49 @@ fn uniform_type_match(program: GLuint, name: &str, ty: Type) -> Result<(), Unifo
     return Ok(());
   }
 
-  check_types_match(name, ty, glty)
-}
-
-// Check if a [`Type`] matches the OpenGL counterpart.
-#[allow(clippy::cognitive_complexity)]
-fn check_types_match(name: &str, ty: Type, glty: GLuint) -> Result<(), UniformWarning> {
-  match ty {
+  check_types_match!(name, ty, glty,
     // scalars
-    Type::Int if glty != gl::INT => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::UInt if glty != gl::UNSIGNED_INT => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::Float if glty != gl::FLOAT => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::Bool if glty != gl::BOOL => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::Int => gl::INT,
+    Type::UInt => gl::UNSIGNED_INT,
+    Type::Float => gl::FLOAT,
+    Type::Bool => gl::BOOL,
     // vectors
-    Type::IVec2 if glty != gl::INT_VEC2 => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::IVec3 if glty != gl::INT_VEC3 => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::IVec4 if glty != gl::INT_VEC4 => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::UIVec2 if glty != gl::UNSIGNED_INT_VEC2 => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::UIVec3 if glty != gl::UNSIGNED_INT_VEC3 => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::UIVec4 if glty != gl::UNSIGNED_INT_VEC4 => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::Vec2 if glty != gl::FLOAT_VEC2 => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::Vec3 if glty != gl::FLOAT_VEC3 => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::Vec4 if glty != gl::FLOAT_VEC4 => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::BVec2 if glty != gl::BOOL_VEC2 => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::BVec3 if glty != gl::BOOL_VEC3 => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::BVec4 if glty != gl::BOOL_VEC4 => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::IVec2 => gl::INT_VEC2,
+    Type::IVec3 => gl::INT_VEC3,
+    Type::IVec4 => gl::INT_VEC4,
+    Type::UIVec2 => gl::UNSIGNED_INT_VEC2,
+    Type::UIVec3 => gl::UNSIGNED_INT_VEC3,
+    Type::UIVec4 => gl::UNSIGNED_INT_VEC4,
+    Type::Vec2 => gl::FLOAT_VEC2,
+    Type::Vec3 => gl::FLOAT_VEC3,
+    Type::Vec4 => gl::FLOAT_VEC4,
+    Type::BVec2 => gl::BOOL_VEC2,
+    Type::BVec3 => gl::BOOL_VEC3,
+    Type::BVec4 => gl::BOOL_VEC4,
     // matrices
-    Type::M22 if glty != gl::FLOAT_MAT2 => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::M33 if glty != gl::FLOAT_MAT3 => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::M44 if glty != gl::FLOAT_MAT4 => Err(UniformWarning::type_mismatch(name, ty)),
+    Type::M22 => gl::FLOAT_MAT2,
+    Type::M33 => gl::FLOAT_MAT3,
+    Type::M44 => gl::FLOAT_MAT4,
     // textures
-    Type::ISampler1D if glty != gl::INT_SAMPLER_1D => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::ISampler2D if glty != gl::INT_SAMPLER_2D => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::ISampler3D if glty != gl::INT_SAMPLER_3D => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::ISampler1DArray if glty != gl::INT_SAMPLER_1D_ARRAY => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::ISampler2DArray if glty != gl::INT_SAMPLER_2D_ARRAY => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::UISampler1D if glty != gl::UNSIGNED_INT_SAMPLER_1D => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    Type::UISampler2D if glty != gl::UNSIGNED_INT_SAMPLER_2D => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    Type::UISampler3D if glty != gl::UNSIGNED_INT_SAMPLER_3D => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    Type::UISampler1DArray if glty != gl::UNSIGNED_INT_SAMPLER_1D_ARRAY => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    Type::UISampler2DArray if glty != gl::UNSIGNED_INT_SAMPLER_2D_ARRAY => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    Type::Sampler1D if glty != gl::SAMPLER_1D => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::Sampler2D if glty != gl::SAMPLER_2D => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::Sampler3D if glty != gl::SAMPLER_3D => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::Sampler1DArray if glty != gl::SAMPLER_1D_ARRAY => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::Sampler2DArray if glty != gl::SAMPLER_2D_ARRAY => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::ICubemap if glty != gl::INT_SAMPLER_CUBE => Err(UniformWarning::type_mismatch(name, ty)),
-    Type::UICubemap if glty != gl::UNSIGNED_INT_SAMPLER_CUBE => {
-      Err(UniformWarning::type_mismatch(name, ty))
-    }
-    Type::Cubemap if glty != gl::SAMPLER_CUBE => Err(UniformWarning::type_mismatch(name, ty)),
-    _ => Ok(()),
-  }
+    Type::ISampler1D => gl::INT_SAMPLER_1D,
+    Type::ISampler2D => gl::INT_SAMPLER_2D,
+    Type::ISampler3D => gl::INT_SAMPLER_3D,
+    Type::ISampler1DArray => gl::INT_SAMPLER_1D_ARRAY,
+    Type::ISampler2DArray => gl::INT_SAMPLER_2D_ARRAY,
+    Type::UISampler1D => gl::UNSIGNED_INT_SAMPLER_1D,
+    Type::UISampler2D => gl::UNSIGNED_INT_SAMPLER_2D,
+    Type::UISampler3D => gl::UNSIGNED_INT_SAMPLER_3D,
+    Type::UISampler1DArray => gl::UNSIGNED_INT_SAMPLER_1D_ARRAY,
+    Type::UISampler2DArray => gl::UNSIGNED_INT_SAMPLER_2D_ARRAY,
+    Type::Sampler1D => gl::SAMPLER_1D,
+    Type::Sampler2D => gl::SAMPLER_2D,
+    Type::Sampler3D => gl::SAMPLER_3D,
+    Type::Sampler1DArray => gl::SAMPLER_1D_ARRAY,
+    Type::Sampler2DArray => gl::SAMPLER_2D_ARRAY,
+    Type::ICubemap => gl::INT_SAMPLER_CUBE,
+    Type::UICubemap => gl::UNSIGNED_INT_SAMPLER_CUBE,
+    Type::Cubemap => gl::SAMPLER_CUBE
+  )
 }
 
 // Generate a uniform interface and collect warnings.
