@@ -15,9 +15,9 @@ edition = "2018"
 name = "attributeless"
 path = "src/attributeless.rs"
 
-# [[bin]]
-# name = "displacement-map"
-# path = "src/displacement-map.rs"
+[[bin]]
+name = "displacement-map"
+path = "src/displacement-map.rs"
 
 [[bin]]
 name = "dynamic-uniform-interface"
