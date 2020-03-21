@@ -8,7 +8,25 @@ all examples.
 
 If you think a specific feature is missing, feel free to open a PR and add new examples!
 
+
 > Have fun!
+
+<!-- vim-markdown-toc GFM -->
+
+* [01 — Hello World](#01--hello-world)
+* [02 — Render State](#02--render-state)
+* [03 — Sliced Tessellation](#03--sliced-tessellation)
+* [04 — Shader Uniforms](#04--shader-uniforms)
+* [05 — Attributeless Render](#05--attributeless-render)
+* [06 — Texture](#06--texture)
+* [07 — Offscreen](#07--offscreen)
+* [08 — Shader Uniforms Adapt](#08--shader-uniforms-adapt)
+* [09 — Dynamic Uniform Interface](#09--dynamic-uniform-interface)
+* [10 — Vertex Instancing](#10--vertex-instancing)
+* [11 — Query texture texels](#11--query-texture-texels)
+* [12 — Displacement Map](#12--displacement-map)
+
+<!-- vim-markdown-toc -->
 
 ## [01 — Hello World](./src/hello-world.rs)
 
