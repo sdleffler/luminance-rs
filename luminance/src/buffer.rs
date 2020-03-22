@@ -1,4 +1,47 @@
-//! Buffer API.
+//! Graphics buffers.
+//!
+//! A GPU buffer is a typed continuous region of data. It has a size and can hold several elements.
+//!
+//! Once the buffer is created, you can perform several operations on it:
+//!
+//! - Writing to it.
+//! - Reading from it.
+//! - Passing it around as uniforms.
+//! - Etc.
+//!
+//! # Parametricity
+//!
+//! The [`Buffer`] type is parametric over the backend type and item type. For the backend type,
+//! the [`backend::buffer::Buffer`] trait must be implemented to be able to use it with the buffe.
+//!
+//! # Buffer creation, reading, writing and getting information
+//!
+//! Buffers are created with the [`Buffer::new`], [`Buffer::from_slice`] and [`Buffer::repeat`]
+//! methods. All these methods are fallible — they might fail with [`BufferError`].
+//!
+//! Once you have a [`Buffer`], you can read from it and write to it.
+//! Writing is done with [`Buffer::set`] — which allows to set a value at a given index in the
+//! buffer, [`Buffer::write_whole`] — which writes a whole slice to the buffer — and
+//! [`Buffer::clear`] — which sets the same value to all items in a buffer. Reading is performed
+//! with [`Buffer::at`] — which retrieves the item at a given index and [`Buffer::whole`] which
+//! retrieves the whole buffer by copying it to a `Vec<T>`.
+//!
+//! It’s possible to get data via several methods, such as [`Buffer::len`] to get the number of
+//! items in the buffer.
+//!
+//! # Buffer slicing
+//!
+//! Buffer slicing is the act of getting a [`BufferSlice`] out of a [`Buffer`]. That operation
+//! allows to _map_ a GPU region onto a CPU one and access the underlying data as a regular slice.
+//! Two methods exist to slice a buffer
+//!
+//! - Read-only: [`Buffer::slice`].
+//! - Mutably: [`Buffer::slice_mut`].
+//!
+//! Both methods take a mutable reference on a buffer because even in the read-only case, exclusive
+//! borrowing must be enforced.
+//!
+//! [`backend::buffer::Buffer`]: crate::backend::buffer::Buffer
 
 use crate::backend::buffer::{Buffer as BufferBackend, BufferSlice as BufferSliceBackend};
 use crate::context::GraphicsContext;
