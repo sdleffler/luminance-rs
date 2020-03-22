@@ -42,7 +42,7 @@ pub enum Equation {
 /// by *blending equations*.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Factor {
-  /// `1 * color = factor`
+  /// `1 * color = color`
   One,
   /// `0 * color = 0`
   Zero,
