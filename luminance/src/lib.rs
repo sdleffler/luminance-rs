@@ -115,10 +115,10 @@
 //!
 //! ```
 //! use luminance::backend::buffer::Buffer as BufferBackend;
-//! use luminance::buffer:Buffer;
+//! use luminance::buffer::Buffer;
 //!
-//! fn work<B>(b: &Buffer<B, u8>) where B: BufferBackend {
-//!   todo()!;
+//! fn work<B>(b: &Buffer<B, u8>) where B: BufferBackend<u8> {
+//!   todo!();
 //! }
 //! ```
 //!
