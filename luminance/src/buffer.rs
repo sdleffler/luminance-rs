@@ -121,6 +121,15 @@ where
       })
     }
   }
+
+  pub fn slice_mut(&mut self) -> Result<BufferSliceMut<S, T>, BufferError> {
+    unsafe {
+      S::slice_buffer_mut(&mut self.repr).map(|slice| BufferSliceMut {
+        slice,
+        _a: PhantomData,
+      })
+    }
+  }
 }
 
 /// Buffer errors.
