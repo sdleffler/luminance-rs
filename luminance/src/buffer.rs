@@ -49,33 +49,63 @@ use crate::context::GraphicsContext;
 use std::fmt;
 use std::marker::PhantomData;
 
+/// A GPU buffer.
+///
+/// # Parametricity
+///
+/// `B` is the backend type. It must implement [`backend::buffer::Buffer`].
+///
+/// [`backend::buffer::Buffer`]: crate::backend::buffer::Buffer
+///
+/// `T` is the type of stored items. No restriction are currently enforced on that type, besides
+/// the fact it must be [`Sized`].
 #[derive(Debug)]
-pub struct Buffer<S, T>
+pub struct Buffer<B, T>
 where
-  S: BufferBackend<T>,
+  B: ?Sized + BufferBackend<T>,
 {
-  pub(crate) repr: S::BufferRepr,
+  pub(crate) repr: B::BufferRepr,
   _t: PhantomData<T>,
 }
 
-impl<S, T> Drop for Buffer<S, T>
+impl<B, T> Drop for Buffer<B, T>
 where
-  S: BufferBackend<T>,
+  B: ?Sized + BufferBackend<T>,
 {
   fn drop(&mut self) {
-    unsafe { <S as BufferBackend<T>>::destroy_buffer(&mut self.repr) };
+    unsafe { <B as BufferBackend<T>>::destroy_buffer(&mut self.repr) };
   }
 }
 
-impl<S, T> Buffer<S, T>
+impl<B, T> Buffer<B, T>
 where
-  S: BufferBackend<T>,
+  B: ?Sized + BufferBackend<T>,
 {
-  pub fn new<C>(ctx: &mut C, len: usize) -> Result<Self, BufferError>
+  /// Create a new buffer with a given length
+  ///
+  /// The buffer will be created on the GPU with a contiguous region large enough to fit `len`
+  /// items.
+  ///
+  /// # Safety
+  ///
+  /// This function is `unsafe` because it allocates memory without initializing it. If you need
+  /// a safe version, consider using [`Buffer::from_slice`] or [`Buffer::repeat`] instead.
+  ///
+  /// # Errors
+  ///
+  /// That function can fail creating the buffer for various reasons, in which case it returns
+  /// `Err(BufferError::_)`. Feel free to read the documentation of [`BufferError`] for further
+  /// information.
+  ///
+  /// # Notes
+  ///
+  /// You might be interested in the [`GraphicsContext::new_buffer`] function instead, which
+  /// is the exact same function, but benefits from more type inference (based on `&mut C`).
+  pub unsafe fn new<C>(ctx: &mut C, len: usize) -> Result<Self, BufferError>
   where
-    C: GraphicsContext<Backend = S>,
+    C: GraphicsContext<Backend = B>,
   {
-    let repr = unsafe { ctx.backend().new_buffer(len)? };
+    let repr = ctx.backend().new_buffer(len)?;
 
     Ok(Buffer {
       repr,
@@ -83,9 +113,24 @@ where
     })
   }
 
+  /// Create a new buffer from a slice of items.
+  ///
+  /// The buffer will be created with a length equal to the length of the input size, and items
+  /// will be copied from the slice inside the contiguous GPU region.
+  ///
+  /// # Errors
+  ///
+  /// That function can fail creating the buffer for various reasons, in which case it returns
+  /// `Err(BufferError::_)`. Feel free to read the documentation of [`BufferError`] for further
+  /// information.
+  ///
+  /// # Notes
+  ///
+  /// You might be interested in the [`GraphicsContext::new_buffer_from_slice`] function instead,
+  /// which is the exact same function, but benefits from more type inference (based on `&mut C`).
   pub fn from_slice<C, X>(ctx: &mut C, slice: X) -> Result<Self, BufferError>
   where
-    C: GraphicsContext<Backend = S>,
+    C: GraphicsContext<Backend = B>,
     X: AsRef<[T]>,
   {
     let repr = unsafe { ctx.backend().from_slice(slice)? };
@@ -96,9 +141,23 @@ where
     })
   }
 
+  /// Create a new buffer by repeating `len` times a `value`.
+  ///
+  /// The buffer will be comprised of `len` items, all equal to `value`.
+  ///
+  /// # Errors
+  ///
+  /// That function can fail creating the buffer for various reasons, in which case it returns
+  /// `Err(BufferError::_)`. Feel free to read the documentation of [`BufferError`] for further
+  /// information.
+  ///
+  /// # Notes
+  ///
+  /// You might be interested in the [`GraphicsContext::new_buffer_repeating`] function instead,
+  /// which is the exact same function, but benefits from more type inference (based on `&mut C`).
   pub fn repeat<C>(ctx: &mut C, len: usize, value: T) -> Result<Self, BufferError>
   where
-    C: GraphicsContext<Backend = S>,
+    C: GraphicsContext<Backend = B>,
     T: Copy,
   {
     let repr = unsafe { ctx.backend().repeat(len, value)? };
@@ -109,65 +168,101 @@ where
     })
   }
 
+  /// Get the item at the given index.
   pub fn at(&self, i: usize) -> Option<T>
   where
     T: Copy,
   {
-    unsafe { S::at(&self.repr, i) }
+    unsafe { B::at(&self.repr, i) }
   }
 
+  /// Get the whole content of the buffer and store it inside a [`Vec`].
   pub fn whole(&self) -> Vec<T>
   where
     T: Copy,
   {
-    unsafe { S::whole(&self.repr) }
+    unsafe { B::whole(&self.repr) }
   }
 
+  /// Set a value `x` at index `i` in the buffer.
+  ///
+  /// # Errors
+  ///
+  /// That function returns [`BufferError::Overflow`] if `i` is bigger than the length of the
+  /// buffer. Other errors are possible; please consider reading the documentation of
+  /// [`BufferError`] for further information.
   pub fn set(&mut self, i: usize, x: T) -> Result<(), BufferError>
   where
     T: Copy,
   {
-    unsafe { S::set(&mut self.repr, i, x) }
+    unsafe { B::set(&mut self.repr, i, x) }
   }
 
+  /// Set the content of the buffer by using a slice that will be copied at the buffer’s memory
+  /// location.
+  ///
+  /// # Errors
+  ///
+  /// [`BufferError::TooFewValues`] is returned if the input slice has less items than the buffer.
+  ///
+  /// [`BufferError::TooManyValues`] is returned if the input slice has more items than the buffer.
   pub fn write_whole(&mut self, values: &[T]) -> Result<(), BufferError> {
-    unsafe { S::write_whole(&mut self.repr, values) }
+    unsafe { B::write_whole(&mut self.repr, values) }
   }
 
+  /// Clear the content of the buffer by copying the same value everywhere.
   pub fn clear(&mut self, x: T) -> Result<(), BufferError>
   where
     T: Copy,
   {
-    unsafe { S::clear(&mut self.repr, x) }
+    unsafe { B::clear(&mut self.repr, x) }
   }
 
+  /// Return the length of the buffer (i.e. the number of elements).
   #[inline(always)]
   pub fn len(&self) -> usize {
-    unsafe { S::len(&self.repr) }
+    unsafe { B::len(&self.repr) }
   }
 
+  /// Check whether the buffer is empty (i.e. it has no elements).
+  ///
+  /// # Note
+  ///
+  /// Since right now, it is not possible to grow vectors, it is highly recommended not to create
+  /// empty buffers. That function is there only for convenience and demonstration; you shouldn’t
+  /// really have to use it.
   #[inline(always)]
   pub fn is_empty(&self) -> bool {
     self.len() == 0
   }
 }
 
-impl<S, T> Buffer<S, T>
+impl<B, T> Buffer<B, T>
 where
-  S: BufferSliceBackend<T>,
+  B: ?Sized + BufferSliceBackend<T>,
 {
-  pub fn slice(&mut self) -> Result<BufferSlice<S, T>, BufferError> {
+  /// Create a new [`BufferSlice`] from a buffer, allowing to get `&[T]` out of it.
+  ///
+  /// # Errors
+  ///
+  /// That function might fail and return a [`BufferError::MapFailed`].
+  pub fn slice(&mut self) -> Result<BufferSlice<B, T>, BufferError> {
     unsafe {
-      S::slice_buffer(&mut self.repr).map(|slice| BufferSlice {
+      B::slice_buffer(&mut self.repr).map(|slice| BufferSlice {
         slice,
         _a: PhantomData,
       })
     }
   }
 
-  pub fn slice_mut(&mut self) -> Result<BufferSliceMut<S, T>, BufferError> {
+  /// Create a new [`BufferSliceMut`] from a buffer, allowing to get `&mut [T]` out of it.
+  ///
+  /// # Errors
+  ///
+  /// That function might fail and return a [`BufferError::MapFailed`].
+  pub fn slice_mut(&mut self) -> Result<BufferSliceMut<B, T>, BufferError> {
     unsafe {
-      S::slice_buffer_mut(&mut self.repr).map(|slice| BufferSliceMut {
+      B::slice_buffer_mut(&mut self.repr).map(|slice| BufferSliceMut {
         slice,
         _a: PhantomData,
       })
@@ -176,6 +271,10 @@ where
 }
 
 /// Buffer errors.
+///
+/// Please keep in mind that this `enum` is _non exhaustive_; you will not be able to exhaustively
+/// pattern-match against it.
+#[non_exhaustive]
 #[derive(Debug, Eq, PartialEq)]
 pub enum BufferError {
   /// Overflow when setting a value with a specific index.
@@ -199,7 +298,7 @@ pub enum BufferError {
     buffer_len: usize,
   },
 
-  /// Mapping the buffer failed.
+  /// Buffer mapping failed.
   MapFailed,
 }
 
@@ -235,58 +334,67 @@ impl fmt::Display for BufferError {
   }
 }
 
+/// A buffer slice, allowing to get `&[T]`.
 #[derive(Debug)]
-pub struct BufferSlice<'a, S, T>
+pub struct BufferSlice<'a, B, T>
 where
-  S: BufferSliceBackend<T>,
+  B: ?Sized + BufferSliceBackend<T>,
 {
-  slice: S::SliceRepr,
+  slice: B::SliceRepr,
   _a: PhantomData<&'a mut ()>,
 }
 
-impl<'a, S, T> Drop for BufferSlice<'a, S, T>
+impl<'a, B, T> Drop for BufferSlice<'a, B, T>
 where
-  S: BufferSliceBackend<T>,
+  B: ?Sized + BufferSliceBackend<T>,
 {
   fn drop(&mut self) {
     {
-      unsafe { S::destroy_buffer_slice(&mut self.slice) };
+      unsafe { B::destroy_buffer_slice(&mut self.slice) };
     };
   }
 }
 
-impl<'a, S, T> BufferSlice<'a, S, T>
+impl<'a, B, T> BufferSlice<'a, B, T>
 where
-  S: BufferSliceBackend<T>,
+  B: ?Sized + BufferSliceBackend<T>,
 {
+  /// Obtain a `&[T]`.
+  ///
+  /// # Errors
+  ///
+  /// It is possible that obtaining a slice is not possible. In that case,
+  /// [`BufferError::MapFailed`] is returned.
   pub fn as_slice(&self) -> Result<&[T], BufferError> {
-    unsafe { S::obtain_slice(&self.slice) }
+    unsafe { B::obtain_slice(&self.slice) }
   }
 }
 
+/// A buffer mutable slice, allowing to get `&mut [T]`.
 #[derive(Debug)]
-pub struct BufferSliceMut<'a, S, T>
+pub struct BufferSliceMut<'a, B, T>
 where
-  S: BufferSliceBackend<T>,
+  B: ?Sized + BufferSliceBackend<T>,
 {
-  slice: S::SliceMutRepr,
+  slice: B::SliceMutRepr,
   _a: PhantomData<&'a mut ()>,
 }
 
-impl<'a, S, T> Drop for BufferSliceMut<'a, S, T>
+impl<'a, B, T> Drop for BufferSliceMut<'a, B, T>
 where
-  S: BufferSliceBackend<T>,
+  B: ?Sized + BufferSliceBackend<T>,
 {
   fn drop(&mut self) {
-    unsafe { S::destroy_buffer_slice_mut(&mut self.slice) };
+    unsafe { B::destroy_buffer_slice_mut(&mut self.slice) };
   }
 }
 
-impl<'a, S, T> BufferSliceMut<'a, S, T>
+impl<'a, B, T> BufferSliceMut<'a, B, T>
 where
-  S: BufferSliceBackend<T>,
+  B: ?Sized + BufferSliceBackend<T>,
 {
+  /// Obtain a `&mut [T]`.
   pub fn as_slice_mut(&mut self) -> Result<&mut [T], BufferError> {
-    unsafe { S::obtain_slice_mut(&mut self.slice) }
+    unsafe { B::obtain_slice_mut(&mut self.slice) }
   }
 }
