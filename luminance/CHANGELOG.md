@@ -125,7 +125,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 ## Minor changes
 
-- Add support for texture arrays. They can now be passed constructed and passed as uniforms to
+- Add support for texture arrays. They can now be constructed and passed as uniforms to
   shader programs.
 
 # 0.38
