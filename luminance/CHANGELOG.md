@@ -121,7 +121,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 ## Major changes
 
 - Remove the concept of _layering_ in textures. Textures’ layerings (i.e. either _flat_ or
-  _arrayed_) is now encoded directly in the dimension of the texture.
+  _arrayed_) are now encoded directly in the dimension of the texture.
 
 ## Minor changes
 
