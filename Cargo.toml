@@ -7,6 +7,7 @@ members = [
   "luminance-gl",
   "luminance-glfw",
   "luminance-glutin",
+  "luminance-sdl2",
   "luminance-webgl",
   "luminance-windowing",
 ]
@@ -18,4 +19,5 @@ luminance-examples = { path = "./luminance-examples" }
 luminance-gl = { path = "./luminance-gl" }
 luminance-glfw = { path = "./luminance-glfw" }
 luminance-glutin = { path = "./luminance-glutin" }
+luminance-sdl2 = { path = "./luminance-sdl2" }
 luminance-windowing = { path = "./luminance-windowing" }
