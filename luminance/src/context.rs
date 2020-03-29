@@ -2,17 +2,17 @@
 //!
 //! # Graphics context and backends
 //!
-//! A graphics context is an external type typically implemented by other crates and which
-//! implement. Its main scope is to unify all possible implementations of backends behind a
-//! single trait: [`GraphicsContext`]. A [`GraphicsContext`] really only requires two items
+//! A graphics context is an external type typically implemented by other crates and which provides
+//! support for backends. Its main scope is to unify all possible implementations of backends
+//! behind a single trait: [`GraphicsContext`]. A [`GraphicsContext`] really only requires two items
 //! to be implemented:
 //!
-//! - The type of the backend to use — [`GraphicsContext::Backend`]. That type will often be used to
-//!   access the GPU, cache costly operations, etc.
+//! - The type of the backend to use — [`GraphicsContext::Backend`]. That type will often be used
+//!   to access the GPU, cache costly operations, etc.
 //! - A method to get a mutable access to the underlying backend — [`GraphicsContext::backend`].
 //!
 //! Most of the time, if you want to work with _any_ windowing implementation, you will want to
-//! use a type variable such is `C: GraphicsContext`. If you want to work with any context
+//! use a type variable such as `C: GraphicsContext`. If you want to work with any context
 //! supporting a specific backend, use `C: GraphicsContext<Backend = YourBackendType`. Etc.
 //!
 //! This crate doesn’t provide you with creating such contexts. Instead, you must do it yourself
@@ -21,10 +21,10 @@
 //! # Default implementation of helper functions
 //!
 //! By default, graphics contexts automatically get several methods implemented on them. Those
-//! methods are helper functions available to write code that normally expects a reference to
-//! the context in a more compact and elegant way. Often, it will remove you from using type
-//! ascription, too, since the [`GraphicsContext::Backend`] type is known when calling those
-//! functions.
+//! methods are helper functions available to write code in a more elegant and compact way than
+//! passing around mutable references on the context. Often, it will help you not having to
+//! use type ascription, too, since the [`GraphicsContext::Backend`] type is known when calling
+//! those functions.
 //!
 //! Instead of:
 //!
@@ -32,7 +32,7 @@
 //! use luminance::context::GraphicsContext as _;
 //! use luminance::buffer::Buffer;
 //!
-//! let buffer: Buffer<SomeBackendType, u8> = Buffer::new(&mut context, 10).unwrap();
+//! let buffer: Buffer<SomeBackendType, u8> = Buffer::from_slice(&mut context, slice).unwrap();
 //! ```
 //!
 //! You can simply do:
@@ -40,7 +40,7 @@
 //! ```ignore
 //! use luminance::context::GraphicsContext as _;
 //!
-//! let buffer = context.new_buffer(10).unwrap();
+//! let buffer = context.new_buffer_from_slice(slice).unwrap();
 //! ```
 
 use crate::backend::buffer::Buffer as BufferBackend;
