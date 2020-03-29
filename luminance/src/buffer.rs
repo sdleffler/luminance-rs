@@ -53,12 +53,11 @@ use std::marker::PhantomData;
 ///
 /// # Parametricity
 ///
-/// `B` is the backend type. It must implement [`backend::buffer::Buffer`].
+/// - `B` is the backend type. It must implement [`backend::buffer::Buffer`].
+/// -`T` is the type of stored items. No restriction are currently enforced on that type, besides
+///   the fact it must be [`Sized`].
 ///
 /// [`backend::buffer::Buffer`]: crate::backend::buffer::Buffer
-///
-/// `T` is the type of stored items. No restriction are currently enforced on that type, besides
-/// the fact it must be [`Sized`].
 #[derive(Debug)]
 pub struct Buffer<B, T>
 where

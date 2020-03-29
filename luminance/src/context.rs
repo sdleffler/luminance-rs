@@ -44,8 +44,13 @@
 //! ```
 
 use crate::backend::buffer::Buffer as BufferBackend;
+use crate::backend::color_slot::ColorSlot;
+use crate::backend::depth_slot::DepthSlot;
+use crate::backend::framebuffer::Framebuffer as FramebufferBackend;
 use crate::buffer::{Buffer, BufferError};
+use crate::framebuffer::{Framebuffer, FramebufferError};
 use crate::pipeline::PipelineGate;
+use crate::texture::{Dimensionable, Sampler};
 
 /// Class of graphics context.
 pub unsafe trait GraphicsContext: Sized {
@@ -95,5 +100,22 @@ pub unsafe trait GraphicsContext: Sized {
     T: Copy,
   {
     Buffer::repeat(self, len, value)
+  }
+
+  /// Create a new framebuffer.
+  ///
+  /// See the documentation of [`Framebuffer::new`] for further details.
+  fn new_framebuffer<D, CS, DS>(
+    size: D::Size,
+    mipmaps: usize,
+    sampler: Sampler,
+  ) -> Result<Framebuffer<Self::Backend, D, CS, DS>, FramebufferError>
+  where
+    Self::Backend: FramebufferBackend<D>,
+    D: Dimensionable,
+    CS: ColorSlot<Self::Backend, D>,
+    DS: DepthSlot<Self::Backend, D>,
+  {
+    Framebuffer::new(size, mipmaps, sampler)
   }
 }
