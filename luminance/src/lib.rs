@@ -185,7 +185,6 @@ pub mod context;
 pub mod depth_test;
 pub mod face_culling;
 pub mod framebuffer;
-pub mod linear;
 pub mod pipeline;
 pub mod pixel;
 pub mod render_gate;

@@ -5,7 +5,6 @@ use std::ptr::{null, null_mut};
 
 use crate::gl33::GL33;
 use luminance::backend::shader::{Shader, Uniformable};
-use luminance::linear::{M22, M33, M44};
 use luminance::pipeline::{BufferBinding, TextureBinding};
 use luminance::pixel::{SamplerType, Type as PixelType};
 use luminance::shader::{
@@ -494,14 +493,14 @@ impl_Uniformable!(&[[f32; 2]], Vec2, Uniform2fv);
 impl_Uniformable!(&[[f32; 3]], Vec3, Uniform3fv);
 impl_Uniformable!(&[[f32; 4]], Vec4, Uniform4fv);
 
-impl_Uniformable!(mat M22, M22, UniformMatrix2fv);
-impl_Uniformable!(mat & [M22], M22, UniformMatrix2fv);
+impl_Uniformable!(mat [[f32; 2]; 2], M22, UniformMatrix2fv);
+impl_Uniformable!(mat & [[[f32; 2]; 2]], M22, UniformMatrix2fv);
 
-impl_Uniformable!(mat M33, M33, UniformMatrix3fv);
-impl_Uniformable!(mat & [M33], M33, UniformMatrix3fv);
+impl_Uniformable!(mat [[f32; 3]; 3], M33, UniformMatrix3fv);
+impl_Uniformable!(mat & [[[f32; 3]; 3]], M33, UniformMatrix3fv);
 
-impl_Uniformable!(mat M44, M44, UniformMatrix4fv);
-impl_Uniformable!(mat & [M44], M44, UniformMatrix4fv);
+impl_Uniformable!(mat [[f32; 4]; 4], M44, UniformMatrix4fv);
+impl_Uniformable!(mat & [[[f32; 4]; 4]], M44, UniformMatrix4fv);
 
 unsafe impl Uniformable<GL33> for bool {
   unsafe fn ty() -> UniformType {
