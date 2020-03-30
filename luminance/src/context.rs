@@ -53,9 +53,15 @@ use crate::pipeline::PipelineGate;
 use crate::texture::{Dimensionable, Sampler};
 
 /// Class of graphics context.
+///
+/// Graphics context must implement this trait to be able to be used throughout the rest of the
+/// crate.
 pub unsafe trait GraphicsContext: Sized {
+  /// Internal type used by the backend to cache, optimize and store data. This roughly represents
+  /// the GPU data / context a backend implementation needs to work correctly.
   type Backend: ?Sized;
 
+  /// Access the underlying backend.
   fn backend(&mut self) -> &mut Self::Backend;
 
   /// Create a new pipeline gate
@@ -106,6 +112,7 @@ pub unsafe trait GraphicsContext: Sized {
   ///
   /// See the documentation of [`Framebuffer::new`] for further details.
   fn new_framebuffer<D, CS, DS>(
+    &mut self,
     size: D::Size,
     mipmaps: usize,
     sampler: Sampler,
@@ -116,6 +123,6 @@ pub unsafe trait GraphicsContext: Sized {
     CS: ColorSlot<Self::Backend, D>,
     DS: DepthSlot<Self::Backend, D>,
   {
-    Framebuffer::new(size, mipmaps, sampler)
+    Framebuffer::new(self, size, mipmaps, sampler)
   }
 }
