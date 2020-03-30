@@ -1,7 +1,15 @@
 //! Pixel formats types and function manipulation.
 //!
-//! The `Pixel` trait is used to reify a pixel type at runtime via `PixelFormat`.
+//! The [`Pixel`] trait is used to reify a pixel type at runtime via [`PixelFormat`]. It is made
+//! of several parts:
 //!
+//! - [`Pixel::Encoding`], an associated type, giving the type used to represent a single pixel.
+//! - [`Pixel::RawEncoding`], an associated typed that represents the encoding of underlying
+//!   values in each channel of a single pixel.
+//! - [`Pixel::SamplerType`], the type of sampler that is needed to be used to access this pixel
+//!   format on the GPU / in shaders.
+//! - [`Pixel::pixel_format`], a function returning the [`PixelFormat`], reified version of the
+//!   type at runtime.
 
 /// Reify a static pixel format at runtime.
 pub unsafe trait Pixel {
@@ -16,17 +24,17 @@ pub unsafe trait Pixel {
   /// The type of sampler required to access this pixel format.
   type SamplerType: SamplerType;
 
-  /// Reify to `PixelFormat`.
+  /// Reify to [`PixelFormat`].
   fn pixel_format() -> PixelFormat;
 }
 
-/// Constraint on `Pixel` for color ones.
+/// Constraint on [`Pixel`] for color ones.
 pub unsafe trait ColorPixel: Pixel {}
 
-/// Constraint on `Pixel` for depth ones.
+/// Constraint on [`Pixel`] for depth ones.
 pub unsafe trait DepthPixel: Pixel {}
 
-/// Constaint on `Pixel` for renderable ones.
+/// Constaint on [`Pixel`] for renderable ones.
 pub unsafe trait RenderablePixel: Pixel {}
 
 /// Reify a static sample type at runtime.
@@ -76,6 +84,14 @@ impl PixelFormat {
 }
 
 /// Pixel type.
+///
+/// - Normalized integer types: [`NormIntegral`] and [`NormUnsigned`] represent integer types
+///   (signed and unsigned, respectively). However, they are _normalized_ when used in shader
+///   stages, i.e. fetching from them will yield a floating-point value. That value is
+///   comprised between `0.0` and `1.0`.
+/// - Integer types: [`Integral`] and [`Unsigned`] allows to store signed and unsigned integers,
+///   respectively.
+/// - Floating-point types: currently, only [`Floating`] is supported.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Type {
   /// Normalized signed integral pixel type.
@@ -92,7 +108,7 @@ pub enum Type {
 
 /// Format of a pixel.
 ///
-/// Whichever the constructor you choose, the carried `Size`s represents how many bits are used to
+/// Whichever the constructor you choose, the carried [`Size`]s represent how many bits are used to
 /// represent each channel.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Format {
@@ -157,7 +173,7 @@ impl Size {
   }
 }
 
-/// The normalized (signed) integral sample type.
+/// The normalized (signed) integral sampler type.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct NormIntegral;
 
@@ -167,7 +183,7 @@ unsafe impl SamplerType for NormIntegral {
   }
 }
 
-/// The normalized unsigned integral sample type.
+/// The normalized unsigned integral samplre type.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct NormUnsigned;
 
@@ -177,7 +193,7 @@ unsafe impl SamplerType for NormUnsigned {
   }
 }
 
-/// The (signed) integral sample type.
+/// The (signed) integral sampler type.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Integral;
 
@@ -187,7 +203,7 @@ unsafe impl SamplerType for Integral {
   }
 }
 
-/// The unsigned integral sample type.
+/// The unsigned integral sampler type.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Unsigned;
 
@@ -197,7 +213,7 @@ unsafe impl SamplerType for Unsigned {
   }
 }
 
-/// The floating sample type.
+/// The floating sampler type.
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub struct Floating;
 
