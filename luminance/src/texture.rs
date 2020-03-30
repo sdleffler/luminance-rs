@@ -1,4 +1,33 @@
-//! Texture API.
+//! GPU textures.
+//!
+//! A GPU texture is an object that can be perceived as an array on the GPU. It holds several items
+//! and is a dimensional object. Textures are often associated with _images_, even though their
+//! usage in the graphics world can be much larger than that.
+//!
+//! Textures — [`Texture`] come in several flavors and the differences lie in:
+//!
+//! - The dimensionality: textures can be 1D, 2D, 3D, layered, cube maps, etc.
+//! - The encoding: the _items_ inside textures are called _pixels_ or _texels_. Those can be
+//!   encoded in several ways.
+//! - The usage: some textures will be used as images, others will be used to pass arbitrary data
+//!   around in shaders, etc.
+//!
+//! Whatever the flavor, textures have few even not no use outside of shaders. When a shader wants
+//! to use a texture, it can do it directly, by accessing each pixel by their position inside the
+//! texture (using a normalized coordinates system) or via the use of a [`Sampler`]. A [`Sampler`],
+//! as the name implies, is an object that tells the GPU how fetching (sampling) a texture should
+//! occur. Several options there too:
+//!
+//! - The GPU can fetch a pixel without sampler. It means that you have to pass the exact
+//!   coordinates of the pixel you want to access. This is useful when you store arbitrary
+//!   information, like UUID, velocities, etc.
+//! - The GPU can fetch a pixel with a floating-point coordinates system. How that system works
+//!   depends on the settings of [`Sampler`] you choose. For instance, you can always fetch the
+//!   _nearest_ pixel to where you sample, or you can ask the GPU to perform a linear
+//!   interpolation between all neighboring pixels, etc. [`Sampler`] allow way more than that, so
+//!   feel free to read their documentation.
+//!
+//! # Creating a texture
 
 use std::fmt;
 use std::marker::PhantomData;

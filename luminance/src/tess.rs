@@ -586,10 +586,10 @@ pub trait SubTess<S, Idx>
 where
   S: ?Sized + TessBackend,
 {
-  /// Slice a tessellation object and yields a [`TessSlice`] according to the index range.
+  /// Slice a tessellation object and yields a [`TessView`] according to the index range.
   fn slice(&self, idx: Idx) -> Result<TessView<S>, TessViewError>;
 
-  /// Slice a tesselation object and yields a [`TessSlice`] according to the index range with as
+  /// Slice a tesselation object and yields a [`TessView`] according to the index range with as
   /// many instances as specified.
   fn inst_slice(&self, idx: Idx, inst_nb: usize) -> Result<TessView<S>, TessViewError>;
 }
