@@ -16,7 +16,7 @@
 //! https://docs.rs/luminance
 
 use glfw::{Action, Context as _, Key, WindowEvent};
-use luminance::blending::{Equation, Factor};
+use luminance::blending::{Blending, Equation, Factor};
 use luminance::context::GraphicsContext;
 use luminance::pipeline::{PipelineState, TextureBinding};
 use luminance::pixel::{NormRGB8UI, NormUnsigned};
@@ -110,8 +110,11 @@ fn main() {
 
   let mut back_buffer = surface.back_buffer().unwrap();
   let start_time = Instant::now();
-  let render_state =
-    RenderState::default().set_blending((Equation::Additive, Factor::SrcAlpha, Factor::Zero));
+  let render_state = RenderState::default().set_blending(Blending {
+    equation: Equation::Additive,
+    src: Factor::SrcAlpha,
+    dst: Factor::Zero,
+  });
   let mut resize = false;
   let mut displacement_scale: f32 = 0.010;
 

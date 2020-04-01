@@ -13,7 +13,7 @@
 
 use glfw::{Action, Context as _, Key, WindowEvent};
 use luminance::backend::texture::Texture as TextureBackend;
-use luminance::blending::{Equation, Factor};
+use luminance::blending::{Blending, Equation, Factor};
 use luminance::context::GraphicsContext;
 use luminance::pipeline::{PipelineState, TextureBinding};
 use luminance::pixel::{NormRGB8UI, NormUnsigned};
@@ -73,8 +73,11 @@ fn run(texture_path: &Path) {
     .unwrap();
 
   let mut back_buffer = surface.back_buffer().unwrap();
-  let render_st =
-    &RenderState::default().set_blending((Equation::Additive, Factor::SrcAlpha, Factor::Zero));
+  let render_st = &RenderState::default().set_blending(Blending {
+    equation: Equation::Additive,
+    src: Factor::SrcAlpha,
+    dst: Factor::Zero,
+  });
   let mut resize = false;
 
   println!("rendering!");

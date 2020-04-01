@@ -65,3 +65,11 @@ pub enum Factor {
   /// This behavior is still not well understood. Dammit.
   SrcAlphaSaturate,
 }
+
+/// Blending configuration.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct Blending {
+  pub equation: Equation,
+  pub src: Factor,
+  pub dst: Factor,
+}
