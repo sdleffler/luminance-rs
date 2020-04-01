@@ -195,4 +195,3 @@ pub mod tess;
 pub mod tess_gate;
 pub mod texture;
 pub mod vertex;
-pub mod vertex_restart;
