@@ -101,7 +101,7 @@ fn main() {
 
   // the back buffer, which we will make our render into (we make it mutable so that we can change
   // it whenever the window dimensions change)
-  let fb =
+  let mut fb =
     Framebuffer::<_, Dim2, NormRGBA8UI, ()>::new(&mut surface, [960, 540], 0, Sampler::default())
       .unwrap();
 

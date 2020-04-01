@@ -145,9 +145,9 @@ fn main() {
       &back_buffer,
       &PipelineState::default(),
       |pipeline, mut shading_gate| {
-        let bound_texture = pipeline.bind_texture(&tex).unwrap();
-        let bound_displacement_1 = pipeline.bind_texture(&displacement_tex_1).unwrap();
-        let bound_displacement_2 = pipeline.bind_texture(&displacement_tex_2).unwrap();
+        let bound_texture = pipeline.bind_texture(&mut tex).unwrap();
+        let bound_displacement_1 = pipeline.bind_texture(&mut displacement_tex_1).unwrap();
+        let bound_displacement_2 = pipeline.bind_texture(&mut displacement_tex_2).unwrap();
 
         shading_gate.shade(&mut program, |mut interface, uni, mut render_gate| {
           let back_buffer_size = back_buffer.size();

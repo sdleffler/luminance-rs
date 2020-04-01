@@ -158,13 +158,13 @@ where
   }
 
   /// Access the carried [`ColorSlot`].
-  pub fn color_slot(&self) -> &CS::ColorTextures {
-    &self.color_slot
+  pub fn color_slot(&mut self) -> &mut CS::ColorTextures {
+    &mut self.color_slot
   }
 
   /// Access the carried [`DepthSlot`].
-  pub fn depth_slot(&self) -> &DS::DepthTexture {
-    &self.depth_slot
+  pub fn depth_slot(&mut self) -> &mut DS::DepthTexture {
+    &mut self.depth_slot
   }
 }
 

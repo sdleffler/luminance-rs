@@ -55,7 +55,7 @@ fn run(texture_path: &Path) {
   )
   .expect("GLFW surface creation");
 
-  let tex = load_from_disk(&mut surface, img);
+  let mut tex = load_from_disk(&mut surface, img);
 
   // set the uniform interface to our type so that we can read textures from the shader
   let mut program =
@@ -105,7 +105,7 @@ fn run(texture_path: &Path) {
       &PipelineState::default(),
       |pipeline, mut shd_gate| {
         // bind our fancy texture to the GPU: it gives us a bound texture we can use with the shader
-        let bound_tex = pipeline.bind_texture(&tex).unwrap();
+        let bound_tex = pipeline.bind_texture(&mut tex).unwrap();
 
         shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
           // update the texture; strictly speaking, this update doesn’t do much: it just tells the GPU
