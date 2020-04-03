@@ -1,4 +1,145 @@
-//! Shader API.
+//! Shader stages, programs and uniforms.
+//!
+//! This module contains everything related to _shaders_. Shader programs — shaders, for short —
+//! are GPU binaries that run to perform a series of transformation. Typically run when a draw
+//! command is issued, they are responsible for:
+//!
+//! - Transforming vertex data. This is done in a _vertex shader_. Vertex data, such as the
+//!   positions, colors, UV coordinates, bi-tangents, etc. of each vertices will go through the
+//!   vertex shader and get transformed based on the code provided inside the stage. For example,
+//!   vertices can be projected on the screen with a perspective and view matrices.
+//! - Tessellating primitive patches. This is done in _tessellation shaders_.
+//! - Filtering, transforming again or even generating new vertices and primitives. This is done
+//!   by the _geometry shader_.
+//! - And finally, outputting a color for each _fragment_ covered by the objects you render. This
+//!   is done by the _fragment shader_.
+//!
+//! # Shader stages
+//!
+//! Right now, five shader stages  — [`Stage`] — are supported, ordered by usage in the graphics
+//! pipeline:
+//!
+//! 1. [`StageType::VertexShader`].
+//! 2. [`StageType::TessellationControlShader`].
+//! 3. [`StageType::TessellationEvaluationShader`].
+//! 4. [`StageType::GeometryShader`].
+//! 5. [`StageType::FragmentShader`].
+//!
+//! Those are not all mandatory: only the _vertex_ stage and _fragment_ stages are mandatory. If
+//! you want tessellation shaders, you have to provide both of them.
+//!
+//! Shader stages — [`Stage`] — are compiled independently at runtime by your GPU driver, and then
+//! _linked_ into a shader program. The creation of a [`Stage`] implies using an input string,
+//! representing the _source code_ of the stage. This is an opaque [`String`] that must represent
+//! a GLSL stage. The backend will transform the string into its own representation if needed.
+//!
+//! > For this version of the crate, the GLSL string must be at least 330-compliant. It is possible
+//! > that this changes in the future to be more flexible, but right now GLSL 150, for instance, is
+//! > not allowed.
+//!
+//! # Shader program
+//!
+//! A shader program — [`Program`] is akin to a binary program, but runs on GPU. It is invoked when
+//! you issue draw commands. It will run each stages you’ve put in it to transform vertices and
+//! rasterize fragments inside a framebuffer. Once this is done, the framebuffer will contain
+//! altered fragments by the final stage (fragment shader). If the shader program outputs several
+//! properties, we call that situation _MRT_ (Multiple Render Target) and the framebuffer must be
+//! configured to be able to receive those outputs — basically, it means that its _color slots_
+//! and/or _depth slots_ must adapt to the output of the shader program.
+//!
+//! Creating shader programs is done by gathering the [`Stage`] you want and _linking_ them. Some
+//! helper methods allow to create a shader [`Program`] directly from the string source for each
+//! stage, removing the need to build each stage individually.
+//!
+//! Shader programs are typed with three important piece of information:
+//!
+//! - The vertex [`Semantics`].
+//! - The render target outputs.
+//! - The [`UniformInterface`].
+//!
+//!
+//! # Vertex semantics
+//!
+//! When a shader program runs, it first executes the mandatory _vertex stage on a set of
+//! vertices. Those vertices have a given format — that is described by the [`Vertex`] trait.
+//! Because running a shader on an incompatible vertex would yield wrong results, both the
+//! vertices and the shader program must be tagged with a type which must implement the
+//! [`Semantics`] trait. More on that on the documentation of [`Semantics`].
+//!
+//! # Render target outputs
+//!
+//! A shader program, in its final mandatory _fragment stage_, will write values into the currently
+//! in-use framebuffer. The number of “channels” to write to represents the render targets.
+//! Typically, simple renders will simply write the color of a pixel — so only one render target.
+//! In that case, the type of the output of the shader program must match the color slot of the
+//! framebuffer it is used with.
+//!
+//! However, it is possible to write more data. For instance,
+//! [deferred shading](https://en.wikipedia.org/wiki/Deferred_shading) is a technique that requires
+//! to write several data to a framebuffer, called G-buffer (for geometry buffer): space
+//! coordinates, normals, tangents, bi-tangents, etc. In that case, your framebuffer must have
+//! a type matching the outputs of the fragment shader, too.
+//!
+//! # Shader customization
+//!
+//! A shader [`Program`] represents some code, in a binary form, that transform data. If you
+//! consider such code, it can adapt to the kind of data it receives, but the behavior is static.
+//! That means that it shouldn’t be possible to ask the program to do something else — shader
+//! programs don’t have a state as they must be spawned in parallel for your vertices, pixels, etc.
+//! However, there is a way to dynamically change what happens inside a shader program. That way
+//!
+//! The concept is similar to environment variables: you can declare, in your shader stages,
+//! _environment variables_ that will receive values from the host (i.e. on the Rust side). It is
+//! not possible to change those values while a draw command is issued: you have to change them
+//! in between draw commands. For this reason, those environment variables are often called
+//! _constant buffers_, _uniform_, _uniform buffers_, etc. by several graphics libraries. In our
+//! case, right now, we call them [`Uniform`].
+//!
+//! ## Uniforms
+//!
+//! A [`Uniform`] is parametric type that accepts the type of the value it will be able to change.
+//! For instance, `Uniform<f32>` represents a `f32` that can be changed in a shader program. That
+//! value can be set by the Rust program when the shader program is not currently in use — no
+//! draw commands.
+//!
+//! A [`Uniform`] is a _single_ variable that allows the most basic form of customization. It’s
+//! very similar to environment variables. You can declare several ones as you would declare
+//! several environment variables. More on that on the documentation of [`Uniform`].
+//!
+//! ## Uniform buffers
+//!
+//! > This section is under heavy rewriting, both the documentation and API.
+//!
+//! Sometimes, you will want to set and pass around rich and more complex data. Instead of a `f32`,
+//! you will want to pass a `struct`. This operation is currently supported but highly unsafe. The
+//! reason for this is that your GPU will expect a specific kind of memory layout for the types
+//! you use, and that also depends on the backend you use.
+//!
+//! Also, passing a lot of data is not very practical with default [`Uniform`] directly.
+//!
+//! In order to pass more data or `struct`s, you need to create a [`Buffer`]. That buffer will
+//! simply contain the data / object(s) you want to pass to the shader. It is then possible, via
+//! the use of a [`Pipeline`], to retrieve a [`BoundBuffer`], which can be used to get a
+//! [`BufferBinding`]. That [`BufferBinding`] can then be set on a
+//! `Uniform<BufferBinding<YourType>>`, telling your shader program where to grab the data — from
+//! the bound buffer.
+//!
+//! This way of doing is very practical and powerful but currently, in this version of the crate,
+//! very unsafe. A better API will be available in a next release to make all this simpler and
+//! safer.
+//!
+//! ## Uniform interfaces
+//!
+//! As with vertex semantics and render targets, the uniforms that can be used with a shader program
+//! are part of its type, too, and represented by a single type that must implement
+//! [`UniformInterface`]. That type can contain anything, but it is advised to just put [`Uniform`]
+//! fields in it. More on the [`UniformInterface`] documentation.
+//!
+//! [`Vertex`]: crate::vertex::Vertex
+//! [`Buffer`]: crate::buffer::Buffer
+//! [`Pipeline`]: crate::pipeline::Pipeline
+//! [`BoundBuffer`]: crate::pipeline::BoundBuffer
+//! [`BufferBinding`]: crate::pipeline::BufferBinding
 
 use std::fmt;
 use std::marker::PhantomData;
@@ -59,21 +200,36 @@ impl From<StageError> for ProgramError {
   }
 }
 
+/// Tessellation stages.
+///
+/// - The `control` stage represents the _tessellation control stage_, which is invoked first.
+/// - The `evaluation` stage represents the _tessellation evaluation stage_, which is invoked after
+///   the control stage has finished.
+///
+/// # Parametricity
+///
+/// - `S` is the representation of the stage. Depending on the interface you choose to create a
+///   [`Program`], it might be a [`Stage`] or something akin to [`&str`] / [`String`].
+///
+/// [`&str`]: str
 pub struct TessellationStages<'a, S>
 where
   S: ?Sized,
 {
+  /// Tessellation control representation.
   pub control: &'a S,
+  /// Tessellation evaluation representation.
   pub evaluation: &'a S,
 }
 
-/// Errors that a `Program` can generate.
+/// Errors that a [`Program`] can generate.
 #[derive(Debug)]
 pub enum ProgramError {
   /// A shader stage failed to compile or validate its state.
   StageError(StageError),
-  /// Program link failed. You can inspect the reason by looking at the contained `String`.
+  /// Program link failed. You can inspect the reason by looking at the contained [`String`].
   LinkFailed(String),
+  /// A program warning.
   Warning(ProgramWarning),
 }
 
@@ -93,7 +249,7 @@ impl fmt::Display for ProgramError {
 #[derive(Debug)]
 pub enum ProgramWarning {
   /// Some uniform configuration is ill-formed. It can be a problem of inactive uniform, mismatch
-  /// type, etc. Check the `UniformWarning` type for more information.
+  /// type, etc. Check the [`UniformWarning`] type for more information.
   Uniform(UniformWarning),
   /// Some vertex attribute is ill-formed.
   VertexAttrib(VertexAttribWarning),
@@ -122,7 +278,9 @@ pub enum UniformWarning {
   /// Type mismatch between the static requested type (i.e. the `T` in [`Uniform<T>`] for instance)
   /// and the type that got reflected from the backend in the shaders.
   ///
-  /// The first `String` is the name of the uniform; the second one gives the type mismatch.
+  /// The first [`String`] is the name of the uniform; the second one gives the type mismatch.
+  ///
+  /// [`Uniform<T>`]: crate::shader::Uniform
   TypeMismatch(String, UniformType),
 }
 
@@ -183,6 +341,23 @@ impl From<VertexAttribWarning> for ProgramWarning {
   }
 }
 
+/// A GPU shader program environment variable.
+///
+/// A uniform is a special variable that can be used to send data to a GPU. Several
+/// forms exist, but the idea is that `T` represents the data you want to send. Some exceptions
+/// exist that allow to pass _indirect_ data — such as [`BufferBinding`] to pass a buffer, or
+/// [`TextureBinding`] to pass a texture in order to fetch from it in a shader stage.
+///
+/// You will never be able to store them by your own. Instead, you must use a [`UniformInterface`],
+/// which provides a _contravariant_ interface for you. Creation is `unsafe` and should be
+/// avoided. The [`UniformInterface`] is the only safe way to create those.
+///
+/// # Parametricity
+///
+/// - `T` is the type of data you want to be able to set in a shader program.
+///
+/// [`BufferBinding`]: crate::pipeline::BufferBinding
+/// [`TextureBinding`]: crate::pipeline::TextureBinding
 #[derive(Debug)]
 pub struct Uniform<T>
 where
@@ -196,6 +371,13 @@ impl<T> Uniform<T>
 where
   T: ?Sized,
 {
+  /// Create a new [`Uniform`].
+  ///
+  /// # Safety
+  ///
+  /// This method must be used **only** by backends. If you end up using it,
+  /// then you’re doing something wrong. Read on [`UniformInterface`] for further
+  /// information.
   pub unsafe fn new(index: i32) -> Self {
     Uniform {
       index,
@@ -203,12 +385,20 @@ where
     }
   }
 
+  /// Retrieve the internal index.
+  ///
+  /// Even though that function is safe, you have no reason to use it. Read on
+  /// [`UniformInterface`] for further details.
   pub fn index(&self) -> i32 {
     self.index
   }
 }
 
 /// Type of a uniform.
+///
+/// This is an exhaustive list of possible types of value you can send to a shader program.
+/// A [`UniformType`] is associated to any type that can be considered sent via the
+/// [`Uniformable`] trait.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum UniformType {
   // scalars
@@ -343,20 +533,40 @@ impl fmt::Display for UniformType {
   }
 }
 
-pub struct Stage<S>
+/// A shader stage.
+///
+/// # Parametricity
+///
+/// - `B` is the backend type.
+///
+/// [`&str`]: str
+pub struct Stage<B>
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
 {
-  repr: S::StageRepr,
+  repr: B::StageRepr,
 }
 
-impl<S> Stage<S>
+impl<B> Stage<B>
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
 {
+  /// Create a new stage of type `ty` by compiling `src`.
+  ///
+  /// # Parametricity
+  ///
+  /// - `C` is the graphics context. `C::Backend` must implement the [`Shader`] trait.
+  /// - `R` is the source code to use in the stage. It must implement [`AsRef<str>`].
+  ///
+  /// # Notes
+  ///
+  /// Feel free to consider using [`GraphicsContext::new_shader_stage`] for a simpler form of
+  /// this method.
+  ///
+  /// [`AsRef<str>`]: AsRef
   pub fn new<C, R>(ctx: &mut C, ty: StageType, src: R) -> Result<Self, StageError>
   where
-    C: GraphicsContext<Backend = S>,
+    C: GraphicsContext<Backend = B>,
     R: AsRef<str>,
   {
     unsafe {
@@ -368,67 +578,108 @@ where
   }
 }
 
-impl<S> Drop for Stage<S>
+impl<B> Drop for Stage<B>
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
 {
   fn drop(&mut self) {
     unsafe { S::destroy_stage(&mut self.repr) }
   }
 }
 
-pub struct UniformBuilder<'a, S>
+/// A builder of [`Uniform`].
+///
+/// A [`UniformBuilder`] is an important type as it’s the only one that allows to safely create
+/// [`Uniform`] values.
+///
+/// # Parametricity
+///
+/// - `B` is the backend type. It must implement the [`Shader`] trait.
+pub struct UniformBuilder<'a, B>
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
 {
-  repr: S::UniformBuilderRepr,
+  repr: B::UniformBuilderRepr,
   warnings: Vec<UniformWarning>,
   _a: PhantomData<&'a mut ()>,
 }
 
-impl<'a, S> UniformBuilder<'a, S>
+impl<'a, B> UniformBuilder<'a, B>
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
 {
+  /// Ask the creation of a [`Uniform`], identified by its `name`.
   pub fn ask<T, N>(&mut self, name: N) -> Result<Uniform<T>, UniformWarning>
   where
     N: AsRef<str>,
-    T: Uniformable<S>,
+    T: Uniformable<B>,
   {
-    unsafe { S::ask_uniform(&mut self.repr, name.as_ref()) }
+    unsafe { B::ask_uniform(&mut self.repr, name.as_ref()) }
   }
 
+  /// Ask the creation of a [`Uniform`], identified by its `name`.
+  ///
+  /// If the name is not found, an _unbound_ [`Uniform`] is returned (i.e. a [`Uniform`]) that does
+  /// nothing.
   pub fn ask_or_unbound<T, N>(&mut self, name: N) -> Uniform<T>
   where
     N: AsRef<str>,
-    T: Uniformable<S>,
+    T: Uniformable<B>,
   {
     match self.ask(name) {
       Ok(uniform) => uniform,
       Err(err) => {
         self.warnings.push(err);
-        unsafe { S::unbound(&mut self.repr) }
+        unsafe { B::unbound(&mut self.repr) }
       }
     }
   }
 }
 
-pub trait UniformInterface<S, E = ()>: Sized
+/// [`Uniform`] interface.
+///
+/// When a type implements [`UniformInterface`], it means that it can be used as part of a shader
+/// [`Program`] type. When a [`Program`] is in use in a graphics pipeline, its [`UniformInterface`]
+/// is automatically provided to the user, giving them access to all the fields declared in. Then,
+/// they can pass data to shaders before issuing draw commands.
+///
+/// # Parametricity
+///
+/// - `B` is the backend type. It must implement [`Shader`].
+/// - `E` is the environment type. Set by default to `()`, it allows to pass a mutable
+///   object at construction-site of the [`UniformInterface`]. It can be useful to generate
+///   events or customize the way the [`Uniform`] are built by doing some lookups in hashmaps, etc.
+///
+/// # Notes
+///
+/// Implementing this trait — especially [`UniformInterface::uniform_interface`] can be a bit
+/// overwhelming. It is highly recommended to use [luminance-derive]’s `UniformInterface`
+/// proc-macro, which will do that for you by scanning your type declaration.
+///
+/// [luminance-derive]: https://crates.io/crates/luminance-derive
+pub trait UniformInterface<B, E = ()>: Sized
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
 {
+  /// Create a [`UniformInterface`] by constructing [`Uniform`]s with a [`UniformBuilder`] and an
+  /// optional environment object.
+  ///
+  /// This method is the only place where `Self` should be created. In theory, you could create it
+  /// the way you want (since the type is provided by you) but not all types make sense. You will
+  /// likely want to have some [`Uniform`] objects in your type, and the [`UniformBuilder`] that is
+  /// provided as argument is the only way to create them.
   fn uniform_interface<'a>(
-    builder: &mut UniformBuilder<'a, S>,
+    builder: &mut UniformBuilder<'a, B>,
     env: &mut E,
   ) -> Result<Self, UniformWarning>;
 }
 
-impl<S, E> UniformInterface<S, E> for ()
+impl<B, E> UniformInterface<B, E> for ()
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
 {
   fn uniform_interface<'a>(
-    _: &mut UniformBuilder<'a, S>,
+    _: &mut UniformBuilder<'a, B>,
     _: &mut E,
   ) -> Result<Self, UniformWarning> {
     Ok(())
@@ -438,72 +689,99 @@ where
 /// A built program with potential warnings.
 ///
 /// The sole purpose of this type is to be destructured when a program is built.
-pub struct BuiltProgram<S, Sem, Out, Uni>
+///
+/// # Parametricity
+///
+/// - `B` is the backend type.
+/// - `Sem` is the [`Semantics`] type.
+/// - `Out` is the render target type.
+/// - `Uni` is the [`UniformInterface`] type.
+pub struct BuiltProgram<B, Sem, Out, Uni>
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
 {
   /// Built program.
-  pub program: Program<S, Sem, Out, Uni>,
+  pub program: Program<B, Sem, Out, Uni>,
   /// Potential warnings.
   pub warnings: Vec<ProgramError>,
 }
 
-impl<S, Sem, Out, Uni> BuiltProgram<S, Sem, Out, Uni>
+impl<B, Sem, Out, Uni> BuiltProgram<B, Sem, Out, Uni>
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
 {
   /// Get the program and ignore the warnings.
-  pub fn ignore_warnings(self) -> Program<S, Sem, Out, Uni> {
+  pub fn ignore_warnings(self) -> Program<B, Sem, Out, Uni> {
     self.program
   }
 }
 
 /// A [`Program`] uniform adaptation that has failed.
-pub struct AdaptationFailure<S, Sem, Out, Uni>
+///
+/// # Parametricity
+///
+/// - `B` is the backend type.
+/// - `Sem` is the [`Semantics`] type.
+/// - `Out` is the render target type.
+/// - `Uni` is the [`UniformInterface`] type.
+pub struct AdaptationFailure<B, Sem, Out, Uni>
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
 {
   /// Program used before trying to adapt.
-  pub program: Program<S, Sem, Out, Uni>,
+  pub program: Program<B, Sem, Out, Uni>,
   /// Program error that prevented to adapt.
   pub error: ProgramError,
 }
 
-impl<S, Sem, Out, Uni> AdaptationFailure<S, Sem, Out, Uni>
+impl<B, Sem, Out, Uni> AdaptationFailure<B, Sem, Out, Uni>
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
 {
-  pub(crate) fn new(program: Program<S, Sem, Out, Uni>, error: ProgramError) -> Self {
+  pub(crate) fn new(program: Program<B, Sem, Out, Uni>, error: ProgramError) -> Self {
     AdaptationFailure { program, error }
   }
 
   /// Get the program and ignore the error.
-  pub fn ignore_error(self) -> Program<S, Sem, Out, Uni> {
+  pub fn ignore_error(self) -> Program<B, Sem, Out, Uni> {
     self.program
   }
 }
 
-pub struct ProgramInterface<'a, S>
+/// Interact with the [`UniformInterface`] carried by a [`Program`] and/or perform dynamic
+/// uniform lookup.
+///
+/// This type allows to set — [`ProgramInterface::set`] – uniforms for a [`Program`].
+///
+/// In the case where you don’t have a uniform interface or need to dynamically lookup uniforms,
+/// you can use the [`ProgramInterface::query`] method.
+///
+/// # Parametricity
+///
+/// `B` is the backend type.
+pub struct ProgramInterface<'a, B>
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
 {
-  pub(crate) program: &'a mut S::ProgramRepr,
+  pub(crate) program: &'a mut B::ProgramRepr,
 }
 
-impl<'a, S> ProgramInterface<'a, S>
+impl<'a, B> ProgramInterface<'a, B>
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
 {
+  /// Set a value on a [`Uniform`].
   pub fn set<T>(&mut self, uniform: &Uniform<T>, value: T)
   where
-    T: Uniformable<S>,
+    T: Uniformable<B>,
   {
     unsafe { T::update(value, self.program, uniform) };
   }
 
-  pub fn query(&mut self) -> Result<UniformBuilder<'a, S>, ProgramError> {
+  /// Get back a [`UniformBuilder`] to dynamically access [`Uniform`] objects.
+  pub fn query(&mut self) -> Result<UniformBuilder<'a, B>, ProgramError> {
     unsafe {
-      S::new_uniform_builder(&mut self.program).map(|repr| UniformBuilder {
+      B::new_uniform_builder(&mut self.program).map(|repr| UniformBuilder {
         repr,
         warnings: Vec::new(),
         _a: PhantomData,
@@ -512,43 +790,66 @@ where
   }
 }
 
-pub struct Program<S, Sem, Out, Uni>
+/// A shader program.
+///
+/// Shader programs are GPU binaries that execute when a draw command is issued.
+///
+/// # Parametricity
+///
+/// - `B` is the backend type.
+/// - `Sem` is the [`Semantics`] type.
+/// - `Out` is the render target type.
+/// - `Uni` is the [`UniformInterface`] type.
+pub struct Program<B, Sem, Out, Uni>
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
 {
-  pub(crate) repr: S::ProgramRepr,
+  pub(crate) repr: B::ProgramRepr,
   pub(crate) uni: Uni,
   _sem: PhantomData<*const Sem>,
   _out: PhantomData<*const Out>,
 }
 
-impl<S, Sem, Out, Uni> Drop for Program<S, Sem, Out, Uni>
+impl<B, Sem, Out, Uni> Drop for Program<B, Sem, Out, Uni>
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
 {
   fn drop(&mut self) {
-    unsafe { S::destroy_program(&mut self.repr) }
+    unsafe { B::destroy_program(&mut self.repr) }
   }
 }
 
-impl<S, Sem, Out, Uni> Program<S, Sem, Out, Uni>
+impl<B, Sem, Out, Uni> Program<B, Sem, Out, Uni>
 where
-  S: ?Sized + Shader,
+  B: ?Sized + Shader,
   Sem: Semantics,
 {
+  /// Create a [`Program`] by linking [`Stage`]s and accessing a mutable environment variable.
+  ///
+  /// # Parametricity
+  ///
+  /// - `C` is the graphics context.
+  /// - `T` is an [`Option`] containing a [`TessellationStages`] with [`Stage`] inside.
+  /// - `G` is an [`Option`] containing a [`Stage`] inside (geometry shader).
+  /// - `E` is the mutable environment variable.
+  ///
+  /// # Notes
+  ///
+  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_stages_env`] for
+  /// a simpler interface.
   pub fn from_stages_env<'a, C, T, G, E>(
     ctx: &mut C,
-    vertex: &'a Stage<S>,
+    vertex: &'a Stage<B>,
     tess: T,
     geometry: G,
-    fragment: &'a Stage<S>,
+    fragment: &'a Stage<B>,
     env: &mut E,
-  ) -> Result<BuiltProgram<S, Sem, Out, Uni>, ProgramError>
+  ) -> Result<BuiltProgram<B, Sem, Out, Uni>, ProgramError>
   where
-    C: GraphicsContext<Backend = S>,
-    Uni: UniformInterface<S, E>,
-    T: Into<Option<TessellationStages<'a, Stage<S>>>>,
-    G: Into<Option<&'a Stage<S>>>,
+    C: GraphicsContext<Backend = B>,
+    Uni: UniformInterface<B, E>,
+    T: Into<Option<TessellationStages<'a, Stage<B>>>>,
+    G: Into<Option<&'a Stage<B>>>,
   {
     let tess = tess.into();
     let geometry = geometry.into();
@@ -564,7 +865,7 @@ where
         &fragment.repr,
       )?;
 
-      let warnings = S::apply_semantics::<Sem>(&mut repr)?
+      let warnings = B::apply_semantics::<Sem>(&mut repr)?
         .into_iter()
         .map(|w| ProgramError::Warning(w.into()))
         .collect();
@@ -590,22 +891,49 @@ where
     }
   }
 
+  /// Create a [`Program`] by linking [`Stage`]s.
+  ///
+  /// # Parametricity
+  ///
+  /// - `C` is the graphics context.
+  /// - `T` is an [`Option`] containing a [`TessellationStages`] with [`Stage`] inside.
+  /// - `G` is an [`Option`] containing a [`Stage`] inside (geometry shader).
+  ///
+  /// # Notes
+  ///
+  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_stages`] for
+  /// a simpler interface.
   pub fn from_stages<C, T, G>(
     ctx: &mut C,
-    vertex: &Stage<S>,
+    vertex: &Stage<B>,
     tess: T,
     geometry: G,
-    fragment: &Stage<S>,
-  ) -> Result<BuiltProgram<S, Sem, Out, Uni>, ProgramError>
+    fragment: &Stage<B>,
+  ) -> Result<BuiltProgram<B, Sem, Out, Uni>, ProgramError>
   where
-    C: GraphicsContext<Backend = S>,
-    Uni: UniformInterface<S>,
-    T: for<'a> Into<Option<TessellationStages<'a, Stage<S>>>>,
-    G: for<'a> Into<Option<&'a Stage<S>>>,
+    C: GraphicsContext<Backend = B>,
+    Uni: UniformInterface<B>,
+    T: for<'a> Into<Option<TessellationStages<'a, Stage<B>>>>,
+    G: for<'a> Into<Option<&'a Stage<B>>>,
   {
     Self::from_stages_env(ctx, vertex, tess, geometry, fragment, &mut ())
   }
 
+  /// Create a [`Program`] by linking [`&str`]s and accessing a mutable environment variable.
+  ///
+  /// # Parametricity
+  ///
+  /// - `C` is the graphics context.
+  /// - `T` is an [`Option`] containing a [`TessellationStages`] with [`&str`] inside.
+  /// - `G` is an [`Option`] containing a [`Stage`] inside (geometry shader).
+  /// - `E` is the mutable environment variable.
+  ///
+  /// # Notes
+  ///
+  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_strings_env`] for
+  /// a simpler interface.
+  ///
+  /// [`&str`]: str
   pub fn from_strings_env<'a, C, V, T, G, F, E>(
     ctx: &mut C,
     vertex: V,
@@ -613,10 +941,10 @@ where
     geometry: G,
     fragment: F,
     env: &mut E,
-  ) -> Result<BuiltProgram<S, Sem, Out, Uni>, ProgramError>
+  ) -> Result<BuiltProgram<B, Sem, Out, Uni>, ProgramError>
   where
-    C: GraphicsContext<Backend = S>,
-    Uni: UniformInterface<S, E>,
+    C: GraphicsContext<Backend = B>,
+    Uni: UniformInterface<B, E>,
     V: AsRef<str> + 'a,
     T: Into<Option<TessellationStages<'a, str>>>,
     G: Into<Option<&'a str>>,
@@ -661,16 +989,30 @@ where
     )
   }
 
+  /// Create a [`Program`] by linking [`&str`]s.
+  ///
+  /// # Parametricity
+  ///
+  /// - `C` is the graphics context.
+  /// - `T` is an [`Option`] containing a [`TessellationStages`] with [`&str`] inside.
+  /// - `G` is an [`Option`] containing a [`Stage`] inside (geometry shader).
+  ///
+  /// # Notes
+  ///
+  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_strings`] for
+  /// a simpler interface.
+  ///
+  /// [`&str`]: str
   pub fn from_strings<'a, C, V, T, G, F>(
     ctx: &mut C,
     vertex: V,
     tess: T,
     geometry: G,
     fragment: F,
-  ) -> Result<BuiltProgram<S, Sem, Out, Uni>, ProgramError>
+  ) -> Result<BuiltProgram<B, Sem, Out, Uni>, ProgramError>
   where
-    C: GraphicsContext<Backend = S>,
-    Uni: UniformInterface<S>,
+    C: GraphicsContext<Backend = B>,
+    Uni: UniformInterface<B>,
     V: AsRef<str> + 'a,
     T: Into<Option<TessellationStages<'a, str>>>,
     G: Into<Option<&'a str>>,
@@ -679,23 +1021,35 @@ where
     Self::from_strings_env(ctx, vertex, tess, geometry, fragment, &mut ())
   }
 
-  pub fn adapt<Q>(self) -> Result<BuiltProgram<S, Sem, Out, Q>, AdaptationFailure<S, Sem, Out, Uni>>
+  /// Create a new [`UniformInterface`] but keep the [`Program`] around without rebuilding it.
+  ///
+  /// # Parametricity
+  ///
+  /// - `Q` is the new [`UniformInterface`].
+  pub fn adapt<Q>(self) -> Result<BuiltProgram<B, Sem, Out, Q>, AdaptationFailure<B, Sem, Out, Uni>>
   where
-    Q: UniformInterface<S>,
+    Q: UniformInterface<B>,
   {
     self.adapt_env(&mut ())
   }
 
+  /// Create a new [`UniformInterface`] but keep the [`Program`] around without rebuilding it, by
+  /// using a mutable environment variable.
+  ///
+  /// # Parametricity
+  ///
+  /// - `Q` is the new [`UniformInterface`].
+  /// - `E` is the mutable environment variable.
   pub fn adapt_env<Q, E>(
     mut self,
     env: &mut E,
-  ) -> Result<BuiltProgram<S, Sem, Out, Q>, AdaptationFailure<S, Sem, Out, Uni>>
+  ) -> Result<BuiltProgram<B, Sem, Out, Q>, AdaptationFailure<B, Sem, Out, Uni>>
   where
-    Q: UniformInterface<S, E>,
+    Q: UniformInterface<B, E>,
   {
     // first, try to create the new uniform interface
-    let mut uniform_builder: UniformBuilder<S> =
-      match unsafe { S::new_uniform_builder(&mut self.repr) } {
+    let mut uniform_builder: UniformBuilder<B> =
+      match unsafe { B::new_uniform_builder(&mut self.repr) } {
         Ok(repr) => UniformBuilder {
           repr,
           warnings: Vec::new(),
@@ -735,12 +1089,17 @@ where
     Ok(BuiltProgram { program, warnings })
   }
 
+  /// Re-create the [`UniformInterface`] but keep the [`Program`] around without rebuilding it.
+  ///
+  /// # Parametricity
+  ///
+  /// - `E` is the mutable environment variable.
   pub fn readapt_env<E>(
     self,
     env: &mut E,
-  ) -> Result<BuiltProgram<S, Sem, Out, Uni>, AdaptationFailure<S, Sem, Out, Uni>>
+  ) -> Result<BuiltProgram<B, Sem, Out, Uni>, AdaptationFailure<B, Sem, Out, Uni>>
   where
-    Uni: UniformInterface<S, E>,
+    Uni: UniformInterface<B, E>,
   {
     self.adapt_env(env)
   }
