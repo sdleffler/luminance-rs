@@ -1,4 +1,6 @@
-//! Texture backend.
+//! Texture backend interface.
+//!
+//! This interface defines the low-level API textures must implement to be usable.
 
 use crate::pixel::Pixel;
 use crate::texture::{Dimensionable, GenMipmaps, Sampler, TextureError};

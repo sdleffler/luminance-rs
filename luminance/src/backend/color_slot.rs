@@ -1,3 +1,7 @@
+//! Color slot backend interface.
+//!
+//! This interface defines the low-level API color slots must implement to be usable.
+
 use crate::backend::framebuffer::Framebuffer;
 use crate::backend::texture::Texture as TextureBackend;
 use crate::context::GraphicsContext;

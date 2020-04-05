@@ -7,6 +7,7 @@ use std::rc::Rc;
 
 use crate::gl33::buffer::{BufferSlice, BufferSliceMut, RawBuffer};
 use crate::gl33::state::{Bind, GLState};
+use crate::gl33::vertex_restart::VertexRestart;
 use crate::gl33::GL33;
 use luminance::backend::buffer::{Buffer as _, BufferSlice as BufferSliceBackend};
 use luminance::backend::tess::{Tess as TessBackend, TessBuilder as TessBuilderBackend, TessSlice};
@@ -15,7 +16,6 @@ use luminance::vertex::{
   Normalized, Vertex, VertexAttribDesc, VertexAttribDim, VertexAttribType, VertexBufferDesc,
   VertexDesc, VertexInstancing,
 };
-use luminance::vertex_restart::VertexRestart;
 
 struct VertexBuffer {
   /// Indexed format of the buffer.

@@ -9,6 +9,7 @@ mod shader;
 mod state;
 mod tess;
 mod texture;
+mod vertex_restart;
 
 use self::state::GLState;
 pub use self::state::StateQueryError;

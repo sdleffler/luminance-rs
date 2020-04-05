@@ -222,10 +222,10 @@ unsafe impl RenderGate for GL33 {
     let mut gfx_state = self.state.borrow_mut();
 
     match rdr_st.blending {
-      Some((equation, src_factor, dst_factor)) => {
+      Some(blending) => {
         gfx_state.set_blending_state(BlendingState::On);
-        gfx_state.set_blending_equation(equation);
-        gfx_state.set_blending_func(src_factor, dst_factor);
+        gfx_state.set_blending_equation(blending.equation);
+        gfx_state.set_blending_func(blending.src, blending.dst);
       }
       None => {
         gfx_state.set_blending_state(BlendingState::Off);

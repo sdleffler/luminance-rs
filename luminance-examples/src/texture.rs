@@ -13,7 +13,7 @@
 
 use glfw::{Action, Context as _, Key, WindowEvent};
 use luminance::backend::texture::Texture as TextureBackend;
-use luminance::blending::{Equation, Factor};
+use luminance::blending::{Blending, Equation, Factor};
 use luminance::context::GraphicsContext;
 use luminance::pipeline::{PipelineState, TextureBinding};
 use luminance::pixel::{NormRGB8UI, NormUnsigned};
@@ -55,7 +55,7 @@ fn run(texture_path: &Path) {
   )
   .expect("GLFW surface creation");
 
-  let tex = load_from_disk(&mut surface, img);
+  let mut tex = load_from_disk(&mut surface, img);
 
   // set the uniform interface to our type so that we can read textures from the shader
   let mut program =
@@ -73,8 +73,11 @@ fn run(texture_path: &Path) {
     .unwrap();
 
   let mut back_buffer = surface.back_buffer().unwrap();
-  let render_st =
-    &RenderState::default().set_blending((Equation::Additive, Factor::SrcAlpha, Factor::Zero));
+  let render_st = &RenderState::default().set_blending(Blending {
+    equation: Equation::Additive,
+    src: Factor::SrcAlpha,
+    dst: Factor::Zero,
+  });
   let mut resize = false;
 
   println!("rendering!");
@@ -105,7 +108,7 @@ fn run(texture_path: &Path) {
       &PipelineState::default(),
       |pipeline, mut shd_gate| {
         // bind our fancy texture to the GPU: it gives us a bound texture we can use with the shader
-        let bound_tex = pipeline.bind_texture(&tex).unwrap();
+        let bound_tex = pipeline.bind_texture(&mut tex).unwrap();
 
         shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
           // update the texture; strictly speaking, this update doesn’t do much: it just tells the GPU

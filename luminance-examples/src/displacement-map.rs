@@ -16,7 +16,7 @@
 //! https://docs.rs/luminance
 
 use glfw::{Action, Context as _, Key, WindowEvent};
-use luminance::blending::{Equation, Factor};
+use luminance::blending::{Blending, Equation, Factor};
 use luminance::context::GraphicsContext;
 use luminance::pipeline::{PipelineState, TextureBinding};
 use luminance::pixel::{NormRGB8UI, NormUnsigned};
@@ -110,8 +110,11 @@ fn main() {
 
   let mut back_buffer = surface.back_buffer().unwrap();
   let start_time = Instant::now();
-  let render_state =
-    RenderState::default().set_blending((Equation::Additive, Factor::SrcAlpha, Factor::Zero));
+  let render_state = RenderState::default().set_blending(Blending {
+    equation: Equation::Additive,
+    src: Factor::SrcAlpha,
+    dst: Factor::Zero,
+  });
   let mut resize = false;
   let mut displacement_scale: f32 = 0.010;
 
@@ -145,9 +148,9 @@ fn main() {
       &back_buffer,
       &PipelineState::default(),
       |pipeline, mut shading_gate| {
-        let bound_texture = pipeline.bind_texture(&tex).unwrap();
-        let bound_displacement_1 = pipeline.bind_texture(&displacement_tex_1).unwrap();
-        let bound_displacement_2 = pipeline.bind_texture(&displacement_tex_2).unwrap();
+        let bound_texture = pipeline.bind_texture(&mut tex).unwrap();
+        let bound_displacement_1 = pipeline.bind_texture(&mut displacement_tex_1).unwrap();
+        let bound_displacement_2 = pipeline.bind_texture(&mut displacement_tex_2).unwrap();
 
         shading_gate.shade(&mut program, |mut interface, uni, mut render_gate| {
           let back_buffer_size = back_buffer.size();

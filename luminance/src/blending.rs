@@ -42,7 +42,7 @@ pub enum Equation {
 /// by *blending equations*.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Factor {
-  /// `1 * color = factor`
+  /// `1 * color = color`
   One,
   /// `0 * color = 0`
   Zero,
@@ -64,4 +64,15 @@ pub enum Factor {
   DstAlphaComplement,
   /// This behavior is still not well understood. Dammit.
   SrcAlphaSaturate,
+}
+
+/// Blending configuration.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub struct Blending {
+  /// Blending equation to use.
+  pub equation: Equation,
+  /// Source factor.
+  pub src: Factor,
+  /// Destination factor.
+  pub dst: Factor,
 }

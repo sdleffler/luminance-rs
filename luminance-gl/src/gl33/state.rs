@@ -6,10 +6,10 @@ use std::fmt;
 use std::marker::PhantomData;
 
 use crate::gl33::depth_test::depth_comparison_to_glenum;
+use crate::gl33::vertex_restart::VertexRestart;
 use luminance::blending::{Equation, Factor};
 use luminance::depth_test::DepthComparison;
 use luminance::face_culling::{FaceCullingMode, FaceCullingOrder};
-use luminance::vertex_restart::VertexRestart;
 
 // TLS synchronization barrier for `GLState`.
 //

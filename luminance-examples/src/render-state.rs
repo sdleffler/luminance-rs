@@ -13,7 +13,7 @@ mod common;
 
 use crate::common::{Semantics, Vertex, VertexColor, VertexPosition};
 use glfw::{Action, Context as _, Key, WindowEvent};
-use luminance::blending::{Equation, Factor};
+use luminance::blending::{Blending, Equation, Factor};
 use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
@@ -70,12 +70,14 @@ impl DepthMethod {
   }
 }
 
-type Blending = Option<(Equation, Factor, Factor)>;
-
 // toggle between no blending and additive blending
-fn toggle_blending(blending: Blending) -> Blending {
+fn toggle_blending(blending: Option<Blending>) -> Option<Blending> {
   match blending {
-    None => Some((Equation::Additive, Factor::One, Factor::One)),
+    None => Some(Blending {
+      equation: Equation::Additive,
+      src: Factor::One,
+      dst: Factor::One,
+    }),
     _ => None,
   }
 }

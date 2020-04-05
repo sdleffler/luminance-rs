@@ -3,7 +3,6 @@
 //! This interface defines the low-level API buffers must implement to be usable.
 
 use crate::buffer::BufferError;
-use crate::linear::{M22, M33, M44};
 
 pub unsafe trait BufferBase {
   /// The inner representation of the buffer for this backend.
@@ -81,9 +80,9 @@ unsafe impl UniformBlock for f64 {}
 
 unsafe impl UniformBlock for bool {}
 
-unsafe impl UniformBlock for M22 {}
-unsafe impl UniformBlock for M33 {}
-unsafe impl UniformBlock for M44 {}
+unsafe impl UniformBlock for [[f32; 2]; 2] {}
+unsafe impl UniformBlock for [[f32; 3]; 3] {}
+unsafe impl UniformBlock for [[f32; 4]; 4] {}
 
 unsafe impl UniformBlock for [u8; 2] {}
 unsafe impl UniformBlock for [u16; 2] {}

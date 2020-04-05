@@ -17,6 +17,10 @@ impl FaceCulling {
   }
 }
 
+/// Default implementation of [`FaceCulling`].
+///
+/// - Order is [`FaceCullingOrder::CCW`].
+/// - Mode is [`FaceCullingMode::Back`].
 impl Default for FaceCulling {
   fn default() -> Self {
     FaceCulling::new(FaceCullingOrder::CCW, FaceCullingMode::Back)

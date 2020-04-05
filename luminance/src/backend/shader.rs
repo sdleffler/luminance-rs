@@ -1,4 +1,6 @@
-//! Shader backend.
+//! Shader backend interface.
+//!
+//! This interface defines the low-level API shaders must implement to be usable.
 
 use crate::shader::{
   ProgramError, StageError, StageType, TessellationStages, Uniform, UniformType, UniformWarning,

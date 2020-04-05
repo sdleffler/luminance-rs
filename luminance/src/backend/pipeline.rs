@@ -1,3 +1,7 @@
+//! Pipeline backend interface.
+//!
+//! This interface defines the low-level API pipelines must implement to be usable.
+
 use crate::backend::buffer::Buffer;
 use crate::backend::framebuffer::Framebuffer as FramebufferBackend;
 use crate::backend::shading_gate::ShadingGate as ShadingGateBackend;
