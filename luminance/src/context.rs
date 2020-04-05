@@ -48,6 +48,7 @@ use crate::backend::color_slot::ColorSlot;
 use crate::backend::depth_slot::DepthSlot;
 use crate::backend::framebuffer::Framebuffer as FramebufferBackend;
 use crate::backend::shader::Shader;
+use crate::backend::tess::TessBuilder as TessBuilderBackend;
 use crate::backend::texture::Texture as TextureBackend;
 use crate::buffer::{Buffer, BufferError};
 use crate::framebuffer::{Framebuffer, FramebufferError};
@@ -57,6 +58,7 @@ use crate::shader::{
   BuiltProgram, Program, ProgramError, Stage, StageError, StageType, TessellationStages,
   UniformInterface,
 };
+use crate::tess::{TessBuilder, TessError};
 use crate::texture::{Dimensionable, Sampler, Texture, TextureError};
 
 /// Class of graphics context.
@@ -207,6 +209,16 @@ pub unsafe trait GraphicsContext: Sized {
     F: AsRef<str> + 'a,
   {
     Program::from_strings_env(self, vertex, tess, geometry, fragment, env)
+  }
+
+  /// Create a [`TessBuilder`].
+  ///
+  /// See the documentation of [`TessBuilder::new`] for further details.
+  fn new_tess_builder(&mut self) -> Result<TessBuilder<Self::Backend>, TessError>
+  where
+    Self::Backend: TessBuilderBackend,
+  {
+    TessBuilder::new(self)
   }
 
   /// Create a new shader program.

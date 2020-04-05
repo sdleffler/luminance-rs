@@ -262,7 +262,7 @@ unsafe impl TessIndex for u32 {
 /// - `B` is the backend type.
 pub struct TessBuilder<'a, B>
 where
-  B: TessBuilderBackend,
+  B: ?Sized + TessBuilderBackend,
 {
   backend: &'a mut B,
   repr: B::TessBuilderRepr,
@@ -270,7 +270,7 @@ where
 
 impl<'a, B> Default for TessBuilder<'a, B>
 where
-  B: TessBuilderBackend,
+  B: ?Sized + TessBuilderBackend,
 {
   /// See the documentation of [`TessBuilder::new`] for further information.
   fn default() -> Self {
@@ -280,13 +280,17 @@ where
 
 impl<'a, B> TessBuilder<'a, B>
 where
-  B: TessBuilderBackend,
+  B: ?Sized + TessBuilderBackend,
 {
   /// Create a new default [`TessBuilder`].
   ///
   /// The default value for this type is backend-dependent. Refer to the implementation of your
   /// backend type. Especially, the implementation of [`TessBuilder::new_tess_builder`] will give
   /// you that information
+  ///
+  /// # Notes
+  ///
+  /// Feel free to use the [`GraphicsContext::new_tess_builder`] method for a simpler method.
   ///
   /// [`TessBuilder::new_tess_builder`]: crate::backend::tess::TessBuilder::new_tess_builder
   pub fn new<C>(ctx: &'a mut C) -> Result<Self, TessError>
@@ -418,7 +422,7 @@ where
 
 impl<'a, B> TessBuilder<'a, B>
 where
-  B: TessBuilderBackend + TessBackend,
+  B: ?Sized + TessBuilderBackend + TessBackend,
 {
   /// Build a [`Tess`] if the [`TessBuilder`] has enough data and is in a valid state. What is
   /// needed is backend-dependent but most of the time, you will want to:
