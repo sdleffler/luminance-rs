@@ -48,14 +48,16 @@ use crate::backend::color_slot::ColorSlot;
 use crate::backend::depth_slot::DepthSlot;
 use crate::backend::framebuffer::Framebuffer as FramebufferBackend;
 use crate::backend::shader::Shader;
+use crate::backend::texture::Texture as TextureBackend;
 use crate::buffer::{Buffer, BufferError};
 use crate::framebuffer::{Framebuffer, FramebufferError};
 use crate::pipeline::PipelineGate;
+use crate::pixel::Pixel;
 use crate::shader::{
   BuiltProgram, Program, ProgramError, Stage, StageError, StageType, TessellationStages,
   UniformInterface,
 };
-use crate::texture::{Dimensionable, Sampler};
+use crate::texture::{Dimensionable, Sampler, Texture, TextureError};
 
 /// Class of graphics context.
 ///
@@ -226,5 +228,22 @@ pub unsafe trait GraphicsContext: Sized {
     F: AsRef<str> + 'a,
   {
     Program::from_strings(self, vertex, tess, geometry, fragment)
+  }
+
+  /// Create a new texture.
+  ///
+  /// Feel free to have a look at the documentation of [`Texture::new`] for further details.
+  fn new_texture<D, P>(
+    &mut self,
+    size: D::Size,
+    mipmaps: usize,
+    sampler: Sampler,
+  ) -> Result<Texture<Self::Backend, D, P>, TextureError>
+  where
+    Self::Backend: TextureBackend<D, P>,
+    D: Dimensionable,
+    P: Pixel,
+  {
+    Texture::new(self, size, mipmaps, sampler)
   }
 }

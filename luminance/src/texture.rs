@@ -84,7 +84,7 @@ pub enum MagFilter {
   Linear,
 }
 
-/// Reify a type into a `Dim`.
+/// Reify a type into a [`Dim`].
 pub trait Dimensionable {
   /// Size type of a dimension (used to caracterize dimensions’ areas).
   type Size: Copy;
@@ -98,15 +98,15 @@ pub trait Dimensionable {
   /// Dimension.
   fn dim() -> Dim;
 
-  /// Width of the associated `Size`.
+  /// Width of the associated [`Dimensionable::Size`].
   fn width(size: Self::Size) -> u32;
 
-  /// Height of the associated `Size`. If it doesn’t have one, set it to 1.
+  /// Height of the associated [`Dimensionable::Size`]. If it doesn’t have one, set it to 1.
   fn height(_: Self::Size) -> u32 {
     1
   }
 
-  /// Depth of the associated `Size`. If it doesn’t have one, set it to 1.
+  /// Depth of the associated [`Dimensionable::Size`]. If it doesn’t have one, set it to 1.
   fn depth(_: Self::Size) -> u32 {
     1
   }
@@ -479,34 +479,49 @@ impl fmt::Display for TextureError {
   }
 }
 
-pub struct Texture<S, D, P>
+/// GPU textures.
+pub struct Texture<B, D, P>
 where
-  S: ?Sized + TextureBackend<D, P>,
+  B: ?Sized + TextureBackend<D, P>,
   D: Dimensionable,
   P: Pixel,
 {
-  pub(crate) repr: S::TextureRepr,
+  pub(crate) repr: B::TextureRepr,
   size: D::Size,
   _phantom: PhantomData<*const P>,
 }
 
-impl<S, D, P> Drop for Texture<S, D, P>
+impl<B, D, P> Drop for Texture<B, D, P>
 where
-  S: ?Sized + TextureBackend<D, P>,
+  B: ?Sized + TextureBackend<D, P>,
   D: Dimensionable,
   P: Pixel,
 {
   fn drop(&mut self) {
-    unsafe { S::destroy_texture(&mut self.repr) }
+    unsafe { B::destroy_texture(&mut self.repr) }
   }
 }
 
-impl<S, D, P> Texture<S, D, P>
+impl<B, D, P> Texture<B, D, P>
 where
-  S: ?Sized + TextureBackend<D, P>,
+  B: ?Sized + TextureBackend<D, P>,
   D: Dimensionable,
   P: Pixel,
 {
+  /// Create a new [`Texture`].
+  ///
+  /// `size` is the wished size of the [`Texture`].
+  ///
+  /// `mipmaps` is the number of extra mipmaps to allocate with the texture. `0` means that the
+  /// texture will only be made of a _base level_.
+  ///
+  /// `sampler` is a [`Sampler`] object that will be used when sampling the texture from inside a
+  /// shader, for instance.
+  ///
+  /// # Notes
+  ///
+  /// Feel free to have a look at the documentation of [`GraphicsContext::new_texture`] for a
+  /// simpler interface.
   pub fn new<C>(
     ctx: &mut C,
     size: D::Size,
@@ -514,7 +529,7 @@ where
     sampler: Sampler,
   ) -> Result<Self, TextureError>
   where
-    C: GraphicsContext<Backend = S>,
+    C: GraphicsContext<Backend = B>,
   {
     unsafe {
       ctx
@@ -528,14 +543,20 @@ where
     }
   }
 
+  /// Return the number of mipmaps.
   pub fn mipmaps(&self) -> usize {
-    unsafe { S::mipmaps(&self.repr) }
+    unsafe { B::mipmaps(&self.repr) }
   }
 
+  /// Return the size of the texture.
   pub fn size(&self) -> D::Size {
     self.size
   }
 
+  /// Clear the texture with a single pixel value.
+  ///
+  /// This function will assign the input pixel value to all the pixels in the rectangle described
+  /// by `size` and `offset` in the texture.
   pub fn clear_part(
     &mut self,
     gen_mipmaps: GenMipmaps,
@@ -543,13 +564,18 @@ where
     size: D::Size,
     pixel: P::Encoding,
   ) -> Result<(), TextureError> {
-    unsafe { S::clear_part(&mut self.repr, gen_mipmaps, offset, size, pixel) }
+    unsafe { B::clear_part(&mut self.repr, gen_mipmaps, offset, size, pixel) }
   }
 
+  /// Clear the texture with a single pixel value.
+  ///
+  /// This function will assign the input pixel value to all the pixels in the texture.
   pub fn clear(&mut self, gen_mipmaps: GenMipmaps, pixel: P::Encoding) -> Result<(), TextureError> {
-    unsafe { S::clear(&mut self.repr, gen_mipmaps, self.size, pixel) }
+    unsafe { B::clear(&mut self.repr, gen_mipmaps, self.size, pixel) }
   }
 
+  /// Upload pixels to a region of the texture described by the rectangle made with `size` and
+  /// `offset`.
   pub fn upload_part(
     &mut self,
     gen_mipmaps: GenMipmaps,
@@ -557,17 +583,20 @@ where
     size: D::Size,
     texels: &[P::Encoding],
   ) -> Result<(), TextureError> {
-    unsafe { S::upload_part(&mut self.repr, gen_mipmaps, offset, size, texels) }
+    unsafe { B::upload_part(&mut self.repr, gen_mipmaps, offset, size, texels) }
   }
 
+  /// Upload pixels to the whole texture.
   pub fn upload(
     &mut self,
     gen_mipmaps: GenMipmaps,
     texels: &[P::Encoding],
   ) -> Result<(), TextureError> {
-    unsafe { S::upload(&mut self.repr, gen_mipmaps, self.size, texels) }
+    unsafe { B::upload(&mut self.repr, gen_mipmaps, self.size, texels) }
   }
 
+  /// Upload raw data to a region of the texture described by the rectangle made with `size` and
+  /// `offset`.
   pub fn upload_part_raw(
     &mut self,
     gen_mipmaps: GenMipmaps,
@@ -575,21 +604,23 @@ where
     size: D::Size,
     texels: &[P::RawEncoding],
   ) -> Result<(), TextureError> {
-    unsafe { S::upload_part_raw(&mut self.repr, gen_mipmaps, offset, size, texels) }
+    unsafe { B::upload_part_raw(&mut self.repr, gen_mipmaps, offset, size, texels) }
   }
 
+  /// Upload raw data to the whole texture.
   pub fn upload_raw(
     &mut self,
     gen_mipmaps: GenMipmaps,
     texels: &[P::RawEncoding],
   ) -> Result<(), TextureError> {
-    unsafe { S::upload_raw(&mut self.repr, gen_mipmaps, self.size, texels) }
+    unsafe { B::upload_raw(&mut self.repr, gen_mipmaps, self.size, texels) }
   }
 
+  /// Get a copy of all the pixels from the texture.
   pub fn get_raw_texels(&self) -> Result<Vec<P::RawEncoding>, TextureError>
   where
     P::RawEncoding: Copy + Default,
   {
-    unsafe { S::get_raw_texels(&self.repr, self.size) }
+    unsafe { B::get_raw_texels(&self.repr, self.size) }
   }
 }
