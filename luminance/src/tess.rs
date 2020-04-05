@@ -268,16 +268,6 @@ where
   repr: B::TessBuilderRepr,
 }
 
-impl<'a, B> Default for TessBuilder<'a, B>
-where
-  B: ?Sized + TessBuilderBackend,
-{
-  /// See the documentation of [`TessBuilder::new`] for further information.
-  fn default() -> Self {
-    Self::new()
-  }
-}
-
 impl<'a, B> TessBuilder<'a, B>
 where
   B: ?Sized + TessBuilderBackend,
@@ -709,7 +699,7 @@ where
 
   /// Create a view that is using only a subpart of the input [`Tess`], starting from `start`, with
   /// `nb` vertices.
-  pub fn one_slice(tess: &'a Tess<S>, start: usize, nb: usize) -> Result<Self, TessViewError> {
+  pub fn slice(tess: &'a Tess<S>, start: usize, nb: usize) -> Result<Self, TessViewError> {
     let capacity = tess.vert_nb();
 
     if start > capacity || nb + start > capacity {
@@ -724,7 +714,7 @@ where
       tess,
       start_index: start,
       vert_nb: nb,
-      inst_nb: 1,
+      inst_nb: tess.inst_nb(),
     })
   }
 
@@ -760,7 +750,7 @@ where
   S: ?Sized + TessBackend,
 {
   fn from(tess: &'a Tess<S>) -> Self {
-    TessView::one_whole(tess)
+    TessView::whole(tess)
   }
 }
 
@@ -790,7 +780,7 @@ where
   S: ?Sized + TessBackend,
 {
   fn slice(&self, _: RangeFull) -> Result<TessView<S>, TessViewError> {
-    Ok(TessView::one_whole(self))
+    Ok(TessView::whole(self))
   }
 
   fn inst_slice(&self, _: RangeFull, inst_nb: usize) -> Result<TessView<S>, TessViewError> {
@@ -803,7 +793,7 @@ where
   S: ?Sized + TessBackend,
 {
   fn slice(&self, to: RangeTo<usize>) -> Result<TessView<S>, TessViewError> {
-    TessView::one_sub(self, to.end)
+    TessView::sub(self, to.end)
   }
 
   fn inst_slice(&self, to: RangeTo<usize>, inst_nb: usize) -> Result<TessView<S>, TessViewError> {
@@ -816,7 +806,7 @@ where
   S: ?Sized + TessBackend,
 {
   fn slice(&self, from: RangeFrom<usize>) -> Result<TessView<S>, TessViewError> {
-    TessView::one_slice(self, from.start, self.vert_nb() - from.start)
+    TessView::slice(self, from.start, self.vert_nb() - from.start)
   }
 
   fn inst_slice(
@@ -833,7 +823,7 @@ where
   S: ?Sized + TessBackend,
 {
   fn slice(&self, range: Range<usize>) -> Result<TessView<S>, TessViewError> {
-    TessView::one_slice(self, range.start, range.end - range.start)
+    TessView::slice(self, range.start, range.end - range.start)
   }
 
   fn inst_slice(&self, range: Range<usize>, inst_nb: usize) -> Result<TessView<S>, TessViewError> {
@@ -848,7 +838,7 @@ where
   fn slice(&self, range: RangeInclusive<usize>) -> Result<TessView<S>, TessViewError> {
     let start = *range.start();
     let end = *range.end();
-    TessView::one_slice(self, start, end - start + 1)
+    TessView::slice(self, start, end - start + 1)
   }
 
   fn inst_slice(
@@ -867,7 +857,7 @@ where
   S: ?Sized + TessBackend,
 {
   fn slice(&self, to: RangeToInclusive<usize>) -> Result<TessView<S>, TessViewError> {
-    TessView::one_sub(self, to.end + 1)
+    TessView::sub(self, to.end + 1)
   }
 
   fn inst_slice(

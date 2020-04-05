@@ -60,6 +60,7 @@ use crate::shader::{
 };
 use crate::tess::{TessBuilder, TessError};
 use crate::texture::{Dimensionable, Sampler, Texture, TextureError};
+use crate::vertex::Semantics;
 
 /// Class of graphics context.
 ///
@@ -163,6 +164,7 @@ pub unsafe trait GraphicsContext: Sized {
   ) -> Result<BuiltProgram<Self::Backend, Sem, Out, Uni>, ProgramError>
   where
     Self::Backend: Shader,
+    Sem: Semantics,
     Uni: UniformInterface<Self::Backend, E>,
     T: Into<Option<TessellationStages<'a, Stage<Self::Backend>>>>,
     G: Into<Option<&'a Stage<Self::Backend>>>,
@@ -173,18 +175,19 @@ pub unsafe trait GraphicsContext: Sized {
   /// Create a new shader program.
   ///
   /// See the documentation of [`Program::from_stages`] for further details.
-  fn new_shader_program_from_stages<'a, Sem, Out, Uni, T, G>(
+  fn new_shader_program_from_stages<Sem, Out, Uni, T, G>(
     &mut self,
-    vertex: &'a Stage<Self::Backend>,
+    vertex: &Stage<Self::Backend>,
     tess: T,
     geometry: G,
-    fragment: &'a Stage<Self::Backend>,
+    fragment: &Stage<Self::Backend>,
   ) -> Result<BuiltProgram<Self::Backend, Sem, Out, Uni>, ProgramError>
   where
     Self::Backend: Shader,
     Uni: UniformInterface<Self::Backend>,
-    T: Into<Option<TessellationStages<'a, Stage<Self::Backend>>>>,
-    G: Into<Option<&'a Stage<Self::Backend>>>,
+    Sem: Semantics,
+    T: for<'a> Into<Option<TessellationStages<'a, Stage<Self::Backend>>>>,
+    G: for<'a> Into<Option<&'a Stage<Self::Backend>>>,
   {
     Program::from_stages(self, vertex, tess, geometry, fragment)
   }
@@ -202,6 +205,7 @@ pub unsafe trait GraphicsContext: Sized {
   ) -> Result<BuiltProgram<Self::Backend, Sem, Out, Uni>, ProgramError>
   where
     Self::Backend: Shader,
+    Sem: Semantics,
     Uni: UniformInterface<Self::Backend, E>,
     V: AsRef<str> + 'a,
     T: Into<Option<TessellationStages<'a, str>>>,
@@ -209,16 +213,6 @@ pub unsafe trait GraphicsContext: Sized {
     F: AsRef<str> + 'a,
   {
     Program::from_strings_env(self, vertex, tess, geometry, fragment, env)
-  }
-
-  /// Create a [`TessBuilder`].
-  ///
-  /// See the documentation of [`TessBuilder::new`] for further details.
-  fn new_tess_builder(&mut self) -> Result<TessBuilder<Self::Backend>, TessError>
-  where
-    Self::Backend: TessBuilderBackend,
-  {
-    TessBuilder::new(self)
   }
 
   /// Create a new shader program.
@@ -233,6 +227,7 @@ pub unsafe trait GraphicsContext: Sized {
   ) -> Result<BuiltProgram<Self::Backend, Sem, Out, Uni>, ProgramError>
   where
     Self::Backend: Shader,
+    Sem: Semantics,
     Uni: UniformInterface<Self::Backend>,
     V: AsRef<str> + 'a,
     T: Into<Option<TessellationStages<'a, str>>>,
@@ -240,6 +235,16 @@ pub unsafe trait GraphicsContext: Sized {
     F: AsRef<str> + 'a,
   {
     Program::from_strings(self, vertex, tess, geometry, fragment)
+  }
+
+  /// Create a [`TessBuilder`].
+  ///
+  /// See the documentation of [`TessBuilder::new`] for further details.
+  fn new_tess_builder(&mut self) -> Result<TessBuilder<Self::Backend>, TessError>
+  where
+    Self::Backend: TessBuilderBackend,
+  {
+    TessBuilder::new(self)
   }
 
   /// Create a new texture.

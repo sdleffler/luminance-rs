@@ -583,7 +583,7 @@ where
   B: ?Sized + Shader,
 {
   fn drop(&mut self) {
-    unsafe { S::destroy_stage(&mut self.repr) }
+    unsafe { B::destroy_stage(&mut self.repr) }
   }
 }
 
@@ -870,8 +870,8 @@ where
         .map(|w| ProgramError::Warning(w.into()))
         .collect();
 
-      let mut uniform_builder: UniformBuilder<S> =
-        S::new_uniform_builder(&mut repr).map(|repr| UniformBuilder {
+      let mut uniform_builder: UniformBuilder<B> =
+        B::new_uniform_builder(&mut repr).map(|repr| UniformBuilder {
           repr,
           warnings: Vec::new(),
           _a: PhantomData,
