@@ -176,7 +176,7 @@
 //! [luminance-agnostic]: https://crates.io/crates/luminance-agnostic
 //! [luminance::backend]: crate::backend
 
-//#![deny(missing_docs)]
+#![deny(missing_docs)]
 
 pub mod backend;
 pub mod blending;
