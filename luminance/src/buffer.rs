@@ -279,13 +279,20 @@ pub enum BufferError {
   /// Overflow when setting a value with a specific index.
   ///
   /// Contains the index and the size of the buffer.
-  Overflow { index: usize, buffer_len: usize },
+  Overflow {
+    /// Tried index.
+    index: usize,
+    /// Actuall buffer length.
+    buffer_len: usize,
+  },
 
   /// Too few values were passed to fill a buffer.
   ///
   /// Contains the number of passed value and the size of the buffer.
   TooFewValues {
+    /// Length of the provided data.
     provided_len: usize,
+    /// Actual buffer length.
     buffer_len: usize,
   },
 
@@ -293,7 +300,9 @@ pub enum BufferError {
   ///
   /// Contains the number of passed value and the size of the buffer.
   TooManyValues {
+    /// Length of the provided data.
     provided_len: usize,
+    /// Actual buffer length.
     buffer_len: usize,
   },
 

@@ -1,4 +1,6 @@
-//! Framebuffer backend.
+//! Framebuffer backend interface.
+//!
+//! This interface defines the low-level API framebuffers must implement to be usable.
 
 use crate::backend::color_slot::ColorSlot;
 use crate::backend::depth_slot::DepthSlot;

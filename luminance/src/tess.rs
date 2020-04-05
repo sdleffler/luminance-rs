@@ -602,11 +602,13 @@ where
 pub enum TessViewError {
   /// The view has incorrect size.
   ///
-  /// `capacity` refers to the number of current data and `start` and `nb` the number of requested
   /// data.
   IncorrectViewWindow {
+    /// Capacity of data in the [`Tess`].
     capacity: usize,
+    /// Requested start.
     start: usize,
+    /// Requested number.
     nb: usize,
   },
 }

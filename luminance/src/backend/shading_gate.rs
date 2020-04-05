@@ -1,3 +1,7 @@
+//! Shading gates backend interface.
+//!
+//! This interface defines the low-level API shading gates must implement to be usable.
+
 use crate::backend::shader::Shader as ShaderBackend;
 
 pub unsafe trait ShadingGate: ShaderBackend {

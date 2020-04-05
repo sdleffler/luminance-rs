@@ -69,7 +69,10 @@ pub enum Factor {
 /// Blending configuration.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Blending {
+  /// Blending equation to use.
   pub equation: Equation,
+  /// Source factor.
   pub src: Factor,
+  /// Destination factor.
   pub dst: Factor,
 }

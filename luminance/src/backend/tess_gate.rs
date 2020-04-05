@@ -1,3 +1,7 @@
+//! Tessellation gate backend interface.
+//!
+//! This interface defines the low-level API tessellation gates must implement to be usable.
+
 use crate::backend::tess::Tess;
 
 pub unsafe trait TessGate: Tess {

@@ -272,10 +272,15 @@ pub enum Viewport {
 /// Various customization options for pipelines.
 #[derive(Clone, Debug)]
 pub struct PipelineState {
+  /// Color to use when clearing buffers.
   pub clear_color: [f32; 4],
+  /// Whether clearing color buffers.
   pub clear_color_enabled: bool,
+  /// Whether clearing depth buffers.
   pub clear_depth_enabled: bool,
+  /// Viewport to use when rendering.
   pub viewport: Viewport,
+  /// Whether [sRGB](https://en.wikipedia.org/wiki/SRGB) should be enabled.
   pub srgb_enabled: bool,
 }
 

@@ -1,4 +1,6 @@
-//! Tessellation backend.
+//! Tessellation backend interface.
+//!
+//! This interface defines the low-level API tessellations must implement to be usable.
 
 use crate::tess::{Mode, TessError, TessIndex, TessMapError};
 use crate::vertex::Vertex;
