@@ -1,0 +1,74 @@
+version: 1
+update_configs:
+  # luminance
+  - package_manager: "rust:cargo"
+    directory: "luminance"
+    update_schedule: "live"
+    target_branch: "master"
+    default_reviewers:
+      - "phaazon"
+    default_assignees:
+      - "phaazon"
+    default_labels:
+      - "dependency-update"
+    version_requirement_updates: "increase_versions_if_necessary"
+  # luminance-derive
+  - package_manager: "rust:cargo"
+    directory: "luminance-derive"
+    update_schedule: "live"
+    target_branch: "master"
+    default_reviewers:
+      - "phaazon"
+    default_assignees:
+      - "phaazon"
+    default_labels:
+      - "dependency-update"
+    version_requirement_updates: "increase_versions_if_necessary"
+  # luminance-windowing
+  - package_manager: "rust:cargo"
+    directory: "luminance-windowing"
+    update_schedule: "live"
+    target_branch: "master"
+    default_reviewers:
+      - "phaazon"
+    default_assignees:
+      - "phaazon"
+    default_labels:
+      - "dependency-update"
+    version_requirement_updates: "increase_versions_if_necessary"
+  # luminance-glfw
+  - package_manager: "rust:cargo"
+    directory: "luminance-glfw"
+    update_schedule: "live"
+    target_branch: "master"
+    default_reviewers:
+      - "phaazon"
+    default_assignees:
+      - "phaazon"
+    default_labels:
+      - "dependency-update"
+    version_requirement_updates: "increase_versions_if_necessary"
+  # luminance-glutin
+  - package_manager: "rust:cargo"
+    directory: "luminance-glutin"
+    update_schedule: "live"
+    target_branch: "master"
+    default_reviewers:
+      - "phaazon"
+    default_assignees:
+      - "phaazon"
+    default_labels:
+      - "dependency-update"
+    version_requirement_updates: "increase_versions_if_necessary"
+  # luminance-gl
+  - package_manager: "rust:cargo"
+    directory: "luminance-gl"
+    update_schedule: "live"
+    target_branch: "master"
+    default_reviewers:
+      - "phaazon"
+    default_assignees:
+      - "phaazon"
+    default_labels:
+      - "dependency-update"
+    version_requirement_updates: "increase_versions_if_necessary"
