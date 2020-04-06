@@ -11,7 +11,6 @@ update_configs:
       - "phaazon"
     default_labels:
       - "dependency-update"
-    version_requirement_updates: "increase_versions_if_necessary"
   # luminance-derive
   - package_manager: "rust:cargo"
     directory: "luminance-derive"
@@ -23,7 +22,6 @@ update_configs:
       - "phaazon"
     default_labels:
       - "dependency-update"
-    version_requirement_updates: "increase_versions_if_necessary"
   # luminance-windowing
   - package_manager: "rust:cargo"
     directory: "luminance-windowing"
@@ -35,7 +33,6 @@ update_configs:
       - "phaazon"
     default_labels:
       - "dependency-update"
-    version_requirement_updates: "increase_versions_if_necessary"
   # luminance-glfw
   - package_manager: "rust:cargo"
     directory: "luminance-glfw"
@@ -47,7 +44,6 @@ update_configs:
       - "phaazon"
     default_labels:
       - "dependency-update"
-    version_requirement_updates: "increase_versions_if_necessary"
   # luminance-glutin
   - package_manager: "rust:cargo"
     directory: "luminance-glutin"
@@ -59,7 +55,6 @@ update_configs:
       - "phaazon"
     default_labels:
       - "dependency-update"
-    version_requirement_updates: "increase_versions_if_necessary"
   # luminance-gl
   - package_manager: "rust:cargo"
     directory: "luminance-gl"
@@ -71,4 +66,3 @@ update_configs:
       - "phaazon"
     default_labels:
       - "dependency-update"
-    version_requirement_updates: "increase_versions_if_necessary"
