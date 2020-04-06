@@ -16,6 +16,7 @@
 * [Learning](#learning)
 * [Contributing](#contributing)
 * [Dependent projects](#dependent-projects)
+* [Licenses](#licenses)
 
 <!-- vim-markdown-toc -->
 
@@ -121,6 +122,10 @@ Those projects use luminance:
 - [Rx](https://rx.cloudhead.io)
   - A modern and minimalist pixel editor. Rx's GL backend is built on `luminance`.
 
+# Licenses
+
+[luminance] is licensed under [BSD-3-Clause] and the logo is under [CC BY-ND].
+
 [luminance]: ./luminance
 [luminance-derive]: ./luminance-derive
 [luminance-windowing]: ./luminance-windowing
@@ -130,3 +135,5 @@ Those projects use luminance:
 [gfx-hal]: https://crates.io/crates/gfx-hal
 [Vulkan]: https://www.khronos.org/vulkan
 [Opengl]: https://www.khronos.org/opengl
+[BSD-3-Clause]: https://opensource.org/licenses/BSD-3-Clause
+[CC BY-ND]: https://creativecommons.org/licenses/by-nd/4.0
