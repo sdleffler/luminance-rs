@@ -176,6 +176,9 @@
 //! [luminance-agnostic]: https://crates.io/crates/luminance-agnostic
 //! [luminance::backend]: crate::backend
 
+#![doc(
+  html_logo_url = "https://github.com/phaazon/luminance-rs/blob/master/docs/imgs/luminance_alt.svg"
+)]
 #![deny(missing_docs)]
 
 pub mod backend;
