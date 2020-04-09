@@ -184,6 +184,34 @@ impl GLState {
     }
   }
 
+  pub fn reset_cached_vertex_array(&mut self) {
+    self.bound_vertex_array = 0;
+  }
+
+  pub fn reset_cached_array_buffer(&mut self) {
+    self.bound_array_buffer = 0;
+  }
+
+  pub fn reset_cached_shader_program(&mut self) {
+    self.current_program = 0;
+  }
+
+  pub fn reset_cached_framebuffer(&mut self) {
+    self.bound_draw_framebuffer = 0;
+  }
+
+  pub fn reset_cached_element_array_buffer(&mut self) {
+    self.bound_element_array_buffer = 0;
+  }
+
+  pub fn reset_cached_texture_unit(&mut self) {
+    self.current_texture_unit = 0;
+  }
+
+  pub fn reset_bound_textures(&mut self) {
+    self.bound_textures.iter_mut().for_each(|t| *t = (gl::TEXTURE_2D, 0));
+  }
+
   pub(crate) fn binding_stack_mut(&mut self) -> &mut BindingStack {
     &mut self.binding_stack
   }
