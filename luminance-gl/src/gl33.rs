@@ -15,6 +15,7 @@ use self::state::GLState;
 pub use self::state::StateQueryError;
 use std::cell::RefCell;
 use std::rc::Rc;
+use std::ops::Deref;
 
 /// The OpenGL backend.
 pub struct GL33 {
@@ -26,5 +27,9 @@ impl GL33 {
     GLState::new().map(|state| GL33 {
       state: Rc::new(RefCell::new(state)),
     })
+  }
+
+  pub fn state(&self) -> &Rc<RefCell<GLState>> {
+    &self.state
   }
 }
