@@ -184,34 +184,42 @@ impl GLState {
     }
   }
 
+  /// Reset the cached vertex array
   pub fn reset_cached_vertex_array(&mut self) {
     self.bound_vertex_array = 0;
   }
 
+  /// Reset the cached array buffer
   pub fn reset_cached_array_buffer(&mut self) {
     self.bound_array_buffer = 0;
   }
 
+  /// Reset the cached shader program
   pub fn reset_cached_shader_program(&mut self) {
     self.current_program = 0;
   }
 
+  /// Reset the cached framebuffer
   pub fn reset_cached_framebuffer(&mut self) {
     self.bound_draw_framebuffer = 0;
   }
 
+  /// Reset the cached element array buffer
   pub fn reset_cached_element_array_buffer(&mut self) {
     self.bound_element_array_buffer = 0;
   }
 
+  /// Reset the cached texture unit
   pub fn reset_cached_texture_unit(&mut self) {
     self.current_texture_unit = 0;
   }
 
+  /// Reset the cached texture bindings
   pub fn reset_bound_textures(&mut self) {
     self.bound_textures.iter_mut().for_each(|t| *t = (gl::TEXTURE_2D, 0));
   }
 
+  /// Reset the cached uniform buffer bindings
   pub fn reset_bound_uniform_buffers(&mut self) {
     self.bound_uniform_buffers.iter_mut().for_each(|b| *b = 0);
   }
