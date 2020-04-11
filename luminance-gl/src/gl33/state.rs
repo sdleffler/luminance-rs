@@ -212,6 +212,10 @@ impl GLState {
     self.bound_textures.iter_mut().for_each(|t| *t = (gl::TEXTURE_2D, 0));
   }
 
+  pub fn reset_bound_uniform_buffers(&mut self) {
+    self.bound_uniform_buffers.iter_mut().for_each(|b| *b = 0);
+  }
+
   pub(crate) fn binding_stack_mut(&mut self) -> &mut BindingStack {
     &mut self.binding_stack
   }

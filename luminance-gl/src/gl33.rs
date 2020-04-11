@@ -15,7 +15,6 @@ use self::state::GLState;
 pub use self::state::StateQueryError;
 use std::cell::RefCell;
 use std::rc::Rc;
-use std::ops::Deref;
 
 /// The OpenGL backend.
 pub struct GL33 {
