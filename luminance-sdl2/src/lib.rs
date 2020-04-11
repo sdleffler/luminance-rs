@@ -51,7 +51,7 @@ impl fmt::Display for Sdl2SurfaceError {
   }
 }
 
-/// A [luminance] GraphicsContext backed by Sdl2 and OpenGL 3.3 Core.
+/// A [luminance] GraphicsContext backed by SDL2 and OpenGL 3.3 Core.
 ///
 /// ```
 /// use luminance_sdl2::{GL33Surface, WindowOpt, WindowDim, CursorMode};
@@ -156,12 +156,12 @@ impl GL33Surface {
     Ok(surface)
   }
 
-  /// The entry point to most of the Sdl2 API.
+  /// The entry point to most of the SDL2 API.
   pub fn sdl(&self) -> &sdl2::Sdl {
     &self.sdl
   }
 
-  /// The underlying Sdl2 window of this surface.
+  /// The underlying SDL2 window of this surface.
   pub fn window(&self) -> &sdl2::video::Window {
     &self.window
   }
