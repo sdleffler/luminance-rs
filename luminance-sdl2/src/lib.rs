@@ -3,14 +3,12 @@
 
 #![deny(missing_docs)]
 
-use gl;
 use luminance::context::GraphicsContext;
 use luminance::framebuffer::Framebuffer;
 use luminance::framebuffer::FramebufferError;
 use luminance::texture::Dim2;
 pub use luminance_gl::gl33::StateQueryError;
 use luminance_gl::GL33;
-pub use luminance_windowing::{CursorMode, WindowDim, WindowOpt};
 pub use sdl2;
 use std::fmt;
 use std::os::raw::c_void;
@@ -54,17 +52,12 @@ impl fmt::Display for Sdl2SurfaceError {
 /// A [luminance] GraphicsContext backed by SDL2 and OpenGL 3.3 Core.
 ///
 /// ```
-/// use luminance_sdl2::{GL33Surface, WindowOpt, WindowDim, CursorMode};
+/// use luminance_sdl2::GL33Surface;
 ///
-/// let opts = WindowOpt::default()
-///     .set_dim(WindowDim::Fullscreen)
-///     .set_cursor_mode(CursorMode::Disabled);
-///
-/// let surface = GL33Surface::new("Example window", opts)
+/// let surface = GL33Surface::build_with(|video| video.window("My app", 800, 600))
 ///     .expect("failed to create surface");
 ///
-/// let event_pump = surface.sdl().event_pump()
-///     .expect("failed to initialize event subsystem");
+/// let sdl: sdl2::Sdl = surface.sdl();
 /// ```
 ///
 /// [luminance]: https://crates.io/crates/luminance
@@ -77,8 +70,30 @@ pub struct GL33Surface {
 }
 
 impl GL33Surface {
-  /// Create a new surface.
-  pub fn new(title: &str, options: WindowOpt) -> Result<Self, Sdl2SurfaceError> {
+  /// Create a new [`GL33Surface`] from a [`sdl2::video::WindowBuilder`].
+  ///
+  /// The callback is passed a reference to [`sdl2::VideoSubsystem`].
+  /// This is your chance to change GL attributes before creating the window with your preferred
+  /// settings.
+  ///
+  /// ```
+  /// use luminance_sdl2::GL33Surface;
+  ///
+  /// let surface = GL33Surface::build_with(|video| {
+  ///     let gl_attr = video.gl_attr();
+  ///     gl_attr.set_multisample_buffers(1);
+  ///     gl_attr.set_multisample_samples(4);
+  ///
+  ///     let mut builder = video.window("My app", 800, 600);
+  ///     builder.fullscreen_desktop();
+  ///     builder
+  /// })
+  ///   .expect("failed to build window");
+  /// ```
+  pub fn build_with<WB>(window_builder: WB) -> Result<Self, Sdl2SurfaceError>
+  where
+      WB: FnOnce(&sdl2::VideoSubsystem) -> sdl2::video::WindowBuilder,
+  {
     let sdl = sdl2::init().map_err(Sdl2SurfaceError::InitError)?;
 
     let video_system = sdl.video().map_err(Sdl2SurfaceError::VideoInitError)?;
@@ -90,54 +105,10 @@ impl GL33Surface {
     gl_attr.set_context_major_version(3);
     gl_attr.set_context_minor_version(3);
 
-    match options.num_samples {
-      Some(num) => {
-        gl_attr.set_multisample_buffers(1);
-        gl_attr.set_multisample_samples(num as u8);
-      }
-      None => {
-        gl_attr.set_multisample_buffers(0);
-        gl_attr.set_multisample_samples(0);
-      }
-    }
-
-    let mouse = sdl.mouse();
-    match options.cursor_mode {
-      CursorMode::Visible => {
-        mouse.show_cursor(true);
-        mouse.set_relative_mouse_mode(false);
-      }
-      CursorMode::Invisible => {
-        mouse.show_cursor(false);
-        mouse.set_relative_mouse_mode(false);
-      }
-      CursorMode::Disabled => {
-        mouse.show_cursor(false);
-        mouse.set_relative_mouse_mode(true);
-      }
-    }
-
-    let window = {
-      let mut builder;
-      match options.dim {
-        WindowDim::Windowed { width, height } => {
-          builder = video_system.window(title, width, height)
-        }
-        WindowDim::Fullscreen => {
-          // I don't think it matters what dimensions we pass here.
-          builder = video_system.window(title, 800, 600);
-          builder.fullscreen();
-        }
-        WindowDim::FullscreenRestricted { width, height } => {
-          builder = video_system.window(title, width, height);
-          builder.fullscreen_desktop();
-        }
-      }
-      builder
-        .opengl()
-        .build()
-        .map_err(Sdl2SurfaceError::WindowCreationFailed)?
-    };
+    let window = window_builder(&video_system)
+      .opengl()
+      .build()
+      .map_err(Sdl2SurfaceError::WindowCreationFailed)?;
 
     let _gl_context = window
       .gl_create_context()
