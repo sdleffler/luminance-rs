@@ -164,7 +164,7 @@ pub unsafe trait GraphicsContext: Sized {
   /// Create a [`TessBuilder`].
   ///
   /// See the documentation of [`TessBuilder::new`] for further details.
-  fn new_tess_builder(&mut self) -> Result<TessBuilder<Self::Backend>, TessError>
+  fn new_tess(&mut self) -> Result<TessBuilder<Self::Backend>, TessError>
   where
     Self::Backend: TessBuilderBackend,
   {
