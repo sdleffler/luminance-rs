@@ -13,7 +13,6 @@ use glfw::{Action, Context as _, Key, WindowEvent};
 use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
-use luminance::shader::Program;
 use luminance::tess::{Mode, TessBuilder};
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};

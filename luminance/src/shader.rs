@@ -781,6 +781,220 @@ where
   }
 }
 
+/// A [`Program`] builder.
+///
+/// This type allows to create shader programs without having to worry too much about the highly
+/// generic API.
+pub struct ProgramBuilder<'a, C, Sem, Out, Uni> {
+  ctx: &'a mut C,
+  _phantom: PhantomData<(Sem, Out, Uni)>,
+}
+
+impl<'a, C, Sem, Out, Uni> ProgramBuilder<'a, C, Sem, Out, Uni>
+where
+  C: GraphicsContext,
+  C::Backend: Shader,
+  Sem: Semantics,
+{
+  /// Create a new [`ProgramBuilder`] from a [`GraphicsContext`].
+  pub fn new(ctx: &'a mut C) -> Self {
+    ProgramBuilder {
+      ctx,
+      _phantom: PhantomData,
+    }
+  }
+
+  /// Create a [`Program`] by linking [`Stage`]s and accessing a mutable environment variable.
+  ///
+  /// # Parametricity
+  ///
+  /// - `T` is an [`Option`] containing a [`TessellationStages`] with [`Stage`] inside.
+  /// - `G` is an [`Option`] containing a [`Stage`] inside (geometry shader).
+  /// - `E` is the mutable environment variable.
+  ///
+  /// # Notes
+  ///
+  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_stages_env`] for
+  /// a simpler interface.
+  pub fn from_stages_env<'b, T, G, E>(
+    &mut self,
+    vertex: &'b Stage<C::Backend>,
+    tess: T,
+    geometry: G,
+    fragment: &'b Stage<C::Backend>,
+    env: &mut E,
+  ) -> Result<BuiltProgram<C::Backend, Sem, Out, Uni>, ProgramError>
+  where
+    Uni: UniformInterface<C::Backend, E>,
+    T: Into<Option<TessellationStages<'b, Stage<C::Backend>>>>,
+    G: Into<Option<&'b Stage<C::Backend>>>,
+  {
+    let tess = tess.into();
+    let geometry = geometry.into();
+
+    unsafe {
+      let mut repr = self.ctx.backend().new_program(
+        &vertex.repr,
+        tess.map(|stages| TessellationStages {
+          control: &stages.control.repr,
+          evaluation: &stages.evaluation.repr,
+        }),
+        geometry.map(|stage| &stage.repr),
+        &fragment.repr,
+      )?;
+
+      let warnings = C::Backend::apply_semantics::<Sem>(&mut repr)?
+        .into_iter()
+        .map(|w| ProgramError::Warning(w.into()))
+        .collect();
+
+      let mut uniform_builder =
+        C::Backend::new_uniform_builder(&mut repr).map(|repr| UniformBuilder {
+          repr,
+          warnings: Vec::new(),
+          _a: PhantomData,
+        })?;
+
+      let uni =
+        Uni::uniform_interface(&mut uniform_builder, env).map_err(ProgramWarning::Uniform)?;
+
+      let program = Program {
+        repr,
+        uni,
+        _sem: PhantomData,
+        _out: PhantomData,
+      };
+
+      Ok(BuiltProgram { program, warnings })
+    }
+  }
+
+  /// Create a [`Program`] by linking [`Stage`]s.
+  ///
+  /// # Parametricity
+  ///
+  /// - `T` is an [`Option`] containing a [`TessellationStages`] with [`Stage`] inside.
+  /// - `G` is an [`Option`] containing a [`Stage`] inside (geometry shader).
+  ///
+  /// # Notes
+  ///
+  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_stages`] for
+  /// a simpler interface.
+  pub fn from_stages<'b, T, G>(
+    &mut self,
+    vertex: &'b Stage<C::Backend>,
+    tess: T,
+    geometry: G,
+    fragment: &'b Stage<C::Backend>,
+  ) -> Result<BuiltProgram<C::Backend, Sem, Out, Uni>, ProgramError>
+  where
+    Uni: UniformInterface<C::Backend>,
+    T: Into<Option<TessellationStages<'b, Stage<C::Backend>>>>,
+    G: Into<Option<&'b Stage<C::Backend>>>,
+  {
+    Self::from_stages_env(self, vertex, tess, geometry, fragment, &mut ())
+  }
+
+  /// Create a [`Program`] by linking [`&str`]s and accessing a mutable environment variable.
+  ///
+  /// # Parametricity
+  ///
+  /// - `C` is the graphics context.
+  /// - `T` is an [`Option`] containing a [`TessellationStages`] with [`&str`] inside.
+  /// - `G` is an [`Option`] containing a [`Stage`] inside (geometry shader).
+  /// - `E` is the mutable environment variable.
+  ///
+  /// # Notes
+  ///
+  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_strings_env`] for
+  /// a simpler interface.
+  ///
+  /// [`&str`]: str
+  pub fn from_strings_env<'b, T, G, E>(
+    &mut self,
+    vertex: &'b str,
+    tess: T,
+    geometry: G,
+    fragment: &'b str,
+    env: &mut E,
+  ) -> Result<BuiltProgram<C::Backend, Sem, Out, Uni>, ProgramError>
+  where
+    Uni: UniformInterface<C::Backend, E>,
+    T: Into<Option<TessellationStages<'b, str>>>,
+    G: Into<Option<&'b str>>,
+  {
+    let vs_stage = Stage::new(self.ctx, StageType::VertexShader, vertex)?;
+
+    let tess_stages = match tess.into() {
+      Some(TessellationStages {
+        control,
+        evaluation,
+      }) => {
+        let control_stage = Stage::new(self.ctx, StageType::TessellationControlShader, control)?;
+        let evaluation_stage = Stage::new(
+          self.ctx,
+          StageType::TessellationEvaluationShader,
+          evaluation,
+        )?;
+        Some((control_stage, evaluation_stage))
+      }
+      None => None,
+    };
+    let tess_stages =
+      tess_stages
+        .as_ref()
+        .map(|(ref control, ref evaluation)| TessellationStages {
+          control,
+          evaluation,
+        });
+
+    let gs_stage = match geometry.into() {
+      Some(geometry) => Some(Stage::new(self.ctx, StageType::GeometryShader, geometry)?),
+      None => None,
+    };
+
+    let fs_stage = Stage::new(self.ctx, StageType::FragmentShader, fragment)?;
+
+    Self::from_stages_env(
+      self,
+      &vs_stage,
+      tess_stages,
+      gs_stage.as_ref(),
+      &fs_stage,
+      env,
+    )
+  }
+
+  /// Create a [`Program`] by linking [`&str`]s.
+  ///
+  /// # Parametricity
+  ///
+  /// - `C` is the graphics context.
+  /// - `T` is an [`Option`] containing a [`TessellationStages`] with [`&str`] inside.
+  /// - `G` is an [`Option`] containing a [`Stage`] inside (geometry shader).
+  ///
+  /// # Notes
+  ///
+  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_strings`] for
+  /// a simpler interface.
+  ///
+  /// [`&str`]: str
+  pub fn from_strings<'b, T, G>(
+    &mut self,
+    vertex: &'b str,
+    tess: T,
+    geometry: G,
+    fragment: &'b str,
+  ) -> Result<BuiltProgram<C::Backend, Sem, Out, Uni>, ProgramError>
+  where
+    Uni: UniformInterface<C::Backend>,
+    T: Into<Option<TessellationStages<'b, str>>>,
+    G: Into<Option<&'b str>>,
+  {
+    Self::from_strings_env(self, vertex, tess, geometry, fragment, &mut ())
+  }
+}
+
 /// A shader program.
 ///
 /// Shader programs are GPU binaries that execute when a draw command is issued.
@@ -806,203 +1020,6 @@ where
   B: ?Sized + Shader,
   Sem: Semantics,
 {
-  /// Create a [`Program`] by linking [`Stage`]s and accessing a mutable environment variable.
-  ///
-  /// # Parametricity
-  ///
-  /// - `C` is the graphics context.
-  /// - `T` is an [`Option`] containing a [`TessellationStages`] with [`Stage`] inside.
-  /// - `G` is an [`Option`] containing a [`Stage`] inside (geometry shader).
-  /// - `E` is the mutable environment variable.
-  ///
-  /// # Notes
-  ///
-  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_stages_env`] for
-  /// a simpler interface.
-  pub fn from_stages_env<'a, C, T, G, E>(
-    ctx: &mut C,
-    vertex: &'a Stage<B>,
-    tess: T,
-    geometry: G,
-    fragment: &'a Stage<B>,
-    env: &mut E,
-  ) -> Result<BuiltProgram<B, Sem, Out, Uni>, ProgramError>
-  where
-    C: GraphicsContext<Backend = B>,
-    Uni: UniformInterface<B, E>,
-    T: Into<Option<TessellationStages<'a, Stage<B>>>>,
-    G: Into<Option<&'a Stage<B>>>,
-  {
-    let tess = tess.into();
-    let geometry = geometry.into();
-
-    unsafe {
-      let mut repr = ctx.backend().new_program(
-        &vertex.repr,
-        tess.map(|stages| TessellationStages {
-          control: &stages.control.repr,
-          evaluation: &stages.evaluation.repr,
-        }),
-        geometry.map(|stage| &stage.repr),
-        &fragment.repr,
-      )?;
-
-      let warnings = B::apply_semantics::<Sem>(&mut repr)?
-        .into_iter()
-        .map(|w| ProgramError::Warning(w.into()))
-        .collect();
-
-      let mut uniform_builder: UniformBuilder<B> =
-        B::new_uniform_builder(&mut repr).map(|repr| UniformBuilder {
-          repr,
-          warnings: Vec::new(),
-          _a: PhantomData,
-        })?;
-
-      let uni =
-        Uni::uniform_interface(&mut uniform_builder, env).map_err(ProgramWarning::Uniform)?;
-
-      let program = Program {
-        repr,
-        uni,
-        _sem: PhantomData,
-        _out: PhantomData,
-      };
-
-      Ok(BuiltProgram { program, warnings })
-    }
-  }
-
-  /// Create a [`Program`] by linking [`Stage`]s.
-  ///
-  /// # Parametricity
-  ///
-  /// - `C` is the graphics context.
-  /// - `T` is an [`Option`] containing a [`TessellationStages`] with [`Stage`] inside.
-  /// - `G` is an [`Option`] containing a [`Stage`] inside (geometry shader).
-  ///
-  /// # Notes
-  ///
-  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_stages`] for
-  /// a simpler interface.
-  pub fn from_stages<C, T, G>(
-    ctx: &mut C,
-    vertex: &Stage<B>,
-    tess: T,
-    geometry: G,
-    fragment: &Stage<B>,
-  ) -> Result<BuiltProgram<B, Sem, Out, Uni>, ProgramError>
-  where
-    C: GraphicsContext<Backend = B>,
-    Uni: UniformInterface<B>,
-    T: for<'a> Into<Option<TessellationStages<'a, Stage<B>>>>,
-    G: for<'a> Into<Option<&'a Stage<B>>>,
-  {
-    Self::from_stages_env(ctx, vertex, tess, geometry, fragment, &mut ())
-  }
-
-  /// Create a [`Program`] by linking [`&str`]s and accessing a mutable environment variable.
-  ///
-  /// # Parametricity
-  ///
-  /// - `C` is the graphics context.
-  /// - `T` is an [`Option`] containing a [`TessellationStages`] with [`&str`] inside.
-  /// - `G` is an [`Option`] containing a [`Stage`] inside (geometry shader).
-  /// - `E` is the mutable environment variable.
-  ///
-  /// # Notes
-  ///
-  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_strings_env`] for
-  /// a simpler interface.
-  ///
-  /// [`&str`]: str
-  pub fn from_strings_env<'a, C, V, T, G, F, E>(
-    ctx: &mut C,
-    vertex: V,
-    tess: T,
-    geometry: G,
-    fragment: F,
-    env: &mut E,
-  ) -> Result<BuiltProgram<B, Sem, Out, Uni>, ProgramError>
-  where
-    C: GraphicsContext<Backend = B>,
-    Uni: UniformInterface<B, E>,
-    V: AsRef<str> + 'a,
-    T: Into<Option<TessellationStages<'a, str>>>,
-    G: Into<Option<&'a str>>,
-    F: AsRef<str> + 'a,
-  {
-    let vs_stage = Stage::new(ctx, StageType::VertexShader, vertex)?;
-
-    let tess_stages = match tess.into() {
-      Some(TessellationStages {
-        control,
-        evaluation,
-      }) => {
-        let control_stage = Stage::new(ctx, StageType::TessellationControlShader, control)?;
-        let evaluation_stage =
-          Stage::new(ctx, StageType::TessellationEvaluationShader, evaluation)?;
-        Some((control_stage, evaluation_stage))
-      }
-      None => None,
-    };
-    let tess_stages =
-      tess_stages
-        .as_ref()
-        .map(|(ref control, ref evaluation)| TessellationStages {
-          control,
-          evaluation,
-        });
-
-    let gs_stage = match geometry.into() {
-      Some(geometry) => Some(Stage::new(ctx, StageType::GeometryShader, geometry)?),
-      None => None,
-    };
-
-    let fs_stage = Stage::new(ctx, StageType::FragmentShader, fragment)?;
-
-    Self::from_stages_env(
-      ctx,
-      &vs_stage,
-      tess_stages,
-      gs_stage.as_ref(),
-      &fs_stage,
-      env,
-    )
-  }
-
-  /// Create a [`Program`] by linking [`&str`]s.
-  ///
-  /// # Parametricity
-  ///
-  /// - `C` is the graphics context.
-  /// - `T` is an [`Option`] containing a [`TessellationStages`] with [`&str`] inside.
-  /// - `G` is an [`Option`] containing a [`Stage`] inside (geometry shader).
-  ///
-  /// # Notes
-  ///
-  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_strings`] for
-  /// a simpler interface.
-  ///
-  /// [`&str`]: str
-  pub fn from_strings<'a, C, V, T, G, F>(
-    ctx: &mut C,
-    vertex: V,
-    tess: T,
-    geometry: G,
-    fragment: F,
-  ) -> Result<BuiltProgram<B, Sem, Out, Uni>, ProgramError>
-  where
-    C: GraphicsContext<Backend = B>,
-    Uni: UniformInterface<B>,
-    V: AsRef<str> + 'a,
-    T: Into<Option<TessellationStages<'a, str>>>,
-    G: Into<Option<&'a str>>,
-    F: AsRef<str> + 'a,
-  {
-    Self::from_strings_env(ctx, vertex, tess, geometry, fragment, &mut ())
-  }
-
   /// Create a new [`UniformInterface`] but keep the [`Program`] around without rebuilding it.
   ///
   /// # Parametricity
