@@ -18,8 +18,8 @@ use luminance::context::GraphicsContext;
 use luminance::pipeline::{PipelineState, TextureBinding};
 use luminance::pixel::{NormRGB8UI, NormUnsigned};
 use luminance::render_state::RenderState;
-use luminance::shader::{Program, Uniform};
-use luminance::tess::{Mode, TessBuilder};
+use luminance::shader::Uniform;
+use luminance::tess::Mode;
 use luminance::texture::{Dim2, GenMipmaps, Sampler, Texture};
 use luminance_derive::UniformInterface;
 use luminance_glfw::GlfwSurface;
@@ -58,15 +58,17 @@ fn run(texture_path: &Path) {
   let mut tex = load_from_disk(&mut surface, img);
 
   // set the uniform interface to our type so that we can read textures from the shader
-  let mut program =
-    Program::<_, (), (), ShaderInterface>::from_strings(&mut surface, VS, None, None, FS)
-      .expect("program creation")
-      .ignore_warnings();
+  let mut program = surface
+    .new_shader_program::<(), (), ShaderInterface>()
+    .from_strings(VS, None, None, FS)
+    .expect("program creation")
+    .ignore_warnings();
 
   // we’ll use an attributeless render here to display a quad on the screen (two triangles); there
   // are over ways to cover the whole screen but this is easier for you to understand; the
   // TriangleFan creates triangles by connecting the third (and next) vertex to the first one
-  let tess = TessBuilder::new(&mut surface)
+  let tess = surface
+    .new_tess()
     .and_then(|b| b.set_vertex_nb(4))
     .and_then(|b| b.set_mode(Mode::TriangleFan))
     .and_then(|b| b.build())

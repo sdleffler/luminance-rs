@@ -21,8 +21,7 @@ use glfw::{Action, Context as _, Key, WindowEvent};
 use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
-use luminance::shader::Program;
-use luminance::tess::{Mode, SubTess, TessBuilder};
+use luminance::tess::{Mode, SubTess};
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
 
@@ -87,12 +86,15 @@ fn main() {
   )
   .expect("GLFW surface creation");
 
-  let mut program = Program::<_, Semantics, (), ()>::from_strings(&mut surface, VS, None, None, FS)
+  let mut program = surface
+    .new_shader_program::<Semantics, (), ()>()
+    .from_strings(VS, None, None, FS)
     .expect("program creation")
     .ignore_warnings();
 
   // create a single GPU tessellation that holds both the triangles (like in 01-hello-world)
-  let triangles = TessBuilder::new(&mut surface)
+  let triangles = surface
+    .new_tess()
     .and_then(|b| b.add_vertices(TRI_RED_BLUE_VERTICES))
     .and_then(|b| b.set_mode(Mode::Triangle))
     .and_then(|b| b.build())

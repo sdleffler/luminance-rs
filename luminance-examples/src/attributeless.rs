@@ -12,9 +12,7 @@ use glfw::{Action, Context as _, Key, WindowEvent};
 use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
-use luminance::shader::Program;
 use luminance::tess::Mode;
-use luminance::tess::TessBuilder;
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
 
@@ -33,13 +31,16 @@ fn main() {
   .expect("GLFW surface creation");
 
   // we don’t use a Vertex type anymore (i.e. attributeless, so we use the unit () type)
-  let mut program = Program::<_, (), (), ()>::from_strings(&mut surface, VS, None, None, FS)
+  let mut program = surface
+    .new_shader_program::<(), (), ()>()
+    .from_strings(VS, None, None, FS)
     .expect("program creation")
     .ignore_warnings();
 
   // yet, we still need to tell luminance to render a certain number of vertices (even if we send no
   // attributes / data); in our case, we’ll just render a triangle, which has three vertices
-  let tess = TessBuilder::new(&mut surface)
+  let tess = surface
+    .new_tess()
     .and_then(|b| b.set_vertex_nb(3))
     .and_then(|b| b.set_mode(Mode::Triangle))
     .and_then(|b| b.build())

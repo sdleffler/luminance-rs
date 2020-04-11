@@ -21,9 +21,9 @@ use luminance::context::GraphicsContext;
 use luminance::pipeline::{PipelineState, TextureBinding};
 use luminance::pixel::{NormRGB8UI, NormUnsigned};
 use luminance::render_state::RenderState;
-use luminance::shader::{Program, Uniform};
-use luminance::tess::{Mode, TessBuilder};
-use luminance::texture::{Dim2, GenMipmaps, Sampler, Texture};
+use luminance::shader::Uniform;
+use luminance::tess::Mode;
+use luminance::texture::{Dim2, GenMipmaps, Sampler};
 use luminance_derive::UniformInterface;
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
@@ -76,33 +76,35 @@ fn main() {
   .expect("Could not create GLFW surface");
 
   let texels = texture_image.into_raw();
-  let mut tex =
-    Texture::<_, Dim2, NormRGB8UI>::new(&mut surface, [width, height], 0, Sampler::default())
-      .expect("Could not create luminance texture");
+  let mut tex = surface
+    .new_texture::<Dim2, NormRGB8UI>([width, height], 0, Sampler::default())
+    .expect("Could not create luminance texture");
   tex.upload_raw(GenMipmaps::No, &texels).unwrap();
 
   let texels = displacement_map_1.into_raw();
-  let mut displacement_tex_1 =
-    Texture::<_, Dim2, NormRGB8UI>::new(&mut surface, [128, 128], 0, Sampler::default())
-      .expect("Could not create luminance texture");
+  let mut displacement_tex_1 = surface
+    .new_texture::<Dim2, NormRGB8UI>([128, 128], 0, Sampler::default())
+    .expect("Could not create luminance texture");
   displacement_tex_1
     .upload_raw(GenMipmaps::No, &texels)
     .unwrap();
 
   let texels = displacement_map_2.into_raw();
-  let mut displacement_tex_2 =
-    Texture::<_, Dim2, NormRGB8UI>::new(&mut surface, [101, 101], 0, Sampler::default())
-      .expect("Could not create luminance texture");
+  let mut displacement_tex_2 = surface
+    .new_texture::<Dim2, NormRGB8UI>([101, 101], 0, Sampler::default())
+    .expect("Could not create luminance texture");
   displacement_tex_2
     .upload_raw(GenMipmaps::No, &texels)
     .unwrap();
 
-  let mut program =
-    Program::<_, (), (), ShaderInterface>::from_strings(&mut surface, VS, None, None, FS)
-      .expect("Could not create shader program")
-      .ignore_warnings();
+  let mut program = surface
+    .new_shader_program::<(), (), ShaderInterface>()
+    .from_strings(VS, None, None, FS)
+    .expect("Could not create shader program")
+    .ignore_warnings();
 
-  let tess = TessBuilder::new(&mut surface)
+  let tess = surface
+    .new_tess()
     .and_then(|b| b.set_vertex_nb(4))
     .and_then(|b| b.set_mode(Mode::TriangleFan))
     .and_then(|b| b.build())

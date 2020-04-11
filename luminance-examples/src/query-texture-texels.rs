@@ -11,12 +11,10 @@ use crate::common::{Semantics, Vertex, VertexColor, VertexPosition};
 use glfw::{Action, Context as _, Key, WindowEvent};
 use image::{save_buffer, ColorType};
 use luminance::context::GraphicsContext as _;
-use luminance::framebuffer::Framebuffer;
 use luminance::pipeline::PipelineState;
 use luminance::pixel::NormRGBA8UI;
 use luminance::render_state::RenderState;
-use luminance::shader::Program;
-use luminance::tess::{Mode, TessBuilder};
+use luminance::tess::Mode;
 use luminance::texture::{Dim2, Sampler};
 use luminance_derive::Vertex;
 use luminance_glfw::GlfwSurface;
@@ -84,13 +82,16 @@ fn main() {
 
   // we need a program to “shade” our triangles and to tell luminance which is the input vertex
   // type, and we’re not interested in the other two type variables for this sample
-  let mut program = Program::<_, Semantics, (), ()>::from_strings(&mut surface, VS, None, None, FS)
+  let mut program = surface
+    .new_shader_program::<Semantics, (), ()>()
+    .from_strings(VS, None, None, FS)
     .expect("program creation")
     .ignore_warnings();
 
   // create tessellation for direct geometry; that is, tessellation that will render vertices by
   // taking one after another in the provided slice
-  let tris = TessBuilder::new(&mut surface)
+  let tris = surface
+    .new_tess()
     .and_then(|b| b.add_vertices(TRI_VERTICES))
     .and_then(|b| b.set_mode(Mode::Triangle))
     .and_then(|b| b.build())
@@ -101,9 +102,9 @@ fn main() {
 
   // the back buffer, which we will make our render into (we make it mutable so that we can change
   // it whenever the window dimensions change)
-  let mut fb =
-    Framebuffer::<_, Dim2, NormRGBA8UI, ()>::new(&mut surface, [960, 540], 0, Sampler::default())
-      .unwrap();
+  let mut fb = surface
+    .new_framebuffer::<Dim2, NormRGBA8UI, ()>([960, 540], 0, Sampler::default())
+    .unwrap();
 
   'app: loop {
     // for all the events on the surface
