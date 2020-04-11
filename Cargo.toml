@@ -1,7 +1,6 @@
 [workspace]
 
 members = [
-  "bin/viewer",
   "luminance",
   "luminance-derive",
   "luminance-examples",
