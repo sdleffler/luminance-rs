@@ -3,6 +3,8 @@
 This document is an exhaustive description of `luminance-1.0` along the axis of its design. It
 provides information about the internal architecture and the public API yielded by such a design.
 
+> Disclaimer: as of Sat Apr 11th 2020, this document is not valid anymore. A new document will
+> be created later.
 
 <!-- vim-markdown-toc GFM -->
 
