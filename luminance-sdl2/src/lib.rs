@@ -36,25 +36,16 @@ pub enum Sdl2SurfaceError {
 impl fmt::Display for Sdl2SurfaceError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
-      Sdl2SurfaceError::InitError(ref e) => {
-        f.write_str("initialization error: ")?;
-        e.fmt(f)
-      }
-      Sdl2SurfaceError::WindowCreationFailed(ref e) => {
-        f.write_str("failed to create window: ")?;
-        e.fmt(f)
-      }
+      Sdl2SurfaceError::InitError(ref e) => write!(f, "initialization error: {}", e),
+      Sdl2SurfaceError::WindowCreationFailed(ref e) => write!(f, "failed to create window: {}", e),
       Sdl2SurfaceError::GlContextInitFailed(ref e) => {
-        f.write_str("failed to create OpenGL context: ")?;
-        e.fmt(f)
+        write!(f, "failed to create OpenGL context: {}", e)
       }
       Sdl2SurfaceError::VideoInitError(ref e) => {
-        f.write_str("failed to initialize video system: ")?;
-        e.fmt(f)
+        write!(f, "failed to initialize video system: {}", e)
       }
       Sdl2SurfaceError::GraphicsStateError(ref e) => {
-        f.write_str("failed to get graphics state: ")?;
-        e.fmt(f)
+        write!(f, "failed to get graphics state: {}", e)
       }
     }
   }
