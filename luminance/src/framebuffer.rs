@@ -68,6 +68,7 @@ use crate::backend::framebuffer::{Framebuffer as FramebufferBackend, Framebuffer
 use crate::context::GraphicsContext;
 use crate::texture::{Dim2, Dimensionable, Sampler, TextureError};
 
+/// Wrapper to allow moving a framebuffer repr out of [`Framebuffer`].
 struct ReprDropper<B, D>(B::FramebufferRepr)
 where
   B: ?Sized + FramebufferBackend<D>,
