@@ -69,12 +69,12 @@ use crate::context::GraphicsContext;
 use crate::texture::{Dim2, Dimensionable, Sampler, TextureError};
 
 /// Wrapper to allow moving a framebuffer repr out of [`Framebuffer`].
-struct ReprDropper<B, D>(B::FramebufferRepr)
+struct WrappedFramebuffer<B, D>(B::FramebufferRepr)
 where
   B: ?Sized + FramebufferBackend<D>,
   D: Dimensionable;
 
-impl<B, D> Drop for ReprDropper<B, D>
+impl<B, D> Drop for WrappedFramebuffer<B, D>
 where
   B: ?Sized + FramebufferBackend<D>,
   D: Dimensionable,
@@ -101,7 +101,7 @@ where
   CS: ColorSlot<B, D>,
   DS: DepthSlot<B, D>,
 {
-  repr: ReprDropper<B, D>,
+  repr: WrappedFramebuffer<B, D>,
   color_slot: CS::ColorTextures,
   depth_slot: DS::DepthTexture,
 }
@@ -149,7 +149,7 @@ where
       let repr = B::validate_framebuffer(repr)?;
 
       Ok(Framebuffer {
-        repr: ReprDropper(repr),
+        repr: WrappedFramebuffer(repr),
         color_slot,
         depth_slot,
       })
@@ -204,7 +204,7 @@ where
     C: GraphicsContext<Backend = B>,
   {
     unsafe { ctx.backend().back_buffer(size) }.map(|repr| Framebuffer {
-      repr: ReprDropper(repr),
+      repr: WrappedFramebuffer(repr),
       color_slot: (),
       depth_slot: (),
     })
