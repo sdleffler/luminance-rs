@@ -19,10 +19,11 @@ maintenance = { status = "actively-developed" }
 luminance = "0.40"
 serde = "1"
 serde_derive = "1"
-stdweb = "0.4.20"
-stdweb-derive = "0.5.3"
 wasm-bindgen = "0.2.60"
-webgl_generator = "0.2"
 
-[build-dependencies]
-webgl_generator = "0.2"
+[dependencies.web-sys]
+version = "0.3.37"
+features = [
+  "WebGl2RenderingContext",
+  "WebGlBuffer",
+]
