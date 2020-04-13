@@ -22,5 +22,4 @@ maintenance = { status = "actively-developed" }
 gl = "0.14"
 luminance = "0.40"
 luminance-gl = "0.14"
-luminance-windowing = "0.9"
 sdl2 = "0.33"
