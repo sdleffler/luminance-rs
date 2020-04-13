@@ -10,6 +10,7 @@ use crate::gl33::vertex_restart::VertexRestart;
 use luminance::blending::{Equation, Factor};
 use luminance::depth_test::DepthComparison;
 use luminance::face_culling::{FaceCullingMode, FaceCullingOrder};
+use std::ops::Deref;
 
 // TLS synchronization barrier for `GLState`.
 //
@@ -35,6 +36,41 @@ impl BindingStack {
   }
 }
 
+struct Dirty<T> {
+  value: T,
+  dirty: bool,
+}
+
+impl<T> Dirty<T> {
+  fn new(initial: T) -> Self {
+    Dirty {
+      value: initial,
+      dirty: false,
+    }
+  }
+
+  fn mark_dirty(&mut self) {
+    self.dirty = true;
+  }
+
+  fn is_dirty(&self) -> bool {
+    self.dirty
+  }
+
+  fn set(&mut self, value: T) {
+    self.value = value;
+    self.dirty = false;
+  }
+}
+
+impl<T> Deref for Dirty<T> {
+  type Target = T;
+
+  fn deref(&self) -> &Self::Target {
+    &self.value
+  }
+}
+
 /// The graphics state.
 ///
 /// This type represents the current state of a given graphics context. It acts
@@ -48,30 +84,30 @@ pub struct GLState {
   binding_stack: BindingStack,
 
   // viewport
-  viewport: [GLint; 4],
+  viewport: Dirty<[GLint; 4]>,
 
   // clear buffers
-  clear_color: [GLfloat; 4],
+  clear_color: Dirty<[GLfloat; 4]>,
 
   // blending
-  blending_state: BlendingState,
-  blending_equation: Equation,
-  blending_func: (Factor, Factor),
+  blending_state: Dirty<BlendingState>,
+  blending_equation: Dirty<Equation>,
+  blending_func: Dirty<(Factor, Factor)>,
 
   // depth test
-  depth_test: DepthTest,
-  depth_test_comparison: DepthComparison,
+  depth_test: Dirty<DepthTest>,
+  depth_test_comparison: Dirty<DepthComparison>,
 
   // face culling
-  face_culling_state: FaceCullingState,
-  face_culling_order: FaceCullingOrder,
-  face_culling_mode: FaceCullingMode,
+  face_culling_state: Dirty<FaceCullingState>,
+  face_culling_order: Dirty<FaceCullingOrder>,
+  face_culling_mode: Dirty<FaceCullingMode>,
 
   // vertex restart
-  vertex_restart: VertexRestart,
+  vertex_restart: Dirty<VertexRestart>,
 
   // patch primitive vertex number
-  patch_vertex_nb: usize,
+  patch_vertex_nb: Dirty<usize>,
 
   // texture
   current_texture_unit: GLenum,
@@ -104,7 +140,7 @@ pub struct GLState {
   current_program: GLuint,
 
   // framebuffer sRGB
-  srgb_framebuffer_enabled: bool,
+  srgb_framebuffer_enabled: Dirty<bool>,
 }
 
 impl GLState {
@@ -132,18 +168,18 @@ impl GLState {
   fn get_from_context() -> Result<Self, StateQueryError> {
     unsafe {
       let binding_stack = BindingStack::new();
-      let viewport = get_ctx_viewport()?;
-      let clear_color = get_ctx_clear_color()?;
-      let blending_state = get_ctx_blending_state()?;
-      let blending_equation = get_ctx_blending_equation()?;
-      let blending_func = get_ctx_blending_factors()?;
-      let depth_test = get_ctx_depth_test()?;
-      let depth_test_comparison = DepthComparison::Less;
-      let face_culling_state = get_ctx_face_culling_state()?;
-      let face_culling_order = get_ctx_face_culling_order()?;
-      let face_culling_mode = get_ctx_face_culling_mode()?;
-      let vertex_restart = get_ctx_vertex_restart()?;
-      let patch_vertex_nb = 0;
+      let viewport = Dirty::new(get_ctx_viewport()?);
+      let clear_color = Dirty::new(get_ctx_clear_color()?);
+      let blending_state = Dirty::new(get_ctx_blending_state()?);
+      let blending_equation = Dirty::new(get_ctx_blending_equation()?);
+      let blending_func = Dirty::new(get_ctx_blending_factors()?);
+      let depth_test = Dirty::new(get_ctx_depth_test()?);
+      let depth_test_comparison = Dirty::new(DepthComparison::Less);
+      let face_culling_state = Dirty::new(get_ctx_face_culling_state()?);
+      let face_culling_order = Dirty::new(get_ctx_face_culling_order()?);
+      let face_culling_mode = Dirty::new(get_ctx_face_culling_mode()?);
+      let vertex_restart = Dirty::new(get_ctx_vertex_restart()?);
+      let patch_vertex_nb = Dirty::new(0);
       let current_texture_unit = get_ctx_current_texture_unit()?;
       let bound_textures = vec![(gl::TEXTURE_2D, 0); 48]; // 48 is the platform minimal requirement
       let texture_swimming_pool = Vec::new();
@@ -153,7 +189,7 @@ impl GLState {
       let bound_draw_framebuffer = get_ctx_bound_draw_framebuffer()?;
       let bound_vertex_array = get_ctx_bound_vertex_array()?;
       let current_program = get_ctx_current_program()?;
-      let srgb_framebuffer_enabled = get_ctx_srgb_framebuffer_enabled()?;
+      let srgb_framebuffer_enabled = Dirty::new(get_ctx_srgb_framebuffer_enabled()?);
 
       Ok(GLState {
         _a: PhantomData,
@@ -216,7 +252,10 @@ impl GLState {
 
   /// Reset the cached texture bindings
   pub fn reset_bound_textures(&mut self) {
-    self.bound_textures.iter_mut().for_each(|t| *t = (gl::TEXTURE_2D, 0));
+    self
+      .bound_textures
+      .iter_mut()
+      .for_each(|t| *t = (gl::TEXTURE_2D, 0));
   }
 
   /// Reset the cached uniform buffer bindings
@@ -253,57 +292,57 @@ impl GLState {
   }
 
   pub(crate) unsafe fn set_viewport(&mut self, viewport: [GLint; 4]) {
-    if self.viewport != viewport {
+    if self.viewport.is_dirty() || *self.viewport != viewport {
       gl::Viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
-      self.viewport = viewport;
+      self.viewport.set(viewport);
     }
   }
 
   pub(crate) unsafe fn set_clear_color(&mut self, clear_color: [GLfloat; 4]) {
-    if self.clear_color != clear_color {
+    if self.clear_color.is_dirty() || *self.clear_color != clear_color {
       gl::ClearColor(
         clear_color[0],
         clear_color[1],
         clear_color[2],
         clear_color[3],
       );
-      self.clear_color = clear_color;
+      self.clear_color.set(clear_color);
     }
   }
 
   pub(crate) unsafe fn set_blending_state(&mut self, state: BlendingState) {
-    if self.blending_state != state {
+    if self.blending_state.is_dirty() || *self.blending_state != state {
       match state {
         BlendingState::On => gl::Enable(gl::BLEND),
         BlendingState::Off => gl::Disable(gl::BLEND),
       }
 
-      self.blending_state = state;
+      self.blending_state.set(state);
     }
   }
 
   pub(crate) unsafe fn set_blending_equation(&mut self, equation: Equation) {
-    if self.blending_equation != equation {
+    if self.blending_equation.is_dirty() || *self.blending_equation != equation {
       gl::BlendEquation(from_blending_equation(equation));
-      self.blending_equation = equation;
+      self.blending_equation.set(equation);
     }
   }
 
   pub(crate) unsafe fn set_blending_func(&mut self, src: Factor, dest: Factor) {
-    if self.blending_func != (src, dest) {
+    if self.blending_func.is_dirty() || *self.blending_func != (src, dest) {
       gl::BlendFunc(from_blending_factor(src), from_blending_factor(dest));
-      self.blending_func = (src, dest);
+      self.blending_func.set((src, dest));
     }
   }
 
   pub(crate) unsafe fn set_depth_test(&mut self, depth_test: DepthTest) {
-    if self.depth_test != depth_test {
+    if self.depth_test.is_dirty() || *self.depth_test != depth_test {
       match depth_test {
         DepthTest::On => gl::Enable(gl::DEPTH_TEST),
         DepthTest::Off => gl::Disable(gl::DEPTH_TEST),
       }
 
-      self.depth_test = depth_test;
+      self.depth_test.set(depth_test);
     }
   }
 
@@ -311,59 +350,62 @@ impl GLState {
     &mut self,
     depth_test_comparison: DepthComparison,
   ) {
-    if self.depth_test_comparison != depth_test_comparison {
+    if self.depth_test_comparison.is_dirty() || *self.depth_test_comparison != depth_test_comparison
+    {
       gl::DepthFunc(depth_comparison_to_glenum(depth_test_comparison));
-      self.depth_test_comparison = depth_test_comparison;
+      self.depth_test_comparison.set(depth_test_comparison);
     }
   }
 
   pub(crate) unsafe fn set_face_culling_state(&mut self, state: FaceCullingState) {
-    if self.face_culling_state != state {
+    if self.face_culling_state.is_dirty() || *self.face_culling_state != state {
       match state {
         FaceCullingState::On => gl::Enable(gl::CULL_FACE),
         FaceCullingState::Off => gl::Disable(gl::CULL_FACE),
       }
 
-      self.face_culling_state = state;
+      self.face_culling_state.set(state);
     }
   }
 
   pub(crate) unsafe fn set_face_culling_order(&mut self, order: FaceCullingOrder) {
-    if self.face_culling_order != order {
+    if self.face_culling_order.is_dirty() || *self.face_culling_order != order {
       match order {
         FaceCullingOrder::CW => gl::FrontFace(gl::CW),
         FaceCullingOrder::CCW => gl::FrontFace(gl::CCW),
       }
 
-      self.face_culling_order = order;
+      self.face_culling_order.set(order);
     }
   }
 
   pub(crate) unsafe fn set_face_culling_mode(&mut self, mode: FaceCullingMode) {
-    if self.face_culling_mode != mode {
+    if self.face_culling_mode.is_dirty() || *self.face_culling_mode != mode {
       match mode {
         FaceCullingMode::Front => gl::CullFace(gl::FRONT),
         FaceCullingMode::Back => gl::CullFace(gl::BACK),
         FaceCullingMode::Both => gl::CullFace(gl::FRONT_AND_BACK),
       }
 
-      self.face_culling_mode = mode;
+      self.face_culling_mode.set(mode);
     }
   }
 
   pub(crate) unsafe fn set_vertex_restart(&mut self, state: VertexRestart) {
-    if self.vertex_restart != state {
+    if self.vertex_restart.is_dirty() || *self.vertex_restart != state {
       match state {
         VertexRestart::On => gl::Enable(gl::PRIMITIVE_RESTART),
         VertexRestart::Off => gl::Disable(gl::PRIMITIVE_RESTART),
       }
+
+      self.vertex_restart.set(state);
     }
   }
 
   pub(crate) unsafe fn set_patch_vertex_nb(&mut self, nb: usize) {
-    if self.patch_vertex_nb != nb {
+    if self.patch_vertex_nb.is_dirty() || *self.patch_vertex_nb != nb {
       gl::PatchParameteri(gl::PATCH_VERTICES, nb as GLint);
-      self.patch_vertex_nb = nb;
+      self.patch_vertex_nb.set(nb);
     }
   }
 
@@ -470,14 +512,16 @@ impl GLState {
   }
 
   pub(crate) unsafe fn enable_srgb_framebuffer(&mut self, srgb_framebuffer_enabled: bool) {
-    if self.srgb_framebuffer_enabled != srgb_framebuffer_enabled {
+    if self.srgb_framebuffer_enabled.is_dirty()
+      || *self.srgb_framebuffer_enabled != srgb_framebuffer_enabled
+    {
       if srgb_framebuffer_enabled {
         gl::Enable(gl::FRAMEBUFFER_SRGB);
       } else {
         gl::Disable(gl::FRAMEBUFFER_SRGB);
       }
 
-      self.srgb_framebuffer_enabled = srgb_framebuffer_enabled;
+      self.srgb_framebuffer_enabled.set(srgb_framebuffer_enabled);
     }
   }
 }
