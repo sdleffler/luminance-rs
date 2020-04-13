@@ -78,7 +78,7 @@ unsafe impl<T> Buffer<T> for GL33 {
     self
       .state
       .borrow_mut()
-      .bind_array_buffer(buffer, Bind::Cached);
+      .bind_array_buffer(buffer, Bind::Forced);
     gl::BufferData(
       gl::ARRAY_BUFFER,
       bytes as isize,
@@ -98,7 +98,6 @@ unsafe impl<T> Buffer<T> for GL33 {
   where
     T: Copy,
   {
-    //let mut buf = self.new_buffer(len)?;
     let mut buf = <Self as Buffer<T>>::new_buffer(self, len)?;
     Self::clear(&mut buf, value)?;
     Ok(buf)
