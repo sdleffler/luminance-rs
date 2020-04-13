@@ -31,6 +31,10 @@ unsafe impl BufferBase for GL33 {
 }
 
 unsafe impl<T> BufferBackend<T> for GL33 {
+  unsafe fn new_buffer(&mut self, len: usize) -> Result<Self::BufferRepr, BufferError>
+  where
+    T: Default,
+  {
     let mut buffer: GLuint = 0;
     let bytes = mem::size_of::<T>() * len;
 
@@ -97,7 +101,7 @@ unsafe impl<T> BufferBackend<T> for GL33 {
 
   unsafe fn repeat(&mut self, len: usize, value: T) -> Result<Self::BufferRepr, BufferError>
   where
-    T: Copy,
+    T: Copy + Default,
   {
     let mut buf = <Self as BufferBackend<T>>::new_buffer(self, len)?;
     Self::clear(&mut buf, value)?;

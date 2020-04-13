@@ -85,10 +85,8 @@ where
   /// The buffer will be created on the GPU with a contiguous region large enough to fit `len`
   /// items.
   ///
-  /// # Safety
-  ///
-  /// This function is `unsafe` because it allocates memory without initializing it. If you need
-  /// a safe version, consider using [`Buffer::from_slice`] or [`Buffer::repeat`] instead.
+  /// The stored item must be [`Default`], as this function will initialize the whole buffer
+  /// with the default value.
   ///
   /// # Errors
   ///
@@ -100,11 +98,12 @@ where
   ///
   /// You might be interested in the [`GraphicsContext::new_buffer`] function instead, which
   /// is the exact same function, but benefits from more type inference (based on `&mut C`).
-  pub unsafe fn new<C>(ctx: &mut C, len: usize) -> Result<Self, BufferError>
+  pub fn new<C>(ctx: &mut C, len: usize) -> Result<Self, BufferError>
   where
     C: GraphicsContext<Backend = B>,
+    T: Default,
   {
-    let repr = ctx.backend().new_buffer(len)?;
+    let repr = unsafe { ctx.backend().new_buffer(len)? };
 
     Ok(Buffer {
       repr,
@@ -157,7 +156,7 @@ where
   pub fn repeat<C>(ctx: &mut C, len: usize, value: T) -> Result<Self, BufferError>
   where
     C: GraphicsContext<Backend = B>,
-    T: Copy,
+    T: Copy + Default,
   {
     let repr = unsafe { ctx.backend().repeat(len, value)? };
 

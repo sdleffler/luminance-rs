@@ -11,7 +11,9 @@ pub unsafe trait BufferBase {
 
 pub unsafe trait Buffer<T>: BufferBase {
   /// Create a new buffer with a given number of uninitialized elements.
-  unsafe fn new_buffer(&mut self, len: usize) -> Result<Self::BufferRepr, BufferError>;
+  unsafe fn new_buffer(&mut self, len: usize) -> Result<Self::BufferRepr, BufferError>
+  where
+    T: Default;
 
   unsafe fn destroy_buffer(buffer: &mut Self::BufferRepr);
 
@@ -24,7 +26,7 @@ pub unsafe trait Buffer<T>: BufferBase {
 
   unsafe fn repeat(&mut self, len: usize, value: T) -> Result<Self::BufferRepr, BufferError>
   where
-    T: Copy;
+    T: Copy + Default;
 
   unsafe fn at(buffer: &Self::BufferRepr, i: usize) -> Option<T>
   where
