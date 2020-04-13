@@ -12,9 +12,7 @@ use std::slice;
 
 use crate::gl33::state::{Bind, GLState};
 use crate::gl33::GL33;
-use luminance::backend::buffer::{
-  Buffer as BufferBackend, BufferBase, BufferSlice as BufferSliceBackend,
-};
+use luminance::backend::buffer::{Buffer as BufferBackend, BufferSlice as BufferSliceBackend};
 use luminance::buffer::BufferError;
 
 /// OpenGL buffer.
@@ -26,11 +24,9 @@ pub struct Buffer {
   state: Rc<RefCell<GLState>>,
 }
 
-unsafe impl BufferBase for GL33 {
-  type BufferRepr = Buffer;
-}
-
 unsafe impl<T> BufferBackend<T> for GL33 {
+  type BufferRepr = Buffer;
+
   unsafe fn new_buffer(&mut self, len: usize) -> Result<Self::BufferRepr, BufferError>
   where
     T: Default,

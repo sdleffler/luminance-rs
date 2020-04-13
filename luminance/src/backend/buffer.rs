@@ -4,12 +4,10 @@
 
 use crate::buffer::BufferError;
 
-pub unsafe trait BufferBase {
+pub unsafe trait Buffer<T> {
   /// The inner representation of the buffer for this backend.
   type BufferRepr;
-}
 
-pub unsafe trait Buffer<T>: BufferBase {
   /// Create a new buffer with a given number of uninitialized elements.
   unsafe fn new_buffer(&mut self, len: usize) -> Result<Self::BufferRepr, BufferError>
   where
