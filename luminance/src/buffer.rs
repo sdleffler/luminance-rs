@@ -276,6 +276,9 @@ where
 #[non_exhaustive]
 #[derive(Debug, Eq, PartialEq)]
 pub enum BufferError {
+  /// Cannot create buffer.
+  CannotCreate,
+
   /// Overflow when setting a value with a specific index.
   ///
   /// Contains the index and the size of the buffer.
@@ -313,6 +316,8 @@ pub enum BufferError {
 impl fmt::Display for BufferError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
+      BufferError::CannotCreate => f.write_str("cannot create buffer"),
+
       BufferError::Overflow { index, buffer_len } => write!(
         f,
         "buffer overflow (index = {}, size = {})",
@@ -337,7 +342,7 @@ impl fmt::Display for BufferError {
         provided_len, buffer_len
       ),
 
-      BufferError::MapFailed => write!(f, "buffer mapping failed"),
+      BufferError::MapFailed => f.write_str("buffer mapping failed"),
     }
   }
 }
