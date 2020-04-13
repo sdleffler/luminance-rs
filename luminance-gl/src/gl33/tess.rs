@@ -5,7 +5,7 @@ use std::os::raw::c_void;
 use std::ptr;
 use std::rc::Rc;
 
-use crate::gl33::buffer::{BufferSlice, BufferSliceMut, RawBuffer};
+use crate::gl33::buffer::{Buffer, BufferSlice, BufferSliceMut};
 use crate::gl33::state::{Bind, GLState};
 use crate::gl33::vertex_restart::VertexRestart;
 use crate::gl33::GL33;
@@ -21,12 +21,12 @@ struct VertexBuffer {
   /// Indexed format of the buffer.
   fmt: VertexDesc,
   /// Internal buffer.
-  buf: RawBuffer,
+  buf: Buffer,
 }
 
 pub struct TessBuilder {
   vertex_buffers: Vec<VertexBuffer>,
-  index_buffer: Option<(RawBuffer, TessIndexType)>,
+  index_buffer: Option<(Buffer, TessIndexType)>,
   restart_index: Option<u32>,
   mode: Mode,
   vert_nb: usize,
@@ -332,7 +332,7 @@ pub struct Tess {
 
 /// All the extra data required when doing indexed drawing.
 struct IndexedDrawState {
-  _buffer: RawBuffer,
+  _buffer: Buffer,
   restart_index: Option<u32>,
   index_type: TessIndexType,
 }

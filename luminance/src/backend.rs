@@ -10,32 +10,18 @@
 //!
 //! When a public symbol, like [`Buffer`], has type variables and the first one is `B`, it’s likely
 //! to be the _backend type_. Very often, that type will be constrained by a trait. For instance,
-//! for [`Buffer`], it is constrained by [`BufferBackend`] — or [`BufferBase`], depending on the
-//! method / type using it. That trait will provide the interface that backends need to implement
-//! to support the API type — in our case, [`Buffer`]. Implementing such traits is `unsafe` and
-//! using their methods is `unsafe` too.
+//! for [`Buffer`], it is constrained by [`BufferBackend`]. That trait will provide the interface
+//! that backends need to implement to support the API type — in our case, [`Buffer`]. Implementing
+//! such traits is `unsafe` and using their methods is `unsafe` too.
 //!
 //! ## Associated types and representation objects
 //!
 //! You will notice, if you have a look at backend traits, that most of them have associated types.
 //! Most of them end with the `Repr` suffix. Those types are the concrete _representation_ of the
-//! general concept. For [`Buffer`], [`BufferBase::BufferRepr`] must be provided by a backend
+//! general concept. For [`Buffer`], [`Buffer::BufferRepr`] must be provided by a backend
 //! and used with the rest of the methods of the [`BufferBackend`] trait. As with `unsafe` methods,
 //! accessing a `Repr` object is not possible from the public interface — if you have found a way
 //! to do without `unsafe`, this is a bug: please consider filing an issue.
-//!
-//! ## Base traits
-//!
-//! Some concepts are more complex than others, and some computations don’t require the same amount
-//! of information about a concept. Buffers can be looked at as GPU regions that can be accessed,
-//! written, mapped, etc. But some computations might _only_ need to get access to the underlying
-//! representation — like buffer handles — without having to do anything else with the actual data.
-//! Often, this is required to perform type erasure — because the backend technology requires
-//! untyped data, for instance.
-//!
-//! Traits ending with the `Base` suffix are such traits, and most of the time, they will only
-//! grant you access to the `Repr` type — or any method that don’t require to know the actual type
-//! of data, or the minimal ones.
 //!
 //! ## Relationship to GraphicsContext
 //!
@@ -76,8 +62,7 @@
 //!
 //! [`Buffer`]: crate::buffer::Buffer
 //! [`BufferBackend`]: crate::backend::buffer::Buffer
-//! [`BufferBase::BufferRepr`]: crate::backend::buffer::BufferBase::BufferRepr
-//! [`BufferBase`]: crate::backend::buffer::BufferBase
+//! [`Buffer::BufferRepr`]: crate::backend::buffer::Buffer::BufferRepr
 //! [`GraphicsContext`]: crate::context::GraphicsContext
 //! [`GraphicsContext::Backend`]: crate::context::GraphicsContext::Backend
 

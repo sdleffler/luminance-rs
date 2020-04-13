@@ -82,9 +82,10 @@ pub unsafe trait GraphicsContext: Sized {
   /// Create a new buffer.
   ///
   /// See the documentation of [`Buffer::new`] for further details.
-  unsafe fn new_buffer<T>(&mut self, len: usize) -> Result<Buffer<Self::Backend, T>, BufferError>
+  fn new_buffer<T>(&mut self, len: usize) -> Result<Buffer<Self::Backend, T>, BufferError>
   where
     Self::Backend: BufferBackend<T>,
+    T: Default,
   {
     Buffer::new(self, len)
   }
@@ -113,7 +114,7 @@ pub unsafe trait GraphicsContext: Sized {
   ) -> Result<Buffer<Self::Backend, T>, BufferError>
   where
     Self::Backend: BufferBackend<T>,
-    T: Copy,
+    T: Copy + Default,
   {
     Buffer::repeat(self, len, value)
   }

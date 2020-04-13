@@ -12,24 +12,25 @@ use std::slice;
 
 use crate::gl33::state::{Bind, GLState};
 use crate::gl33::GL33;
-use luminance::backend::buffer::{Buffer, BufferBase, BufferSlice as BufferSliceBackend};
+use luminance::backend::buffer::{Buffer as BufferBackend, BufferSlice as BufferSliceBackend};
 use luminance::buffer::BufferError;
 
 /// OpenGL buffer.
 #[derive(Clone)]
-pub struct RawBuffer {
+pub struct Buffer {
   pub(crate) handle: GLuint,
   pub(crate) bytes: usize,
   pub(crate) len: usize,
   state: Rc<RefCell<GLState>>,
 }
 
-unsafe impl BufferBase for GL33 {
-  type BufferRepr = RawBuffer;
-}
+unsafe impl<T> BufferBackend<T> for GL33 {
+  type BufferRepr = Buffer;
 
-unsafe impl<T> Buffer<T> for GL33 {
-  unsafe fn new_buffer(&mut self, len: usize) -> Result<Self::BufferRepr, BufferError> {
+  unsafe fn new_buffer(&mut self, len: usize) -> Result<Self::BufferRepr, BufferError>
+  where
+    T: Default,
+  {
     let mut buffer: GLuint = 0;
     let bytes = mem::size_of::<T>() * len;
 
@@ -48,7 +49,7 @@ unsafe impl<T> Buffer<T> for GL33 {
       gl::STREAM_DRAW,
     );
 
-    Ok(RawBuffer {
+    Ok(Buffer {
       handle: buffer,
       bytes,
       len,
@@ -78,7 +79,7 @@ unsafe impl<T> Buffer<T> for GL33 {
     self
       .state
       .borrow_mut()
-      .bind_array_buffer(buffer, Bind::Cached);
+      .bind_array_buffer(buffer, Bind::Forced);
     gl::BufferData(
       gl::ARRAY_BUFFER,
       bytes as isize,
@@ -86,7 +87,7 @@ unsafe impl<T> Buffer<T> for GL33 {
       gl::STREAM_DRAW,
     );
 
-    Ok(RawBuffer {
+    Ok(Buffer {
       handle: buffer,
       bytes,
       len,
@@ -96,10 +97,9 @@ unsafe impl<T> Buffer<T> for GL33 {
 
   unsafe fn repeat(&mut self, len: usize, value: T) -> Result<Self::BufferRepr, BufferError>
   where
-    T: Copy,
+    T: Copy + Default,
   {
-    //let mut buf = self.new_buffer(len)?;
-    let mut buf = <Self as Buffer<T>>::new_buffer(self, len)?;
+    let mut buf = <Self as BufferBackend<T>>::new_buffer(self, len)?;
     Self::clear(&mut buf, value)?;
     Ok(buf)
   }
@@ -203,12 +203,12 @@ unsafe impl<T> Buffer<T> for GL33 {
 }
 
 pub struct BufferSlice<T> {
-  buffer: RawBuffer,
+  buffer: Buffer,
   ptr: *const T,
 }
 
 pub struct BufferSliceMut<T> {
-  buffer: RawBuffer,
+  buffer: Buffer,
   ptr: *mut T,
 }
 

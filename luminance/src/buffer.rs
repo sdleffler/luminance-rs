@@ -85,10 +85,8 @@ where
   /// The buffer will be created on the GPU with a contiguous region large enough to fit `len`
   /// items.
   ///
-  /// # Safety
-  ///
-  /// This function is `unsafe` because it allocates memory without initializing it. If you need
-  /// a safe version, consider using [`Buffer::from_slice`] or [`Buffer::repeat`] instead.
+  /// The stored item must be [`Default`], as this function will initialize the whole buffer
+  /// with the default value.
   ///
   /// # Errors
   ///
@@ -100,11 +98,12 @@ where
   ///
   /// You might be interested in the [`GraphicsContext::new_buffer`] function instead, which
   /// is the exact same function, but benefits from more type inference (based on `&mut C`).
-  pub unsafe fn new<C>(ctx: &mut C, len: usize) -> Result<Self, BufferError>
+  pub fn new<C>(ctx: &mut C, len: usize) -> Result<Self, BufferError>
   where
     C: GraphicsContext<Backend = B>,
+    T: Default,
   {
-    let repr = ctx.backend().new_buffer(len)?;
+    let repr = unsafe { ctx.backend().new_buffer(len)? };
 
     Ok(Buffer {
       repr,
@@ -157,7 +156,7 @@ where
   pub fn repeat<C>(ctx: &mut C, len: usize, value: T) -> Result<Self, BufferError>
   where
     C: GraphicsContext<Backend = B>,
-    T: Copy,
+    T: Copy + Default,
   {
     let repr = unsafe { ctx.backend().repeat(len, value)? };
 
@@ -276,6 +275,9 @@ where
 #[non_exhaustive]
 #[derive(Debug, Eq, PartialEq)]
 pub enum BufferError {
+  /// Cannot create buffer.
+  CannotCreate,
+
   /// Overflow when setting a value with a specific index.
   ///
   /// Contains the index and the size of the buffer.
@@ -313,6 +315,8 @@ pub enum BufferError {
 impl fmt::Display for BufferError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
+      BufferError::CannotCreate => f.write_str("cannot create buffer"),
+
       BufferError::Overflow { index, buffer_len } => write!(
         f,
         "buffer overflow (index = {}, size = {})",
@@ -337,7 +341,7 @@ impl fmt::Display for BufferError {
         provided_len, buffer_len
       ),
 
-      BufferError::MapFailed => write!(f, "buffer mapping failed"),
+      BufferError::MapFailed => f.write_str("buffer mapping failed"),
     }
   }
 }
