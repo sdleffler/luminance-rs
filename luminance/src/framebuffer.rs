@@ -68,6 +68,22 @@ use crate::backend::framebuffer::{Framebuffer as FramebufferBackend, Framebuffer
 use crate::context::GraphicsContext;
 use crate::texture::{Dim2, Dimensionable, Sampler, TextureError};
 
+/// Wrapper to allow moving a framebuffer repr out of [`Framebuffer`].
+struct WrappedFramebuffer<B, D>(B::FramebufferRepr)
+where
+  B: ?Sized + FramebufferBackend<D>,
+  D: Dimensionable;
+
+impl<B, D> Drop for WrappedFramebuffer<B, D>
+where
+  B: ?Sized + FramebufferBackend<D>,
+  D: Dimensionable,
+{
+  fn drop(&mut self) {
+    unsafe { B::destroy_framebuffer(&mut self.0) }
+  }
+}
+
 /// Typed framebuffers.
 ///
 /// # Parametricity
@@ -85,21 +101,9 @@ where
   CS: ColorSlot<B, D>,
   DS: DepthSlot<B, D>,
 {
-  pub(crate) repr: B::FramebufferRepr,
+  repr: WrappedFramebuffer<B, D>,
   color_slot: CS::ColorTextures,
   depth_slot: DS::DepthTexture,
-}
-
-impl<B, D, CS, DS> Drop for Framebuffer<B, D, CS, DS>
-where
-  B: ?Sized + FramebufferBackend<D>,
-  D: Dimensionable,
-  CS: ColorSlot<B, D>,
-  DS: DepthSlot<B, D>,
-{
-  fn drop(&mut self) {
-    unsafe { B::destroy_framebuffer(&mut self.repr) }
-  }
 }
 
 impl<B, D, CS, DS> Framebuffer<B, D, CS, DS>
@@ -145,16 +149,20 @@ where
       let repr = B::validate_framebuffer(repr)?;
 
       Ok(Framebuffer {
-        repr,
+        repr: WrappedFramebuffer(repr),
         color_slot,
         depth_slot,
       })
     }
   }
 
+  pub(crate) fn repr(&self) -> &B::FramebufferRepr {
+    &self.repr.0
+  }
+
   /// Get the size of the framebuffer.
   pub fn size(&self) -> D::Size {
-    unsafe { B::framebuffer_size(&self.repr) }
+    unsafe { B::framebuffer_size(self.repr()) }
   }
 
   /// Access the carried [`ColorSlot`].
@@ -165,6 +173,21 @@ where
   /// Access the carried [`DepthSlot`].
   pub fn depth_slot(&mut self) -> &mut DS::DepthTexture {
     &mut self.depth_slot
+  }
+
+  /// Consume this framebuffer and return the carried slots.
+  pub fn into_slots(self) -> (CS::ColorTextures, DS::DepthTexture) {
+    (self.color_slot, self.depth_slot)
+  }
+
+  /// Consume this framebuffer and return the carried [`ColorSlot`].
+  pub fn into_color_slot(self) -> CS::ColorTextures {
+    self.color_slot
+  }
+
+  /// Consume this framebuffer and return the carried [`DepthSlot`].
+  pub fn into_depth_slot(self) -> DS::DepthTexture {
+    self.depth_slot
   }
 }
 
@@ -181,7 +204,7 @@ where
     C: GraphicsContext<Backend = B>,
   {
     unsafe { ctx.backend().back_buffer(size) }.map(|repr| Framebuffer {
-      repr,
+      repr: WrappedFramebuffer(repr),
       color_slot: (),
       depth_slot: (),
     })
