@@ -130,6 +130,7 @@ where
   where
     C: GraphicsContext<Backend = B>,
     X: AsRef<[T]>,
+    T: Copy,
   {
     let repr = unsafe { ctx.backend().from_slice(slice)? };
 

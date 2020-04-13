@@ -69,6 +69,7 @@ unsafe impl<T> BufferBackend<T> for GL33 {
   unsafe fn from_slice<S>(&mut self, slice: S) -> Result<Self::BufferRepr, BufferError>
   where
     S: AsRef<[T]>,
+    T: Copy,
   {
     let mut buffer: GLuint = 0;
     let slice = slice.as_ref();

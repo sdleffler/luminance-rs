@@ -308,7 +308,7 @@ where
   pub fn add_vertices<V, W>(mut self, vertices: W) -> Result<Self, TessError>
   where
     W: AsRef<[V]>,
-    V: Vertex,
+    V: Copy + Vertex,
   {
     unsafe {
       self
@@ -331,7 +331,7 @@ where
   pub fn add_instances<V, W>(mut self, instances: W) -> Result<Self, TessError>
   where
     W: AsRef<[V]>,
-    V: Vertex,
+    V: Copy + Vertex,
   {
     unsafe {
       self
@@ -348,7 +348,7 @@ where
   pub fn set_indices<T, I>(mut self, indices: T) -> Result<Self, TessError>
   where
     T: AsRef<[I]>,
-    I: TessIndex,
+    I: Copy + TessIndex,
   {
     unsafe {
       self

@@ -85,7 +85,7 @@ pub unsafe trait GraphicsContext: Sized {
   fn new_buffer<T>(&mut self, len: usize) -> Result<Buffer<Self::Backend, T>, BufferError>
   where
     Self::Backend: BufferBackend<T>,
-    T: Default,
+    T: Copy + Default,
   {
     Buffer::new(self, len)
   }
@@ -100,6 +100,7 @@ pub unsafe trait GraphicsContext: Sized {
   where
     Self::Backend: BufferBackend<T>,
     X: AsRef<[T]>,
+    T: Copy,
   {
     Buffer::from_slice(self, slice)
   }

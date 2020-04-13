@@ -20,7 +20,8 @@ pub unsafe trait Buffer<T> {
   /// Create a new buffer from a slice.
   unsafe fn from_slice<S>(&mut self, slice: S) -> Result<Self::BufferRepr, BufferError>
   where
-    S: AsRef<[T]>;
+    S: AsRef<[T]>,
+    T: Copy;
 
   unsafe fn repeat(&mut self, len: usize, value: T) -> Result<Self::BufferRepr, BufferError>
   where

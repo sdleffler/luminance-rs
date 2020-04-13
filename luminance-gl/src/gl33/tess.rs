@@ -227,7 +227,7 @@ unsafe impl TessBuilderBackend for GL33 {
   ) -> Result<(), TessError>
   where
     W: AsRef<[V]>,
-    V: Vertex,
+    V: Copy + Vertex,
   {
     let vertices = vertices.as_ref();
 
@@ -248,7 +248,7 @@ unsafe impl TessBuilderBackend for GL33 {
   ) -> Result<(), TessError>
   where
     W: AsRef<[V]>,
-    V: Vertex,
+    V: Copy + Vertex,
   {
     let instances = instances.as_ref();
 
@@ -269,7 +269,7 @@ unsafe impl TessBuilderBackend for GL33 {
   ) -> Result<(), TessError>
   where
     T: AsRef<[I]>,
-    I: TessIndex,
+    I: Copy + TessIndex,
   {
     let indices = indices.as_ref();
 

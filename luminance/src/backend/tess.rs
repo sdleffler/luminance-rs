@@ -17,7 +17,7 @@ pub unsafe trait TessBuilder {
   ) -> Result<(), TessError>
   where
     W: AsRef<[V]>,
-    V: Vertex;
+    V: Copy + Vertex;
 
   unsafe fn add_instances<V, W>(
     &mut self,
@@ -26,7 +26,7 @@ pub unsafe trait TessBuilder {
   ) -> Result<(), TessError>
   where
     W: AsRef<[V]>,
-    V: Vertex;
+    V: Copy + Vertex;
 
   unsafe fn set_indices<T, I>(
     &mut self,
@@ -35,7 +35,7 @@ pub unsafe trait TessBuilder {
   ) -> Result<(), TessError>
   where
     T: AsRef<[I]>,
-    I: TessIndex;
+    I: Copy + TessIndex;
 
   unsafe fn set_mode(
     &mut self,
