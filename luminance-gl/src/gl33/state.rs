@@ -35,14 +35,20 @@ impl BindingStack {
   }
 }
 
-struct CachedValue<T> where T: PartialEq {
-  value: Option<T>
+struct CachedValue<T>
+where
+  T: PartialEq,
+{
+  value: Option<T>,
 }
 
-impl<T> CachedValue<T> where T: PartialEq {
+impl<T> CachedValue<T>
+where
+  T: PartialEq,
+{
   fn new(initial: T) -> Self {
     CachedValue {
-      value: Some(initial)
+      value: Some(initial),
     }
   }
 
@@ -57,7 +63,7 @@ impl<T> CachedValue<T> where T: PartialEq {
   fn is_invalid(&self, new_val: &T) -> bool {
     match &self.value {
       Some(t) if t == new_val => false,
-      _ => true
+      _ => true,
     }
   }
 }
@@ -407,7 +413,10 @@ impl GLState {
     &mut self,
     depth_test_comparison: DepthComparison,
   ) {
-    if self.depth_test_comparison.is_invalid(&depth_test_comparison) {
+    if self
+      .depth_test_comparison
+      .is_invalid(&depth_test_comparison)
+    {
       gl::DepthFunc(depth_comparison_to_glenum(depth_test_comparison));
       self.depth_test_comparison.set(depth_test_comparison);
     }
@@ -568,7 +577,10 @@ impl GLState {
   }
 
   pub(crate) unsafe fn enable_srgb_framebuffer(&mut self, srgb_framebuffer_enabled: bool) {
-    if self.srgb_framebuffer_enabled.is_invalid(&srgb_framebuffer_enabled) {
+    if self
+      .srgb_framebuffer_enabled
+      .is_invalid(&srgb_framebuffer_enabled)
+    {
       if srgb_framebuffer_enabled {
         gl::Enable(gl::FRAMEBUFFER_SRGB);
       } else {
