@@ -251,7 +251,7 @@ impl GLState {
   }
 
   /// Reset the cached texture bindings
-  pub fn reset_bound_textures(&mut self) {
+  pub fn reset_cached_bound_textures(&mut self) {
     self
       .bound_textures
       .iter_mut()
@@ -259,8 +259,73 @@ impl GLState {
   }
 
   /// Reset the cached uniform buffer bindings
-  pub fn reset_bound_uniform_buffers(&mut self) {
+  pub fn reset_cached_bound_uniform_buffers(&mut self) {
     self.bound_uniform_buffers.iter_mut().for_each(|b| *b = 0);
+  }
+
+  /// Reset the cached viewport
+  pub fn reset_cached_viewport(&mut self) {
+    self.viewport.mark_dirty()
+  }
+
+  /// Reset the cached clear color
+  pub fn reset_cached_clear_color(&mut self) {
+    self.clear_color.mark_dirty()
+  }
+
+  /// Reset the cached blending state
+  pub fn reset_cached_blending_state(&mut self) {
+    self.blending_state.mark_dirty()
+  }
+
+  /// Reset the cached blending equation
+  pub fn reset_cached_blending_equation(&mut self) {
+    self.blending_equation.mark_dirty()
+  }
+
+  /// Reset the cached blending function
+  pub fn reset_cached_blending_func(&mut self) {
+    self.blending_func.mark_dirty()
+  }
+
+  /// Reset the cached depth test
+  pub fn reset_cached_depth_test(&mut self) {
+    self.depth_test.mark_dirty()
+  }
+
+  /// Reset the cached depth test comparison
+  pub fn reset_cached_depth_test_comparison(&mut self) {
+    self.depth_test_comparison.mark_dirty()
+  }
+
+  /// Reset the cached face culling state
+  pub fn reset_cached_face_culling_state(&mut self) {
+    self.face_culling_state.mark_dirty()
+  }
+
+  /// Reset the cached face culling order
+  pub fn reset_cached_face_culling_order(&mut self) {
+    self.face_culling_order.mark_dirty()
+  }
+
+  /// Reset cached face culling mode
+  pub fn reset_cached_face_culling_mode(&mut self) {
+    self.face_culling_mode.mark_dirty()
+  }
+
+  /// Reset cached vertex restart
+  pub fn reset_cached_vertex_restart(&mut self) {
+    self.vertex_restart.mark_dirty()
+  }
+
+  /// Reset cached patch vertex number
+  pub fn reset_cached_patch_vertex_nb(&mut self) {
+    self.patch_vertex_nb.mark_dirty()
+  }
+
+  /// Reset cached SRGB framebuffer flag
+  pub fn reset_srgb_framebuffer_enabled(&mut self) {
+    self.srgb_framebuffer_enabled.mark_dirty()
   }
 
   pub(crate) fn binding_stack_mut(&mut self) -> &mut BindingStack {
