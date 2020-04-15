@@ -159,7 +159,6 @@ where
   pub fn repeat<C>(ctx: &mut C, len: usize, value: T) -> Result<Self, BufferError>
   where
     C: GraphicsContext<Backend = B>,
-    T: Default,
   {
     let repr = unsafe { ctx.backend().repeat(len, value)? };
 

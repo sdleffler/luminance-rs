@@ -25,9 +25,7 @@ where
   where
     S: AsRef<[T]>;
 
-  unsafe fn repeat(&mut self, len: usize, value: T) -> Result<Self::BufferRepr, BufferError>
-  where
-    T: Default;
+  unsafe fn repeat(&mut self, len: usize, value: T) -> Result<Self::BufferRepr, BufferError>;
 
   unsafe fn at(buffer: &Self::BufferRepr, i: usize) -> Option<T>;
 

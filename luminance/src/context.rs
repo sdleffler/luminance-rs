@@ -115,7 +115,7 @@ pub unsafe trait GraphicsContext: Sized {
   ) -> Result<Buffer<Self::Backend, T>, BufferError>
   where
     Self::Backend: BufferBackend<T>,
-    T: Copy + Default,
+    T: Copy,
   {
     Buffer::repeat(self, len, value)
   }

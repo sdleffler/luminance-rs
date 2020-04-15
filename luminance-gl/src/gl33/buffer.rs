@@ -24,6 +24,40 @@ pub struct Buffer {
   state: Rc<RefCell<GLState>>,
 }
 
+impl Buffer {
+  /// Build a buffer with a number of elements for a given type.
+  ///
+  /// That function is required to implement repeat without Default.
+  fn new<T>(gl33: &mut GL33, len: usize) -> Result<Self, BufferError> {
+    let mut buffer: GLuint = 0;
+    let bytes = mem::size_of::<T>() * len;
+
+    // generate a buffer and force binding the handle; this prevent side-effects from previous bound
+    // resources to prevent binding the buffer
+    unsafe {
+      gl::GenBuffers(1, &mut buffer);
+      gl33
+        .state
+        .borrow_mut()
+        .bind_array_buffer(buffer, Bind::Forced);
+
+      gl::BufferData(
+        gl::ARRAY_BUFFER,
+        bytes as isize,
+        ptr::null(),
+        gl::STREAM_DRAW,
+      );
+    }
+
+    Ok(Buffer {
+      handle: buffer,
+      bytes,
+      len,
+      state: gl33.state.clone(),
+    })
+  }
+}
+
 unsafe impl<T> BufferBackend<T> for GL33
 where
   T: Copy,
@@ -34,30 +68,7 @@ where
   where
     T: Default,
   {
-    let mut buffer: GLuint = 0;
-    let bytes = mem::size_of::<T>() * len;
-
-    // generate a buffer and force binding the handle; this prevent side-effects from previous bound
-    // resources to prevent binding the buffer
-    gl::GenBuffers(1, &mut buffer);
-    self
-      .state
-      .borrow_mut()
-      .bind_array_buffer(buffer, Bind::Forced);
-
-    gl::BufferData(
-      gl::ARRAY_BUFFER,
-      bytes as isize,
-      ptr::null(),
-      gl::STREAM_DRAW,
-    );
-
-    Ok(Buffer {
-      handle: buffer,
-      bytes,
-      len,
-      state: self.state.clone(),
-    })
+    Buffer::new::<T>(self, len)
   }
 
   unsafe fn destroy_buffer(buffer: &mut Self::BufferRepr) {
@@ -98,11 +109,8 @@ where
     })
   }
 
-  unsafe fn repeat(&mut self, len: usize, value: T) -> Result<Self::BufferRepr, BufferError>
-  where
-    T: Default,
-  {
-    let mut buf = <Self as BufferBackend<T>>::new_buffer(self, len)?;
+  unsafe fn repeat(&mut self, len: usize, value: T) -> Result<Self::BufferRepr, BufferError> {
+    let mut buf = Buffer::new::<T>(self, len)?;
     Self::clear(&mut buf, value)?;
     Ok(buf)
   }
