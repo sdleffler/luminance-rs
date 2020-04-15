@@ -421,7 +421,10 @@ unsafe impl TessBackend for GL33 {
   }
 }
 
-unsafe impl<T> TessSlice<T> for GL33 {
+unsafe impl<T> TessSlice<T> for GL33
+where
+  T: Copy,
+{
   type SliceRepr = BufferSlice<T>;
 
   type SliceMutRepr = BufferSliceMut<T>;

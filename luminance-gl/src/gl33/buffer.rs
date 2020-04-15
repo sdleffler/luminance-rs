@@ -24,7 +24,10 @@ pub struct Buffer {
   state: Rc<RefCell<GLState>>,
 }
 
-unsafe impl<T> BufferBackend<T> for GL33 {
+unsafe impl<T> BufferBackend<T> for GL33
+where
+  T: Copy,
+{
   type BufferRepr = Buffer;
 
   unsafe fn new_buffer(&mut self, len: usize) -> Result<Self::BufferRepr, BufferError>
@@ -69,7 +72,6 @@ unsafe impl<T> BufferBackend<T> for GL33 {
   unsafe fn from_slice<S>(&mut self, slice: S) -> Result<Self::BufferRepr, BufferError>
   where
     S: AsRef<[T]>,
-    T: Copy,
   {
     let mut buffer: GLuint = 0;
     let slice = slice.as_ref();
@@ -98,17 +100,14 @@ unsafe impl<T> BufferBackend<T> for GL33 {
 
   unsafe fn repeat(&mut self, len: usize, value: T) -> Result<Self::BufferRepr, BufferError>
   where
-    T: Copy + Default,
+    T: Default,
   {
     let mut buf = <Self as BufferBackend<T>>::new_buffer(self, len)?;
     Self::clear(&mut buf, value)?;
     Ok(buf)
   }
 
-  unsafe fn at(buffer: &Self::BufferRepr, i: usize) -> Option<T>
-  where
-    T: Copy,
-  {
+  unsafe fn at(buffer: &Self::BufferRepr, i: usize) -> Option<T> {
     if i >= buffer.len {
       None
     } else {
@@ -124,10 +123,7 @@ unsafe impl<T> BufferBackend<T> for GL33 {
     }
   }
 
-  unsafe fn whole(buffer: &Self::BufferRepr) -> Vec<T>
-  where
-    T: Copy,
-  {
+  unsafe fn whole(buffer: &Self::BufferRepr) -> Vec<T> {
     buffer
       .state
       .borrow_mut()
@@ -139,10 +135,7 @@ unsafe impl<T> BufferBackend<T> for GL33 {
     values
   }
 
-  unsafe fn set(buffer: &mut Self::BufferRepr, i: usize, x: T) -> Result<(), BufferError>
-  where
-    T: Copy,
-  {
+  unsafe fn set(buffer: &mut Self::BufferRepr, i: usize, x: T) -> Result<(), BufferError> {
     if i >= buffer.len {
       Err(BufferError::Overflow {
         index: i,
@@ -195,10 +188,7 @@ unsafe impl<T> BufferBackend<T> for GL33 {
     Ok(())
   }
 
-  unsafe fn clear(buffer: &mut Self::BufferRepr, x: T) -> Result<(), BufferError>
-  where
-    T: Copy,
-  {
+  unsafe fn clear(buffer: &mut Self::BufferRepr, x: T) -> Result<(), BufferError> {
     Self::write_whole(buffer, &vec![x; buffer.len])
   }
 }
@@ -213,7 +203,10 @@ pub struct BufferSliceMut<T> {
   ptr: *mut T,
 }
 
-unsafe impl<T> BufferSliceBackend<T> for GL33 {
+unsafe impl<T> BufferSliceBackend<T> for GL33
+where
+  T: Copy,
+{
   type SliceRepr = BufferSlice<T>;
 
   type SliceMutRepr = BufferSliceMut<T>;

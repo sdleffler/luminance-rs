@@ -62,6 +62,7 @@ use std::marker::PhantomData;
 pub struct Buffer<B, T>
 where
   B: ?Sized + BufferBackend<T>,
+  T: Copy,
 {
   pub(crate) repr: B::BufferRepr,
   _t: PhantomData<T>,
@@ -70,6 +71,7 @@ where
 impl<B, T> Drop for Buffer<B, T>
 where
   B: ?Sized + BufferBackend<T>,
+  T: Copy,
 {
   fn drop(&mut self) {
     unsafe { <B as BufferBackend<T>>::destroy_buffer(&mut self.repr) };
@@ -79,6 +81,7 @@ where
 impl<B, T> Buffer<B, T>
 where
   B: ?Sized + BufferBackend<T>,
+  T: Copy,
 {
   /// Create a new buffer with a given length
   ///
@@ -130,7 +133,6 @@ where
   where
     C: GraphicsContext<Backend = B>,
     X: AsRef<[T]>,
-    T: Copy,
   {
     let repr = unsafe { ctx.backend().from_slice(slice)? };
 
@@ -157,7 +159,7 @@ where
   pub fn repeat<C>(ctx: &mut C, len: usize, value: T) -> Result<Self, BufferError>
   where
     C: GraphicsContext<Backend = B>,
-    T: Copy + Default,
+    T: Default,
   {
     let repr = unsafe { ctx.backend().repeat(len, value)? };
 
@@ -168,18 +170,12 @@ where
   }
 
   /// Get the item at the given index.
-  pub fn at(&self, i: usize) -> Option<T>
-  where
-    T: Copy,
-  {
+  pub fn at(&self, i: usize) -> Option<T> {
     unsafe { B::at(&self.repr, i) }
   }
 
   /// Get the whole content of the buffer and store it inside a [`Vec`].
-  pub fn whole(&self) -> Vec<T>
-  where
-    T: Copy,
-  {
+  pub fn whole(&self) -> Vec<T> {
     unsafe { B::whole(&self.repr) }
   }
 
@@ -190,10 +186,7 @@ where
   /// That function returns [`BufferError::Overflow`] if `i` is bigger than the length of the
   /// buffer. Other errors are possible; please consider reading the documentation of
   /// [`BufferError`] for further information.
-  pub fn set(&mut self, i: usize, x: T) -> Result<(), BufferError>
-  where
-    T: Copy,
-  {
+  pub fn set(&mut self, i: usize, x: T) -> Result<(), BufferError> {
     unsafe { B::set(&mut self.repr, i, x) }
   }
 
@@ -210,10 +203,7 @@ where
   }
 
   /// Clear the content of the buffer by copying the same value everywhere.
-  pub fn clear(&mut self, x: T) -> Result<(), BufferError>
-  where
-    T: Copy,
-  {
+  pub fn clear(&mut self, x: T) -> Result<(), BufferError> {
     unsafe { B::clear(&mut self.repr, x) }
   }
 
@@ -239,6 +229,7 @@ where
 impl<B, T> Buffer<B, T>
 where
   B: ?Sized + BufferSliceBackend<T>,
+  T: Copy,
 {
   /// Create a new [`BufferSlice`] from a buffer, allowing to get `&[T]` out of it.
   ///
@@ -352,6 +343,7 @@ impl fmt::Display for BufferError {
 pub struct BufferSlice<'a, B, T>
 where
   B: ?Sized + BufferSliceBackend<T>,
+  T: Copy,
 {
   slice: B::SliceRepr,
   _a: PhantomData<&'a mut ()>,
@@ -360,6 +352,7 @@ where
 impl<'a, B, T> Drop for BufferSlice<'a, B, T>
 where
   B: ?Sized + BufferSliceBackend<T>,
+  T: Copy,
 {
   fn drop(&mut self) {
     {
@@ -371,6 +364,7 @@ where
 impl<'a, B, T> BufferSlice<'a, B, T>
 where
   B: ?Sized + BufferSliceBackend<T>,
+  T: Copy,
 {
   /// Obtain a `&[T]`.
   ///
@@ -388,6 +382,7 @@ where
 pub struct BufferSliceMut<'a, B, T>
 where
   B: ?Sized + BufferSliceBackend<T>,
+  T: Copy,
 {
   slice: B::SliceMutRepr,
   _a: PhantomData<&'a mut ()>,
@@ -396,6 +391,7 @@ where
 impl<'a, B, T> Drop for BufferSliceMut<'a, B, T>
 where
   B: ?Sized + BufferSliceBackend<T>,
+  T: Copy,
 {
   fn drop(&mut self) {
     unsafe { B::destroy_buffer_slice_mut(&mut self.slice) };
@@ -405,6 +401,7 @@ where
 impl<'a, B, T> BufferSliceMut<'a, B, T>
 where
   B: ?Sized + BufferSliceBackend<T>,
+  T: Copy,
 {
   /// Obtain a `&mut [T]`.
   pub fn as_slice_mut(&mut self) -> Result<&mut [T], BufferError> {

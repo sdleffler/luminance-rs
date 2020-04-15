@@ -135,7 +135,10 @@ where
   }
 }
 
-unsafe impl<T> PipelineBuffer<T> for GL33 {
+unsafe impl<T> PipelineBuffer<T> for GL33
+where
+  T: Copy,
+{
   type BoundBufferRepr = BoundBuffer;
 
   unsafe fn bind_buffer(
