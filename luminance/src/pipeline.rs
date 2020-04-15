@@ -406,6 +406,7 @@ where
   ) -> Result<BoundBuffer<'a, B, T>, PipelineError>
   where
     B: PipelineBuffer<T>,
+    T: Copy,
   {
     unsafe {
       B::bind_buffer(&self.repr, &buffer.repr).map(|repr| BoundBuffer {
@@ -553,6 +554,7 @@ impl<T> BufferBinding<T> {
 pub struct BoundBuffer<'a, B, T>
 where
   B: PipelineBuffer<T>,
+  T: Copy,
 {
   pub(crate) repr: B::BoundBufferRepr,
   _phantom: PhantomData<&'a T>,
@@ -561,6 +563,7 @@ where
 impl<'a, B, T> BoundBuffer<'a, B, T>
 where
   B: PipelineBuffer<T>,
+  T: Copy,
 {
   /// Obtain a [`BufferBinding`] object that can be used to refer to this bound buffer in shader
   /// stages.

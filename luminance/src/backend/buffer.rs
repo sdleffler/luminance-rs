@@ -4,7 +4,10 @@
 
 use crate::buffer::BufferError;
 
-pub unsafe trait Buffer<T> {
+pub unsafe trait Buffer<T>
+where
+  T: Copy,
+{
   /// The inner representation of the buffer for this backend.
   type BufferRepr;
 
@@ -20,33 +23,27 @@ pub unsafe trait Buffer<T> {
   /// Create a new buffer from a slice.
   unsafe fn from_slice<S>(&mut self, slice: S) -> Result<Self::BufferRepr, BufferError>
   where
-    S: AsRef<[T]>,
-    T: Copy;
+    S: AsRef<[T]>;
 
   unsafe fn repeat(&mut self, len: usize, value: T) -> Result<Self::BufferRepr, BufferError>
   where
-    T: Copy + Default;
+    T: Default;
 
-  unsafe fn at(buffer: &Self::BufferRepr, i: usize) -> Option<T>
-  where
-    T: Copy;
+  unsafe fn at(buffer: &Self::BufferRepr, i: usize) -> Option<T>;
 
-  unsafe fn whole(buffer: &Self::BufferRepr) -> Vec<T>
-  where
-    T: Copy;
+  unsafe fn whole(buffer: &Self::BufferRepr) -> Vec<T>;
 
-  unsafe fn set(buffer: &mut Self::BufferRepr, i: usize, x: T) -> Result<(), BufferError>
-  where
-    T: Copy;
+  unsafe fn set(buffer: &mut Self::BufferRepr, i: usize, x: T) -> Result<(), BufferError>;
 
   unsafe fn write_whole(buffer: &mut Self::BufferRepr, values: &[T]) -> Result<(), BufferError>;
 
-  unsafe fn clear(buffer: &mut Self::BufferRepr, x: T) -> Result<(), BufferError>
-  where
-    T: Copy;
+  unsafe fn clear(buffer: &mut Self::BufferRepr, x: T) -> Result<(), BufferError>;
 }
 
-pub unsafe trait BufferSlice<T>: Buffer<T> {
+pub unsafe trait BufferSlice<T>: Buffer<T>
+where
+  T: Copy,
+{
   type SliceRepr;
 
   type SliceMutRepr;

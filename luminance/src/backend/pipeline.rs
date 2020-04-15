@@ -27,7 +27,10 @@ where
   );
 }
 
-pub unsafe trait PipelineBuffer<T>: PipelineBase + Buffer<T> {
+pub unsafe trait PipelineBuffer<T>: PipelineBase + Buffer<T>
+where
+  T: Copy,
+{
   type BoundBufferRepr;
 
   unsafe fn bind_buffer(
