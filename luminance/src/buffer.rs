@@ -68,16 +68,6 @@ where
   _t: PhantomData<T>,
 }
 
-impl<B, T> Drop for Buffer<B, T>
-where
-  B: ?Sized + BufferBackend<T>,
-  T: Copy,
-{
-  fn drop(&mut self) {
-    unsafe { <B as BufferBackend<T>>::destroy_buffer(&mut self.repr) };
-  }
-}
-
 impl<B, T> Buffer<B, T>
 where
   B: ?Sized + BufferBackend<T>,
@@ -348,18 +338,6 @@ where
   _a: PhantomData<&'a mut ()>,
 }
 
-impl<'a, B, T> Drop for BufferSlice<'a, B, T>
-where
-  B: ?Sized + BufferSliceBackend<T>,
-  T: Copy,
-{
-  fn drop(&mut self) {
-    {
-      unsafe { B::destroy_buffer_slice(&mut self.slice) };
-    };
-  }
-}
-
 impl<'a, B, T> BufferSlice<'a, B, T>
 where
   B: ?Sized + BufferSliceBackend<T>,
@@ -385,16 +363,6 @@ where
 {
   slice: B::SliceMutRepr,
   _a: PhantomData<&'a mut ()>,
-}
-
-impl<'a, B, T> Drop for BufferSliceMut<'a, B, T>
-where
-  B: ?Sized + BufferSliceBackend<T>,
-  T: Copy,
-{
-  fn drop(&mut self) {
-    unsafe { B::destroy_buffer_slice_mut(&mut self.slice) };
-  }
 }
 
 impl<'a, B, T> BufferSliceMut<'a, B, T>
