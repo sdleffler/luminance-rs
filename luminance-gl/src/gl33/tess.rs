@@ -330,6 +330,15 @@ pub struct Tess {
   state: Rc<RefCell<GLState>>,
 }
 
+impl Drop for Tess {
+  fn drop(&mut self) {
+    unsafe {
+      self.state.borrow_mut().unbind_vertex_array();
+      gl::DeleteVertexArrays(1, &self.vao);
+    }
+  }
+}
+
 /// All the extra data required when doing indexed drawing.
 struct IndexedDrawState {
   _buffer: Buffer,
@@ -348,11 +357,6 @@ unsafe impl TessBackend for GL33 {
     let vert_nb = tess_builder.guess_vert_nb_or_fail()?;
     let inst_nb = tess_builder.guess_inst_nb_or_fail()?;
     tess_builder.build_tess(self, vert_nb, inst_nb)
-  }
-
-  unsafe fn destroy_tess(tess: &mut Self::TessRepr) {
-    tess.state.borrow_mut().unbind_vertex_array();
-    gl::DeleteVertexArrays(1, &tess.vao);
   }
 
   unsafe fn tess_vertices_nb(tess: &Self::TessRepr) -> usize {
@@ -428,14 +432,6 @@ where
   type SliceRepr = BufferSlice<T>;
 
   type SliceMutRepr = BufferSliceMut<T>;
-
-  unsafe fn destroy_tess_slice(slice: &mut Self::SliceRepr) {
-    <GL33 as BufferSliceBackend<T>>::destroy_buffer_slice(slice);
-  }
-
-  unsafe fn destroy_tess_slice_mut(slice: &mut Self::SliceMutRepr) {
-    <GL33 as BufferSliceBackend<T>>::destroy_buffer_slice_mut(slice);
-  }
 
   unsafe fn slice_vertices(tess: &Self::TessRepr) -> Result<Self::SliceRepr, TessMapError>
   where
