@@ -24,8 +24,6 @@ where
     CS: ColorSlot<Self, D>,
     DS: DepthSlot<Self, D>;
 
-  unsafe fn destroy_framebuffer(framebuffer: &mut Self::FramebufferRepr);
-
   unsafe fn attach_color_texture(
     framebuffer: &mut Self::FramebufferRepr,
     texture: &Self::TextureRepr,

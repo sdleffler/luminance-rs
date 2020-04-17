@@ -21,6 +21,25 @@ where
   state: Rc<RefCell<GLState>>,
 }
 
+impl<D> Drop for Framebuffer<D>
+where
+  D: Dimensionable,
+{
+  fn drop(&mut self) {
+    unsafe {
+      if let Some(renderbuffer) = self.renderbuffer {
+        gl::DeleteRenderbuffers(1, &renderbuffer);
+        gl::BindRenderbuffer(gl::RENDERBUFFER, 0);
+      }
+
+      if self.handle != 0 {
+        gl::DeleteFramebuffers(1, &self.handle);
+        self.state.borrow_mut().bind_vertex_array(0, Bind::Cached);
+      }
+    }
+  }
+}
+
 unsafe impl<D> FramebufferBackend<D> for GL33
 where
   D: Dimensionable,
@@ -98,21 +117,6 @@ where
     };
 
     Ok(framebuffer)
-  }
-
-  unsafe fn destroy_framebuffer(framebuffer: &mut Self::FramebufferRepr) {
-    if let Some(renderbuffer) = framebuffer.renderbuffer {
-      gl::DeleteRenderbuffers(1, &renderbuffer);
-      gl::BindRenderbuffer(gl::RENDERBUFFER, 0);
-    }
-
-    if framebuffer.handle != 0 {
-      gl::DeleteFramebuffers(1, &framebuffer.handle);
-      framebuffer
-        .state
-        .borrow_mut()
-        .bind_vertex_array(0, Bind::Cached);
-    }
   }
 
   unsafe fn attach_color_texture(

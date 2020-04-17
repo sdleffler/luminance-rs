@@ -486,7 +486,7 @@ where
       self
         .ctx
         .backend()
-        .start_pipeline(&framebuffer.repr(), pipeline_state);
+        .start_pipeline(&framebuffer.repr, pipeline_state);
     }
 
     let pipeline = unsafe {

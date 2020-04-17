@@ -68,22 +68,6 @@ use crate::backend::framebuffer::{Framebuffer as FramebufferBackend, Framebuffer
 use crate::context::GraphicsContext;
 use crate::texture::{Dim2, Dimensionable, Sampler, TextureError};
 
-/// Wrapper to allow moving a framebuffer repr out of [`Framebuffer`].
-struct WrappedFramebuffer<B, D>(B::FramebufferRepr)
-where
-  B: ?Sized + FramebufferBackend<D>,
-  D: Dimensionable;
-
-impl<B, D> Drop for WrappedFramebuffer<B, D>
-where
-  B: ?Sized + FramebufferBackend<D>,
-  D: Dimensionable,
-{
-  fn drop(&mut self) {
-    unsafe { B::destroy_framebuffer(&mut self.0) }
-  }
-}
-
 /// Typed framebuffers.
 ///
 /// # Parametricity
@@ -101,7 +85,7 @@ where
   CS: ColorSlot<B, D>,
   DS: DepthSlot<B, D>,
 {
-  repr: WrappedFramebuffer<B, D>,
+  pub(crate) repr: B::FramebufferRepr,
   color_slot: CS::ColorTextures,
   depth_slot: DS::DepthTexture,
 }
@@ -149,20 +133,16 @@ where
       let repr = B::validate_framebuffer(repr)?;
 
       Ok(Framebuffer {
-        repr: WrappedFramebuffer(repr),
+        repr,
         color_slot,
         depth_slot,
       })
     }
   }
 
-  pub(crate) fn repr(&self) -> &B::FramebufferRepr {
-    &self.repr.0
-  }
-
   /// Get the size of the framebuffer.
   pub fn size(&self) -> D::Size {
-    unsafe { B::framebuffer_size(self.repr()) }
+    unsafe { B::framebuffer_size(&self.repr) }
   }
 
   /// Access the carried [`ColorSlot`].
@@ -204,7 +184,7 @@ where
     C: GraphicsContext<Backend = B>,
   {
     unsafe { ctx.backend().back_buffer(size) }.map(|repr| Framebuffer {
-      repr: WrappedFramebuffer(repr),
+      repr,
       color_slot: (),
       depth_slot: (),
     })
