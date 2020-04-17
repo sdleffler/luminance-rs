@@ -491,17 +491,6 @@ where
   _phantom: PhantomData<*const P>,
 }
 
-impl<B, D, P> Drop for Texture<B, D, P>
-where
-  B: ?Sized + TextureBackend<D, P>,
-  D: Dimensionable,
-  P: Pixel,
-{
-  fn drop(&mut self) {
-    unsafe { B::destroy_texture(&mut self.repr) }
-  }
-}
-
 impl<B, D, P> Texture<B, D, P>
 where
   B: ?Sized + TextureBackend<D, P>,

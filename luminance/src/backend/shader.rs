@@ -26,8 +26,6 @@ pub unsafe trait Shader {
 
   unsafe fn new_stage(&mut self, ty: StageType, src: &str) -> Result<Self::StageRepr, StageError>;
 
-  unsafe fn destroy_stage(stage: &mut Self::StageRepr);
-
   unsafe fn new_program(
     &mut self,
     vertex: &Self::StageRepr,
@@ -35,8 +33,6 @@ pub unsafe trait Shader {
     geometry: Option<&Self::StageRepr>,
     fragment: &Self::StageRepr,
   ) -> Result<Self::ProgramRepr, ProgramError>;
-
-  unsafe fn destroy_program(program: &mut Self::ProgramRepr);
 
   unsafe fn apply_semantics<Sem>(
     program: &mut Self::ProgramRepr,

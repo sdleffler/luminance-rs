@@ -22,8 +22,6 @@ where
     sampler: Sampler,
   ) -> Result<Self::TextureRepr, TextureError>;
 
-  unsafe fn destroy_texture(texture: &mut Self::TextureRepr);
-
   unsafe fn mipmaps(texture: &Self::TextureRepr) -> usize;
 
   unsafe fn clear_part(

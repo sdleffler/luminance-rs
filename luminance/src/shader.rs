@@ -578,15 +578,6 @@ where
   }
 }
 
-impl<B> Drop for Stage<B>
-where
-  B: ?Sized + Shader,
-{
-  fn drop(&mut self) {
-    unsafe { B::destroy_stage(&mut self.repr) }
-  }
-}
-
 /// A builder of [`Uniform`].
 ///
 /// A [`UniformBuilder`] is an important type as it’s the only one that allows to safely create
@@ -808,15 +799,6 @@ where
   pub(crate) uni: Uni,
   _sem: PhantomData<*const Sem>,
   _out: PhantomData<*const Out>,
-}
-
-impl<B, Sem, Out, Uni> Drop for Program<B, Sem, Out, Uni>
-where
-  B: ?Sized + Shader,
-{
-  fn drop(&mut self) {
-    unsafe { B::destroy_program(&mut self.repr) }
-  }
 }
 
 impl<B, Sem, Out, Uni> Program<B, Sem, Out, Uni>
@@ -1075,12 +1057,8 @@ where
       .map(|w| ProgramError::Warning(w.into()))
       .collect();
 
-    // we need to forget self so that we can move-out repr
-    let self_ = std::mem::ManuallyDrop::new(self);
-    let repr = unsafe { std::ptr::read(&self_.repr) };
-
     let program = Program {
-      repr,
+      repr: self.repr,
       uni,
       _sem: PhantomData,
       _out: PhantomData,
