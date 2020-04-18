@@ -326,12 +326,17 @@ where
   /// each attributes and call that function several times. This will yield a _deinterleaved_
   /// [`Tess`], opposed to an _interleaved_ [`Tess`] if you just submit a single array of structure
   /// once.
-  pub fn add_vertex_buffer<V>(mut self, buf: Buffer<B, V>) -> Result<(), TessError>
+  pub fn add_vertex_buffer<V>(mut self, buf: Buffer<B, V>) -> Result<Self, TessError>
   where
     V: Copy + Vertex,
     B: TessBuilderBuffer<V>,
   {
-    unsafe { self.backend.add_vertex_buffer(&mut self.repr, buf.repr) }
+    unsafe {
+      self
+        .backend
+        .add_vertex_buffer(&mut self.repr, buf.repr)
+        .map(move |_| self)
+    }
   }
 
   /// Add instance data to be bundled in the [`Tess`].
@@ -367,12 +372,17 @@ where
   ///
   /// Instance data is a per-vertex special attribute that gets extracted for each instance, while
   /// regular vertex data (added via [`TessBuilder::add_vertices`] is shared for all instances.
-  pub fn add_instance_buffer<V>(mut self, buf: Buffer<B, V>) -> Result<(), TessError>
+  pub fn add_instance_buffer<V>(mut self, buf: Buffer<B, V>) -> Result<Self, TessError>
   where
     V: Copy + Vertex,
     B: TessBuilderBuffer<V>,
   {
-    unsafe { self.backend.add_instance_buffer(&mut self.repr, buf.repr) }
+    unsafe {
+      self
+        .backend
+        .add_instance_buffer(&mut self.repr, buf.repr)
+        .map(move |_| self)
+    }
   }
 
   /// Set indices to index into the vertex data.
@@ -396,12 +406,17 @@ where
   ///
   /// That function should be called only once. Calling it twice ends up replacing the already
   /// present index buffer.
-  pub fn set_index_buffer<I>(mut self, buf: Buffer<B, I>) -> Result<(), TessError>
+  pub fn set_index_buffer<I>(mut self, buf: Buffer<B, I>) -> Result<Self, TessError>
   where
     I: Copy + TessIndex,
     B: TessBuilderBuffer<I>,
   {
-    unsafe { self.backend.set_index_buffer(&mut self.repr, buf.repr) }
+    unsafe {
+      self
+        .backend
+        .set_index_buffer(&mut self.repr, buf.repr)
+        .map(move |_| self)
+    }
   }
 
   /// Set the [`Mode`] to connect vertices.
