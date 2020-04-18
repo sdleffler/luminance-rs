@@ -315,7 +315,7 @@ where
       self
         .backend
         .add_vertices(&mut self.repr, vertices)
-        .map(move |_| self)
+        .map(|_| self)
     }
   }
 
@@ -335,7 +335,7 @@ where
       self
         .backend
         .add_vertex_buffer(&mut self.repr, buf.repr)
-        .map(move |_| self)
+        .map(|_| self)
     }
   }
 
@@ -358,7 +358,7 @@ where
       self
         .backend
         .add_instances(&mut self.repr, instances)
-        .map(move |_| self)
+        .map(|_| self)
     }
   }
 
@@ -381,7 +381,7 @@ where
       self
         .backend
         .add_instance_buffer(&mut self.repr, buf.repr)
-        .map(move |_| self)
+        .map(|_| self)
     }
   }
 
@@ -398,7 +398,7 @@ where
       self
         .backend
         .set_indices(&mut self.repr, indices)
-        .map(move |_| self)
+        .map(|_| self)
     }
   }
 
@@ -415,7 +415,7 @@ where
       self
         .backend
         .set_index_buffer(&mut self.repr, buf.repr)
-        .map(move |_| self)
+        .map(|_| self)
     }
   }
 
@@ -423,24 +423,14 @@ where
   ///
   /// Calling that function twice replace the previously set value.
   pub fn set_mode(mut self, mode: Mode) -> Result<Self, TessError> {
-    unsafe {
-      self
-        .backend
-        .set_mode(&mut self.repr, mode)
-        .map(move |_| self)
-    }
+    unsafe { self.backend.set_mode(&mut self.repr, mode).map(|_| self) }
   }
 
   /// Set the default number of vertices to render.
   ///
   /// Calling that function twice replace the previously set value.
   pub fn set_vertex_nb(mut self, nb: usize) -> Result<Self, TessError> {
-    unsafe {
-      self
-        .backend
-        .set_vertex_nb(&mut self.repr, nb)
-        .map(move |_| self)
-    }
+    unsafe { self.backend.set_vertex_nb(&mut self.repr, nb).map(|_| self) }
   }
 
   /// Set the default number of instances to render.
@@ -451,7 +441,7 @@ where
       self
         .backend
         .set_instance_nb(&mut self.repr, nb)
-        .map(move |_| self)
+        .map(|_| self)
     }
   }
 
@@ -466,7 +456,7 @@ where
       self
         .backend
         .set_primitive_restart_index(&mut self.repr, index.into())
-        .map(move |_| self)
+        .map(|_| self)
     }
   }
 }
