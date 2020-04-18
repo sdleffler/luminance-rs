@@ -70,8 +70,6 @@ pub unsafe trait Tess: TessBuilder {
     tess_builder: Self::TessBuilderRepr,
   ) -> Result<Self::TessRepr, TessError>;
 
-  unsafe fn destroy_tess(tess: &mut Self::TessRepr);
-
   unsafe fn tess_vertices_nb(tess: &Self::TessRepr) -> usize;
 
   unsafe fn tess_instances_nb(tess: &Self::TessRepr) -> usize;
@@ -88,10 +86,6 @@ pub unsafe trait TessSlice<T>: Tess {
   type SliceRepr;
 
   type SliceMutRepr;
-
-  unsafe fn destroy_tess_slice(slice: &mut Self::SliceRepr);
-
-  unsafe fn destroy_tess_slice_mut(slice: &mut Self::SliceMutRepr);
 
   unsafe fn slice_vertices(tess: &Self::TessRepr) -> Result<Self::SliceRepr, TessMapError>
   where

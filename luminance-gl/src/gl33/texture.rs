@@ -23,6 +23,14 @@ pub struct Texture {
   state: Rc<RefCell<GLState>>,
 }
 
+impl Drop for Texture {
+  fn drop(&mut self) {
+    unsafe {
+      gl::DeleteTextures(1, &self.handle);
+    }
+  }
+}
+
 unsafe impl TextureBase for GL33 {
   type TextureRepr = Texture;
 }
@@ -56,10 +64,6 @@ where
     };
 
     Ok(texture)
-  }
-
-  unsafe fn destroy_texture(texture: &mut Self::TextureRepr) {
-    gl::DeleteTextures(1, &texture.handle);
   }
 
   unsafe fn mipmaps(texture: &Self::TextureRepr) -> usize {

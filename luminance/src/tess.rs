@@ -450,15 +450,6 @@ where
   pub(crate) repr: B::TessRepr,
 }
 
-impl<B> Drop for Tess<B>
-where
-  B: ?Sized + TessBackend,
-{
-  fn drop(&mut self) {
-    unsafe { B::destroy_tess(&mut self.repr) };
-  }
-}
-
 impl<B> Tess<B>
 where
   B: ?Sized + TessBackend,
@@ -549,15 +540,6 @@ where
   repr: B::SliceRepr,
 }
 
-impl<B, T> Drop for TessSlice<B, T>
-where
-  B: ?Sized + TessSliceBackend<T>,
-{
-  fn drop(&mut self) {
-    unsafe { B::destroy_tess_slice(&mut self.repr) };
-  }
-}
-
 impl<B, T> TessSlice<B, T>
 where
   B: ?Sized + TessSliceBackend<T>,
@@ -575,15 +557,6 @@ where
   B: ?Sized + TessSliceBackend<T>,
 {
   repr: B::SliceMutRepr,
-}
-
-impl<B, T> Drop for TessSliceMut<B, T>
-where
-  B: ?Sized + TessSliceBackend<T>,
-{
-  fn drop(&mut self) {
-    unsafe { B::destroy_tess_slice_mut(&mut self.repr) };
-  }
 }
 
 impl<B, T> TessSliceMut<B, T>

@@ -20,9 +20,25 @@ pub struct Stage {
   ty: StageType,
 }
 
+impl Drop for Stage {
+  fn drop(&mut self) {
+    unsafe {
+      gl::DeleteShader(self.handle);
+    }
+  }
+}
+
 #[derive(Debug)]
 pub struct Program {
   pub(crate) handle: GLuint,
+}
+
+impl Drop for Program {
+  fn drop(&mut self) {
+    unsafe {
+      gl::DeleteProgram(self.handle);
+    }
+  }
 }
 
 impl Program {
@@ -146,10 +162,6 @@ unsafe impl Shader for GL33 {
     }
   }
 
-  unsafe fn destroy_stage(stage: &mut Self::StageRepr) {
-    gl::DeleteShader(stage.handle);
-  }
-
   unsafe fn new_program(
     &mut self,
     vertex: &Self::StageRepr,
@@ -178,10 +190,6 @@ unsafe impl Shader for GL33 {
 
     let program = Program { handle };
     program.link().map(move |_| program)
-  }
-
-  unsafe fn destroy_program(program: &mut Self::ProgramRepr) {
-    gl::DeleteProgram(program.handle)
   }
 
   unsafe fn apply_semantics<Sem>(

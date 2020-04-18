@@ -16,8 +16,6 @@ where
   where
     T: Default;
 
-  unsafe fn destroy_buffer(buffer: &mut Self::BufferRepr);
-
   unsafe fn len(buffer: &Self::BufferRepr) -> usize;
 
   /// Create a new buffer from a slice.
@@ -51,10 +49,6 @@ where
   unsafe fn slice_buffer_mut(
     buffer: &mut Self::BufferRepr,
   ) -> Result<Self::SliceMutRepr, BufferError>;
-
-  unsafe fn destroy_buffer_slice(slice: &mut Self::SliceRepr);
-
-  unsafe fn destroy_buffer_slice_mut(slice: &mut Self::SliceMutRepr);
 
   unsafe fn obtain_slice(slice: &Self::SliceRepr) -> Result<&[T], BufferError>;
 
