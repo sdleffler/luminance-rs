@@ -10,7 +10,9 @@ use crate::gl33::state::{Bind, GLState};
 use crate::gl33::vertex_restart::VertexRestart;
 use crate::gl33::GL33;
 use luminance::backend::buffer::{Buffer as _, BufferSlice as BufferSliceBackend};
-use luminance::backend::tess::{Tess as TessBackend, TessBuilder as TessBuilderBackend, TessSlice};
+use luminance::backend::tess::{
+  Tess as TessBackend, TessBuilder as TessBuilderBackend, TessBuilderBuffer, TessSlice,
+};
 use luminance::tess::{Mode, TessError, TessIndex, TessIndexType, TessMapError};
 use luminance::vertex::{
   Normalized, Vertex, VertexAttribDesc, VertexAttribDim, VertexAttribType, VertexBufferDesc,
@@ -314,6 +316,60 @@ unsafe impl TessBuilderBackend for GL33 {
     index: Option<u32>,
   ) -> Result<(), TessError> {
     tess_builder.restart_index = index;
+    Ok(())
+  }
+}
+
+unsafe impl<T> TessBuilderBuffer<T> for GL33
+where
+  T: Copy,
+{
+  unsafe fn add_vertex_buffer(
+    &mut self,
+    tess_builder: &mut Self::TessBuilderRepr,
+    buf: Self::BufferRepr,
+  ) -> Result<(), TessError>
+  where
+    T: Vertex,
+  {
+    let vb = VertexBuffer {
+      fmt: T::vertex_desc(),
+      buf,
+    };
+
+    tess_builder.vertex_buffers.push(vb);
+
+    Ok(())
+  }
+
+  unsafe fn add_instance_buffer(
+    &mut self,
+    tess_builder: &mut Self::TessBuilderRepr,
+    buf: Self::BufferRepr,
+  ) -> Result<(), TessError>
+  where
+    T: Vertex,
+  {
+    let vb = VertexBuffer {
+      fmt: T::vertex_desc(),
+      buf,
+    };
+
+    tess_builder.instance_buffers.push(vb);
+
+    Ok(())
+  }
+
+  unsafe fn set_index_buffer(
+    &mut self,
+    tess_builder: &mut Self::TessBuilderRepr,
+    buf: Self::BufferRepr,
+  ) -> Result<(), TessError>
+  where
+    T: TessIndex,
+  {
+    tess_builder.index_buffer = Some((buf, T::INDEX_TYPE));
+
     Ok(())
   }
 }

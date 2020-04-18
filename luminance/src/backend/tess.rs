@@ -2,6 +2,7 @@
 //!
 //! This interface defines the low-level API tessellations must implement to be usable.
 
+use crate::backend::buffer::Buffer;
 use crate::tess::{Mode, TessError, TessIndex, TessMapError};
 use crate::vertex::Vertex;
 
@@ -60,6 +61,35 @@ pub unsafe trait TessBuilder {
     tess_builder: &mut Self::TessBuilderRepr,
     index: Option<u32>,
   ) -> Result<(), TessError>;
+}
+
+pub unsafe trait TessBuilderBuffer<T>: TessBuilder + Buffer<T>
+where
+  T: Copy,
+{
+  unsafe fn add_vertex_buffer(
+    &mut self,
+    tess_builder: &mut Self::TessBuilderRepr,
+    buf: Self::BufferRepr,
+  ) -> Result<(), TessError>
+  where
+    T: Vertex;
+
+  unsafe fn add_instance_buffer(
+    &mut self,
+    tess_builder: &mut Self::TessBuilderRepr,
+    buf: Self::BufferRepr,
+  ) -> Result<(), TessError>
+  where
+    T: Vertex;
+
+  unsafe fn set_index_buffer(
+    &mut self,
+    tess_builder: &mut Self::TessBuilderRepr,
+    buf: Self::BufferRepr,
+  ) -> Result<(), TessError>
+  where
+    T: TessIndex;
 }
 
 pub unsafe trait Tess: TessBuilder {
