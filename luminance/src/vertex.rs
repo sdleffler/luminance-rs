@@ -305,4 +305,4 @@ impl_vertex_attribute!(u16, VertexAttribType::Unsigned(Normalized::No));
 impl_vertex_attribute!(u32, VertexAttribType::Unsigned(Normalized::No));
 impl_vertex_attribute!(f32, VertexAttribType::Floating);
 impl_vertex_attribute!(f64, VertexAttribType::Floating);
-impl_vertex_attribute!(bool, VertexAttribType::Floating);
+impl_vertex_attribute!(bool, VertexAttribType::Boolean);
