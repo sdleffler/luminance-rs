@@ -64,9 +64,10 @@ use std::fmt;
 use std::ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive};
 
 use crate::backend::tess::{
-  Tess as TessBackend, TessBuilder as TessBuilderBackend, TessSlice as TessSliceBackend,
+  Tess as TessBackend, TessBuilder as TessBuilderBackend, TessBuilderBuffer,
+  TessSlice as TessSliceBackend,
 };
-use crate::buffer::BufferError;
+use crate::buffer::{Buffer, BufferError};
 use crate::context::GraphicsContext;
 use crate::vertex::Vertex;
 use crate::vertex::VertexDesc;
@@ -318,6 +319,21 @@ where
     }
   }
 
+  /// Add a vertex buffer to be bundled in the [`Tess`].
+  ///
+  /// Every time you call that function, the vertex buffer is added as a new internal set. That
+  /// means that you can separate all the attributes from your vertex type into several arrays of
+  /// each attributes and call that function several times. This will yield a _deinterleaved_
+  /// [`Tess`], opposed to an _interleaved_ [`Tess`] if you just submit a single array of structure
+  /// once.
+  pub fn add_vertex_buffer<V>(mut self, buf: Buffer<B, V>) -> Result<(), TessError>
+  where
+    V: Copy + Vertex,
+    B: TessBuilderBuffer<V>,
+  {
+    unsafe { self.backend.add_vertex_buffer(&mut self.repr, buf.repr) }
+  }
+
   /// Add instance data to be bundled in the [`Tess`].
   ///
   /// Every time you call that function, the set of data is added to a new internal set. That
@@ -341,6 +357,24 @@ where
     }
   }
 
+  /// Add instance data to be bundled in the [`Tess`].
+  ///
+  /// Every time you call that function, the set of data is added as a new internal set. That
+  /// means that you can separate all the attributes from your vertex type into several arrays of
+  /// each attributes and call that function several times. This will yield a _deinterleaved_
+  /// [`Tess`], opposed to an _interleaved_ [`Tess`] if you just submit a single array of structure
+  /// once.
+  ///
+  /// Instance data is a per-vertex special attribute that gets extracted for each instance, while
+  /// regular vertex data (added via [`TessBuilder::add_vertices`] is shared for all instances.
+  pub fn add_instance_buffer<V>(mut self, buf: Buffer<B, V>) -> Result<(), TessError>
+  where
+    V: Copy + Vertex,
+    B: TessBuilderBuffer<V>,
+  {
+    unsafe { self.backend.add_instance_buffer(&mut self.repr, buf.repr) }
+  }
+
   /// Set indices to index into the vertex data.
   ///
   /// That function should be called only once. Calling it twice ends up replacing the already
@@ -356,6 +390,18 @@ where
         .set_indices(&mut self.repr, indices)
         .map(move |_| self)
     }
+  }
+
+  /// Set the index buffer used to index into the vertex data.
+  ///
+  /// That function should be called only once. Calling it twice ends up replacing the already
+  /// present index buffer.
+  pub fn set_index_buffer<I>(mut self, buf: Buffer<B, I>) -> Result<(), TessError>
+  where
+    I: Copy + TessIndex,
+    B: TessBuilderBuffer<I>,
+  {
+    unsafe { self.backend.set_index_buffer(&mut self.repr, buf.repr) }
   }
 
   /// Set the [`Mode`] to connect vertices.
