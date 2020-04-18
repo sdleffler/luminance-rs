@@ -140,7 +140,7 @@ fn main() {
     }
 
     // we get an object to create pipelines (we’ll need two)
-    let mut builder = surface.pipeline_gate();
+    let mut builder = surface.new_pipeline_gate();
 
     // render the triangle in the offscreen framebuffer first
     let render = builder.pipeline(

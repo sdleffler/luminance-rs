@@ -121,7 +121,7 @@ fn main() {
     let t64 = elapsed.as_secs() as f64 + (elapsed.subsec_millis() as f64 * 1e-3);
     let t = t64 as f32;
 
-    let render = surface.pipeline_gate().pipeline(
+    let render = surface.new_pipeline_gate().pipeline(
       &back_buffer,
       &PipelineState::default(),
       |_, mut shd_gate| {

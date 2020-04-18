@@ -75,7 +75,7 @@ pub unsafe trait GraphicsContext: Sized {
   fn backend(&mut self) -> &mut Self::Backend;
 
   /// Create a new pipeline gate
-  fn pipeline_gate(&mut self) -> PipelineGate<Self> {
+  fn new_pipeline_gate(&mut self) -> PipelineGate<Self> {
     PipelineGate::new(self)
   }
 

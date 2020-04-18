@@ -67,7 +67,7 @@ fn main() {
       resize = true;
     }
 
-    let render = surface.pipeline_gate().pipeline(
+    let render = surface.new_pipeline_gate().pipeline(
       &back_buffer,
       &PipelineState::default(),
       |_, mut shd_gate| {

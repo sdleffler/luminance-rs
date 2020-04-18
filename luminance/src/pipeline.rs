@@ -270,6 +270,7 @@ pub enum Viewport {
 }
 
 /// Various customization options for pipelines.
+#[non_exhaustive]
 #[derive(Clone, Debug)]
 pub struct PipelineState {
   /// Color to use when clearing buffers.
@@ -440,7 +441,7 @@ where
 
 /// Top-most node in a graphics pipeline.
 ///
-/// [`PipelineGate`] nodes represent the “entry-points” of graphics pipeline. They are used
+/// [`PipelineGate`] nodes represent the “entry-points” of graphics pipelines. They are used
 /// with a [`Framebuffer`] to render to and a [`PipelineState`] to customize the overall behavior
 /// of the pipeline.
 ///

@@ -86,16 +86,10 @@ where
 
     state.bind_draw_framebuffer(framebuffer.handle);
 
-    let PipelineState {
-      clear_color,
-      clear_color_enabled,
-      clear_depth_enabled,
-      viewport,
-      srgb_enabled,
-    } = *pipeline_state;
+    let clear_color = pipeline_state.clear_color;
     let size = framebuffer.size;
 
-    match viewport {
+    match pipeline_state.viewport {
       Viewport::Whole => {
         state.set_viewport([0, 0, D::width(size) as GLint, D::height(size) as GLint]);
       }
@@ -117,13 +111,14 @@ where
       clear_color[3] as _,
     ]);
 
-    if clear_color_enabled || clear_depth_enabled {
-      let color_bit = if clear_color_enabled {
+    if pipeline_state.clear_color_enabled || pipeline_state.clear_depth_enabled {
+      let color_bit = if pipeline_state.clear_color_enabled {
         gl::COLOR_BUFFER_BIT
       } else {
         0
       };
-      let depth_bit = if clear_depth_enabled {
+
+      let depth_bit = if pipeline_state.clear_depth_enabled {
         gl::DEPTH_BUFFER_BIT
       } else {
         0
@@ -131,7 +126,7 @@ where
       gl::Clear(color_bit | depth_bit);
     }
 
-    state.enable_srgb_framebuffer(srgb_enabled);
+    state.enable_srgb_framebuffer(pipeline_state.srgb_enabled);
   }
 }
 

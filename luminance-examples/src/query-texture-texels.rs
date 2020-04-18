@@ -121,7 +121,7 @@ fn main() {
     // pitch black prior to do any render to it
     let render =
       surface
-        .pipeline_gate()
+        .new_pipeline_gate()
         .pipeline(&fb, &PipelineState::default(), |_, mut shd_gate| {
           // start shading with our program
           shd_gate.shade(&mut program, |_, _, mut rdr_gate| {

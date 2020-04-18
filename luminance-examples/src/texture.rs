@@ -103,7 +103,7 @@ fn run(texture_path: &Path) {
 
     // here, we need to bind the pipeline variable; it will enable us to bind the texture to the GPU
     // and use it in the shader
-    let render = surface.pipeline_gate().pipeline(
+    let render = surface.new_pipeline_gate().pipeline(
       &back_buffer,
       &PipelineState::default(),
       |pipeline, mut shd_gate| {

@@ -271,7 +271,7 @@ fn main() {
 
     // Create a new dynamic pipeline that will render to the back buffer and must clear it with
     // pitch black prior to do any render to it.
-    let render = surface.pipeline_gate().pipeline(
+    let render = surface.new_pipeline_gate().pipeline(
       &back_buffer,
       &PipelineState::default(),
       |_, mut shd_gate| {

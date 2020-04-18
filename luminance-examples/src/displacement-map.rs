@@ -144,7 +144,7 @@ fn main() {
     let elapsed = start_time.elapsed();
     let time = elapsed.as_secs() as f64 + (f64::from(elapsed.subsec_millis()) * 1e-3);
 
-    let render = surface.pipeline_gate().pipeline(
+    let render = surface.new_pipeline_gate().pipeline(
       &back_buffer,
       &PipelineState::default(),
       |pipeline, mut shading_gate| {
