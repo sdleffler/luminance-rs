@@ -42,12 +42,6 @@ impl Drop for Program {
 }
 
 impl Program {
-  fn dup(&self) -> Self {
-    Program {
-      handle: self.handle,
-    }
-  }
-
   fn link(&self) -> Result<(), ProgramError> {
     let handle = self.handle;
 
@@ -77,12 +71,14 @@ impl Program {
 }
 
 pub struct UniformBuilder {
-  program: Program,
+  handle: GLuint,
 }
 
 impl UniformBuilder {
-  fn new(program: Program) -> Self {
-    UniformBuilder { program }
+  fn new(program: &Program) -> Self {
+    UniformBuilder {
+      handle: program.handle,
+    }
   }
 
   fn ask_uniform<T>(&self, name: &str) -> Result<Uniform<T>, UniformWarning>
@@ -91,7 +87,7 @@ impl UniformBuilder {
   {
     let location = {
       let c_name = CString::new(name.as_bytes()).unwrap();
-      unsafe { gl::GetUniformLocation(self.program.handle, c_name.as_ptr() as *const GLchar) }
+      unsafe { gl::GetUniformLocation(self.handle, c_name.as_ptr() as *const GLchar) }
     };
 
     if location < 0 {
@@ -107,7 +103,7 @@ impl UniformBuilder {
   {
     let location = {
       let c_name = CString::new(name.as_bytes()).unwrap();
-      unsafe { gl::GetUniformBlockIndex(self.program.handle, c_name.as_ptr() as *const GLchar) }
+      unsafe { gl::GetUniformBlockIndex(self.handle, c_name.as_ptr() as *const GLchar) }
     };
 
     if location == gl::INVALID_INDEX {
@@ -208,7 +204,7 @@ unsafe impl Shader for GL33 {
   unsafe fn new_uniform_builder(
     program: &mut Self::ProgramRepr,
   ) -> Result<Self::UniformBuilderRepr, ProgramError> {
-    Ok(UniformBuilder::new(program.dup()))
+    Ok(UniformBuilder::new(&program))
   }
 
   unsafe fn ask_uniform<T>(
@@ -223,7 +219,7 @@ unsafe impl Shader for GL33 {
       _ => uniform_builder.ask_uniform(name)?,
     };
 
-    uniform_type_match(uniform_builder.program.handle, name, T::ty())?;
+    uniform_type_match(uniform_builder.handle, name, T::ty())?;
 
     Ok(uniform)
   }
