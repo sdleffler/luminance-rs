@@ -192,10 +192,6 @@ fn main() {
   // We need a program to “shade” our triangles and to tell luminance which is the input vertex
   // type, and we’re not interested in the other two type variables for this sample.
 
-  // let mut program = Program::<_, Semantics, (), ()>::from_strings(&mut surface, VS, None, None, FS)
-  //   .expect("program creation")
-  //   .ignore_warnings();
-
   let mut program = surface
     .new_shader_program::<Semantics, (), ()>()
     .from_strings(VS, None, None, FS)
