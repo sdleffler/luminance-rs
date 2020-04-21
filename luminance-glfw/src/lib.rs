@@ -57,8 +57,10 @@ impl fmt::Display for GlfwSurfaceError {
 /// This type implements `GraphicsContext` so that you can use it to perform render with
 /// **luminance**.
 pub struct GlfwSurface {
-  window: Window,
-  events_rx: Receiver<(f64, WindowEvent)>,
+  /// Underlying GLFW window.
+  pub window: Window,
+  /// Underlying GLFW event receiver.
+  pub events_rx: Receiver<(f64, WindowEvent)>,
   gfx_state: Rc<RefCell<GraphicsState>>,
   opts: WindowOpt,
 }

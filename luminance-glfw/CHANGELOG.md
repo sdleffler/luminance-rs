@@ -1,3 +1,15 @@
+# 0.12.2
+
+> Wed Apr 22nd 2020
+
+- Make the `glfw` fields in `GlfwSurface` `pub` to allow people customizing them further.
+
+# 0.12.1
+
+> Sat Feb 29th 2020
+
+- Support of `luminance-0.39`.
+
 # 0.12
 
 > Sat Jan 4th 2020
