@@ -45,7 +45,17 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1.1](#011-1)
 * [0.1](#01)
 
-<!-- vim-markdown-toc -->
+# 0.12.2
+
+> Wed Apr 22nd 2020
+
+- Make the `glfw` fields in `GlfwSurface` `pub` to allow people customizing them further.
+
+# 0.12.1
+
+> Sat Feb 29th 2020
+
+- Support of `luminance-0.39`.
 
 # 0.12
 
