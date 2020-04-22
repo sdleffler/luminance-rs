@@ -212,110 +212,110 @@ impl GLState {
     }
   }
 
-  /// Reset the cached vertex array
-  pub fn reset_cached_vertex_array(&mut self) {
+  /// Invalidate the cached vertex array
+  pub fn invalidate_vertex_array(&mut self) {
     self.bound_vertex_array = 0;
   }
 
-  /// Reset the cached array buffer
-  pub fn reset_cached_array_buffer(&mut self) {
+  /// Invalidate the array buffer
+  pub fn invalidate_array_buffer(&mut self) {
     self.bound_array_buffer = 0;
   }
 
-  /// Reset the cached shader program
-  pub fn reset_cached_shader_program(&mut self) {
+  /// Invalidate the shader program
+  pub fn invalidate_shader_program(&mut self) {
     self.current_program = 0;
   }
 
-  /// Reset the cached framebuffer
-  pub fn reset_cached_framebuffer(&mut self) {
+  /// Invalidate the framebuffer
+  pub fn invalidate_framebuffer(&mut self) {
     self.bound_draw_framebuffer = 0;
   }
 
-  /// Reset the cached element array buffer
-  pub fn reset_cached_element_array_buffer(&mut self) {
+  /// Invalidate the element array buffer
+  pub fn invalidate_element_array_buffer(&mut self) {
     self.bound_element_array_buffer = 0;
   }
 
-  /// Reset the cached texture unit
-  pub fn reset_cached_texture_unit(&mut self) {
+  /// Invalidate the texture unit
+  pub fn invalidate_texture_unit(&mut self) {
     self.current_texture_unit = 0;
   }
 
-  /// Reset the cached texture bindings
-  pub fn reset_cached_bound_textures(&mut self) {
+  /// Invalidate the texture bindings
+  pub fn invalidate_bound_textures(&mut self) {
     self
       .bound_textures
       .iter_mut()
       .for_each(|t| *t = (gl::TEXTURE_2D, 0));
   }
 
-  /// Reset the cached uniform buffer bindings
-  pub fn reset_cached_bound_uniform_buffers(&mut self) {
+  /// Invalidate the uniform buffer bindings
+  pub fn invalidate_bound_uniform_buffers(&mut self) {
     self.bound_uniform_buffers.iter_mut().for_each(|b| *b = 0);
   }
 
-  /// Reset the cached viewport
-  pub fn reset_cached_viewport(&mut self) {
+  /// Invalidate the viewport
+  pub fn invalidate_viewport(&mut self) {
     self.viewport.invalidate()
   }
 
-  /// Reset the cached clear color
-  pub fn reset_cached_clear_color(&mut self) {
+  /// Invalidate the clear color
+  pub fn invalidate_clear_color(&mut self) {
     self.clear_color.invalidate()
   }
 
-  /// Reset the cached blending state
-  pub fn reset_cached_blending_state(&mut self) {
+  /// Invalidate the blending state
+  pub fn invalidate_blending_state(&mut self) {
     self.blending_state.invalidate()
   }
 
-  /// Reset the cached blending equation
-  pub fn reset_cached_blending_equation(&mut self) {
+  /// Invalidate the blending equation
+  pub fn invalidate_blending_equation(&mut self) {
     self.blending_equation.invalidate()
   }
 
-  /// Reset the cached blending function
-  pub fn reset_cached_blending_func(&mut self) {
+  /// Invalidate the blending function
+  pub fn invalidate_blending_func(&mut self) {
     self.blending_func.invalidate()
   }
 
-  /// Reset the cached depth test
-  pub fn reset_cached_depth_test(&mut self) {
+  /// Invalidate the depth test
+  pub fn invalidate_depth_test(&mut self) {
     self.depth_test.invalidate()
   }
 
-  /// Reset the cached depth test comparison
-  pub fn reset_cached_depth_test_comparison(&mut self) {
+  /// Invalidate the depth test comparison
+  pub fn invalidate_depth_test_comparison(&mut self) {
     self.depth_test_comparison.invalidate()
   }
 
-  /// Reset the cached face culling state
-  pub fn reset_cached_face_culling_state(&mut self) {
+  /// Invalidate the face culling state
+  pub fn invalidate_face_culling_state(&mut self) {
     self.face_culling_state.invalidate()
   }
 
-  /// Reset the cached face culling order
-  pub fn reset_cached_face_culling_order(&mut self) {
+  /// Invalidate the face culling order
+  pub fn invalidate_face_culling_order(&mut self) {
     self.face_culling_order.invalidate()
   }
 
-  /// Reset cached face culling mode
-  pub fn reset_cached_face_culling_mode(&mut self) {
+  /// Invalidate the face culling mode
+  pub fn invalidate_face_culling_mode(&mut self) {
     self.face_culling_mode.invalidate()
   }
 
-  /// Reset cached vertex restart
-  pub fn reset_cached_vertex_restart(&mut self) {
+  /// Invalidate the vertex restart
+  pub fn invalidate_vertex_restart(&mut self) {
     self.vertex_restart.invalidate()
   }
 
-  /// Reset cached patch vertex number
-  pub fn reset_cached_patch_vertex_nb(&mut self) {
+  /// Invalidate the patch vertex number
+  pub fn invalidate_patch_vertex_nb(&mut self) {
     self.patch_vertex_nb.invalidate()
   }
 
-  /// Reset cached SRGB framebuffer flag
+  /// Invalidate the SRGB framebuffer flag
   pub fn reset_srgb_framebuffer_enabled(&mut self) {
     self.srgb_framebuffer_enabled.invalidate()
   }
