@@ -35,34 +35,29 @@ impl BindingStack {
   }
 }
 
-struct CachedValue<T>
+struct Cached<T>(Option<T>)
 where
-  T: PartialEq,
-{
-  value: Option<T>,
-}
+  T: PartialEq;
 
-impl<T> CachedValue<T>
+impl<T> Cached<T>
 where
   T: PartialEq,
 {
   fn new(initial: T) -> Self {
-    CachedValue {
-      value: Some(initial),
-    }
+    Cached(Some(initial))
   }
 
   fn invalidate(&mut self) {
-    self.value = None
+    self.0 = None;
   }
 
   fn set(&mut self, value: T) {
-    self.value = Some(value);
+    self.0 = Some(value);
   }
 
   fn is_invalid(&self, new_val: &T) -> bool {
-    match &self.value {
-      Some(t) if t == new_val => false,
+    match &self.0 {
+      Some(ref t) => t == new_val,
       _ => true,
     }
   }
@@ -81,30 +76,30 @@ pub struct GLState {
   binding_stack: BindingStack,
 
   // viewport
-  viewport: CachedValue<[GLint; 4]>,
+  viewport: Cached<[GLint; 4]>,
 
   // clear buffers
-  clear_color: CachedValue<[GLfloat; 4]>,
+  clear_color: Cached<[GLfloat; 4]>,
 
   // blending
-  blending_state: CachedValue<BlendingState>,
-  blending_equation: CachedValue<Equation>,
-  blending_func: CachedValue<(Factor, Factor)>,
+  blending_state: Cached<BlendingState>,
+  blending_equation: Cached<Equation>,
+  blending_func: Cached<(Factor, Factor)>,
 
   // depth test
-  depth_test: CachedValue<DepthTest>,
-  depth_test_comparison: CachedValue<DepthComparison>,
+  depth_test: Cached<DepthTest>,
+  depth_test_comparison: Cached<DepthComparison>,
 
   // face culling
-  face_culling_state: CachedValue<FaceCullingState>,
-  face_culling_order: CachedValue<FaceCullingOrder>,
-  face_culling_mode: CachedValue<FaceCullingMode>,
+  face_culling_state: Cached<FaceCullingState>,
+  face_culling_order: Cached<FaceCullingOrder>,
+  face_culling_mode: Cached<FaceCullingMode>,
 
   // vertex restart
-  vertex_restart: CachedValue<VertexRestart>,
+  vertex_restart: Cached<VertexRestart>,
 
   // patch primitive vertex number
-  patch_vertex_nb: CachedValue<usize>,
+  patch_vertex_nb: Cached<usize>,
 
   // texture
   current_texture_unit: GLenum,
@@ -137,7 +132,7 @@ pub struct GLState {
   current_program: GLuint,
 
   // framebuffer sRGB
-  srgb_framebuffer_enabled: CachedValue<bool>,
+  srgb_framebuffer_enabled: Cached<bool>,
 }
 
 impl GLState {
@@ -165,18 +160,18 @@ impl GLState {
   fn get_from_context() -> Result<Self, StateQueryError> {
     unsafe {
       let binding_stack = BindingStack::new();
-      let viewport = CachedValue::new(get_ctx_viewport()?);
-      let clear_color = CachedValue::new(get_ctx_clear_color()?);
-      let blending_state = CachedValue::new(get_ctx_blending_state()?);
-      let blending_equation = CachedValue::new(get_ctx_blending_equation()?);
-      let blending_func = CachedValue::new(get_ctx_blending_factors()?);
-      let depth_test = CachedValue::new(get_ctx_depth_test()?);
-      let depth_test_comparison = CachedValue::new(DepthComparison::Less);
-      let face_culling_state = CachedValue::new(get_ctx_face_culling_state()?);
-      let face_culling_order = CachedValue::new(get_ctx_face_culling_order()?);
-      let face_culling_mode = CachedValue::new(get_ctx_face_culling_mode()?);
-      let vertex_restart = CachedValue::new(get_ctx_vertex_restart()?);
-      let patch_vertex_nb = CachedValue::new(0);
+      let viewport = Cached::new(get_ctx_viewport()?);
+      let clear_color = Cached::new(get_ctx_clear_color()?);
+      let blending_state = Cached::new(get_ctx_blending_state()?);
+      let blending_equation = Cached::new(get_ctx_blending_equation()?);
+      let blending_func = Cached::new(get_ctx_blending_factors()?);
+      let depth_test = Cached::new(get_ctx_depth_test()?);
+      let depth_test_comparison = Cached::new(DepthComparison::Less);
+      let face_culling_state = Cached::new(get_ctx_face_culling_state()?);
+      let face_culling_order = Cached::new(get_ctx_face_culling_order()?);
+      let face_culling_mode = Cached::new(get_ctx_face_culling_mode()?);
+      let vertex_restart = Cached::new(get_ctx_vertex_restart()?);
+      let patch_vertex_nb = Cached::new(0);
       let current_texture_unit = get_ctx_current_texture_unit()?;
       let bound_textures = vec![(gl::TEXTURE_2D, 0); 48]; // 48 is the platform minimal requirement
       let texture_swimming_pool = Vec::new();
@@ -186,7 +181,7 @@ impl GLState {
       let bound_draw_framebuffer = get_ctx_bound_draw_framebuffer()?;
       let bound_vertex_array = get_ctx_bound_vertex_array()?;
       let current_program = get_ctx_current_program()?;
-      let srgb_framebuffer_enabled = CachedValue::new(get_ctx_srgb_framebuffer_enabled()?);
+      let srgb_framebuffer_enabled = Cached::new(get_ctx_srgb_framebuffer_enabled()?);
 
       Ok(GLState {
         _a: PhantomData,
