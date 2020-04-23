@@ -60,6 +60,7 @@
 //! [backend::depth_slot]: crate::backend::depth_slot
 //! [`PipelineGate`]: crate::pipeline::PipelineGate
 
+use std::error;
 use std::fmt;
 
 use crate::backend::color_slot::ColorSlot;
@@ -234,6 +235,15 @@ impl fmt::Display for FramebufferError {
   }
 }
 
+impl std::error::Error for FramebufferError {
+  fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
+    match self {
+      FramebufferError::TextureError(e) => Some(e),
+      FramebufferError::Incomplete(e) => Some(e),
+    }
+  }
+}
+
 impl From<TextureError> for FramebufferError {
   fn from(e: TextureError) -> Self {
     FramebufferError::TextureError(e)
@@ -281,3 +291,5 @@ impl fmt::Display for IncompleteReason {
     }
   }
 }
+
+impl error::Error for IncompleteReason {}
