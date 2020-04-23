@@ -2,6 +2,7 @@
 
 use gl::types::*;
 use std::cell::RefCell;
+use std::error;
 use std::fmt;
 use std::marker::PhantomData;
 
@@ -540,6 +541,8 @@ impl fmt::Display for StateQueryError {
     }
   }
 }
+
+impl error::Error for StateQueryError {}
 
 unsafe fn get_ctx_viewport() -> Result<[GLint; 4], StateQueryError> {
   let mut data = [0; 4];
