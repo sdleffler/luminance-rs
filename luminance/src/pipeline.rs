@@ -236,6 +236,7 @@ use crate::shading_gate::ShadingGate;
 use crate::texture::Dimensionable;
 use crate::texture::Texture;
 
+use std::error;
 use std::fmt;
 use std::marker::PhantomData;
 
@@ -249,6 +250,8 @@ impl fmt::Display for PipelineError {
     Ok(())
   }
 }
+
+impl error::Error for PipelineError {}
 
 /// The viewport being part of the [`PipelineState`].
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
