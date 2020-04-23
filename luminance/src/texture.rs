@@ -29,6 +29,7 @@
 //!
 //! # Creating a texture
 
+use std::error;
 use std::fmt;
 use std::marker::PhantomData;
 
@@ -478,6 +479,8 @@ impl fmt::Display for TextureError {
     }
   }
 }
+
+impl error::Error for TextureError {}
 
 /// GPU textures.
 pub struct Texture<B, D, P>
