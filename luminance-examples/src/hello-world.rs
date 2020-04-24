@@ -12,8 +12,7 @@ use glfw::{Action, Context as _, Key, WindowEvent};
 use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
-use luminance::shader::Program;
-use luminance::tess::{Mode, TessBuilder};
+use luminance::tess::Mode;
 use luminance_derive::{Semantics, Vertex};
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
@@ -192,13 +191,17 @@ fn main() {
 
   // We need a program to “shade” our triangles and to tell luminance which is the input vertex
   // type, and we’re not interested in the other two type variables for this sample.
-  let mut program = Program::<_, Semantics, (), ()>::from_strings(&mut surface, VS, None, None, FS)
+
+  let mut program = surface
+    .new_shader_program::<Semantics, (), ()>()
+    .from_strings(VS, None, None, FS)
     .expect("program creation")
     .ignore_warnings();
 
   // Create tessellation for direct geometry; that is, tessellation that will render vertices by
   // taking one after another in the provided slice.
-  let direct_triangles = TessBuilder::new(&mut surface)
+  let direct_triangles = surface
+    .new_tess()
     .and_then(|b| b.add_vertices(TRI_VERTICES))
     .and_then(|b| b.set_mode(Mode::Triangle))
     .and_then(|b| b.build())
@@ -207,7 +210,8 @@ fn main() {
   // Create indexed tessellation; that is, the vertices will be picked by using the indexes provided
   // by the second slice and this indexes will reference the first slice (useful not to duplicate
   // vertices on more complex objects than just two triangles).
-  let indexed_triangles = TessBuilder::new(&mut surface)
+  let indexed_triangles = surface
+    .new_tess()
     .and_then(|b| b.add_vertices(TRI_VERTICES))
     .and_then(|b| b.set_indices(TRI_INDICES))
     .and_then(|b| b.set_mode(Mode::Triangle))
@@ -216,7 +220,8 @@ fn main() {
 
   // Create direct, deinterleaved tesselations; such tessellations allow to separate vertex
   // attributes in several contiguous regions of memory.
-  let direct_deinterleaved_triangles = TessBuilder::new(&mut surface)
+  let direct_deinterleaved_triangles = surface
+    .new_tess()
     .and_then(|b| b.add_vertices(TRI_DEINT_POS_VERTICES))
     .and_then(|b| b.add_vertices(TRI_DEINT_COLOR_VERTICES))
     .and_then(|b| b.set_mode(Mode::Triangle))
@@ -224,7 +229,8 @@ fn main() {
     .unwrap();
 
   // Create indexed, deinterleaved tessellations; have your cake and fucking eat it, now.
-  let indexed_deinterleaved_triangles = TessBuilder::new(&mut surface)
+  let indexed_deinterleaved_triangles = surface
+    .new_tess()
     .and_then(|b| b.add_vertices(TRI_DEINT_POS_VERTICES))
     .and_then(|b| b.add_vertices(TRI_DEINT_COLOR_VERTICES))
     .and_then(|b| b.set_indices(TRI_INDICES))

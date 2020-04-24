@@ -14,7 +14,7 @@ use luminance::framebuffer::Framebuffer;
 use luminance::pipeline::{PipelineState, TextureBinding};
 use luminance::pixel::{Floating, RGBA32F};
 use luminance::render_state::RenderState;
-use luminance::shader::{BuiltProgram, Program, Uniform};
+use luminance::shader::{BuiltProgram, Uniform};
 use luminance::tess::{Mode, TessBuilder};
 use luminance::texture::{Dim2, Sampler};
 use luminance_derive::UniformInterface;
@@ -65,22 +65,26 @@ fn main() {
   )
   .expect("GLFW surface creation");
 
-  let mut program = Program::<_, Semantics, (), ()>::from_strings(&mut surface, VS, None, None, FS)
+  let mut program = surface
+    .new_shader_program::<Semantics, (), ()>()
+    .from_strings(VS, None, None, FS)
     .expect("program creation")
     .ignore_warnings();
 
   let BuiltProgram {
     program: mut copy_program,
     warnings,
-  } =
-    Program::<_, (), (), ShaderInterface>::from_strings(&mut surface, COPY_VS, None, None, COPY_FS)
-      .expect("copy program creation");
+  } = surface
+    .new_shader_program::<(), (), ShaderInterface>()
+    .from_strings(COPY_VS, None, None, COPY_FS)
+    .expect("copy program creation");
 
   for warning in &warnings {
     eprintln!("copy shader warning: {:?}", warning);
   }
 
-  let triangle = TessBuilder::new(&mut surface)
+  let triangle = surface
+    .new_tess()
     .and_then(|b| b.add_vertices(TRI_VERTICES))
     .and_then(|b| b.set_mode(Mode::Triangle))
     .and_then(|b| b.build())
@@ -98,13 +102,9 @@ fn main() {
 
   // offscreen buffer that we will render in the first place
   let (w, h) = surface.window.get_framebuffer_size();
-  let mut offscreen_buffer = Framebuffer::<_, Dim2, RGBA32F, ()>::new(
-    &mut surface,
-    [w as u32, h as u32],
-    0,
-    Sampler::default(),
-  )
-  .expect("framebuffer creation");
+  let mut offscreen_buffer = surface
+    .new_framebuffer::<Dim2, RGBA32F, ()>([w as u32, h as u32], 0, Sampler::default())
+    .expect("framebuffer creation");
 
   // hack to update the offscreen buffer if needed; this is needed because we cannot update the
   // offscreen buffer from within the event loop

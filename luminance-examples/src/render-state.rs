@@ -17,8 +17,7 @@ use luminance::blending::{Blending, Equation, Factor};
 use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
-use luminance::shader::Program;
-use luminance::tess::{Mode, TessBuilder};
+use luminance::tess::Mode;
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
 
@@ -93,17 +92,21 @@ fn main() {
   )
   .expect("GLFW surface creation");
 
-  let mut program = Program::<_, Semantics, (), ()>::from_strings(&mut surface, VS, None, None, FS)
+  let mut program = surface
+    .new_shader_program::<Semantics, (), ()>()
+    .from_strings(VS, None, None, FS)
     .expect("program creation")
     .ignore_warnings();
 
   // create a red and blue triangles
-  let red_triangle = TessBuilder::new(&mut surface)
+  let red_triangle = surface
+    .new_tess()
     .and_then(|b| b.add_vertices(&TRI_RED_BLUE_VERTICES[0..3]))
     .and_then(|b| b.set_mode(Mode::Triangle))
     .and_then(|b| b.build())
     .unwrap();
-  let blue_triangle = TessBuilder::new(&mut surface)
+  let blue_triangle = surface
+    .new_tess()
     .and_then(|b| b.add_vertices(&TRI_RED_BLUE_VERTICES[3..6]))
     .and_then(|b| b.set_mode(Mode::Triangle))
     .and_then(|b| b.build())

@@ -18,8 +18,8 @@ use glfw::{Action, Context as _, Key, WindowEvent};
 use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
-use luminance::shader::{Program, Uniform};
-use luminance::tess::{Mode, TessBuilder};
+use luminance::shader::Uniform;
+use luminance::tess::Mode;
 use luminance_derive::UniformInterface;
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
@@ -67,12 +67,14 @@ fn main() {
   .expect("GLFW surface creation");
 
   // see the use of our uniform interface here as thirds type variable
-  let mut program =
-    Program::<_, Semantics, (), ShaderInterface>::from_strings(&mut surface, VS, None, None, FS)
-      .expect("program creation")
-      .ignore_warnings();
+  let mut program = surface
+    .new_shader_program::<Semantics, (), ShaderInterface>()
+    .from_strings(VS, None, None, FS)
+    .expect("program creation")
+    .ignore_warnings();
 
-  let triangle = TessBuilder::new(&mut surface)
+  let triangle = surface
+    .new_tess()
     .and_then(|b| b.add_vertices(TRI_VERTICES))
     .and_then(|b| b.set_mode(Mode::Triangle))
     .and_then(|b| b.build())

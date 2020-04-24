@@ -54,10 +54,7 @@ use crate::buffer::{Buffer, BufferError};
 use crate::framebuffer::{Framebuffer, FramebufferError};
 use crate::pipeline::PipelineGate;
 use crate::pixel::Pixel;
-use crate::shader::{
-  BuiltProgram, Program, ProgramError, Stage, StageError, StageType, TessellationStages,
-  UniformInterface,
-};
+use crate::shader::{ProgramBuilder, Stage, StageError, StageType};
 use crate::tess::{TessBuilder, TessError};
 use crate::texture::{Dimensionable, Sampler, Texture, TextureError};
 use crate::vertex::Semantics;
@@ -155,94 +152,19 @@ pub unsafe trait GraphicsContext: Sized {
 
   /// Create a new shader program.
   ///
-  /// See the documentation of [`Program::from_stages_env`] for further details.
-  fn new_shader_program_from_stages_env<'a, Sem, Out, Uni, T, G, E>(
-    &mut self,
-    vertex: &'a Stage<Self::Backend>,
-    tess: T,
-    geometry: G,
-    fragment: &'a Stage<Self::Backend>,
-    env: &mut E,
-  ) -> Result<BuiltProgram<Self::Backend, Sem, Out, Uni>, ProgramError>
+  /// See the documentation of [`ProgramBuilder::new`] for further details.
+  fn new_shader_program<Sem, Out, Uni>(&mut self) -> ProgramBuilder<Self, Sem, Out, Uni>
   where
     Self::Backend: Shader,
     Sem: Semantics,
-    Uni: UniformInterface<Self::Backend, E>,
-    T: Into<Option<TessellationStages<'a, Stage<Self::Backend>>>>,
-    G: Into<Option<&'a Stage<Self::Backend>>>,
   {
-    Program::from_stages_env(self, vertex, tess, geometry, fragment, env)
-  }
-
-  /// Create a new shader program.
-  ///
-  /// See the documentation of [`Program::from_stages`] for further details.
-  fn new_shader_program_from_stages<Sem, Out, Uni, T, G>(
-    &mut self,
-    vertex: &Stage<Self::Backend>,
-    tess: T,
-    geometry: G,
-    fragment: &Stage<Self::Backend>,
-  ) -> Result<BuiltProgram<Self::Backend, Sem, Out, Uni>, ProgramError>
-  where
-    Self::Backend: Shader,
-    Uni: UniformInterface<Self::Backend>,
-    Sem: Semantics,
-    T: for<'a> Into<Option<TessellationStages<'a, Stage<Self::Backend>>>>,
-    G: for<'a> Into<Option<&'a Stage<Self::Backend>>>,
-  {
-    Program::from_stages(self, vertex, tess, geometry, fragment)
-  }
-
-  /// Create a new shader program.
-  ///
-  /// See the documentation of [`Program::from_strings_env`] for further details.
-  fn new_shader_program_from_strings_env<'a, Sem, Out, Uni, V, T, G, F, E>(
-    &mut self,
-    vertex: V,
-    tess: T,
-    geometry: G,
-    fragment: F,
-    env: &mut E,
-  ) -> Result<BuiltProgram<Self::Backend, Sem, Out, Uni>, ProgramError>
-  where
-    Self::Backend: Shader,
-    Sem: Semantics,
-    Uni: UniformInterface<Self::Backend, E>,
-    V: AsRef<str> + 'a,
-    T: Into<Option<TessellationStages<'a, str>>>,
-    G: Into<Option<&'a str>>,
-    F: AsRef<str> + 'a,
-  {
-    Program::from_strings_env(self, vertex, tess, geometry, fragment, env)
-  }
-
-  /// Create a new shader program.
-  ///
-  /// See the documentation of [`Program::from_strings`] for further details.
-  fn new_shader_program_from_strings<'a, Sem, Out, Uni, V, T, G, F>(
-    &mut self,
-    vertex: V,
-    tess: T,
-    geometry: G,
-    fragment: F,
-  ) -> Result<BuiltProgram<Self::Backend, Sem, Out, Uni>, ProgramError>
-  where
-    Self::Backend: Shader,
-    Sem: Semantics,
-    Uni: UniformInterface<Self::Backend>,
-    V: AsRef<str> + 'a,
-    T: Into<Option<TessellationStages<'a, str>>>,
-    G: Into<Option<&'a str>>,
-    F: AsRef<str> + 'a,
-  {
-    Program::from_strings(self, vertex, tess, geometry, fragment)
+    ProgramBuilder::new(self)
   }
 
   /// Create a [`TessBuilder`].
   ///
   /// See the documentation of [`TessBuilder::new`] for further details.
-  fn new_tess_builder(&mut self) -> Result<TessBuilder<Self::Backend>, TessError>
+  fn new_tess(&mut self) -> Result<TessBuilder<Self::Backend>, TessError>
   where
     Self::Backend: TessBuilderBackend,
   {
