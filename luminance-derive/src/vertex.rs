@@ -1,6 +1,7 @@
 use crate::attrib::{get_field_attr_once, AttrError};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
+use std::error;
 use std::fmt;
 use syn::{Attribute, DataStruct, Field, Fields, Ident, LitBool, Type};
 
@@ -22,6 +23,16 @@ impl fmt::Display for StructImplError {
       StructImplError::UnsupportedUnit => f.write_str("unsupported unit struct"),
     }
   }
+}
+
+impl error::Error for StructImplError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+	match self {
+	    StructImplError::SemanticsError(e) => Some(e),
+	    StructImplError::FieldError(e) => Some(e),
+	    _ => None
+	}
+    }
 }
 
 /// Generate the Vertex impl for a struct.

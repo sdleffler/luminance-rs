@@ -1,6 +1,7 @@
 use crate::attrib::{get_field_attr_once, get_field_flag_once, AttrError};
 use proc_macro::TokenStream;
 use quote::quote;
+use std::error;
 use std::fmt;
 use syn::{DataStruct, Fields, Ident, Path, PathArguments, Type, TypePath};
 
@@ -30,6 +31,16 @@ impl fmt::Display for DeriveUniformInterfaceError {
       ),
     }
   }
+}
+
+impl error::Error for DeriveUniformInterfaceError {
+    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+	match self {
+	    DeriveUniformInterfaceError::UnboundError(e) => Some(e),
+	    DeriveUniformInterfaceError::NameError(e) => Some(e),
+	    _ => None
+	}
+    }
 }
 
 pub(crate) fn generate_uniform_interface_impl(

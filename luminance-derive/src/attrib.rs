@@ -1,3 +1,4 @@
+use std::error;
 use std::fmt;
 use syn::parse::Parse;
 use syn::{Attribute, Ident, Lit, Meta, NestedMeta};
@@ -34,6 +35,8 @@ impl fmt::Display for AttrError {
     }
   }
 }
+
+impl error::Error for AttrError {}
 
 /// Get and parse an attribute on a field or a variant that must appear only once with the following
 /// syntax:
