@@ -102,7 +102,7 @@ pub struct GLState {
   patch_vertex_nb: Cached<usize>,
 
   // texture
-  current_texture_unit: GLenum,
+  current_texture_unit: Cached<GLenum>,
   bound_textures: Vec<(GLenum, GLuint)>,
 
   // texture buffer used to optimize texture creation; regular textures typically will never ask
@@ -123,7 +123,7 @@ pub struct GLState {
   bound_element_array_buffer: GLuint,
 
   // framebuffer
-  bound_draw_framebuffer: GLuint,
+  bound_draw_framebuffer: Cached<GLuint>,
 
   // vertex array
   bound_vertex_array: GLuint,
@@ -172,13 +172,13 @@ impl GLState {
       let face_culling_mode = Cached::new(get_ctx_face_culling_mode()?);
       let vertex_restart = Cached::new(get_ctx_vertex_restart()?);
       let patch_vertex_nb = Cached::new(0);
-      let current_texture_unit = get_ctx_current_texture_unit()?;
+      let current_texture_unit = Cached::new(get_ctx_current_texture_unit()?);
       let bound_textures = vec![(gl::TEXTURE_2D, 0); 48]; // 48 is the platform minimal requirement
       let texture_swimming_pool = Vec::new();
       let bound_uniform_buffers = vec![0; 36]; // 36 is the platform minimal requirement
       let bound_array_buffer = 0;
       let bound_element_array_buffer = 0;
-      let bound_draw_framebuffer = get_ctx_bound_draw_framebuffer()?;
+      let bound_draw_framebuffer = Cached::new(get_ctx_bound_draw_framebuffer()?);
       let bound_vertex_array = get_ctx_bound_vertex_array()?;
       let current_program = get_ctx_current_program()?;
       let srgb_framebuffer_enabled = Cached::new(get_ctx_srgb_framebuffer_enabled()?);
@@ -229,7 +229,7 @@ impl GLState {
 
   /// Invalidate the framebuffer
   pub fn invalidate_framebuffer(&mut self) {
-    self.bound_draw_framebuffer = 0;
+    self.bound_draw_framebuffer.invalidate();
   }
 
   /// Invalidate the element array buffer
@@ -239,7 +239,7 @@ impl GLState {
 
   /// Invalidate the texture unit
   pub fn invalidate_texture_unit(&mut self) {
-    self.current_texture_unit = 0;
+    self.current_texture_unit.invalidate();
   }
 
   /// Invalidate the texture bindings
@@ -470,14 +470,17 @@ impl GLState {
   }
 
   pub(crate) unsafe fn set_texture_unit(&mut self, unit: u32) {
-    if self.current_texture_unit != unit {
-      gl::ActiveTexture(gl::TEXTURE0 + unit as GLenum);
-      self.current_texture_unit = unit;
+    let unit = unit as GLenum;
+    if self.current_texture_unit.is_invalid(&unit) {
+      gl::ActiveTexture(gl::TEXTURE0 + unit);
+      self.current_texture_unit.set(unit);
     }
   }
 
   pub(crate) unsafe fn bind_texture(&mut self, target: GLenum, handle: GLuint) {
-    let unit = self.current_texture_unit as usize;
+    // Unwrap should be safe here, because we should always bind the texture unit before we bind the texture.
+    // Maybe this should be handled differently?
+    let unit = self.current_texture_unit.0.unwrap() as usize;
 
     match self.bound_textures.get(unit).cloned() {
       Some((target_, handle_)) if target != target_ || handle != handle_ => {
@@ -547,9 +550,9 @@ impl GLState {
   }
 
   pub(crate) unsafe fn bind_draw_framebuffer(&mut self, handle: GLuint) {
-    if self.bound_draw_framebuffer != handle {
+    if self.bound_draw_framebuffer.is_invalid(&handle) {
       gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, handle);
-      self.bound_draw_framebuffer = handle;
+      self.bound_draw_framebuffer.set(handle);
     }
   }
 
