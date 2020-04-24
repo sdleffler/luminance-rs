@@ -31,18 +31,12 @@ impl fmt::Display for SemanticsImplError {
 }
 
 impl error::Error for SemanticsImplError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-	match self {
-	    SemanticsImplError::AttributeErrors(ref ve) => {
-		if ve.len() > 0 {
-		    return Some(&ve[0])
-		} else {
-		    return None;
-		}
-	    },
-	    _ => None
-	}
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      SemanticsImplError::AttributeErrors(ref ve) => ve.first().map(|x| x as &dyn error::Error),
+      _ => None,
     }
+  }
 }
 
 /// Get vertex semantics attributes.
