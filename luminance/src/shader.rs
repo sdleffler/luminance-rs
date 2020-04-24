@@ -277,12 +277,12 @@ impl fmt::Display for ProgramWarning {
 }
 
 impl error::Error for ProgramWarning {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-	match self {
-	    ProgramWarning::Uniform(e) => Some(e),
-	    ProgramWarning::VertexAttrib(e) => Some(e)
-	}
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      ProgramWarning::Uniform(e) => Some(e),
+      ProgramWarning::VertexAttrib(e) => Some(e),
     }
+  }
 }
 
 impl From<ProgramWarning> for ProgramError {

@@ -48,13 +48,13 @@ impl fmt::Display for GlutinError {
 }
 
 impl error::Error for GlutinError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-	match self {
-	    GlutinError::CreationError(e) => Some(e),
-	    GlutinError::ContextError(e) => Some(e),
-	    GlutinError::GraphicsStateError(e) =>Some(e)
-	}
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      GlutinError::CreationError(e) => Some(e),
+      GlutinError::ContextError(e) => Some(e),
+      GlutinError::GraphicsStateError(e) => Some(e),
     }
+  }
 }
 
 impl From<CreationError> for GlutinError {
@@ -74,7 +74,6 @@ impl From<StateQueryError> for GlutinError {
     GlutinError::GraphicsStateError(e)
   }
 }
-
 
 /// The Glutin surface.
 ///

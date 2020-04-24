@@ -55,13 +55,13 @@ impl fmt::Display for GlfwSurfaceError {
 }
 
 impl error::Error for GlfwSurfaceError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-	match self {
-	    GlfwSurfaceError::InitError(e) => Some(e),
-	    GlfwSurfaceError::GraphicsStateError(e) => Some(e),
-	    _ => None
-	}
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      GlfwSurfaceError::InitError(e) => Some(e),
+      GlfwSurfaceError::GraphicsStateError(e) => Some(e),
+      _ => None,
     }
+  }
 }
 
 /// GLFW surface.

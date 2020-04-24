@@ -34,13 +34,13 @@ impl fmt::Display for DeriveUniformInterfaceError {
 }
 
 impl error::Error for DeriveUniformInterfaceError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-	match self {
-	    DeriveUniformInterfaceError::UnboundError(e) => Some(e),
-	    DeriveUniformInterfaceError::NameError(e) => Some(e),
-	    _ => None
-	}
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      DeriveUniformInterfaceError::UnboundError(e) => Some(e),
+      DeriveUniformInterfaceError::NameError(e) => Some(e),
+      _ => None,
     }
+  }
 }
 
 pub(crate) fn generate_uniform_interface_impl(

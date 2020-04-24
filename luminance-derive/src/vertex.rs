@@ -26,13 +26,13 @@ impl fmt::Display for StructImplError {
 }
 
 impl error::Error for StructImplError {
-    fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-	match self {
-	    StructImplError::SemanticsError(e) => Some(e),
-	    StructImplError::FieldError(e) => Some(e),
-	    _ => None
-	}
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      StructImplError::SemanticsError(e) => Some(e),
+      StructImplError::FieldError(e) => Some(e),
+      _ => None,
     }
+  }
 }
 
 /// Generate the Vertex impl for a struct.
