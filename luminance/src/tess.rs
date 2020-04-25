@@ -60,6 +60,7 @@
 //!
 //! [`TessGate`]: crate::tess_gate::TessGate
 
+use std::error;
 use std::fmt;
 use std::ops::{Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive};
 
@@ -181,6 +182,15 @@ impl fmt::Display for TessMapError {
   }
 }
 
+impl error::Error for TessMapError {
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      TessMapError::BufferMapError(e) => Some(e),
+      _ => None,
+    }
+  }
+}
+
 /// Possible errors that might occur when dealing with [`Tess`].
 #[derive(Debug)]
 pub enum TessError {
@@ -194,9 +204,29 @@ pub enum TessError {
   InternalBufferError(BufferError),
 }
 
+impl fmt::Display for TessError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    match self {
+      TessError::AttributelessError(s) => write!(f, "Attributeless error: {}", s),
+      TessError::LengthIncoherency(s) => write!(f, "Incoherent size for internal buffers: {}", s),
+      TessError::Overflow(a, b) => write!(f, "Tess overflow error: {}, {}", a, b),
+      TessError::InternalBufferError(e) => write!(f, "internal buffer error: {}", e),
+    }
+  }
+}
+
 impl From<BufferError> for TessError {
   fn from(e: BufferError) -> Self {
     TessError::InternalBufferError(e)
+  }
+}
+
+impl error::Error for TessError {
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      TessError::InternalBufferError(e) => Some(e),
+      _ => None,
+    }
   }
 }
 
@@ -636,6 +666,19 @@ pub enum TessViewError {
     nb: usize,
   },
 }
+
+impl fmt::Display for TessViewError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    match self {
+	    TessViewError::IncorrectViewWindow{ capacity, start, nb } => {
+		write!(f, "TessView incorrect window error: requested slice size {} starting at {}, but capacity is only {}", 
+		       nb, start, capacity)
+	    }
+	}
+  }
+}
+
+impl error::Error for TessViewError {}
 
 /// A _view_ into a GPU tessellation.
 #[derive(Clone)]

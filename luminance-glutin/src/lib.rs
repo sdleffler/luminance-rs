@@ -19,6 +19,7 @@ pub use luminance_gl::gl33::StateQueryError;
 use luminance_gl::GL33;
 pub use luminance_windowing::{CursorMode, WindowDim, WindowOpt};
 
+use std::error;
 use std::fmt;
 use std::os::raw::c_void;
 
@@ -46,6 +47,16 @@ impl fmt::Display for GlutinError {
   }
 }
 
+impl error::Error for GlutinError {
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      GlutinError::CreationError(e) => Some(e),
+      GlutinError::ContextError(e) => Some(e),
+      GlutinError::GraphicsStateError(e) => Some(e),
+    }
+  }
+}
+
 impl From<CreationError> for GlutinError {
   fn from(e: CreationError) -> Self {
     GlutinError::CreationError(e)
@@ -55,6 +66,12 @@ impl From<CreationError> for GlutinError {
 impl From<ContextError> for GlutinError {
   fn from(e: ContextError) -> Self {
     GlutinError::ContextError(e)
+  }
+}
+
+impl From<StateQueryError> for GlutinError {
+  fn from(e: StateQueryError) -> Self {
+    GlutinError::GraphicsStateError(e)
   }
 }
 

@@ -1,6 +1,7 @@
 use crate::attrib::{get_field_attr_once, AttrError};
 use proc_macro::TokenStream;
 use quote::quote;
+use std::error;
 use std::fmt;
 use syn::{Attribute, DataEnum, Ident, Type};
 
@@ -25,6 +26,15 @@ impl fmt::Display for SemanticsImplError {
       }
 
       SemanticsImplError::NoField => f.write_str("semantics cannot be empty sets"),
+    }
+  }
+}
+
+impl error::Error for SemanticsImplError {
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      SemanticsImplError::AttributeErrors(ref ve) => ve.first().map(|x| x as &dyn error::Error),
+      _ => None,
     }
   }
 }

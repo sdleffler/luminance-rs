@@ -46,6 +46,7 @@
 use crate::backend::buffer::{Buffer as BufferBackend, BufferSlice as BufferSliceBackend};
 use crate::context::GraphicsContext;
 
+use std::error;
 use std::fmt;
 use std::marker::PhantomData;
 
@@ -326,6 +327,8 @@ impl fmt::Display for BufferError {
     }
   }
 }
+
+impl error::Error for BufferError {}
 
 /// A buffer slice, allowing to get `&[T]`.
 #[derive(Debug)]

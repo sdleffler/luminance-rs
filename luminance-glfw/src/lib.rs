@@ -12,6 +12,7 @@ use luminance::texture::Dim2;
 pub use luminance_gl::gl33::StateQueryError;
 use luminance_gl::GL33;
 pub use luminance_windowing::{CursorMode, WindowDim, WindowOpt};
+use std::error;
 use std::fmt;
 use std::os::raw::c_void;
 use std::sync::mpsc::Receiver;
@@ -49,6 +50,16 @@ impl fmt::Display for GlfwSurfaceError {
       GlfwSurfaceError::GraphicsStateError(ref e) => {
         write!(f, "failed to get graphics state: {}", e)
       }
+    }
+  }
+}
+
+impl error::Error for GlfwSurfaceError {
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      GlfwSurfaceError::InitError(e) => Some(e),
+      GlfwSurfaceError::GraphicsStateError(e) => Some(e),
+      _ => None,
     }
   }
 }

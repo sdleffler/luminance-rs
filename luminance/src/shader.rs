@@ -141,6 +141,7 @@
 //! [`BoundBuffer`]: crate::pipeline::BoundBuffer
 //! [`BufferBinding`]: crate::pipeline::BufferBinding
 
+use std::error;
 use std::fmt;
 use std::marker::PhantomData;
 
@@ -194,6 +195,8 @@ impl fmt::Display for StageError {
   }
 }
 
+impl error::Error for StageError {}
+
 impl From<StageError> for ProgramError {
   fn from(e: StageError) -> Self {
     ProgramError::StageError(e)
@@ -245,6 +248,15 @@ impl fmt::Display for ProgramError {
   }
 }
 
+impl error::Error for ProgramError {
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      ProgramError::StageError(e) => Some(e),
+      _ => None,
+    }
+  }
+}
+
 /// Program warnings, not necessarily considered blocking errors.
 #[derive(Debug)]
 pub enum ProgramWarning {
@@ -260,6 +272,15 @@ impl fmt::Display for ProgramWarning {
     match *self {
       ProgramWarning::Uniform(ref e) => write!(f, "uniform warning: {}", e),
       ProgramWarning::VertexAttrib(ref e) => write!(f, "vertex attribute warning: {}", e),
+    }
+  }
+}
+
+impl error::Error for ProgramWarning {
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      ProgramWarning::Uniform(e) => Some(e),
+      ProgramWarning::VertexAttrib(e) => Some(e),
     }
   }
 }
@@ -320,6 +341,8 @@ impl From<UniformWarning> for ProgramWarning {
   }
 }
 
+impl error::Error for UniformWarning {}
+
 /// Warnings related to vertex attributes issues.
 #[derive(Debug)]
 pub enum VertexAttribWarning {
@@ -340,6 +363,8 @@ impl From<VertexAttribWarning> for ProgramWarning {
     ProgramWarning::VertexAttrib(e)
   }
 }
+
+impl error::Error for VertexAttribWarning {}
 
 /// A GPU shader program environment variable.
 ///

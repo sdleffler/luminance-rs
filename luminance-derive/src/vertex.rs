@@ -1,6 +1,7 @@
 use crate::attrib::{get_field_attr_once, AttrError};
 use proc_macro::TokenStream;
 use quote::{format_ident, quote};
+use std::error;
 use std::fmt;
 use syn::{Attribute, DataStruct, Field, Fields, Ident, LitBool, Type};
 
@@ -20,6 +21,16 @@ impl fmt::Display for StructImplError {
       StructImplError::SemanticsError(ref e) => write!(f, "error with semantics type; {}", e),
       StructImplError::FieldError(ref e) => write!(f, "error with vertex attribute field; {}", e),
       StructImplError::UnsupportedUnit => f.write_str("unsupported unit struct"),
+    }
+  }
+}
+
+impl error::Error for StructImplError {
+  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
+    match self {
+      StructImplError::SemanticsError(e) => Some(e),
+      StructImplError::FieldError(e) => Some(e),
+      _ => None,
     }
   }
 }
