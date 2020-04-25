@@ -12,6 +12,7 @@ use crate::gl33::GL33;
 use luminance::backend::buffer::{Buffer as _, BufferSlice as BufferSliceBackend};
 use luminance::backend::tess::{
   Tess as TessBackend, TessBuilder as TessBuilderBackend, TessBuilderBuffer, TessSlice,
+  TessYay as TessYayBackend,
 };
 use luminance::tess::{Mode, TessError, TessIndex, TessIndexType, TessMapError};
 use luminance::vertex::{
@@ -229,7 +230,7 @@ unsafe impl TessBuilderBackend for GL33 {
   ) -> Result<(), TessError>
   where
     W: AsRef<[V]>,
-    V: Copy + Vertex,
+    V: Vertex,
   {
     let vertices = vertices.as_ref();
 
@@ -250,7 +251,7 @@ unsafe impl TessBuilderBackend for GL33 {
   ) -> Result<(), TessError>
   where
     W: AsRef<[V]>,
-    V: Copy + Vertex,
+    V: Vertex,
   {
     let instances = instances.as_ref();
 

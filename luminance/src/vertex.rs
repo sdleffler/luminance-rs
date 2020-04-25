@@ -19,16 +19,16 @@ use std::fmt::Debug;
 /// [luminance-derive] [`Vertex`] proc-macro-derive instead.
 ///
 /// > Note: implementing this trait is `unsafe`.
-pub unsafe trait Vertex {
+pub unsafe trait Vertex: Copy {
   /// The associated vertex format.
   fn vertex_desc() -> VertexDesc;
 }
 
-unsafe impl Vertex for () {
-  fn vertex_desc() -> VertexDesc {
-    Vec::new()
-  }
-}
+//unsafe impl Vertex for () {
+//  fn vertex_desc() -> VertexDesc {
+//    Vec::new()
+//  }
+//}
 
 /// A [`VertexDesc`] is a list of [`VertexBufferDesc`]s.
 pub type VertexDesc = Vec<VertexBufferDesc>;

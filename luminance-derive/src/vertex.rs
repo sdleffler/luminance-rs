@@ -3,7 +3,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use std::error;
 use std::fmt;
-use syn::{Attribute, DataStruct, Field, Fields, Ident, LitBool, Type};
+use syn::{Attribute, DataStruct, Field, Fields, Ident, Index, LitBool, Type};
 
 // accepted sub keys for the "vertex" key
 const KNOWN_SUBKEYS: &[&str] = &["sem", "instanced", "normalized"];
@@ -183,6 +183,38 @@ fn process_struct(
     }
   };
 
+  let fields_ranks = (0..fields_types.len()).map(Index::from);
+  let fields_tuple = quote! { ( #(Vec<#fields_types>,)* ) };
+  let tess_storage = quote! {
+    impl<B> luminance::tess::TessStorage<B, luminance::tess::Interleaved> for #struct_name
+    where
+      B: ?Sized + luminance::backend::buffer::Buffer<#struct_name>
+    {
+      type Target = Vec<#struct_name>;
+    }
+
+    impl<B> luminance::tess::TessStorage<B, luminance::tess::GPUInterleaved> for #struct_name
+    where
+      B: ?Sized + luminance::backend::buffer::Buffer<#struct_name>
+    {
+      type Target = luminance::buffer::Buffer<B, #struct_name>;
+    }
+
+    impl<B> luminance::tess::TessStorage<B, luminance::tess::Deinterleaved> for #struct_name
+    where
+      B: ?Sized + #(luminance::backend::buffer::Buffer<#fields_types> +)*
+    {
+      type Target = (#(Vec<#fields_types>,)*);
+    }
+
+    impl<B> luminance::tess::TessStorage<B, luminance::tess::GPUDeinterleaved> for #struct_name
+    where
+      B: ?Sized + #(luminance::backend::buffer::Buffer<#fields_types> +)*
+    {
+      type Target = (#(luminance::buffer::Buffer<B, #fields_types>,)*);
+    }
+  };
+
   quote! {
     // Vertex impl
     unsafe impl luminance::vertex::Vertex for #struct_name {
@@ -190,6 +222,9 @@ fn process_struct(
         vec![#(#indexed_vertex_attrib_descs),*]
       }
     }
+
+    // TessStorage implementation
+    #tess_storage
 
     // helper function for the generate type
     #fn_new

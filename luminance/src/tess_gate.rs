@@ -19,12 +19,15 @@ where
 impl<'a, C> TessGate<'a, C>
 where
   C: ?Sized + GraphicsContext,
-  C::Backend: TessGateBackend,
 {
   /// Enter the [`TessGate`] by sharing a [`TessView`].
-  pub fn render<'b, T>(&'b mut self, tess_view: T)
+  pub fn render<'b, T, V, I, W>(&'b mut self, tess_view: T)
   where
-    T: Into<TessView<'b, C::Backend>>,
+    C::Backend: TessGateBackend<V, I, W>,
+    T: Into<TessView<'b, C::Backend, V, I, W>>,
+    V: 'b,
+    I: 'b,
+    W: 'b,
   {
     let tess_view = tess_view.into();
 

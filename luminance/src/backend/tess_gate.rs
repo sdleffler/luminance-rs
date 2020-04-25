@@ -4,7 +4,7 @@
 
 use crate::backend::tess::Tess;
 
-pub unsafe trait TessGate: Tess {
+pub unsafe trait TessGate<V, I, W>: Tess<V, I, W> {
   unsafe fn render(
     &mut self,
     tess: &Self::TessRepr,
