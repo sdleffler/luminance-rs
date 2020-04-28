@@ -58,7 +58,7 @@ impl fmt::Display for Sdl2SurfaceError {
 /// let surface = GL33Surface::build_with(|video| video.window("My app", 800, 600))
 ///     .expect("failed to create surface");
 ///
-/// let sdl: sdl2::Sdl = surface.sdl();
+/// let sdl = surface.sdl();
 /// ```
 ///
 /// [luminance]: https://crates.io/crates/luminance
