@@ -52,7 +52,7 @@ impl fmt::Display for Sdl2SurfaceError {
 
 /// A [luminance] GraphicsContext backed by SDL2 and OpenGL 3.3 Core.
 ///
-/// ```
+/// ```ignore
 /// use luminance_sdl2::GL33Surface;
 ///
 /// let surface = GL33Surface::build_with(|video| video.window("My app", 800, 600))
@@ -77,7 +77,7 @@ impl GL33Surface {
   /// This is your chance to change GL attributes before creating the window with your preferred
   /// settings.
   ///
-  /// ```
+  /// ```ignore
   /// use luminance_sdl2::GL33Surface;
   ///
   /// let surface = GL33Surface::build_with(|video| {
