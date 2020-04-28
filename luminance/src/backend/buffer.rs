@@ -18,10 +18,7 @@ where
 
   unsafe fn len(buffer: &Self::BufferRepr) -> usize;
 
-  /// Create a new buffer from a slice.
-  unsafe fn from_slice<S>(&mut self, slice: S) -> Result<Self::BufferRepr, BufferError>
-  where
-    S: AsRef<[T]>;
+  unsafe fn from_vec(&mut self, vec: Vec<T>) -> Result<Self::BufferRepr, BufferError>;
 
   unsafe fn repeat(&mut self, len: usize, value: T) -> Result<Self::BufferRepr, BufferError>;
 

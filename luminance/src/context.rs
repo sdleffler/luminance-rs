@@ -89,17 +89,14 @@ pub unsafe trait GraphicsContext: Sized {
 
   /// Create a new buffer from a slice.
   ///
-  /// See the documentation of [`Buffer::from_slice`] for further details.
-  fn new_buffer_from_slice<T, X>(
-    &mut self,
-    slice: X,
-  ) -> Result<Buffer<Self::Backend, T>, BufferError>
+  /// See the documentation of [`Buffer::from_vec`] for further details.
+  fn new_buffer_from_vec<T, X>(&mut self, vec: X) -> Result<Buffer<Self::Backend, T>, BufferError>
   where
     Self::Backend: BufferBackend<T>,
-    X: AsRef<[T]>,
+    X: Into<Vec<T>>,
     T: Copy,
   {
-    Buffer::from_slice(self, slice)
+    Buffer::from_vec(self, vec)
   }
 
   /// Create a new buffer by repeating a value.
