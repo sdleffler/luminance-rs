@@ -14,6 +14,7 @@ use std::fmt;
 use std::os::raw::c_void;
 
 /// Error that can be risen while creating a surface.
+#[non_exhaustive]
 #[derive(Debug)]
 pub enum Sdl2SurfaceError {
   /// Initialization of the surface went wrong.
@@ -92,7 +93,7 @@ impl GL33Surface {
   /// ```
   pub fn build_with<WB>(window_builder: WB) -> Result<Self, Sdl2SurfaceError>
   where
-      WB: FnOnce(&sdl2::VideoSubsystem) -> sdl2::video::WindowBuilder,
+    WB: FnOnce(&sdl2::VideoSubsystem) -> sdl2::video::WindowBuilder,
   {
     let sdl = sdl2::init().map_err(Sdl2SurfaceError::InitError)?;
 
