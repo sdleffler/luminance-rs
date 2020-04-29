@@ -10,384 +10,44 @@ use crate::gl33::state::{Bind, GLState};
 use crate::gl33::vertex_restart::VertexRestart;
 use crate::gl33::GL33;
 use luminance::backend::buffer::{Buffer as _, BufferSlice as BufferSliceBackend};
-use luminance::backend::tess::{
-  Tess as TessBackend, TessBuilder as TessBuilderBackend, TessBuilderBuffer, TessSlice,
-  TessYay as TessYayBackend,
-};
+use luminance::backend::tess::Tess as TessBackend;
 use luminance::tess::{Mode, TessError, TessIndex, TessIndexType, TessMapError};
 use luminance::vertex::{
   Normalized, Vertex, VertexAttribDesc, VertexAttribDim, VertexAttribType, VertexBufferDesc,
   VertexDesc, VertexInstancing,
 };
 
-struct VertexBuffer {
+#[derive(Debug)]
+struct VertexBuffer<T> {
   /// Indexed format of the buffer.
   fmt: VertexDesc,
   /// Internal buffer.
-  buf: Buffer,
+  buf: Buffer<T>,
 }
 
-pub struct TessBuilder {
-  vertex_buffers: Vec<VertexBuffer>,
-  index_buffer: Option<(Buffer, TessIndexType)>,
-  restart_index: Option<u32>,
-  mode: Mode,
-  vert_nb: usize,
-  instance_buffers: Vec<VertexBuffer>,
-  inst_nb: usize,
-}
-
-impl TessBuilder {
-  /// Build a tessellation based on a given number of vertices to render by default.
-  fn build_tess(self, ctx: &mut GL33, vert_nb: usize, inst_nb: usize) -> Result<Tess, TessError> {
-    let mut vao: GLuint = 0;
-    let mut gfx_st = ctx.state.borrow_mut();
-
-    unsafe {
-      let patch_vert_nb = match self.mode {
-        Mode::Patch(nb) => nb,
-        _ => 0,
-      };
-
-      gl::GenVertexArrays(1, &mut vao);
-
-      // force binding the vertex array so that previously bound vertex arrays (possibly the same
-      // handle) don’t prevent us from binding here
-      gfx_st.bind_vertex_array(vao, Bind::Forced);
-
-      // add the vertex buffers into the vao
-      for vb in &self.vertex_buffers {
-        // force binding as it’s meaningful when a vao is bound
-        gfx_st.bind_array_buffer(vb.buf.handle, Bind::Forced);
-        set_vertex_pointers(&vb.fmt)
-      }
-
-      // in case of indexed render, create an index buffer
-      if let Some(ref index_buffer) = self.index_buffer {
-        // force binding as it’s meaningful when a vao is bound
-        gfx_st.bind_element_array_buffer(index_buffer.0.handle, Bind::Forced);
-      }
-
-      // add any instance buffers, if any
-      for vb in &self.instance_buffers {
-        // force binding as it’s meaningful when a vao is bound
-        gfx_st.bind_array_buffer(vb.buf.handle, Bind::Forced);
-        set_vertex_pointers(&vb.fmt);
-      }
-
-      let restart_index = self.restart_index;
-      let index_state = self
-        .index_buffer
-        .map(move |(buffer, index_type)| IndexedDrawState {
-          restart_index,
-          _buffer: buffer,
-          index_type,
-        });
-
-      // convert to OpenGL-friendly internals and return
-      Ok(Tess {
-        mode: opengl_mode(self.mode),
-        vert_nb,
-        inst_nb,
-        patch_vert_nb,
-        vao,
-        vertex_buffers: self.vertex_buffers,
-        instance_buffers: self.instance_buffers,
-        index_state,
-        state: ctx.state.clone(),
-      })
-    }
-  }
-
-  /// Guess how many vertices there are to render based on the current configuration or fail if
-  /// incorrectly configured.
-  fn guess_vert_nb_or_fail(&self) -> Result<usize, TessError> {
-    if self.vert_nb == 0 {
-      // we don’t have an explicit vertex number to render; go and guess!
-      if let Some(ref index_buffer) = self.index_buffer {
-        // we have an index buffer: just use its size
-        Ok(index_buffer.0.len)
-      } else {
-        // deduce the number of vertices based on the vertex buffers; they all
-        // must be of the same length, otherwise it’s an error
-        match self.vertex_buffers.len() {
-          0 => Err(TessError::AttributelessError(
-            "attributeless render with no vertex number".to_owned(),
-          )),
-
-          1 => Ok(self.vertex_buffers[0].buf.len),
-
-          _ => {
-            let vert_nb = self.vertex_buffers[0].buf.len;
-            let incoherent = Self::check_incoherent_buffers(self.vertex_buffers.iter(), vert_nb);
-
-            if incoherent {
-              Err(TessError::LengthIncoherency(vert_nb))
-            } else {
-              Ok(vert_nb)
-            }
-          }
-        }
-      }
-    } else {
-      // we have an explicit number of vertices to render, but we’re gonna check that number actually
-      // makes sense
-      if let Some(ref index_buffer) = self.index_buffer {
-        // we have indices (indirect draw); so we’ll compare to them
-        if index_buffer.0.len < self.vert_nb {
-          return Err(TessError::Overflow(index_buffer.0.len, self.vert_nb));
-        }
-      } else {
-        let incoherent = Self::check_incoherent_buffers(self.vertex_buffers.iter(), self.vert_nb);
-
-        if incoherent {
-          return Err(TessError::LengthIncoherency(self.vert_nb));
-        } else if !self.vertex_buffers.is_empty() && self.vertex_buffers[0].buf.len < self.vert_nb {
-          return Err(TessError::Overflow(
-            self.vertex_buffers[0].buf.len,
-            self.vert_nb,
-          ));
-        }
-      }
-
-      Ok(self.vert_nb)
-    }
-  }
-
-  /// Check whether any vertex buffer is incoherent in its length according to the input length.
-  fn check_incoherent_buffers<'b, B>(mut buffers: B, len: usize) -> bool
-  where
-    B: Iterator<Item = &'b VertexBuffer>,
-  {
-    !buffers.all(|vb| vb.buf.len == len)
-  }
-
-  /// Guess how many instances there are to render based on the current configuration or fail if
-  /// incorrectly configured.
-  fn guess_inst_nb_or_fail(&self) -> Result<usize, TessError> {
-    if self.inst_nb == 0 {
-      // we don’t have an explicit instance number to render; go and guess!
-      // deduce the number of instances based on the instance buffers; they all must be of the same
-      // length, otherwise it’s an error
-      match self.instance_buffers.len() {
-        0 => {
-          // no instance buffer; we we’re not using instance rendering
-          Ok(0)
-        }
-
-        1 => Ok(self.instance_buffers[0].buf.len),
-
-        _ => {
-          let inst_nb = self.instance_buffers[0].buf.len;
-          let incoherent = Self::check_incoherent_buffers(self.instance_buffers.iter(), inst_nb);
-
-          if incoherent {
-            Err(TessError::LengthIncoherency(inst_nb))
-          } else {
-            Ok(inst_nb)
-          }
-        }
-      }
-    } else {
-      // we have an explicit number of instances to render, but we’re gonna check that number
-      // actually makes sense
-      let incoherent = Self::check_incoherent_buffers(self.instance_buffers.iter(), self.vert_nb);
-
-      if incoherent {
-        return Err(TessError::LengthIncoherency(self.inst_nb));
-      } else if !self.instance_buffers.is_empty() && self.instance_buffers[0].buf.len < self.inst_nb
-      {
-        return Err(TessError::Overflow(
-          self.instance_buffers[0].buf.len,
-          self.inst_nb,
-        ));
-      }
-
-      Ok(self.inst_nb)
-    }
-  }
-}
-
-unsafe impl TessBuilderBackend for GL33 {
-  type TessBuilderRepr = TessBuilder;
-
-  unsafe fn new_tess_builder(&mut self) -> Result<Self::TessBuilderRepr, TessError> {
-    Ok(TessBuilder {
-      vertex_buffers: Vec::new(),
-      index_buffer: None,
-      restart_index: None,
-      mode: Mode::Point,
-      vert_nb: 0,
-      instance_buffers: Vec::new(),
-      inst_nb: 0,
-    })
-  }
-
-  unsafe fn add_vertices<V, W>(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    vertices: W,
-  ) -> Result<(), TessError>
-  where
-    W: AsRef<[V]>,
-    V: Vertex,
-  {
-    let vertices = vertices.as_ref();
-
-    let vb = VertexBuffer {
-      fmt: V::vertex_desc(),
-      buf: self.from_slice(vertices)?,
-    };
-
-    tess_builder.vertex_buffers.push(vb);
-
-    Ok(())
-  }
-
-  unsafe fn add_instances<V, W>(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    instances: W,
-  ) -> Result<(), TessError>
-  where
-    W: AsRef<[V]>,
-    V: Vertex,
-  {
-    let instances = instances.as_ref();
-
-    let vb = VertexBuffer {
-      fmt: V::vertex_desc(),
-      buf: self.from_slice(instances)?,
-    };
-
-    tess_builder.instance_buffers.push(vb);
-
-    Ok(())
-  }
-
-  unsafe fn set_indices<T, I>(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    indices: T,
-  ) -> Result<(), TessError>
-  where
-    T: AsRef<[I]>,
-    I: Copy + TessIndex,
-  {
-    let indices = indices.as_ref();
-
-    // create a new raw buffer containing the indices and turn it into a vertex buffer
-    let buf = self.from_slice(indices)?;
-
-    tess_builder.index_buffer = Some((buf, I::INDEX_TYPE));
-
-    Ok(())
-  }
-
-  unsafe fn set_mode(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    mode: Mode,
-  ) -> Result<(), TessError> {
-    tess_builder.mode = mode;
-    Ok(())
-  }
-
-  unsafe fn set_vertex_nb(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    nb: usize,
-  ) -> Result<(), TessError> {
-    tess_builder.vert_nb = nb;
-    Ok(())
-  }
-
-  unsafe fn set_instance_nb(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    nb: usize,
-  ) -> Result<(), TessError> {
-    tess_builder.inst_nb = nb;
-    Ok(())
-  }
-
-  unsafe fn set_primitive_restart_index(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    index: Option<u32>,
-  ) -> Result<(), TessError> {
-    tess_builder.restart_index = index;
-    Ok(())
-  }
-}
-
-unsafe impl<T> TessBuilderBuffer<T> for GL33
+pub struct Tess<V, I, W>
 where
-  T: Copy,
+  V: Vertex,
+  I: TessIndex,
+  W: Vertex,
 {
-  unsafe fn add_vertex_buffer(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    buf: Self::BufferRepr,
-  ) -> Result<(), TessError>
-  where
-    T: Vertex,
-  {
-    let vb = VertexBuffer {
-      fmt: T::vertex_desc(),
-      buf,
-    };
-
-    tess_builder.vertex_buffers.push(vb);
-
-    Ok(())
-  }
-
-  unsafe fn add_instance_buffer(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    buf: Self::BufferRepr,
-  ) -> Result<(), TessError>
-  where
-    T: Vertex,
-  {
-    let vb = VertexBuffer {
-      fmt: T::vertex_desc(),
-      buf,
-    };
-
-    tess_builder.instance_buffers.push(vb);
-
-    Ok(())
-  }
-
-  unsafe fn set_index_buffer(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    buf: Self::BufferRepr,
-  ) -> Result<(), TessError>
-  where
-    T: TessIndex,
-  {
-    tess_builder.index_buffer = Some((buf, T::INDEX_TYPE));
-
-    Ok(())
-  }
-}
-
-pub struct Tess {
   mode: GLenum,
   vert_nb: usize,
   inst_nb: usize,
   patch_vert_nb: usize,
   vao: GLenum,
-  vertex_buffers: Vec<VertexBuffer>,
-  instance_buffers: Vec<VertexBuffer>,
-  index_state: Option<IndexedDrawState>,
+  vertex_buffer: Option<VertexBuffer<V>>,
+  index_state: Option<IndexedDrawState<I>>,
+  instance_buffer: Option<VertexBuffer<W>>,
   state: Rc<RefCell<GLState>>,
 }
 
-impl Drop for Tess {
+impl<V, I, W> Drop for Tess<V, I, W>
+where
+  V: Vertex,
+  I: TessIndex,
+  W: Vertex,
+{
   fn drop(&mut self) {
     unsafe {
       self.state.borrow_mut().unbind_vertex_array();
@@ -397,23 +57,124 @@ impl Drop for Tess {
 }
 
 /// All the extra data required when doing indexed drawing.
-struct IndexedDrawState {
-  _buffer: Buffer,
-  restart_index: Option<u32>,
-  index_type: TessIndexType,
+struct IndexedDrawState<I>
+where
+  I: TessIndex,
+{
+  buffer: Buffer<I>,
+  restart_index: Option<I>,
 }
 
-unsafe impl TessBackend for GL33 {
-  type TessRepr = Tess;
+unsafe impl<V, I, W> TessBackend<V, I, W> for GL33
+where
+  V: Vertex,
+  I: TessIndex,
+  W: Vertex,
+{
+  type TessRepr = Tess<V, I, W>;
+
+  type VertexSliceRepr = BufferSlice<V>;
+  type VertexSliceMutRepr = BufferSliceMut<V>;
+
+  type IndexSliceRepr = BufferSlice<I>;
+  type IndexSliceMutRepr = BufferSliceMut<I>;
+
+  type InstanceSliceRepr = BufferSlice<W>;
+  type InstanceSliceMutRepr = BufferSliceMut<W>;
 
   unsafe fn build(
     &mut self,
-    tess_builder: Self::TessBuilderRepr,
+    vertex_data: Vec<V>,
+    index_data: Vec<I>,
+    instance_data: Vec<W>,
+    mode: Mode,
+    vert_nb: usize,
+    inst_nb: usize,
+    restart_index: Option<I>,
   ) -> Result<Self::TessRepr, TessError> {
     // try to deduce the number of vertices to render if it’s not specified
-    let vert_nb = tess_builder.guess_vert_nb_or_fail()?;
-    let inst_nb = tess_builder.guess_inst_nb_or_fail()?;
-    tess_builder.build_tess(self, vert_nb, inst_nb)
+    let vert_nb = guess_vert_nb_or_fail::<V, I>(&vertex_data, &index_data, vert_nb)?;
+    let inst_nb = guess_inst_nb_or_fail::<W>(&instance_data, vert_nb, inst_nb)?;
+
+    let mut vao: GLuint = 0;
+
+    let patch_vert_nb = match mode {
+      Mode::Patch(nb) => nb,
+      _ => 0,
+    };
+
+    gl::GenVertexArrays(1, &mut vao);
+
+    // force binding the vertex array so that previously bound vertex arrays (possibly the same
+    // handle) don’t prevent us from binding here
+    self.state.borrow_mut().bind_vertex_array(vao, Bind::Forced);
+
+    let vertex_buffer = if !vertex_data.is_empty() {
+      let vb = VertexBuffer {
+        fmt: V::vertex_desc(),
+        buf: self.from_vec(vertex_data)?,
+      };
+
+      // force binding as it’s meaningful when a vao is bound
+      self
+        .state
+        .borrow_mut()
+        .bind_array_buffer(vb.buf.gl_buf, Bind::Forced);
+      set_vertex_pointers(&vb.fmt);
+
+      Some(vb)
+    } else {
+      None
+    };
+
+    // in case of indexed render, create an index buffer
+    let index_state = if !index_data.is_empty() {
+      let state = IndexedDrawState {
+        restart_index,
+        buffer: self.from_vec(index_data)?,
+      };
+
+      // force binding as it’s meaningful when a vao is bound
+      self
+        .state
+        .borrow_mut()
+        .bind_element_array_buffer(state.buffer.gl_buf, Bind::Forced);
+
+      Some(state)
+    } else {
+      None
+    };
+
+    let instance_buffer = if !instance_data.is_empty() {
+      let ib = VertexBuffer {
+        fmt: W::vertex_desc(),
+        buf: self.from_vec(instance_data)?,
+      };
+
+      // force binding as it’s meaningful when a vao is bound
+      self
+        .state
+        .borrow_mut()
+        .bind_array_buffer(ib.buf.gl_buf, Bind::Forced);
+      set_vertex_pointers(&ib.fmt);
+
+      Some(ib)
+    } else {
+      None
+    };
+
+    // convert to OpenGL-friendly internals and return
+    Ok(Tess {
+      mode: opengl_mode(mode),
+      vert_nb,
+      inst_nb,
+      patch_vert_nb,
+      vao,
+      vertex_buffer,
+      instance_buffer,
+      index_state,
+      state: self.state.clone(),
+    })
   }
 
   unsafe fn tess_vertices_nb(tess: &Self::TessRepr) -> usize {
@@ -442,11 +203,11 @@ unsafe impl TessBackend for GL33 {
 
     if let Some(index_state) = tess.index_state.as_ref() {
       // indexed render
-      let first = (index_state.index_type.bytes() * start_index) as *const c_void;
+      let first = (I::INDEX_TYPE.bytes() * start_index) as *const c_void;
 
       if let Some(restart_index) = index_state.restart_index {
         gfx_st.set_vertex_restart(VertexRestart::On);
-        gl::PrimitiveRestartIndex(restart_index);
+        gl::PrimitiveRestartIndex(restart_index.into());
       } else {
         gfx_st.set_vertex_restart(VertexRestart::Off);
       }
@@ -455,14 +216,14 @@ unsafe impl TessBackend for GL33 {
         gl::DrawElements(
           tess.mode,
           vert_nb,
-          index_type_to_glenum(index_state.index_type),
+          index_type_to_glenum(I::INDEX_TYPE),
           first,
         );
       } else {
         gl::DrawElementsInstanced(
           tess.mode,
           vert_nb,
-          index_type_to_glenum(index_state.index_type),
+          index_type_to_glenum(I::INDEX_TYPE),
           first,
           inst_nb,
         );
@@ -480,160 +241,61 @@ unsafe impl TessBackend for GL33 {
 
     Ok(())
   }
-}
 
-unsafe impl<T> TessSlice<T> for GL33
-where
-  T: Copy,
-{
-  type SliceRepr = BufferSlice<T>;
-
-  type SliceMutRepr = BufferSliceMut<T>;
-
-  unsafe fn slice_vertices(tess: &Self::TessRepr) -> Result<Self::SliceRepr, TessMapError>
-  where
-    T: Vertex,
-  {
-    match tess.vertex_buffers.len() {
-      0 => Err(TessMapError::ForbiddenAttributelessMapping),
-
-      1 => {
-        let vb = &tess.vertex_buffers[0];
-        let target_fmt = T::vertex_desc(); // costs a bit
-
-        if vb.fmt != target_fmt {
-          Err(TessMapError::VertexTypeMismatch(vb.fmt.clone(), target_fmt))
-        } else {
-          GL33::slice_buffer(&vb.buf).map_err(TessMapError::BufferMapError)
-        }
-      }
-
-      _ => Err(TessMapError::ForbiddenDeinterleavedMapping),
-    }
-  }
-
-  unsafe fn slice_vertices_mut(
-    tess: &mut Self::TessRepr,
-  ) -> Result<Self::SliceMutRepr, TessMapError>
-  where
-    T: Vertex,
-  {
-    match tess.vertex_buffers.len() {
-      0 => Err(TessMapError::ForbiddenAttributelessMapping),
-
-      1 => {
-        let vb = &mut tess.vertex_buffers[0];
-        let target_fmt = T::vertex_desc(); // costs a bit
-
-        if vb.fmt != target_fmt {
-          Err(TessMapError::VertexTypeMismatch(vb.fmt.clone(), target_fmt))
-        } else {
-          GL33::slice_buffer_mut(&mut vb.buf).map_err(TessMapError::BufferMapError)
-        }
-      }
-
-      _ => Err(TessMapError::ForbiddenDeinterleavedMapping),
-    }
-  }
-
-  unsafe fn slice_indices(tess: &Self::TessRepr) -> Result<Self::SliceRepr, TessMapError>
-  where
-    T: TessIndex,
-  {
-    match tess.index_state {
-      Some(IndexedDrawState {
-        ref _buffer,
-        ref index_type,
-        ..
-      }) => {
-        let target_fmt = T::INDEX_TYPE;
-
-        if *index_type != target_fmt {
-          Err(TessMapError::IndexTypeMismatch(*index_type, target_fmt))
-        } else {
-          GL33::slice_buffer(_buffer).map_err(TessMapError::BufferMapError)
-        }
-      }
-
+  unsafe fn vertices(tess: &mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError> {
+    match tess.vertex_buffer {
       None => Err(TessMapError::ForbiddenAttributelessMapping),
+
+      Some(ref vb) => GL33::slice_buffer(&vb.buf).map_err(TessMapError::BufferMapError),
     }
   }
 
-  unsafe fn slice_indices_mut(tess: &mut Self::TessRepr) -> Result<Self::SliceMutRepr, TessMapError>
-  where
-    T: TessIndex,
-  {
-    match tess.index_state {
-      Some(IndexedDrawState {
-        ref mut _buffer,
-        ref index_type,
-        ..
-      }) => {
-        let target_fmt = T::INDEX_TYPE;
-
-        if *index_type != target_fmt {
-          Err(TessMapError::IndexTypeMismatch(*index_type, target_fmt))
-        } else {
-          GL33::slice_buffer_mut(_buffer).map_err(TessMapError::BufferMapError)
-        }
-      }
-
-      None => Err(TessMapError::ForbiddenAttributelessMapping),
-    }
-  }
-
-  unsafe fn slice_instances(tess: &Self::TessRepr) -> Result<Self::SliceRepr, TessMapError>
-  where
-    T: Vertex,
-  {
-    match tess.instance_buffers.len() {
-      0 => Err(TessMapError::ForbiddenAttributelessMapping),
-
-      1 => {
-        let vb = &tess.instance_buffers[0];
-        let target_fmt = T::vertex_desc(); // costs a bit
-
-        if vb.fmt != target_fmt {
-          Err(TessMapError::VertexTypeMismatch(vb.fmt.clone(), target_fmt))
-        } else {
-          GL33::slice_buffer(&vb.buf).map_err(TessMapError::BufferMapError)
-        }
-      }
-
-      _ => Err(TessMapError::ForbiddenDeinterleavedMapping),
-    }
-  }
-
-  unsafe fn slice_instances_mut(
+  unsafe fn vertices_mut(
     tess: &mut Self::TessRepr,
-  ) -> Result<Self::SliceMutRepr, TessMapError>
-  where
-    T: Vertex,
-  {
-    match tess.instance_buffers.len() {
-      0 => Err(TessMapError::ForbiddenAttributelessMapping),
+  ) -> Result<Self::VertexSliceMutRepr, TessMapError> {
+    match tess.vertex_buffer {
+      None => Err(TessMapError::ForbiddenAttributelessMapping),
 
-      1 => {
-        let vb = &mut tess.instance_buffers[0];
-        let target_fmt = T::vertex_desc(); // costs a bit
-
-        if vb.fmt != target_fmt {
-          Err(TessMapError::VertexTypeMismatch(vb.fmt.clone(), target_fmt))
-        } else {
-          GL33::slice_buffer_mut(&mut vb.buf).map_err(TessMapError::BufferMapError)
-        }
-      }
-
-      _ => Err(TessMapError::ForbiddenDeinterleavedMapping),
+      Some(ref mut vb) => GL33::slice_buffer_mut(&mut vb.buf).map_err(TessMapError::BufferMapError),
     }
   }
 
-  unsafe fn obtain_slice(slice: &Self::SliceRepr) -> Result<&[T], TessMapError> {
-    <GL33 as BufferSliceBackend<T>>::obtain_slice(slice).map_err(TessMapError::BufferMapError)
+  unsafe fn indices(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError> {
+    match tess.index_state {
+      None => Err(TessMapError::ForbiddenAttributelessMapping),
+
+      Some(ref vb) => GL33::slice_buffer(&vb.buffer).map_err(TessMapError::BufferMapError),
+    }
   }
 
-  unsafe fn obtain_slice_mut(slice: &mut Self::SliceMutRepr) -> Result<&mut [T], TessMapError> {
-    <GL33 as BufferSliceBackend<T>>::obtain_slice_mut(slice).map_err(TessMapError::BufferMapError)
+  unsafe fn indices_mut(
+    tess: &mut Self::TessRepr,
+  ) -> Result<Self::IndexSliceMutRepr, TessMapError> {
+    match tess.index_state {
+      None => Err(TessMapError::ForbiddenAttributelessMapping),
+
+      Some(ref mut vb) => {
+        GL33::slice_buffer_mut(&mut vb.buffer).map_err(TessMapError::BufferMapError)
+      }
+    }
+  }
+
+  unsafe fn instances(tess: &mut Self::TessRepr) -> Result<Self::InstanceSliceRepr, TessMapError> {
+    match tess.instance_buffer {
+      None => Err(TessMapError::ForbiddenAttributelessMapping),
+
+      Some(ref vb) => GL33::slice_buffer(&vb.buf).map_err(TessMapError::BufferMapError),
+    }
+  }
+
+  unsafe fn instances_mut(
+    tess: &mut Self::TessRepr,
+  ) -> Result<Self::InstanceSliceMutRepr, TessMapError> {
+    match tess.instance_buffer {
+      None => Err(TessMapError::ForbiddenAttributelessMapping),
+
+      Some(ref mut vb) => GL33::slice_buffer_mut(&mut vb.buf).map_err(TessMapError::BufferMapError),
+    }
   }
 }
 
@@ -789,5 +451,89 @@ fn index_type_to_glenum(ty: TessIndexType) -> GLenum {
     TessIndexType::U8 => gl::UNSIGNED_BYTE,
     TessIndexType::U16 => gl::UNSIGNED_SHORT,
     TessIndexType::U32 => gl::UNSIGNED_INT,
+  }
+}
+
+/// Guess how many vertices there are to render based on the current configuration or fail if
+/// incorrectly configured.
+fn guess_vert_nb_or_fail<V, I>(
+  vertex_data: &Vec<V>,
+  index_data: &Vec<I>,
+  vert_nb: usize,
+) -> Result<usize, TessError> {
+  if vert_nb == 0 {
+    // we don’t have an explicit vertex number to render; go and guess!
+    if !index_data.is_empty() {
+      Ok(index_data.len())
+    } else {
+      // FIXME: resume this code as soon as we supporte deinterleaved data
+      // // deduce the number of vertices based on the vertex data; they all
+      // // must be of the same length, otherwise it’s an error
+      // match self.vertex_buffers.len() {
+      //   0 => Err(TessError::AttributelessError(
+      //     "attributeless render with no vertex number".to_owned(),
+      //   )),
+
+      //   1 => Ok(self.vertex_buffers[0].buf.len),
+
+      //   _ => {
+      //     let vert_nb = self.vertex_buffers[0].buf.len;
+      //     let incoherent = Self::check_incoherent_buffers(self.vertex_buffers.iter(), vert_nb);
+
+      //     if incoherent {
+      //       Err(TessError::LengthIncoherency(vert_nb))
+      //     } else {
+      //       Ok(vert_nb)
+      //     }
+      //   }
+      // }
+      Ok(vertex_data.len())
+    }
+  } else {
+    // we have an explicit number of vertices to render, but we’re gonna check that number actually
+    // makes sense
+    if index_data.is_empty() {
+      // FIXME
+      //let incoherent = Self::check_incoherent_buffers(self.vertex_buffers.iter(), self.vert_nb);
+      let incoherent = vertex_data.len() != vert_nb;
+
+      if incoherent {
+        return Err(TessError::LengthIncoherency(vert_nb));
+      } else if !vertex_data.is_empty() && vertex_data.len() < vert_nb {
+        return Err(TessError::Overflow(vertex_data.len(), vert_nb));
+      }
+    } else {
+      // we have indices (indirect draw); so we’ll compare to them
+      if index_data.len() < vert_nb {
+        return Err(TessError::Overflow(index_data.len(), vert_nb));
+      }
+    }
+
+    Ok(vert_nb)
+  }
+}
+
+/// Guess how many instances there are to render based on the current configuration or fail if
+/// incorrectly configured.
+fn guess_inst_nb_or_fail<W>(
+  inst_data: &Vec<W>,
+  vert_nb: usize,
+  inst_nb: usize,
+) -> Result<usize, TessError> {
+  if inst_nb == 0 {
+    // we don’t have an explicit instance number to render; we depend on inst_data
+    Ok(inst_data.len())
+  } else {
+    // we have an explicit number of instances to render, but we’re gonna check that number
+    // actually makes sense
+    let incoherent = inst_data.len() != vert_nb;
+
+    if incoherent {
+      return Err(TessError::LengthIncoherency(inst_nb));
+    } else if !inst_data.is_empty() && inst_data.len() < inst_nb {
+      return Err(TessError::Overflow(inst_data.len(), inst_nb));
+    }
+
+    Ok(inst_nb)
   }
 }

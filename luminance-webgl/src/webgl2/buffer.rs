@@ -99,13 +99,9 @@ where
     buffer.buf.len()
   }
 
-  unsafe fn from_slice<S>(&mut self, slice: S) -> Result<Self::BufferRepr, BufferError>
-  where
-    S: AsRef<[T]>,
-  {
+  unsafe fn from_vec(&mut self, vec: Vec<T>) -> Result<Self::BufferRepr, BufferError> {
     let mut state = self.state.borrow_mut();
-    let slice = slice.as_ref();
-    let len = slice.len();
+    let len = vec.len();
 
     let gl_buf = state
       .create_buffer()
@@ -113,19 +109,16 @@ where
     state.bind_array_buffer(Some(&gl_buf), Bind::Forced);
 
     let bytes = mem::size_of::<T>() * len;
-    let data = slice::from_raw_parts(slice.as_ptr() as *const _, bytes);
+    let data = slice::from_raw_parts(vec.as_ptr() as *const _, bytes);
     state.ctx.buffer_data_with_u8_array(
       WebGl2RenderingContext::ARRAY_BUFFER,
       data,
       WebGl2RenderingContext::STREAM_DRAW,
     );
 
-    // clone what the slice points to so that we can box and persist it
-    let buf = slice.iter().copied().collect();
-
     Ok(Buffer {
       gl_buf,
-      buf,
+      buf: vec,
       state: self.state.clone(),
     })
   }

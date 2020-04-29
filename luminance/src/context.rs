@@ -55,9 +55,9 @@ use crate::framebuffer::{Framebuffer, FramebufferError};
 use crate::pipeline::PipelineGate;
 use crate::pixel::Pixel;
 use crate::shader::{ProgramBuilder, Stage, StageError, StageType};
-use crate::tess::{TessBuilder, TessError};
+use crate::tess::{TessBuilder, TessIndex};
 use crate::texture::{Dimensionable, Sampler, Texture, TextureError};
-use crate::vertex::Semantics;
+use crate::vertex::{Semantics, Vertex};
 
 /// Class of graphics context.
 ///
@@ -164,6 +164,9 @@ pub unsafe trait GraphicsContext: Sized {
   fn new_tess<V, I, W>(&mut self) -> TessBuilder<Self::Backend, V, I, W>
   where
     Self::Backend: TessBackend<V, I, W>,
+    V: Vertex,
+    I: TessIndex,
+    W: Vertex,
   {
     TessBuilder::new(self)
   }

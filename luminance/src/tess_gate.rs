@@ -6,7 +6,8 @@
 
 use crate::backend::tess_gate::TessGate as TessGateBackend;
 use crate::context::GraphicsContext;
-use crate::tess::TessView;
+use crate::tess::{TessIndex, TessView};
+use crate::vertex::Vertex;
 
 /// Tessellation gates.
 pub struct TessGate<'a, C>
@@ -25,9 +26,9 @@ where
   where
     C::Backend: TessGateBackend<V, I, W>,
     T: Into<TessView<'b, C::Backend, V, I, W>>,
-    V: 'b,
-    I: 'b,
-    W: 'b,
+    V: Vertex + 'b,
+    I: TessIndex + 'b,
+    W: Vertex + 'b,
   {
     let tess_view = tess_view.into();
 

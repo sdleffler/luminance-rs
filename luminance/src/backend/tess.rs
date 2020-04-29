@@ -2,26 +2,24 @@
 //!
 //! This interface defines the low-level API tessellations must implement to be usable.
 
-use std::ops::DerefMut;
+use std::ops::{Deref, DerefMut};
 
-use crate::backend::buffer::Buffer;
-use crate::tess::{Mode, TessError, TessIndex, TessMapError, TessStorage};
-use crate::vertex::Vertex;
+use crate::tess::{Mode, TessError, TessIndex, TessMapError, TessVertexData};
+use crate::vertex::{Deinterleave, Vertex};
 
-pub unsafe trait Tess<V, I, W> {
+pub unsafe trait Tess<V, I, W>
+where
+  V: Vertex,
+  I: TessIndex,
+  W: Vertex,
+{
   type TessRepr;
-
-  type VertexSliceRepr: DerefMut<Target = [V]>;
-
-  type IndexSliceRepr: DerefMut<Target = [I]>;
-
-  type InstanceSliceRepr: DerefMut<Target = [W]>;
 
   unsafe fn build(
     &mut self,
-    vertex_data: Vec<V>,
+    vertex_data: TessVertexData<V>,
     index_data: Vec<I>,
-    instance_data: Vec<W>,
+    instance_data: TessVertexData<W>,
     mode: Mode,
     vert_nb: usize,
     inst_nb: usize,
@@ -38,30 +36,51 @@ pub unsafe trait Tess<V, I, W> {
     vert_nb: usize,
     inst_nb: usize,
   ) -> Result<(), TessError>;
+}
 
-  unsafe fn vertices(tess: &mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError>
-  where
-    V: Vertex;
+pub unsafe trait VertexSlice<V, I, W, T>: Tess<V, I, W>
+where
+  V: Vertex + Deinterleave<T>,
+  I: TessIndex,
+  W: Vertex,
+{
+  type VertexSliceRepr: Deref<Target = [T]>;
+  type VertexSliceMutRepr: DerefMut<Target = [T]>;
 
-  unsafe fn vertices_mut(tess: &mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError>
-  where
-    V: Vertex;
+  unsafe fn vertices(tess: &mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError>;
 
-  unsafe fn indices(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError>
-  where
-    I: TessIndex;
+  unsafe fn vertices_mut(
+    tess: &mut Self::TessRepr,
+  ) -> Result<Self::VertexSliceMutRepr, TessMapError>;
+}
 
-  unsafe fn indices_mut(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError>
-  where
-    I: TessIndex;
+pub unsafe trait IndexSlice<V, I, W>: Tess<V, I, W>
+where
+  V: Vertex,
+  I: TessIndex,
+  W: Vertex,
+{
+  type IndexSliceRepr: Deref<Target = [I]>;
+  type IndexSliceMutRepr: DerefMut<Target = [I]>;
 
-  unsafe fn instances(tess: &mut Self::TessRepr) -> Result<Self::InstanceSliceRepr, TessMapError>
-  where
-    W: Vertex;
+  unsafe fn indices(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError>;
+
+  unsafe fn indices_mut(tess: &mut Self::TessRepr)
+    -> Result<Self::IndexSliceMutRepr, TessMapError>;
+}
+
+pub unsafe trait InstanceSlice<V, I, W, T>: Tess<V, I, W>
+where
+  V: Vertex,
+  I: TessIndex,
+  W: Vertex + Deinterleave<T>,
+{
+  type InstanceSliceRepr: Deref<Target = [T]>;
+  type InstanceSliceMutRepr: DerefMut<Target = [T]>;
+
+  unsafe fn instances(tess: &mut Self::TessRepr) -> Result<Self::InstanceSliceRepr, TessMapError>;
 
   unsafe fn instances_mut(
     tess: &mut Self::TessRepr,
-  ) -> Result<Self::InstanceSliceRepr, TessMapError>
-  where
-    W: Vertex;
+  ) -> Result<Self::InstanceSliceMutRepr, TessMapError>;
 }

@@ -16,7 +16,9 @@ use luminance::backend::tess_gate::TessGate;
 use luminance::pipeline::{PipelineError, PipelineState, Viewport};
 use luminance::pixel::Pixel;
 use luminance::render_state::RenderState;
+use luminance::tess::TessIndex;
 use luminance::texture::Dimensionable;
+use luminance::vertex::Vertex;
 
 #[non_exhaustive]
 pub struct Pipeline {
@@ -150,7 +152,7 @@ where
       binding
     });
 
-    state.bind_buffer_base(buffer.handle, binding);
+    state.bind_buffer_base(buffer.gl_buf, binding);
 
     Ok(BoundBuffer {
       binding,
@@ -203,7 +205,12 @@ where
   }
 }
 
-unsafe impl TessGate for GL33 {
+unsafe impl<V, I, W> TessGate<V, I, W> for GL33
+where
+  V: Vertex,
+  I: TessIndex,
+  W: Vertex,
+{
   unsafe fn render(
     &mut self,
     tess: &Self::TessRepr,
@@ -211,7 +218,7 @@ unsafe impl TessGate for GL33 {
     vert_nb: usize,
     inst_nb: usize,
   ) {
-    let _ = <Self as Tess>::render(tess, start_index, vert_nb, inst_nb);
+    let _ = <Self as Tess<V, I, W>>::render(tess, start_index, vert_nb, inst_nb);
   }
 }
 

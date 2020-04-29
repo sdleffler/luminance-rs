@@ -183,36 +183,13 @@ fn process_struct(
     }
   };
 
-  let fields_ranks = (0..fields_types.len()).map(Index::from);
-  let fields_tuple = quote! { ( #(Vec<#fields_types>,)* ) };
-  let tess_storage = quote! {
-    impl<B> luminance::tess::TessStorage<B, luminance::tess::Interleaved> for #struct_name
-    where
-      B: ?Sized + luminance::backend::buffer::Buffer<#struct_name>
-    {
-      type Target = Vec<#struct_name>;
-    }
-
-    impl<B> luminance::tess::TessStorage<B, luminance::tess::GPUInterleaved> for #struct_name
-    where
-      B: ?Sized + luminance::backend::buffer::Buffer<#struct_name>
-    {
-      type Target = luminance::buffer::Buffer<B, #struct_name>;
-    }
-
-    impl<B> luminance::tess::TessStorage<B, luminance::tess::Deinterleaved> for #struct_name
-    where
-      B: ?Sized + #(luminance::backend::buffer::Buffer<#fields_types> +)*
-    {
-      type Target = (#(Vec<#fields_types>,)*);
-    }
-
-    impl<B> luminance::tess::TessStorage<B, luminance::tess::GPUDeinterleaved> for #struct_name
-    where
-      B: ?Sized + #(luminance::backend::buffer::Buffer<#fields_types> +)*
-    {
-      type Target = (#(luminance::buffer::Buffer<B, #fields_types>,)*);
-    }
+  let fields_ranks = (0..fields_types.len()).into_iter().map(Index::from);
+  let deinterleave_impls = quote! {
+    #(
+      impl luminance::vertex::Deinterleave<#fields_types> for #struct_name {
+        const RANK: usize = #fields_ranks;
+      }
+    )*
   };
 
   quote! {
@@ -223,8 +200,7 @@ fn process_struct(
       }
     }
 
-    // TessStorage implementation
-    #tess_storage
+    #deinterleave_impls
 
     // helper function for the generate type
     #fn_new

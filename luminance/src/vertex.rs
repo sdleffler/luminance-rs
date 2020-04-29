@@ -20,15 +20,26 @@ use std::fmt::Debug;
 ///
 /// > Note: implementing this trait is `unsafe`.
 pub unsafe trait Vertex: Copy {
+  /// Number of attributes.
+  const ATTR_COUNT: usize;
+
   /// The associated vertex format.
   fn vertex_desc() -> VertexDesc;
 }
 
-//unsafe impl Vertex for () {
-//  fn vertex_desc() -> VertexDesc {
-//    Vec::new()
-//  }
-//}
+unsafe impl Vertex for () {
+  const ATTR_COUNT: usize = 0;
+
+  fn vertex_desc() -> VertexDesc {
+    Vec::new()
+  }
+}
+
+/// TODO
+pub trait Deinterleave<T> {
+  /// Rank of the type in the original type.
+  const RANK: usize;
+}
 
 /// A [`VertexDesc`] is a list of [`VertexBufferDesc`]s.
 pub type VertexDesc = Vec<VertexBufferDesc>;
