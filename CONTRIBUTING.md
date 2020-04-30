@@ -57,7 +57,7 @@ This project is a _free  and  open-source_ project. It has no financial motivati
 Coding conventions are enforced by `rustfmt`. You are expected to provide code that is formatted by `rustfmt`
 with the top-level `rustfmt.toml` file.
 
-Coding convention is enforced in the Continuation Integration pipeline. If you want your work to be
+Coding convention is enforced in the Continuous Integration pipeline. If you want your work to be
 mergeable, format your code.
 
 # How to make a change
