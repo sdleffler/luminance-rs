@@ -13,6 +13,7 @@ use luminance::backend::render_gate::RenderGate;
 use luminance::backend::shading_gate::ShadingGate;
 use luminance::backend::tess::Tess;
 use luminance::backend::tess_gate::TessGate;
+use luminance::blending::BlendingMode;
 use luminance::pipeline::{PipelineError, PipelineState, Viewport};
 use luminance::pixel::Pixel;
 use luminance::render_state::RenderState;
@@ -245,8 +246,16 @@ unsafe impl RenderGate for GL33 {
     match rdr_st.blending {
       Some(blending) => {
         gfx_state.set_blending_state(BlendingState::On);
-        gfx_state.set_blending_equation(blending.equation);
-        gfx_state.set_blending_func(blending.src, blending.dst);
+        match blending {
+          BlendingMode::Combined(b) => {
+            gfx_state.set_blending_equation(b.equation);
+            gfx_state.set_blending_func(b.src, b.dst);
+          }
+          BlendingMode::Separate { rgb, alpha } => {
+            gfx_state.set_blending_equation_separate(rgb.equation, alpha.equation);
+            gfx_state.set_blending_func_separate(rgb.src, rgb.dst, alpha.src, alpha.dst);
+          }
+        }
       }
       None => {
         gfx_state.set_blending_state(BlendingState::Off);

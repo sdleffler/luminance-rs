@@ -62,11 +62,11 @@ pub enum Factor {
   DstAlpha,
   /// `(1 - dstA) * color`
   DstAlphaComplement,
-  /// This behavior is still not well understood. Dammit.
+  /// For colors, `min(srcA, 1 - dstA)`, for alpha, `1`
   SrcAlphaSaturate,
 }
 
-/// Blending configuration.
+/// Basic blending configuration.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub struct Blending {
   /// Blending equation to use.
@@ -75,4 +75,25 @@ pub struct Blending {
   pub src: Factor,
   /// Destination factor.
   pub dst: Factor,
+}
+
+/// Blending configuration to represent combined or separate options.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum BlendingMode {
+  /// Blending with combined RGBA.
+  Combined(Blending),
+
+  /// Blending with RGB and alpha separately.
+  Separate {
+    /// Blending configuration for RGB components.
+    rgb: Blending,
+    /// Blending configuration for alpha component.
+    alpha: Blending,
+  },
+}
+
+impl From<Blending> for BlendingMode {
+  fn from(blending: Blending) -> Self {
+    BlendingMode::Combined(blending)
+  }
 }
