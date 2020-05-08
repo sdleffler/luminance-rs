@@ -294,6 +294,31 @@ pub enum TessVertexData<T> {
   Deinterleaved(Vec<Vec<u8>>),
 }
 
+impl<T> TessVertexData<T> {
+  /// Return the _coherent_ length.
+  ///
+  /// The length is always coherent if the data is interleaved and is coherent
+  /// if all attributes have the same length for deinterleaved memory.
+  pub fn coherent_len(&self) -> Result<usize, TessError> {
+    match *self {
+      TessVertexData::Interleaved(ref vertices) => Ok(vertices.len()),
+      TessVertexData::Deinterleaved(ref attributes) => {
+        if attributes.is_empty() {
+          Ok(0)
+        } else {
+          let len = attributes[0].len();
+
+          if attributes[1..].iter().any(|a| a.len() != len) {
+            Err(TessError::LengthIncoherency(len))
+          } else {
+            Ok(len)
+          }
+        }
+      }
+    }
+  }
+}
+
 /// [`Tess`] builder object.
 ///
 /// This type allows to create [`Tess`] via a _builder pattern_. You have several flavors of
@@ -532,6 +557,10 @@ where
   ///   same size. Otherwise, the GPU will not know what values use for missing attributes in
   ///   vertices.
   pub fn build(self) -> Result<Tess<B, V, I, W>, TessError> {
+    // validate input data before giving it to the backend
+    let vert_nb = self.guess_vertex_len()?;
+    let inst_nb = self.guess_instance_len()?;
+
     unsafe {
       self
         .backend
@@ -540,11 +569,57 @@ where
           self.index_data,
           self.instance_data,
           self.mode,
-          self.vert_nb,
-          self.inst_nb,
+          vert_nb,
+          inst_nb,
           self.restart_index,
         )
         .map(|repr| Tess { repr })
+    }
+  }
+
+  fn guess_vertex_len(&self) -> Result<usize, TessError> {
+    // if we don’t have an explicit number of vertex to render, we rely on the vertex data coherent
+    // length
+    if self.vert_nb == 0 {
+      // if we don’t have index data, get the length from the vertex data; otherwise, get it from
+      // the index data
+      if self.index_data.is_empty() {
+        self.vertex_data.coherent_len()
+      } else {
+        Ok(self.index_data.len())
+      }
+    } else {
+      // ensure the length is okay regarding what we have in the index / vertex data
+      if self.index_data.is_empty() {
+        let coherent_len = self.vertex_data.coherent_len()?;
+
+        if self.vert_nb <= coherent_len {
+          Ok(self.vert_nb)
+        } else {
+          Err(TessError::LengthIncoherency(self.vert_nb))
+        }
+      } else {
+        if self.vert_nb <= self.index_data.len() {
+          Ok(self.vert_nb)
+        } else {
+          Err(TessError::LengthIncoherency(self.vert_nb))
+        }
+      }
+    }
+  }
+
+  fn guess_instance_len(&self) -> Result<usize, TessError> {
+    // as with vertex length, we first check for an explicit number, and if none, we deduce it
+    if self.inst_nb == 0 {
+      self.instance_data.coherent_len()
+    } else {
+      let coherent_len = self.instance_data.coherent_len()?;
+
+      if self.inst_nb <= coherent_len {
+        Ok(self.inst_nb)
+      } else {
+        Err(TessError::LengthIncoherency(self.inst_nb))
+      }
     }
   }
 }
