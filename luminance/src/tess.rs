@@ -286,34 +286,56 @@ unsafe impl TessIndex for u32 {
   const INDEX_TYPE: TessIndexType = TessIndexType::U32;
 }
 
+/// Interleaved memory marker.
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+pub enum Interleaved {}
+
+/// Deinterleaved memory marker.
+#[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
+pub enum Deinterleaved {}
+
 /// Vertex input data of a [`TessBuilder`].
-pub enum TessVertexData<T> {
-  /// Interleaved memory.
-  Interleaved(Vec<T>),
-  /// Deinterleaved memory.
-  Deinterleaved(Vec<Vec<u8>>),
+pub trait TessVertexData<S>: Vertex
+where
+  S: ?Sized,
+{
+  /// Vertex storage type.
+  type Data;
+
+  /// Coherent length of the vertices.
+  ///
+  /// Vertices length can be incohent for some implementations of [`TessVertexData::Data`],
+  /// especially with deinterleaved memory.
+  fn coherent_len(data: &Self::Data) -> Result<usize, TessError>;
 }
 
-impl<T> TessVertexData<T> {
-  /// Return the _coherent_ length.
-  ///
-  /// The length is always coherent if the data is interleaved and is coherent
-  /// if all attributes have the same length for deinterleaved memory.
-  pub fn coherent_len(&self) -> Result<usize, TessError> {
-    match *self {
-      TessVertexData::Interleaved(ref vertices) => Ok(vertices.len()),
-      TessVertexData::Deinterleaved(ref attributes) => {
-        if attributes.is_empty() {
-          Ok(0)
-        } else {
-          let len = attributes[0].len();
+impl<V> TessVertexData<Interleaved> for V
+where
+  V: Vertex,
+{
+  type Data = Vec<V>;
 
-          if attributes[1..].iter().any(|a| a.len() != len) {
-            Err(TessError::LengthIncoherency(len))
-          } else {
-            Ok(len)
-          }
-        }
+  fn coherent_len(data: &Self::Data) -> Result<usize, TessError> {
+    Ok(data.len())
+  }
+}
+
+impl<V> TessVertexData<Deinterleaved> for V
+where
+  V: Vertex,
+{
+  type Data = Vec<Vec<u8>>;
+
+  fn coherent_len(data: &Self::Data) -> Result<usize, TessError> {
+    if data.is_empty() {
+      Ok(0)
+    } else {
+      let len = data[0].len();
+
+      if data[1..].iter().any(|a| a.len() != len) {
+        Err(TessError::LengthIncoherency(len))
+      } else {
+        Ok(len)
       }
     }
   }
@@ -357,14 +379,17 @@ impl<T> TessVertexData<T> {
 /// - `B` is the backend type
 /// - `V` is the vertex type.
 /// - `S` is the storage type.
-pub struct TessBuilder<'a, B, V, I = (), W = ()>
+pub struct TessBuilder<'a, B, V, I = (), W = (), S = Interleaved>
 where
   B: ?Sized,
+  V: TessVertexData<S>,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   backend: &'a mut B,
-  vertex_data: TessVertexData<V>,
+  vertex_data: Option<V::Data>,
   index_data: Vec<I>,
-  instance_data: TessVertexData<W>,
+  instance_data: Option<W::Data>,
   mode: Mode,
   vert_nb: usize,
   inst_nb: usize,
@@ -372,12 +397,13 @@ where
   _phantom: PhantomData<&'a mut ()>,
 }
 
-impl<'a, B, V, I, W> TessBuilder<'a, B, V, I, W>
+impl<'a, B, V, I, W, S> TessBuilder<'a, B, V, I, W, S>
 where
   B: ?Sized,
-  V: Vertex,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   /// Create a new default [`TessBuilder`].
   ///
@@ -392,9 +418,9 @@ where
   {
     TessBuilder {
       backend: ctx.backend(),
-      vertex_data: TessVertexData::Interleaved(Vec::new()),
+      vertex_data: None,
       index_data: Vec::new(),
-      instance_data: TessVertexData::Interleaved(Vec::new()),
+      instance_data: None,
       mode: Mode::Point,
       vert_nb: 0,
       inst_nb: 0,
@@ -403,107 +429,15 @@ where
     }
   }
 
-  /// Add vertices to be bundled in the [`Tess`].
-  ///
-  /// Every time you call that function, the set of vertices is replaced by the one you provided.
-  pub fn set_vertices<S>(mut self, vertices: S) -> Self
-  where
-    S: Into<Vec<V>>,
-  {
-    self.vertex_data = TessVertexData::Interleaved(vertices.into());
-    self
-  }
-
-  /// Add vertices to be bundled in the [`Tess`].
-  ///
-  /// Every time you call that function, the set of vertices is replaced by the one you provided.
-  pub fn set_vertex_attributes<A, S>(mut self, attributes: S) -> Self
-  where
-    S: Into<Vec<A>>,
-    V: Deinterleave<A>,
-  {
-    let build_raw = |deinterleaved: &mut Vec<Vec<u8>>| {
-      // turn the attribute into a raw vector (Vec<u8>)
-      let boxed_slice = attributes.into().into_boxed_slice();
-      let len_bytes = boxed_slice.len() * std::mem::size_of::<A>();
-      let ptr = Box::into_raw(boxed_slice);
-      // please Dog pardon me
-      let data = unsafe { Vec::from_raw_parts(ptr as _, len_bytes, len_bytes) };
-
-      deinterleaved[V::RANK] = data;
-    };
-
-    match self.vertex_data {
-      TessVertexData::Interleaved(_) => {
-        let mut deinterleaved = vec![Vec::new(); V::ATTR_COUNT];
-        build_raw(&mut deinterleaved);
-
-        self.vertex_data = TessVertexData::Deinterleaved(deinterleaved);
-      }
-
-      TessVertexData::Deinterleaved(ref mut deinterleaved) => {
-        build_raw(deinterleaved);
-      }
-    }
-
-    self
-  }
-
   /// Add indices to be bundled in the [`Tess`].
   ///
   /// Every time you call that function, the set of indices is replaced by the one you provided.
   /// The type of expected indices is ruled by the `II` type variable you chose.
-  pub fn set_indices<S>(mut self, indices: S) -> Self
+  pub fn set_indices<X>(mut self, indices: X) -> Self
   where
-    S: Into<Vec<I>>,
+    X: Into<Vec<I>>,
   {
     self.index_data = indices.into();
-    self
-  }
-
-  /// Add instances to be bundled in the [`Tess`].
-  ///
-  /// Every time you call that function, the set of instances is replaced by the one you provided.
-  pub fn set_instances<S>(mut self, instances: S) -> Self
-  where
-    S: Into<Vec<W>>,
-  {
-    self.instance_data = TessVertexData::Interleaved(instances.into());
-    self
-  }
-
-  /// Add instances to be bundled in the [`Tess`].
-  ///
-  /// Every time you call that function, the set of vertices is replaced by the one you provided.
-  pub fn set_instance_attributes<A, S>(mut self, attributes: S) -> Self
-  where
-    S: Into<Vec<A>>,
-    W: Deinterleave<A>,
-  {
-    let build_raw = |deinterleaved: &mut Vec<Vec<u8>>| {
-      // turn the attribute into a raw vector (Vec<u8>)
-      let boxed_slice = attributes.into().into_boxed_slice();
-      let len_bytes = boxed_slice.len() * std::mem::size_of::<A>();
-      let ptr = Box::into_raw(boxed_slice);
-      // please Dog pardon me
-      let data = unsafe { Vec::from_raw_parts(ptr as _, len_bytes, len_bytes) };
-
-      deinterleaved[W::RANK] = data;
-    };
-
-    match self.vertex_data {
-      TessVertexData::Interleaved(_) => {
-        let mut deinterleaved = vec![Vec::new(); W::ATTR_COUNT];
-        build_raw(&mut deinterleaved);
-
-        self.vertex_data = TessVertexData::Deinterleaved(deinterleaved);
-      }
-
-      TessVertexData::Deinterleaved(ref mut deinterleaved) => {
-        build_raw(deinterleaved);
-      }
-    }
-
     self
   }
 
@@ -540,12 +474,120 @@ where
   }
 }
 
-impl<'a, B, V, I, W> TessBuilder<'a, B, V, I, W>
+impl<'a, B, V, I, W> TessBuilder<'a, B, V, I, W, Interleaved>
 where
-  B: ?Sized + TessBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized,
+  V: TessVertexData<Interleaved, Data = Vec<V>>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<Interleaved, Data = Vec<W>>,
+{
+  /// Add vertices to be bundled in the [`Tess`].
+  ///
+  /// Every time you call that function, the set of vertices is replaced by the one you provided.
+  pub fn set_vertices<X>(mut self, vertices: X) -> Self
+  where
+    X: Into<Vec<V>>,
+  {
+    self.vertex_data = Some(vertices.into());
+    self
+  }
+
+  /// Add instances to be bundled in the [`Tess`].
+  ///
+  /// Every time you call that function, the set of instances is replaced by the one you provided.
+  pub fn set_instances<X>(mut self, instances: X) -> Self
+  where
+    X: Into<Vec<W>>,
+  {
+    self.instance_data = Some(instances.into());
+    self
+  }
+}
+
+impl<'a, B, V, I, W> TessBuilder<'a, B, V, I, W, Deinterleaved>
+where
+  B: ?Sized,
+  V: TessVertexData<Deinterleaved, Data = Vec<Vec<u8>>>,
+  I: TessIndex,
+  W: TessVertexData<Deinterleaved, Data = Vec<Vec<u8>>>,
+{
+  /// Add vertices to be bundled in the [`Tess`].
+  ///
+  /// Every time you call that function, the set of vertices is replaced by the one you provided.
+  pub fn set_vertices<A, X>(mut self, attributes: X) -> Self
+  where
+    X: Into<Vec<A>>,
+    V: Deinterleave<A>,
+  {
+    let build_raw = |deinterleaved: &mut Vec<Vec<u8>>| {
+      // turn the attribute into a raw vector (Vec<u8>)
+      let boxed_slice = attributes.into().into_boxed_slice();
+      let len_bytes = boxed_slice.len() * std::mem::size_of::<A>();
+      let ptr = Box::into_raw(boxed_slice);
+      // please Dog pardon me
+      let data = unsafe { Vec::from_raw_parts(ptr as _, len_bytes, len_bytes) };
+
+      deinterleaved[V::RANK] = data;
+    };
+
+    match self.vertex_data {
+      Some(ref mut deinterleaved) => {
+        build_raw(deinterleaved);
+      }
+
+      None => {
+        let mut deinterleaved = vec![Vec::new(); V::ATTR_COUNT];
+        build_raw(&mut deinterleaved);
+
+        self.vertex_data = Some(deinterleaved);
+      }
+    }
+
+    self
+  }
+
+  /// Add instances to be bundled in the [`Tess`].
+  ///
+  /// Every time you call that function, the set of instances is replaced by the one you provided.
+  pub fn set_instances<A, X>(mut self, attributes: X) -> Self
+  where
+    X: Into<Vec<A>>,
+    W: Deinterleave<A>,
+  {
+    let build_raw = |deinterleaved: &mut Vec<Vec<u8>>| {
+      // turn the attribute into a raw vector (Vec<u8>)
+      let boxed_slice = attributes.into().into_boxed_slice();
+      let len_bytes = boxed_slice.len() * std::mem::size_of::<A>();
+      let ptr = Box::into_raw(boxed_slice);
+      // please Dog pardon me
+      let data = unsafe { Vec::from_raw_parts(ptr as _, len_bytes, len_bytes) };
+
+      deinterleaved[W::RANK] = data;
+    };
+
+    match self.instance_data {
+      None => {
+        let mut deinterleaved = vec![Vec::new(); W::ATTR_COUNT];
+        build_raw(&mut deinterleaved);
+
+        self.instance_data = Some(deinterleaved);
+      }
+
+      Some(ref mut deinterleaved) => {
+        build_raw(deinterleaved);
+      }
+    }
+
+    self
+  }
+}
+
+impl<'a, B, V, I, W, S> TessBuilder<'a, B, V, I, W, S>
+where
+  B: ?Sized + TessBackend<V, I, W, S>,
+  V: TessVertexData<S>,
+  I: TessIndex,
+  W: TessVertexData<S>,
 {
   /// Build a [`Tess`] if the [`TessBuilder`] has enough data and is in a valid state. What is
   /// needed is backend-dependent but most of the time, you will want to:
@@ -556,7 +598,7 @@ where
   ///   and/or [`TessBuilder::add_instances`], do not forget that you must submit sets with the
   ///   same size. Otherwise, the GPU will not know what values use for missing attributes in
   ///   vertices.
-  pub fn build(self) -> Result<Tess<B, V, I, W>, TessError> {
+  pub fn build(self) -> Result<Tess<B, V, I, W, S>, TessError> {
     // validate input data before giving it to the backend
     let vert_nb = self.guess_vertex_len()?;
     let inst_nb = self.guess_instance_len()?;
@@ -573,7 +615,10 @@ where
           inst_nb,
           self.restart_index,
         )
-        .map(|repr| Tess { repr })
+        .map(|repr| Tess {
+          repr,
+          _phantom: PhantomData,
+        })
     }
   }
 
@@ -584,14 +629,22 @@ where
       // if we don’t have index data, get the length from the vertex data; otherwise, get it from
       // the index data
       if self.index_data.is_empty() {
-        self.vertex_data.coherent_len()
+        self
+          .vertex_data
+          .as_ref()
+          .ok_or_else(|| TessError::AttributelessError("missing number of vertices".to_owned()))
+          .and_then(V::coherent_len)
       } else {
         Ok(self.index_data.len())
       }
     } else {
       // ensure the length is okay regarding what we have in the index / vertex data
       if self.index_data.is_empty() {
-        let coherent_len = self.vertex_data.coherent_len()?;
+        let coherent_len = self
+          .vertex_data
+          .as_ref()
+          .ok_or_else(|| TessError::AttributelessError("missing number of vertices".to_owned()))
+          .and_then(V::coherent_len)?;
 
         if self.vert_nb <= coherent_len {
           Ok(self.vert_nb)
@@ -611,9 +664,17 @@ where
   fn guess_instance_len(&self) -> Result<usize, TessError> {
     // as with vertex length, we first check for an explicit number, and if none, we deduce it
     if self.inst_nb == 0 {
-      self.instance_data.coherent_len()
+      self
+        .instance_data
+        .as_ref()
+        .ok_or_else(|| TessError::AttributelessError("missing number of instances".to_owned()))
+        .and_then(W::coherent_len)
     } else {
-      let coherent_len = self.instance_data.coherent_len()?;
+      let coherent_len = self
+        .instance_data
+        .as_ref()
+        .ok_or_else(|| TessError::AttributelessError("missing number of instances".to_owned()))
+        .and_then(W::coherent_len)?;
 
       if self.inst_nb <= coherent_len {
         Ok(self.inst_nb)
@@ -638,22 +699,25 @@ where
 /// [`Semantics`]: crate::vertex::Semantics
 /// [`TessGate`]: crate::tess_gate::TessGate
 #[derive(Debug)]
-pub struct Tess<B, V, I, W>
+pub struct Tess<B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   pub(crate) repr: B::TessRepr,
+  _phantom: PhantomData<*const S>,
 }
 
-impl<B, V, I, W> Tess<B, V, I, W>
+impl<B, V, I, W, S> Tess<B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   /// Get the number of vertices.
   pub fn vert_nb(&self) -> usize {
@@ -667,10 +731,86 @@ where
 
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
-  /// This method gives access to the underlying _vertex storage_.
-  pub fn vertices<T>(&mut self) -> Result<Vertices<B, V, I, W, T>, TessMapError>
+  /// This method gives access to the underlying _index storage_.
+  pub fn indices(&mut self) -> Result<Indices<B, V, I, W, S>, TessMapError>
   where
-    B: VertexSliceBackend<V, I, W, T>,
+    B: IndexSliceBackend<V, I, W, S>,
+  {
+    unsafe { B::indices(&mut self.repr).map(|repr| Indices { repr }) }
+  }
+
+  /// Slice the [`Tess`] in order to read its content via usual slices.
+  ///
+  /// This method gives access to the underlying _index storage_.
+  pub fn indices_mut(&mut self) -> Result<IndicesMut<B, V, I, W, S>, TessMapError>
+  where
+    B: IndexSliceBackend<V, I, W, S>,
+  {
+    unsafe { B::indices_mut(&mut self.repr).map(|repr| IndicesMut { repr }) }
+  }
+}
+
+impl<B, V, I, W> Tess<B, V, I, W, Interleaved>
+where
+  B: ?Sized + TessBackend<V, I, W, Interleaved>,
+  V: TessVertexData<Interleaved>,
+  I: TessIndex,
+  W: TessVertexData<Interleaved>,
+{
+  /// Slice the [`Tess`] in order to read its content via usual slices.
+  ///
+  /// This method gives access to the underlying _vertex storage_.
+  pub fn vertices(&mut self) -> Result<Vertices<B, V, I, W, Interleaved, V>, TessMapError>
+  where
+    B: VertexSliceBackend<V, I, W, Interleaved, V>,
+  {
+    unsafe { B::vertices(&mut self.repr).map(|repr| Vertices { repr }) }
+  }
+
+  /// Slice the [`Tess`] in order to read its content via usual slices.
+  ///
+  /// This method gives access to the underlying _vertex storage_.
+  pub fn vertices_mut(&mut self) -> Result<VerticesMut<B, V, I, W, Interleaved, V>, TessMapError>
+  where
+    B: VertexSliceBackend<V, I, W, Interleaved, V>,
+  {
+    unsafe { B::vertices_mut(&mut self.repr).map(|repr| VerticesMut { repr }) }
+  }
+
+  /// Slice the [`Tess`] in order to read its content via usual slices.
+  ///
+  /// This method gives access to the underlying _instance storage_.
+  pub fn instances(&mut self) -> Result<Instances<B, V, I, W, Interleaved, V>, TessMapError>
+  where
+    B: InstanceSliceBackend<V, I, W, Interleaved, V>,
+  {
+    unsafe { B::instances(&mut self.repr).map(|repr| Instances { repr }) }
+  }
+
+  /// Slice the [`Tess`] in order to read its content via usual slices.
+  ///
+  /// This method gives access to the underlying _instance storage_.
+  pub fn instances_mut(&mut self) -> Result<InstancesMut<B, V, I, W, Interleaved, V>, TessMapError>
+  where
+    B: InstanceSliceBackend<V, I, W, Interleaved, V>,
+  {
+    unsafe { B::instances_mut(&mut self.repr).map(|repr| InstancesMut { repr }) }
+  }
+}
+
+impl<B, V, I, W> Tess<B, V, I, W, Deinterleaved>
+where
+  B: ?Sized + TessBackend<V, I, W, Deinterleaved>,
+  V: TessVertexData<Deinterleaved>,
+  I: TessIndex,
+  W: TessVertexData<Deinterleaved>,
+{
+  /// Slice the [`Tess`] in order to read its content via usual slices.
+  ///
+  /// This method gives access to the underlying _vertex storage_.
+  pub fn vertices<T>(&mut self) -> Result<Vertices<B, V, I, W, Deinterleaved, T>, TessMapError>
+  where
+    B: VertexSliceBackend<V, I, W, Deinterleaved, T>,
     V: Deinterleave<T>,
   {
     unsafe { B::vertices(&mut self.repr).map(|repr| Vertices { repr }) }
@@ -679,9 +819,11 @@ where
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
   /// This method gives access to the underlying _vertex storage_.
-  pub fn vertices_mut<T>(&mut self) -> Result<VerticesMut<B, V, I, W, T>, TessMapError>
+  pub fn vertices_mut<T>(
+    &mut self,
+  ) -> Result<VerticesMut<B, V, I, W, Deinterleaved, T>, TessMapError>
   where
-    B: VertexSliceBackend<V, I, W, T>,
+    B: VertexSliceBackend<V, I, W, Deinterleaved, T>,
     V: Deinterleave<T>,
   {
     unsafe { B::vertices_mut(&mut self.repr).map(|repr| VerticesMut { repr }) }
@@ -689,30 +831,10 @@ where
 
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
-  /// This method gives access to the underlying _index storage_.
-  pub fn indices(&mut self) -> Result<Indices<B, V, I, W>, TessMapError>
-  where
-    B: IndexSliceBackend<V, I, W>,
-  {
-    unsafe { B::indices(&mut self.repr).map(|repr| Indices { repr }) }
-  }
-
-  /// Slice the [`Tess`] in order to read its content via usual slices.
-  ///
-  /// This method gives access to the underlying _index storage_.
-  pub fn indices_mut(&mut self) -> Result<IndicesMut<B, V, I, W>, TessMapError>
-  where
-    B: IndexSliceBackend<V, I, W>,
-  {
-    unsafe { B::indices_mut(&mut self.repr).map(|repr| IndicesMut { repr }) }
-  }
-
-  /// Slice the [`Tess`] in order to read its content via usual slices.
-  ///
   /// This method gives access to the underlying _instance storage_.
-  pub fn instances<T>(&mut self) -> Result<Instances<B, V, I, W, T>, TessMapError>
+  pub fn instances<T>(&mut self) -> Result<Instances<B, V, I, W, Deinterleaved, T>, TessMapError>
   where
-    B: InstanceSliceBackend<V, I, W, T>,
+    B: InstanceSliceBackend<V, I, W, Deinterleaved, T>,
     W: Deinterleave<T>,
   {
     unsafe { B::instances(&mut self.repr).map(|repr| Instances { repr }) }
@@ -721,9 +843,11 @@ where
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
   /// This method gives access to the underlying _instance storage_.
-  pub fn instances_mut<T>(&mut self) -> Result<InstancesMut<B, V, I, W, T>, TessMapError>
+  pub fn instances_mut<T>(
+    &mut self,
+  ) -> Result<InstancesMut<B, V, I, W, Deinterleaved, T>, TessMapError>
   where
-    B: InstanceSliceBackend<V, I, W, T>,
+    B: InstanceSliceBackend<V, I, W, Deinterleaved, T>,
     W: Deinterleave<T>,
   {
     unsafe { B::instances_mut(&mut self.repr).map(|repr| InstancesMut { repr }) }
@@ -732,22 +856,24 @@ where
 
 /// TODO
 #[derive(Debug)]
-pub struct Vertices<B, V, I, W, T>
+pub struct Vertices<B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W> + VertexSliceBackend<V, I, W, T>,
-  V: Vertex + Deinterleave<T>,
+  B: ?Sized + TessBackend<V, I, W, S> + VertexSliceBackend<V, I, W, S, T>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   repr: B::VertexSliceRepr,
 }
 
-impl<B, V, I, W, T> Deref for Vertices<B, V, I, W, T>
+impl<B, V, I, W, S, T> Deref for Vertices<B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W> + VertexSliceBackend<V, I, W, T>,
-  V: Vertex + Deinterleave<T>,
+  B: ?Sized + TessBackend<V, I, W, S> + VertexSliceBackend<V, I, W, S, T>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   type Target = [T];
 
@@ -758,22 +884,24 @@ where
 
 /// TODO
 #[derive(Debug)]
-pub struct VerticesMut<B, V, I, W, T>
+pub struct VerticesMut<B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W> + VertexSliceBackend<V, I, W, T>,
-  V: Vertex + Deinterleave<T>,
+  B: ?Sized + TessBackend<V, I, W, S> + VertexSliceBackend<V, I, W, S, T>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   repr: B::VertexSliceMutRepr,
 }
 
-impl<B, V, I, W, T> Deref for VerticesMut<B, V, I, W, T>
+impl<B, V, I, W, S, T> Deref for VerticesMut<B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W> + VertexSliceBackend<V, I, W, T>,
-  V: Vertex + Deinterleave<T>,
+  B: ?Sized + TessBackend<V, I, W, S> + VertexSliceBackend<V, I, W, S, T>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   type Target = [T];
 
@@ -782,12 +910,13 @@ where
   }
 }
 
-impl<B, V, I, W, T> DerefMut for VerticesMut<B, V, I, W, T>
+impl<B, V, I, W, S, T> DerefMut for VerticesMut<B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W> + VertexSliceBackend<V, I, W, T>,
-  V: Vertex + Deinterleave<T>,
+  B: ?Sized + TessBackend<V, I, W, S> + VertexSliceBackend<V, I, W, S, T>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   fn deref_mut(&mut self) -> &mut Self::Target {
     self.repr.deref_mut()
@@ -796,22 +925,24 @@ where
 
 /// TODO
 #[derive(Debug)]
-pub struct Indices<B, V, I, W>
+pub struct Indices<B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W> + IndexSliceBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S> + IndexSliceBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   repr: B::IndexSliceRepr,
 }
 
-impl<B, V, I, W> Deref for Indices<B, V, I, W>
+impl<B, V, I, W, S> Deref for Indices<B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W> + IndexSliceBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S> + IndexSliceBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   type Target = [I];
 
@@ -822,22 +953,24 @@ where
 
 /// TODO
 #[derive(Debug)]
-pub struct IndicesMut<B, V, I, W>
+pub struct IndicesMut<B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W> + IndexSliceBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S> + IndexSliceBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   repr: B::IndexSliceMutRepr,
 }
 
-impl<B, V, I, W> Deref for IndicesMut<B, V, I, W>
+impl<B, V, I, W, S> Deref for IndicesMut<B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W> + IndexSliceBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S> + IndexSliceBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   type Target = [I];
 
@@ -846,12 +979,13 @@ where
   }
 }
 
-impl<B, V, I, W> DerefMut for IndicesMut<B, V, I, W>
+impl<B, V, I, W, S> DerefMut for IndicesMut<B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W> + IndexSliceBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S> + IndexSliceBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   fn deref_mut(&mut self) -> &mut Self::Target {
     self.repr.deref_mut()
@@ -860,22 +994,24 @@ where
 
 /// TODO
 #[derive(Debug)]
-pub struct Instances<B, V, I, W, T>
+pub struct Instances<B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W> + InstanceSliceBackend<V, I, W, T>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S> + InstanceSliceBackend<V, I, W, S, T>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex + Deinterleave<T>,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   repr: B::InstanceSliceRepr,
 }
 
-impl<B, V, I, W, T> Deref for Instances<B, V, I, W, T>
+impl<B, V, I, W, S, T> Deref for Instances<B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W> + InstanceSliceBackend<V, I, W, T>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S> + InstanceSliceBackend<V, I, W, S, T>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex + Deinterleave<T>,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   type Target = [T];
 
@@ -886,22 +1022,24 @@ where
 
 /// TODO
 #[derive(Debug)]
-pub struct InstancesMut<B, V, I, W, T>
+pub struct InstancesMut<B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W> + InstanceSliceBackend<V, I, W, T>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S> + InstanceSliceBackend<V, I, W, S, T>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex + Deinterleave<T>,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   repr: B::InstanceSliceMutRepr,
 }
 
-impl<B, V, I, W, T> Deref for InstancesMut<B, V, I, W, T>
+impl<B, V, I, W, S, T> Deref for InstancesMut<B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W> + InstanceSliceBackend<V, I, W, T>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S> + InstanceSliceBackend<V, I, W, S, T>,
+  S: ?Sized,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex + Deinterleave<T>,
+  W: TessVertexData<S>,
 {
   type Target = [T];
 
@@ -910,12 +1048,13 @@ where
   }
 }
 
-impl<B, V, I, W, T> DerefMut for InstancesMut<B, V, I, W, T>
+impl<B, V, I, W, S, T> DerefMut for InstancesMut<B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W> + InstanceSliceBackend<V, I, W, T>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S> + InstanceSliceBackend<V, I, W, S, T>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex + Deinterleave<T>,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   fn deref_mut(&mut self) -> &mut Self::Target {
     self.repr.deref_mut()
@@ -954,15 +1093,16 @@ impl error::Error for TessViewError {}
 
 /// A _view_ into a GPU tessellation.
 #[derive(Clone)]
-pub struct TessView<'a, B, V, I, W>
+pub struct TessView<'a, B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   /// Tessellation to render.
-  pub(crate) tess: &'a Tess<B, V, I, W>,
+  pub(crate) tess: &'a Tess<B, V, I, W, S>,
   /// Start index (vertex) in the tessellation.
   pub(crate) start_index: usize,
   /// Number of vertices to pick from the tessellation.
@@ -971,15 +1111,16 @@ where
   pub(crate) inst_nb: usize,
 }
 
-impl<'a, B, V, I, W> TessView<'a, B, V, I, W>
+impl<'a, B, V, I, W, S> TessView<'a, B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   /// Create a view that is using the whole input [`Tess`].
-  pub fn whole(tess: &'a Tess<B, V, I, W>) -> Self {
+  pub fn whole(tess: &'a Tess<B, V, I, W, S>) -> Self {
     TessView {
       tess,
       start_index: 0,
@@ -989,7 +1130,7 @@ where
   }
 
   /// Create a view that is using the whole input [`Tess`] with `inst_nb` instances.
-  pub fn inst_whole(tess: &'a Tess<B, V, I, W>, inst_nb: usize) -> Self {
+  pub fn inst_whole(tess: &'a Tess<B, V, I, W, S>, inst_nb: usize) -> Self {
     TessView {
       tess,
       start_index: 0,
@@ -1000,7 +1141,7 @@ where
 
   /// Create a view that is using only a subpart of the input [`Tess`], starting from the beginning
   /// of the vertices.
-  pub fn sub(tess: &'a Tess<B, V, I, W>, vert_nb: usize) -> Result<Self, TessViewError> {
+  pub fn sub(tess: &'a Tess<B, V, I, W, S>, vert_nb: usize) -> Result<Self, TessViewError> {
     let capacity = tess.vert_nb();
 
     if vert_nb > capacity {
@@ -1022,7 +1163,7 @@ where
   /// Create a view that is using only a subpart of the input [`Tess`], starting from the beginning
   /// of the vertices, with `inst_nb` instances.
   pub fn inst_sub(
-    tess: &'a Tess<B, V, I, W>,
+    tess: &'a Tess<B, V, I, W, S>,
     vert_nb: usize,
     inst_nb: usize,
   ) -> Result<Self, TessViewError> {
@@ -1046,7 +1187,11 @@ where
 
   /// Create a view that is using only a subpart of the input [`Tess`], starting from `start`, with
   /// `nb` vertices.
-  pub fn slice(tess: &'a Tess<B, V, I, W>, start: usize, nb: usize) -> Result<Self, TessViewError> {
+  pub fn slice(
+    tess: &'a Tess<B, V, I, W, S>,
+    start: usize,
+    nb: usize,
+  ) -> Result<Self, TessViewError> {
     let capacity = tess.vert_nb();
 
     if start > capacity || nb + start > capacity {
@@ -1068,7 +1213,7 @@ where
   /// Create a view that is using only a subpart of the input [`Tess`], starting from `start`, with
   /// `nb` vertices and `inst_nb` instances.
   pub fn inst_slice(
-    tess: &'a Tess<B, V, I, W>,
+    tess: &'a Tess<B, V, I, W, S>,
     start: usize,
     nb: usize,
     inst_nb: usize,
@@ -1092,14 +1237,15 @@ where
   }
 }
 
-impl<'a, B, V, I, W> From<&'a Tess<B, V, I, W>> for TessView<'a, B, V, I, W>
+impl<'a, B, V, I, W, S> From<&'a Tess<B, V, I, W, S>> for TessView<'a, B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
-  fn from(tess: &'a Tess<B, V, I, W>) -> Self {
+  fn from(tess: &'a Tess<B, V, I, W, S>) -> Self {
     TessView::whole(tess)
   }
 }
@@ -1113,29 +1259,31 @@ where
 /// - [`a ..`](https://doc.rust-lang.org/std/ops/struct.RangeFrom.html); the range-from operator.
 /// - [`.. b`](https://doc.rust-lang.org/std/ops/struct.RangeTo.html); the range-to operator.
 /// - [`..= b`](https://doc.rust-lang.org/std/ops/struct.RangeToInclusive.html); the inclusive range-to operator.
-pub trait SubTess<B, V, I, W, Idx>
+pub trait SubTess<B, V, I, W, S, Idx>
 where
-  B: ?Sized + TessBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   /// Slice a tessellation object and yields a [`TessView`] according to the index range.
-  fn slice(&self, idx: Idx) -> Result<TessView<B, V, I, W>, TessViewError>;
+  fn slice(&self, idx: Idx) -> Result<TessView<B, V, I, W, S>, TessViewError>;
 
   /// Slice a tesselation object and yields a [`TessView`] according to the index range with as
   /// many instances as specified.
-  fn inst_slice(&self, idx: Idx, inst_nb: usize) -> Result<TessView<B, V, I, W>, TessViewError>;
+  fn inst_slice(&self, idx: Idx, inst_nb: usize) -> Result<TessView<B, V, I, W, S>, TessViewError>;
 }
 
-impl<B, V, I, W> SubTess<B, V, I, W, RangeFull> for Tess<B, V, I, W>
+impl<B, V, I, W, S> SubTess<B, V, I, W, S, RangeFull> for Tess<B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
-  fn slice(&self, _: RangeFull) -> Result<TessView<B, V, I, W>, TessViewError> {
+  fn slice(&self, _: RangeFull) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     Ok(TessView::whole(self))
   }
 
@@ -1143,19 +1291,20 @@ where
     &self,
     _: RangeFull,
     inst_nb: usize,
-  ) -> Result<TessView<B, V, I, W>, TessViewError> {
+  ) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     Ok(TessView::inst_whole(self, inst_nb))
   }
 }
 
-impl<B, V, I, W> SubTess<B, V, I, W, RangeTo<usize>> for Tess<B, V, I, W>
+impl<B, V, I, W, S> SubTess<B, V, I, W, S, RangeTo<usize>> for Tess<B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
-  fn slice(&self, to: RangeTo<usize>) -> Result<TessView<B, V, I, W>, TessViewError> {
+  fn slice(&self, to: RangeTo<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     TessView::sub(self, to.end)
   }
 
@@ -1163,19 +1312,20 @@ where
     &self,
     to: RangeTo<usize>,
     inst_nb: usize,
-  ) -> Result<TessView<B, V, I, W>, TessViewError> {
+  ) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     TessView::inst_sub(self, to.end, inst_nb)
   }
 }
 
-impl<B, V, I, W> SubTess<B, V, I, W, RangeFrom<usize>> for Tess<B, V, I, W>
+impl<B, V, I, W, S> SubTess<B, V, I, W, S, RangeFrom<usize>> for Tess<B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
-  fn slice(&self, from: RangeFrom<usize>) -> Result<TessView<B, V, I, W>, TessViewError> {
+  fn slice(&self, from: RangeFrom<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     TessView::slice(self, from.start, self.vert_nb() - from.start)
   }
 
@@ -1183,19 +1333,20 @@ where
     &self,
     from: RangeFrom<usize>,
     inst_nb: usize,
-  ) -> Result<TessView<B, V, I, W>, TessViewError> {
+  ) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     TessView::inst_slice(self, from.start, self.vert_nb() - from.start, inst_nb)
   }
 }
 
-impl<B, V, I, W> SubTess<B, V, I, W, Range<usize>> for Tess<B, V, I, W>
+impl<B, V, I, W, S> SubTess<B, V, I, W, S, Range<usize>> for Tess<B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
-  fn slice(&self, range: Range<usize>) -> Result<TessView<B, V, I, W>, TessViewError> {
+  fn slice(&self, range: Range<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     TessView::slice(self, range.start, range.end - range.start)
   }
 
@@ -1203,19 +1354,20 @@ where
     &self,
     range: Range<usize>,
     inst_nb: usize,
-  ) -> Result<TessView<B, V, I, W>, TessViewError> {
+  ) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     TessView::inst_slice(self, range.start, range.end - range.start, inst_nb)
   }
 }
 
-impl<B, V, I, W> SubTess<B, V, I, W, RangeInclusive<usize>> for Tess<B, V, I, W>
+impl<B, V, I, W, S> SubTess<B, V, I, W, S, RangeInclusive<usize>> for Tess<B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
-  fn slice(&self, range: RangeInclusive<usize>) -> Result<TessView<B, V, I, W>, TessViewError> {
+  fn slice(&self, range: RangeInclusive<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     let start = *range.start();
     let end = *range.end();
     TessView::slice(self, start, end - start + 1)
@@ -1225,21 +1377,22 @@ where
     &self,
     range: RangeInclusive<usize>,
     inst_nb: usize,
-  ) -> Result<TessView<B, V, I, W>, TessViewError> {
+  ) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     let start = *range.start();
     let end = *range.end();
     TessView::inst_slice(self, start, end - start + 1, inst_nb)
   }
 }
 
-impl<B, V, I, W> SubTess<B, V, I, W, RangeToInclusive<usize>> for Tess<B, V, I, W>
+impl<B, V, I, W, S> SubTess<B, V, I, W, S, RangeToInclusive<usize>> for Tess<B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W>,
-  V: Vertex,
+  B: ?Sized + TessBackend<V, I, W, S>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
-  fn slice(&self, to: RangeToInclusive<usize>) -> Result<TessView<B, V, I, W>, TessViewError> {
+  fn slice(&self, to: RangeToInclusive<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     TessView::sub(self, to.end + 1)
   }
 
@@ -1247,7 +1400,7 @@ where
     &self,
     to: RangeToInclusive<usize>,
     inst_nb: usize,
-  ) -> Result<TessView<B, V, I, W>, TessViewError> {
+  ) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     TessView::inst_sub(self, to.end + 1, inst_nb)
   }
 }

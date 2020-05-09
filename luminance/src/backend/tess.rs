@@ -5,21 +5,21 @@
 use std::ops::{Deref, DerefMut};
 
 use crate::tess::{Mode, TessError, TessIndex, TessMapError, TessVertexData};
-use crate::vertex::{Deinterleave, Vertex};
 
-pub unsafe trait Tess<V, I, W>
+pub unsafe trait Tess<V, I, W, S>
 where
-  V: Vertex,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   type TessRepr;
 
   unsafe fn build(
     &mut self,
-    vertex_data: TessVertexData<V>,
+    vertex_data: Option<V::Data>,
     index_data: Vec<I>,
-    instance_data: TessVertexData<W>,
+    instance_data: Option<W::Data>,
     mode: Mode,
     vert_nb: usize,
     inst_nb: usize,
@@ -38,11 +38,12 @@ where
   ) -> Result<(), TessError>;
 }
 
-pub unsafe trait VertexSlice<V, I, W, T>: Tess<V, I, W>
+pub unsafe trait VertexSlice<V, I, W, S, T>: Tess<V, I, W, S>
 where
-  V: Vertex + Deinterleave<T>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   type VertexSliceRepr: Deref<Target = [T]>;
   type VertexSliceMutRepr: DerefMut<Target = [T]>;
@@ -54,11 +55,12 @@ where
   ) -> Result<Self::VertexSliceMutRepr, TessMapError>;
 }
 
-pub unsafe trait IndexSlice<V, I, W>: Tess<V, I, W>
+pub unsafe trait IndexSlice<V, I, W, S>: Tess<V, I, W, S>
 where
-  V: Vertex,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   type IndexSliceRepr: Deref<Target = [I]>;
   type IndexSliceMutRepr: DerefMut<Target = [I]>;
@@ -69,11 +71,12 @@ where
     -> Result<Self::IndexSliceMutRepr, TessMapError>;
 }
 
-pub unsafe trait InstanceSlice<V, I, W, T>: Tess<V, I, W>
+pub unsafe trait InstanceSlice<V, I, W, S, T>: Tess<V, I, W, S>
 where
-  V: Vertex,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: Vertex + Deinterleave<T>,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
   type InstanceSliceRepr: Deref<Target = [T]>;
   type InstanceSliceMutRepr: DerefMut<Target = [T]>;
