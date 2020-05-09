@@ -184,6 +184,12 @@ impl fmt::Display for TessMapError {
   }
 }
 
+impl From<BufferError> for TessMapError {
+  fn from(e: BufferError) -> Self {
+    TessMapError::BufferMapError(e)
+  }
+}
+
 impl error::Error for TessMapError {
   fn source(&self) -> Option<&(dyn error::Error + 'static)> {
     match self {
