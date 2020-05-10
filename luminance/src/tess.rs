@@ -41,10 +41,10 @@
 //! drawn. Creating [`TessView`]s is a cheap operation, and can be done in two different ways:
 //!
 //! - By directly using the methods from [`TessView`].
-//! - By using the [`SubTess`] trait.
+//! - By using the [`View`] trait.
 //!
-//! The [`SubTess`] trait is a convenient way to create [`TessView`]. It provides the
-//! [`SubTess::slice`] and [`SubTess::inst_slice`] methods, which accept Rust’s range operators
+//! The [`View`] trait is a convenient way to create [`TessView`]. It provides the
+//! [`View::slice`] and [`View::inst_slice`] methods, which accept Rust’s range operators
 //! to create the [`TessView`]s in a more comfortable way.
 //!
 //! # Tessellation mapping
@@ -269,27 +269,52 @@ impl TessIndexType {
 /// for an exhaustive list of types you can use.
 ///
 /// > Implementing this trait is `unsafe`.
-pub unsafe trait TessIndex: Copy + Into<u32> {
+pub unsafe trait TessIndex: Copy {
   /// Type of the underlying index.
   ///
   /// You are limited in which types you can use as indexes. Feel free to have a look at the
   /// documentation of the [`TessIndexType`] trait for further information.
-  const INDEX_TYPE: TessIndexType;
+  ///
+  /// `None` means that you disable indexing.
+  const INDEX_TYPE: Option<TessIndexType>;
+
+  /// Get and convert the index to [`u32`], if possible.
+  fn try_into_u32(self) -> Option<u32>;
+}
+
+unsafe impl TessIndex for () {
+  const INDEX_TYPE: Option<TessIndexType> = None;
+
+  fn try_into_u32(self) -> Option<u32> {
+    None
+  }
 }
 
 /// Boop.
 unsafe impl TessIndex for u8 {
-  const INDEX_TYPE: TessIndexType = TessIndexType::U8;
+  const INDEX_TYPE: Option<TessIndexType> = Some(TessIndexType::U8);
+
+  fn try_into_u32(self) -> Option<u32> {
+    Some(self.into())
+  }
 }
 
 /// Boop.
 unsafe impl TessIndex for u16 {
-  const INDEX_TYPE: TessIndexType = TessIndexType::U16;
+  const INDEX_TYPE: Option<TessIndexType> = Some(TessIndexType::U16);
+
+  fn try_into_u32(self) -> Option<u32> {
+    Some(self.into())
+  }
 }
 
 /// Wuuuuuuha.
 unsafe impl TessIndex for u32 {
-  const INDEX_TYPE: TessIndexType = TessIndexType::U32;
+  const INDEX_TYPE: Option<TessIndexType> = Some(TessIndexType::U32);
+
+  fn try_into_u32(self) -> Option<u32> {
+    Some(self.into())
+  }
 }
 
 /// Interleaved memory marker.
@@ -705,7 +730,7 @@ where
 /// [`Semantics`]: crate::vertex::Semantics
 /// [`TessGate`]: crate::tess_gate::TessGate
 #[derive(Debug)]
-pub struct Tess<B, V, I, W, S>
+pub struct Tess<B, V, I = (), W = (), S = Interleaved>
 where
   B: ?Sized + TessBackend<V, I, W, S>,
   V: TessVertexData<S>,
@@ -1265,7 +1290,7 @@ where
 /// - [`a ..`](https://doc.rust-lang.org/std/ops/struct.RangeFrom.html); the range-from operator.
 /// - [`.. b`](https://doc.rust-lang.org/std/ops/struct.RangeTo.html); the range-to operator.
 /// - [`..= b`](https://doc.rust-lang.org/std/ops/struct.RangeToInclusive.html); the inclusive range-to operator.
-pub trait SubTess<B, V, I, W, S, Idx>
+pub trait View<B, V, I, W, S, Idx>
 where
   B: ?Sized + TessBackend<V, I, W, S>,
   V: TessVertexData<S>,
@@ -1274,14 +1299,14 @@ where
   S: ?Sized,
 {
   /// Slice a tessellation object and yields a [`TessView`] according to the index range.
-  fn slice(&self, idx: Idx) -> Result<TessView<B, V, I, W, S>, TessViewError>;
+  fn view(&self, idx: Idx) -> Result<TessView<B, V, I, W, S>, TessViewError>;
 
   /// Slice a tesselation object and yields a [`TessView`] according to the index range with as
   /// many instances as specified.
-  fn inst_slice(&self, idx: Idx, inst_nb: usize) -> Result<TessView<B, V, I, W, S>, TessViewError>;
+  fn inst_view(&self, idx: Idx, inst_nb: usize) -> Result<TessView<B, V, I, W, S>, TessViewError>;
 }
 
-impl<B, V, I, W, S> SubTess<B, V, I, W, S, RangeFull> for Tess<B, V, I, W, S>
+impl<B, V, I, W, S> View<B, V, I, W, S, RangeFull> for Tess<B, V, I, W, S>
 where
   B: ?Sized + TessBackend<V, I, W, S>,
   V: TessVertexData<S>,
@@ -1289,11 +1314,11 @@ where
   W: TessVertexData<S>,
   S: ?Sized,
 {
-  fn slice(&self, _: RangeFull) -> Result<TessView<B, V, I, W, S>, TessViewError> {
+  fn view(&self, _: RangeFull) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     Ok(TessView::whole(self))
   }
 
-  fn inst_slice(
+  fn inst_view(
     &self,
     _: RangeFull,
     inst_nb: usize,
@@ -1302,7 +1327,7 @@ where
   }
 }
 
-impl<B, V, I, W, S> SubTess<B, V, I, W, S, RangeTo<usize>> for Tess<B, V, I, W, S>
+impl<B, V, I, W, S> View<B, V, I, W, S, RangeTo<usize>> for Tess<B, V, I, W, S>
 where
   B: ?Sized + TessBackend<V, I, W, S>,
   V: TessVertexData<S>,
@@ -1310,11 +1335,11 @@ where
   W: TessVertexData<S>,
   S: ?Sized,
 {
-  fn slice(&self, to: RangeTo<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
+  fn view(&self, to: RangeTo<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     TessView::sub(self, to.end)
   }
 
-  fn inst_slice(
+  fn inst_view(
     &self,
     to: RangeTo<usize>,
     inst_nb: usize,
@@ -1323,7 +1348,7 @@ where
   }
 }
 
-impl<B, V, I, W, S> SubTess<B, V, I, W, S, RangeFrom<usize>> for Tess<B, V, I, W, S>
+impl<B, V, I, W, S> View<B, V, I, W, S, RangeFrom<usize>> for Tess<B, V, I, W, S>
 where
   B: ?Sized + TessBackend<V, I, W, S>,
   V: TessVertexData<S>,
@@ -1331,11 +1356,11 @@ where
   W: TessVertexData<S>,
   S: ?Sized,
 {
-  fn slice(&self, from: RangeFrom<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
+  fn view(&self, from: RangeFrom<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     TessView::slice(self, from.start, self.vert_nb() - from.start)
   }
 
-  fn inst_slice(
+  fn inst_view(
     &self,
     from: RangeFrom<usize>,
     inst_nb: usize,
@@ -1344,7 +1369,7 @@ where
   }
 }
 
-impl<B, V, I, W, S> SubTess<B, V, I, W, S, Range<usize>> for Tess<B, V, I, W, S>
+impl<B, V, I, W, S> View<B, V, I, W, S, Range<usize>> for Tess<B, V, I, W, S>
 where
   B: ?Sized + TessBackend<V, I, W, S>,
   V: TessVertexData<S>,
@@ -1352,11 +1377,11 @@ where
   W: TessVertexData<S>,
   S: ?Sized,
 {
-  fn slice(&self, range: Range<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
+  fn view(&self, range: Range<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     TessView::slice(self, range.start, range.end - range.start)
   }
 
-  fn inst_slice(
+  fn inst_view(
     &self,
     range: Range<usize>,
     inst_nb: usize,
@@ -1365,7 +1390,7 @@ where
   }
 }
 
-impl<B, V, I, W, S> SubTess<B, V, I, W, S, RangeInclusive<usize>> for Tess<B, V, I, W, S>
+impl<B, V, I, W, S> View<B, V, I, W, S, RangeInclusive<usize>> for Tess<B, V, I, W, S>
 where
   B: ?Sized + TessBackend<V, I, W, S>,
   V: TessVertexData<S>,
@@ -1373,13 +1398,13 @@ where
   W: TessVertexData<S>,
   S: ?Sized,
 {
-  fn slice(&self, range: RangeInclusive<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
+  fn view(&self, range: RangeInclusive<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     let start = *range.start();
     let end = *range.end();
     TessView::slice(self, start, end - start + 1)
   }
 
-  fn inst_slice(
+  fn inst_view(
     &self,
     range: RangeInclusive<usize>,
     inst_nb: usize,
@@ -1390,7 +1415,7 @@ where
   }
 }
 
-impl<B, V, I, W, S> SubTess<B, V, I, W, S, RangeToInclusive<usize>> for Tess<B, V, I, W, S>
+impl<B, V, I, W, S> View<B, V, I, W, S, RangeToInclusive<usize>> for Tess<B, V, I, W, S>
 where
   B: ?Sized + TessBackend<V, I, W, S>,
   V: TessVertexData<S>,
@@ -1398,11 +1423,11 @@ where
   W: TessVertexData<S>,
   S: ?Sized,
 {
-  fn slice(&self, to: RangeToInclusive<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
+  fn view(&self, to: RangeToInclusive<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
     TessView::sub(self, to.end + 1)
   }
 
-  fn inst_slice(
+  fn inst_view(
     &self,
     to: RangeToInclusive<usize>,
     inst_nb: usize,

@@ -66,41 +66,40 @@ where
       gfx_st.set_patch_vertex_nb(self.patch_vert_nb);
     }
 
-    if let Some(index_state) = self.index_state.as_ref() {
-      // indexed render
-      let first = (I::INDEX_TYPE.bytes() * start_index) as *const c_void;
+    match (I::INDEX_TYPE, self.index_state.as_ref()) {
+      (Some(index_ty), Some(index_state)) => {
+        // indexed render
+        let first = (index_ty.bytes() * start_index) as *const c_void;
 
-      if let Some(restart_index) = index_state.restart_index {
-        gfx_st.set_vertex_restart(VertexRestart::On);
-        gl::PrimitiveRestartIndex(restart_index.into());
-      } else {
-        gfx_st.set_vertex_restart(VertexRestart::Off);
+        if let Some(restart_index) = index_state.restart_index {
+          gfx_st.set_vertex_restart(VertexRestart::On);
+          gl::PrimitiveRestartIndex(restart_index.try_into_u32().unwrap_or(0));
+        } else {
+          gfx_st.set_vertex_restart(VertexRestart::Off);
+        }
+
+        if inst_nb <= 1 {
+          gl::DrawElements(self.mode, vert_nb, index_type_to_glenum(index_ty), first);
+        } else {
+          gl::DrawElementsInstanced(
+            self.mode,
+            vert_nb,
+            index_type_to_glenum(index_ty),
+            first,
+            inst_nb,
+          );
+        }
       }
 
-      if inst_nb <= 1 {
-        gl::DrawElements(
-          self.mode,
-          vert_nb,
-          index_type_to_glenum(I::INDEX_TYPE),
-          first,
-        );
-      } else {
-        gl::DrawElementsInstanced(
-          self.mode,
-          vert_nb,
-          index_type_to_glenum(I::INDEX_TYPE),
-          first,
-          inst_nb,
-        );
-      }
-    } else {
-      // direct render
-      let first = start_index as GLint;
+      _ => {
+        // direct render
+        let first = start_index as GLint;
 
-      if inst_nb <= 1 {
-        gl::DrawArrays(self.mode, first, vert_nb);
-      } else {
-        gl::DrawArraysInstanced(self.mode, first, vert_nb, inst_nb);
+        if inst_nb <= 1 {
+          gl::DrawArrays(self.mode, first, vert_nb);
+        } else {
+          gl::DrawArraysInstanced(self.mode, first, vert_nb, inst_nb);
+        }
       }
     }
 

@@ -55,7 +55,7 @@ use crate::framebuffer::{Framebuffer, FramebufferError};
 use crate::pipeline::PipelineGate;
 use crate::pixel::Pixel;
 use crate::shader::{ProgramBuilder, Stage, StageError, StageType};
-use crate::tess::{TessBuilder, TessIndex, TessVertexData};
+use crate::tess::{Deinterleaved, Interleaved, TessBuilder, TessIndex, TessVertexData};
 use crate::texture::{Dimensionable, Sampler, Texture, TextureError};
 use crate::vertex::Semantics;
 
@@ -161,13 +161,27 @@ pub unsafe trait GraphicsContext: Sized {
   /// Create a [`TessBuilder`].
   ///
   /// See the documentation of [`TessBuilder::new`] for further details.
-  fn new_tess<V, I, W, S>(&mut self) -> TessBuilder<Self::Backend, V, I, W, S>
+  fn new_tess<V, I, W>(&mut self) -> TessBuilder<Self::Backend, V, I, W, Interleaved>
   where
-    Self::Backend: TessBackend<V, I, W, S>,
-    V: TessVertexData<S>,
+    Self::Backend: TessBackend<V, I, W, Interleaved>,
+    V: TessVertexData<Interleaved>,
     I: TessIndex,
-    W: TessVertexData<S>,
-    S: ?Sized,
+    W: TessVertexData<Interleaved>,
+  {
+    TessBuilder::new(self)
+  }
+
+  /// Create a [`TessBuilder`] with deinterleaved memory.
+  ///
+  /// See the documentation of [`TessBuilder::new`] for further details.
+  fn new_deinterleaved_tess<V, I, W>(
+    &mut self,
+  ) -> TessBuilder<Self::Backend, V, I, W, Deinterleaved>
+  where
+    Self::Backend: TessBackend<V, I, W, Deinterleaved>,
+    V: TessVertexData<Deinterleaved>,
+    I: TessIndex,
+    W: TessVertexData<Deinterleaved>,
   {
     TessBuilder::new(self)
   }
