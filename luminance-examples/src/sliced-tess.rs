@@ -21,7 +21,7 @@ use glfw::{Action, Context as _, Key, WindowEvent};
 use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
-use luminance::tess::{Mode, SubTess};
+use luminance::tess::{Mode, View};
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
 
@@ -95,9 +95,9 @@ fn main() {
   // create a single GPU tessellation that holds both the triangles (like in 01-hello-world)
   let triangles = surface
     .new_tess()
-    .and_then(|b| b.add_vertices(TRI_RED_BLUE_VERTICES))
-    .and_then(|b| b.set_mode(Mode::Triangle))
-    .and_then(|b| b.build())
+    .set_vertices(&TRI_RED_BLUE_VERTICES[..])
+    .set_mode(Mode::Triangle)
+    .build()
     .unwrap();
 
   let mut back_buffer = surface.back_buffer().unwrap();
@@ -141,13 +141,13 @@ fn main() {
               // the red triangle is at slice [..3]; you can also use the TessSlice::one_sub
               // combinator if the start element is 0; it’s also possible to use [..=2] for
               // inclusive ranges
-              SliceMethod::Red => triangles.slice(..3), // TessSlice::one_slice(&triangles, 0, 3),
+              SliceMethod::Red => triangles.view(..3), // TessSlice::one_slice(&triangles, 0, 3),
               // the blue triangle is at slice [3..]
-              SliceMethod::Blue => triangles.slice(3..), // TessSlice::one_slice(&triangles, 3, 6),
+              SliceMethod::Blue => triangles.view(3..), // TessSlice::one_slice(&triangles, 3, 6),
               // both triangles are at slice [0..6] or [..], but we’ll use the faster
               // TessSlice::one_whole combinator; this combinator is also if you invoke the From or
               // Into method on (&triangles) (we did that in 02-render-state)
-              SliceMethod::Both => triangles.slice(..), // TessSlice::one_whole(&triangles)
+              SliceMethod::Both => triangles.view(..), // TessSlice::one_whole(&triangles)
             }
             .unwrap();
 

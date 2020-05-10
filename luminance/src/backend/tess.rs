@@ -2,102 +2,28 @@
 //!
 //! This interface defines the low-level API tessellations must implement to be usable.
 
-use crate::backend::buffer::Buffer;
-use crate::tess::{Mode, TessError, TessIndex, TessMapError};
-use crate::vertex::Vertex;
+use std::ops::{Deref, DerefMut};
 
-pub unsafe trait TessBuilder {
-  type TessBuilderRepr;
+use crate::tess::{Mode, TessError, TessIndex, TessMapError, TessVertexData};
 
-  unsafe fn new_tess_builder(&mut self) -> Result<Self::TessBuilderRepr, TessError>;
-
-  unsafe fn add_vertices<V, W>(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    vertices: W,
-  ) -> Result<(), TessError>
-  where
-    W: AsRef<[V]>,
-    V: Copy + Vertex;
-
-  unsafe fn add_instances<V, W>(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    instances: W,
-  ) -> Result<(), TessError>
-  where
-    W: AsRef<[V]>,
-    V: Copy + Vertex;
-
-  unsafe fn set_indices<T, I>(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    indices: T,
-  ) -> Result<(), TessError>
-  where
-    T: AsRef<[I]>,
-    I: Copy + TessIndex;
-
-  unsafe fn set_mode(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    mode: Mode,
-  ) -> Result<(), TessError>;
-
-  unsafe fn set_vertex_nb(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    nb: usize,
-  ) -> Result<(), TessError>;
-
-  unsafe fn set_instance_nb(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    nb: usize,
-  ) -> Result<(), TessError>;
-
-  unsafe fn set_primitive_restart_index(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    index: Option<u32>,
-  ) -> Result<(), TessError>;
-}
-
-pub unsafe trait TessBuilderBuffer<T>: TessBuilder + Buffer<T>
+pub unsafe trait Tess<V, I, W, S>
 where
-  T: Copy,
+  V: TessVertexData<S>,
+  I: TessIndex,
+  W: TessVertexData<S>,
+  S: ?Sized,
 {
-  unsafe fn add_vertex_buffer(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    buf: Self::BufferRepr,
-  ) -> Result<(), TessError>
-  where
-    T: Vertex;
-
-  unsafe fn add_instance_buffer(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    buf: Self::BufferRepr,
-  ) -> Result<(), TessError>
-  where
-    T: Vertex;
-
-  unsafe fn set_index_buffer(
-    &mut self,
-    tess_builder: &mut Self::TessBuilderRepr,
-    buf: Self::BufferRepr,
-  ) -> Result<(), TessError>
-  where
-    T: TessIndex;
-}
-
-pub unsafe trait Tess: TessBuilder {
   type TessRepr;
 
   unsafe fn build(
     &mut self,
-    tess_builder: Self::TessBuilderRepr,
+    vertex_data: Option<V::Data>,
+    index_data: Vec<I>,
+    instance_data: Option<W::Data>,
+    mode: Mode,
+    vert_nb: usize,
+    inst_nb: usize,
+    restart_index: Option<I>,
   ) -> Result<Self::TessRepr, TessError>;
 
   unsafe fn tess_vertices_nb(tess: &Self::TessRepr) -> usize;
@@ -112,42 +38,52 @@ pub unsafe trait Tess: TessBuilder {
   ) -> Result<(), TessError>;
 }
 
-pub unsafe trait TessSlice<T>: Tess {
-  type SliceRepr;
+pub unsafe trait VertexSlice<V, I, W, S, T>: Tess<V, I, W, S>
+where
+  V: TessVertexData<S>,
+  I: TessIndex,
+  W: TessVertexData<S>,
+  S: ?Sized,
+{
+  type VertexSliceRepr: Deref<Target = [T]>;
+  type VertexSliceMutRepr: DerefMut<Target = [T]>;
 
-  type SliceMutRepr;
+  unsafe fn vertices(tess: &mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError>;
 
-  unsafe fn slice_vertices(tess: &Self::TessRepr) -> Result<Self::SliceRepr, TessMapError>
-  where
-    T: Vertex;
-
-  unsafe fn slice_vertices_mut(
+  unsafe fn vertices_mut(
     tess: &mut Self::TessRepr,
-  ) -> Result<Self::SliceMutRepr, TessMapError>
-  where
-    T: Vertex;
+  ) -> Result<Self::VertexSliceMutRepr, TessMapError>;
+}
 
-  unsafe fn slice_indices(tess: &Self::TessRepr) -> Result<Self::SliceRepr, TessMapError>
-  where
-    T: TessIndex;
+pub unsafe trait IndexSlice<V, I, W, S>: Tess<V, I, W, S>
+where
+  V: TessVertexData<S>,
+  I: TessIndex,
+  W: TessVertexData<S>,
+  S: ?Sized,
+{
+  type IndexSliceRepr: Deref<Target = [I]>;
+  type IndexSliceMutRepr: DerefMut<Target = [I]>;
 
-  unsafe fn slice_indices_mut(
+  unsafe fn indices(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError>;
+
+  unsafe fn indices_mut(tess: &mut Self::TessRepr)
+    -> Result<Self::IndexSliceMutRepr, TessMapError>;
+}
+
+pub unsafe trait InstanceSlice<V, I, W, S, T>: Tess<V, I, W, S>
+where
+  V: TessVertexData<S>,
+  I: TessIndex,
+  W: TessVertexData<S>,
+  S: ?Sized,
+{
+  type InstanceSliceRepr: Deref<Target = [T]>;
+  type InstanceSliceMutRepr: DerefMut<Target = [T]>;
+
+  unsafe fn instances(tess: &mut Self::TessRepr) -> Result<Self::InstanceSliceRepr, TessMapError>;
+
+  unsafe fn instances_mut(
     tess: &mut Self::TessRepr,
-  ) -> Result<Self::SliceMutRepr, TessMapError>
-  where
-    T: TessIndex;
-
-  unsafe fn slice_instances(tess: &Self::TessRepr) -> Result<Self::SliceRepr, TessMapError>
-  where
-    T: Vertex;
-
-  unsafe fn slice_instances_mut(
-    tess: &mut Self::TessRepr,
-  ) -> Result<Self::SliceMutRepr, TessMapError>
-  where
-    T: Vertex;
-
-  unsafe fn obtain_slice(slice: &Self::SliceRepr) -> Result<&[T], TessMapError>;
-
-  unsafe fn obtain_slice_mut(slice: &mut Self::SliceMutRepr) -> Result<&mut [T], TessMapError>;
+  ) -> Result<Self::InstanceSliceMutRepr, TessMapError>;
 }

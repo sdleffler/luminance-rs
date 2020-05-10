@@ -16,7 +16,7 @@
 //!
 //! # Buffer creation, reading, writing and getting information
 //!
-//! Buffers are created with the [`Buffer::new`], [`Buffer::from_slice`] and [`Buffer::repeat`]
+//! Buffers are created with the [`Buffer::new`], [`Buffer::from_vec`] and [`Buffer::repeat`]
 //! methods. All these methods are fallible — they might fail with [`BufferError`].
 //!
 //! Once you have a [`Buffer`], you can read from it and write to it.
@@ -118,14 +118,14 @@ where
   ///
   /// # Notes
   ///
-  /// You might be interested in the [`GraphicsContext::new_buffer_from_slice`] function instead,
+  /// You might be interested in the [`GraphicsContext::new_buffer_from_vec`] function instead,
   /// which is the exact same function, but benefits from more type inference (based on `&mut C`).
-  pub fn from_slice<C, X>(ctx: &mut C, slice: X) -> Result<Self, BufferError>
+  pub fn from_vec<C, X>(ctx: &mut C, vec: X) -> Result<Self, BufferError>
   where
     C: GraphicsContext<Backend = B>,
-    X: AsRef<[T]>,
+    X: Into<Vec<T>>,
   {
-    let repr = unsafe { ctx.backend().from_slice(slice)? };
+    let repr = unsafe { ctx.backend().from_vec(vec.into())? };
 
     Ok(Buffer {
       repr,

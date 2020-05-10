@@ -64,9 +64,9 @@ fn main() {
 
   let triangle = surface
     .new_tess()
-    .and_then(|b| b.add_vertices(TRI_VERTICES))
-    .and_then(|b| b.set_mode(Mode::Triangle))
-    .and_then(|b| b.build())
+    .set_vertices(&TRI_VERTICES[..])
+    .set_mode(Mode::Triangle)
+    .build()
     .unwrap();
 
   let mut back_buffer = surface.back_buffer().unwrap();

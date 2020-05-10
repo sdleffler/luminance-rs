@@ -3,7 +3,7 @@ use proc_macro::TokenStream;
 use quote::{format_ident, quote};
 use std::error;
 use std::fmt;
-use syn::{Attribute, DataStruct, Field, Fields, Ident, LitBool, Type};
+use syn::{Attribute, DataStruct, Field, Fields, Ident, Index, LitBool, Type};
 
 // accepted sub keys for the "vertex" key
 const KNOWN_SUBKEYS: &[&str] = &["sem", "instanced", "normalized"];
@@ -183,13 +183,28 @@ fn process_struct(
     }
   };
 
+  let fields_ranks = (0..fields_types.len()).into_iter().map(Index::from);
+  let deinterleave_impls = quote! {
+    #(
+      impl luminance::vertex::Deinterleave<#fields_types> for #struct_name {
+        const RANK: usize = #fields_ranks;
+      }
+    )*
+  };
+
+  let attr_count = fields_types.len();
+
   quote! {
     // Vertex impl
     unsafe impl luminance::vertex::Vertex for #struct_name {
+      const ATTR_COUNT: usize = #attr_count;
+
       fn vertex_desc() -> luminance::vertex::VertexDesc {
         vec![#(#indexed_vertex_attrib_descs),*]
       }
     }
+
+    #deinterleave_impls
 
     // helper function for the generate type
     #fn_new

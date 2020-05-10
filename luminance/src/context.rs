@@ -48,14 +48,14 @@ use crate::backend::color_slot::ColorSlot;
 use crate::backend::depth_slot::DepthSlot;
 use crate::backend::framebuffer::Framebuffer as FramebufferBackend;
 use crate::backend::shader::Shader;
-use crate::backend::tess::TessBuilder as TessBuilderBackend;
+use crate::backend::tess::Tess as TessBackend;
 use crate::backend::texture::Texture as TextureBackend;
 use crate::buffer::{Buffer, BufferError};
 use crate::framebuffer::{Framebuffer, FramebufferError};
 use crate::pipeline::PipelineGate;
 use crate::pixel::Pixel;
 use crate::shader::{ProgramBuilder, Stage, StageError, StageType};
-use crate::tess::{TessBuilder, TessError};
+use crate::tess::{Deinterleaved, Interleaved, TessBuilder, TessVertexData};
 use crate::texture::{Dimensionable, Sampler, Texture, TextureError};
 use crate::vertex::Semantics;
 
@@ -89,17 +89,14 @@ pub unsafe trait GraphicsContext: Sized {
 
   /// Create a new buffer from a slice.
   ///
-  /// See the documentation of [`Buffer::from_slice`] for further details.
-  fn new_buffer_from_slice<T, X>(
-    &mut self,
-    slice: X,
-  ) -> Result<Buffer<Self::Backend, T>, BufferError>
+  /// See the documentation of [`Buffer::from_vec`] for further details.
+  fn new_buffer_from_vec<T, X>(&mut self, vec: X) -> Result<Buffer<Self::Backend, T>, BufferError>
   where
     Self::Backend: BufferBackend<T>,
-    X: AsRef<[T]>,
+    X: Into<Vec<T>>,
     T: Copy,
   {
-    Buffer::from_slice(self, slice)
+    Buffer::from_vec(self, vec)
   }
 
   /// Create a new buffer by repeating a value.
@@ -164,9 +161,21 @@ pub unsafe trait GraphicsContext: Sized {
   /// Create a [`TessBuilder`].
   ///
   /// See the documentation of [`TessBuilder::new`] for further details.
-  fn new_tess(&mut self) -> Result<TessBuilder<Self::Backend>, TessError>
+  fn new_tess(&mut self) -> TessBuilder<Self::Backend, (), (), (), Interleaved>
   where
-    Self::Backend: TessBuilderBackend,
+    Self::Backend: TessBackend<(), (), (), Interleaved>,
+  {
+    TessBuilder::new(self)
+  }
+
+  /// Create a [`TessBuilder`] with deinterleaved memory.
+  ///
+  /// See the documentation of [`TessBuilder::new`] for further details.
+  fn new_deinterleaved_tess<V, W>(&mut self) -> TessBuilder<Self::Backend, V, (), W, Deinterleaved>
+  where
+    Self::Backend: TessBackend<V, (), W, Deinterleaved>,
+    V: TessVertexData<Deinterleaved>,
+    W: TessVertexData<Deinterleaved>,
   {
     TessBuilder::new(self)
   }

@@ -5,7 +5,7 @@ use gl::types::*;
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::mem;
-use std::os::raw::c_void;
+use std::ops::{Deref, DerefMut};
 use std::ptr;
 use std::rc::Rc;
 use std::slice;
@@ -15,50 +15,16 @@ use crate::gl33::GL33;
 use luminance::backend::buffer::{Buffer as BufferBackend, BufferSlice as BufferSliceBackend};
 use luminance::buffer::BufferError;
 
-/// OpenGL buffer.
-#[derive(Clone)]
-pub struct Buffer {
-  pub(crate) handle: GLuint,
-  pub(crate) bytes: usize,
-  pub(crate) len: usize,
+/// Wrapped OpenGL buffer.
+///
+/// Used to drop the buffer.
+#[derive(Debug)]
+struct BufferWrapper {
+  handle: GLuint,
   state: Rc<RefCell<GLState>>,
 }
 
-impl Buffer {
-  /// Build a buffer with a number of elements for a given type.
-  ///
-  /// That function is required to implement repeat without Default.
-  fn new<T>(gl33: &mut GL33, len: usize) -> Result<Self, BufferError> {
-    let mut buffer: GLuint = 0;
-    let bytes = mem::size_of::<T>() * len;
-
-    // generate a buffer and force binding the handle; this prevent side-effects from previous bound
-    // resources to prevent binding the buffer
-    unsafe {
-      gl::GenBuffers(1, &mut buffer);
-      gl33
-        .state
-        .borrow_mut()
-        .bind_array_buffer(buffer, Bind::Forced);
-
-      gl::BufferData(
-        gl::ARRAY_BUFFER,
-        bytes as isize,
-        ptr::null(),
-        gl::STREAM_DRAW,
-      );
-    }
-
-    Ok(Buffer {
-      handle: buffer,
-      bytes,
-      len,
-      state: gl33.state.clone(),
-    })
-  }
-}
-
-impl Drop for Buffer {
+impl Drop for BufferWrapper {
   fn drop(&mut self) {
     unsafe {
       self.state.borrow_mut().unbind_buffer(self.handle);
@@ -67,97 +33,134 @@ impl Drop for Buffer {
   }
 }
 
+/// OpenGL buffer.
+#[derive(Debug)]
+pub struct Buffer<T> {
+  /// A cached version of the GPU buffer; emulate persistent mapping.
+  pub(crate) buf: Vec<T>,
+  gl_buf: BufferWrapper,
+}
+
+impl<T> Buffer<T> {
+  /// Build a buffer with a number of elements for a given type.
+  ///
+  /// That function is required to implement repeat without Default.
+  fn new(gl33: &mut GL33, len: usize, clear_value: T) -> Result<Self, BufferError>
+  where
+    T: Copy,
+  {
+    let mut buf = Vec::new();
+    buf.resize_with(len, || clear_value);
+
+    // generate a buffer and force binding the handle; this prevent side-effects from previous bound
+    // resources to prevent binding the buffer
+    let mut handle: GLuint = 0;
+    unsafe {
+      gl::GenBuffers(1, &mut handle);
+      gl33
+        .state
+        .borrow_mut()
+        .bind_array_buffer(handle, Bind::Forced);
+
+      let bytes = mem::size_of::<T>() * len;
+      gl::BufferData(
+        gl::ARRAY_BUFFER,
+        bytes as isize,
+        buf.as_ptr() as _,
+        gl::STREAM_DRAW,
+      );
+    }
+    let state = gl33.state.clone();
+    let gl_buf = BufferWrapper { handle, state };
+
+    Ok(Buffer { gl_buf, buf })
+  }
+
+  pub(crate) fn handle(&self) -> GLuint {
+    self.gl_buf.handle
+  }
+
+  pub(crate) fn into_raw(self) -> Buffer<u8> {
+    let boxed = self.buf.into_boxed_slice();
+    let len = boxed.len();
+    let ptr = Box::into_raw(boxed) as _;
+    let buf = unsafe { Vec::from_raw_parts(ptr, len, len) };
+
+    Buffer {
+      buf,
+      gl_buf: self.gl_buf,
+    }
+  }
+}
+
 unsafe impl<T> BufferBackend<T> for GL33
 where
   T: Copy,
 {
-  type BufferRepr = Buffer;
+  type BufferRepr = Buffer<T>;
 
   unsafe fn new_buffer(&mut self, len: usize) -> Result<Self::BufferRepr, BufferError>
   where
     T: Default,
   {
-    Buffer::new::<T>(self, len)
+    Buffer::new(self, len, T::default())
   }
 
   unsafe fn len(buffer: &Self::BufferRepr) -> usize {
-    buffer.len
+    buffer.buf.len()
   }
 
-  unsafe fn from_slice<S>(&mut self, slice: S) -> Result<Self::BufferRepr, BufferError>
-  where
-    S: AsRef<[T]>,
-  {
-    let mut buffer: GLuint = 0;
-    let slice = slice.as_ref();
-    let len = slice.len();
-    let bytes = mem::size_of::<T>() * len;
+  unsafe fn from_vec(&mut self, vec: Vec<T>) -> Result<Self::BufferRepr, BufferError> {
+    let mut handle: GLuint = 0;
 
-    gl::GenBuffers(1, &mut buffer);
+    gl::GenBuffers(1, &mut handle);
     self
       .state
       .borrow_mut()
-      .bind_array_buffer(buffer, Bind::Forced);
+      .bind_array_buffer(handle, Bind::Forced);
+
+    let len = vec.len();
+    let bytes = mem::size_of::<T>() * len;
     gl::BufferData(
       gl::ARRAY_BUFFER,
       bytes as isize,
-      slice.as_ptr() as *const c_void,
+      vec.as_ptr() as _,
       gl::STREAM_DRAW,
     );
+    let state = self.state.clone();
+    let gl_buf = BufferWrapper { handle, state };
 
-    Ok(Buffer {
-      handle: buffer,
-      bytes,
-      len,
-      state: self.state.clone(),
-    })
+    Ok(Buffer { gl_buf, buf: vec })
   }
 
   unsafe fn repeat(&mut self, len: usize, value: T) -> Result<Self::BufferRepr, BufferError> {
-    let mut buf = Buffer::new::<T>(self, len)?;
-    Self::clear(&mut buf, value)?;
-    Ok(buf)
+    Buffer::new(self, len, value)
   }
 
   unsafe fn at(buffer: &Self::BufferRepr, i: usize) -> Option<T> {
-    if i >= buffer.len {
-      None
-    } else {
-      buffer
-        .state
-        .borrow_mut()
-        .bind_array_buffer(buffer.handle, Bind::Cached);
-      let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *const T;
-      let x = *ptr.add(i);
-      let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
-
-      Some(x)
-    }
+    buffer.buf.get(i).copied()
   }
 
   unsafe fn whole(buffer: &Self::BufferRepr) -> Vec<T> {
-    buffer
-      .state
-      .borrow_mut()
-      .bind_array_buffer(buffer.handle, Bind::Cached);
-    let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *mut T;
-    let values = Vec::from_raw_parts(ptr, buffer.len, buffer.len);
-    let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
-
-    values
+    buffer.buf.iter().copied().collect()
   }
 
   unsafe fn set(buffer: &mut Self::BufferRepr, i: usize, x: T) -> Result<(), BufferError> {
-    if i >= buffer.len {
+    if i >= buffer.buf.len() {
       Err(BufferError::Overflow {
         index: i,
-        buffer_len: buffer.len,
+        buffer_len: buffer.buf.len(),
       })
     } else {
+      // update cache first
+      buffer.buf[i] = x;
+
+      // then update the OpenGL buffer
       buffer
+        .gl_buf
         .state
         .borrow_mut()
-        .bind_array_buffer(buffer.handle, Bind::Cached);
+        .bind_array_buffer(buffer.handle(), Bind::Cached);
       let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::WRITE_ONLY) as *mut T;
       *ptr.add(i) = x;
       let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
@@ -167,79 +170,147 @@ where
   }
 
   unsafe fn write_whole(buffer: &mut Self::BufferRepr, values: &[T]) -> Result<(), BufferError> {
-    let len = values.len();
-    let in_bytes = len * mem::size_of::<T>();
+    let provided_len = values.len();
+    let buffer_len = buffer.buf.len();
 
-    // generate warning and recompute the proper number of bytes to copy
-    let real_bytes = match in_bytes.cmp(&buffer.bytes) {
+    // error if we don’t pass the right number of items
+    match provided_len.cmp(&buffer_len) {
       Ordering::Less => {
         return Err(BufferError::TooFewValues {
-          provided_len: len,
-          buffer_len: buffer.len,
+          provided_len,
+          buffer_len,
         })
       }
 
       Ordering::Greater => {
         return Err(BufferError::TooManyValues {
-          provided_len: len,
-          buffer_len: buffer.len,
+          provided_len,
+          buffer_len,
         })
       }
 
-      _ => in_bytes,
-    };
+      _ => (),
+    }
 
+    // first update the OpenGL buffer; if it’s okay, then we can update the cache buffer
     buffer
+      .gl_buf
       .state
       .borrow_mut()
-      .bind_array_buffer(buffer.handle, Bind::Cached);
+      .bind_array_buffer(buffer.handle(), Bind::Cached);
+
     let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::WRITE_ONLY);
-    ptr::copy_nonoverlapping(values.as_ptr() as *const c_void, ptr, real_bytes);
+    ptr::copy_nonoverlapping(values.as_ptr(), ptr as *mut T, buffer_len);
     let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
+
+    buffer.buf.copy_from_slice(values);
 
     Ok(())
   }
 
   unsafe fn clear(buffer: &mut Self::BufferRepr, x: T) -> Result<(), BufferError> {
-    Self::write_whole(buffer, &vec![x; buffer.len])
+    for item in &mut buffer.buf {
+      *item = x;
+    }
+
+    buffer
+      .gl_buf
+      .state
+      .borrow_mut()
+      .bind_array_buffer(buffer.handle(), Bind::Cached);
+
+    let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::WRITE_ONLY);
+    ptr::copy_nonoverlapping(buffer.buf.as_ptr(), ptr as *mut T, buffer.buf.len());
+    let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
+
+    Ok(())
+  }
+}
+
+/// Wrapper to drop buffer slices.
+struct BufferSliceWrapper {
+  handle: GLuint,
+  state: Rc<RefCell<GLState>>,
+}
+
+impl Drop for BufferSliceWrapper {
+  fn drop(&mut self) {
+    unsafe {
+      self
+        .state
+        .borrow_mut()
+        .bind_array_buffer(self.handle, Bind::Cached);
+
+      gl::UnmapBuffer(gl::ARRAY_BUFFER);
+    }
   }
 }
 
 pub struct BufferSlice<T> {
-  handle: GLuint,
+  raw: BufferSliceWrapper,
   len: usize,
   ptr: *const T,
-  state: Rc<RefCell<GLState>>,
 }
 
-impl<T> Drop for BufferSlice<T> {
-  fn drop(&mut self) {
-    unsafe {
-      self
-        .state
-        .borrow_mut()
-        .bind_array_buffer(self.handle, Bind::Cached);
-      gl::UnmapBuffer(gl::ARRAY_BUFFER);
+impl BufferSlice<u8> {
+  /// Transmute to another type.
+  ///
+  /// This method is highly unsafe and should only be used when certain the target type is the
+  /// one actually represented by the raw bytes.
+  pub(crate) unsafe fn transmute<T>(self) -> BufferSlice<T> {
+    let len = self.len / mem::size_of::<T>();
+    let ptr = self.len as _;
+
+    BufferSlice {
+      raw: self.raw,
+      len,
+      ptr,
     }
   }
 }
 
-pub struct BufferSliceMut<T> {
-  handle: GLuint,
-  len: usize,
-  ptr: *mut T,
-  state: Rc<RefCell<GLState>>,
+impl<T> Deref for BufferSlice<T> {
+  type Target = [T];
+
+  fn deref(&self) -> &Self::Target {
+    unsafe { slice::from_raw_parts(self.ptr, self.len) }
+  }
 }
 
-impl<T> Drop for BufferSliceMut<T> {
-  fn drop(&mut self) {
-    unsafe {
-      self
-        .state
-        .borrow_mut()
-        .bind_array_buffer(self.handle, Bind::Cached);
-      gl::UnmapBuffer(gl::ARRAY_BUFFER);
+pub struct BufferSliceMut<T> {
+  raw: BufferSliceWrapper,
+  len: usize,
+  ptr: *mut T,
+}
+
+impl BufferSliceMut<u8> {
+  /// Transmute to another type.
+  ///
+  /// This method is highly unsafe and should only be used when certain the target type is the
+  /// one actually represented by the raw bytes.
+  pub(crate) unsafe fn transmute<T>(self) -> BufferSliceMut<T> {
+    let len = self.len / mem::size_of::<T>();
+    let ptr = self.len as _;
+
+    BufferSliceMut {
+      raw: self.raw,
+      len,
+      ptr,
     }
+  }
+}
+
+impl<T> Deref for BufferSliceMut<T> {
+  type Target = [T];
+
+  fn deref(&self) -> &Self::Target {
+    unsafe { slice::from_raw_parts(self.ptr as *const _, self.len) }
+  }
+}
+
+impl<T> DerefMut for BufferSliceMut<T> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
   }
 }
 
@@ -253,24 +324,22 @@ where
 
   unsafe fn slice_buffer(buffer: &Self::BufferRepr) -> Result<Self::SliceRepr, BufferError> {
     buffer
+      .gl_buf
       .state
       .borrow_mut()
-      .bind_array_buffer(buffer.handle, Bind::Cached);
+      .bind_array_buffer(buffer.handle(), Bind::Cached);
 
     let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *const T;
-    let handle = buffer.handle;
-    let len = buffer.len;
-    let state = buffer.state.clone();
 
     if ptr.is_null() {
       Err(BufferError::MapFailed)
     } else {
-      Ok(BufferSlice {
-        handle,
-        len,
-        ptr,
-        state,
-      })
+      let handle = buffer.handle();
+      let state = buffer.gl_buf.state.clone();
+      let raw = BufferSliceWrapper { handle, state };
+      let len = buffer.buf.len();
+
+      Ok(BufferSlice { raw, len, ptr })
     }
   }
 
@@ -278,24 +347,22 @@ where
     buffer: &mut Self::BufferRepr,
   ) -> Result<Self::SliceMutRepr, BufferError> {
     buffer
+      .gl_buf
       .state
       .borrow_mut()
-      .bind_array_buffer(buffer.handle, Bind::Cached);
+      .bind_array_buffer(buffer.handle(), Bind::Cached);
 
     let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_WRITE) as *mut T;
-    let handle = buffer.handle;
-    let len = buffer.len;
-    let state = buffer.state.clone();
 
     if ptr.is_null() {
       Err(BufferError::MapFailed)
     } else {
-      Ok(BufferSliceMut {
-        handle,
-        len,
-        ptr,
-        state,
-      })
+      let handle = buffer.handle();
+      let state = buffer.gl_buf.state.clone();
+      let raw = BufferSliceWrapper { handle, state };
+      let len = buffer.buf.len();
+
+      Ok(BufferSliceMut { raw, len, ptr })
     }
   }
 

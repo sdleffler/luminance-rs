@@ -16,6 +16,7 @@ use luminance::backend::tess_gate::TessGate;
 use luminance::pipeline::{PipelineError, PipelineState, Viewport};
 use luminance::pixel::Pixel;
 use luminance::render_state::RenderState;
+use luminance::tess::{Deinterleaved, Interleaved, TessIndex, TessVertexData};
 use luminance::texture::Dimensionable;
 
 #[non_exhaustive]
@@ -150,7 +151,7 @@ where
       binding
     });
 
-    state.bind_buffer_base(buffer.handle, binding);
+    state.bind_buffer_base(buffer.handle(), binding);
 
     Ok(BoundBuffer {
       binding,
@@ -203,7 +204,12 @@ where
   }
 }
 
-unsafe impl TessGate for GL33 {
+unsafe impl<V, I, W> TessGate<V, I, W, Interleaved> for GL33
+where
+  V: TessVertexData<Interleaved, Data = Vec<V>>,
+  I: TessIndex,
+  W: TessVertexData<Interleaved, Data = Vec<W>>,
+{
   unsafe fn render(
     &mut self,
     tess: &Self::TessRepr,
@@ -211,7 +217,24 @@ unsafe impl TessGate for GL33 {
     vert_nb: usize,
     inst_nb: usize,
   ) {
-    let _ = <Self as Tess>::render(tess, start_index, vert_nb, inst_nb);
+    let _ = <Self as Tess<V, I, W, Interleaved>>::render(tess, start_index, vert_nb, inst_nb);
+  }
+}
+
+unsafe impl<V, I, W> TessGate<V, I, W, Deinterleaved> for GL33
+where
+  V: TessVertexData<Deinterleaved, Data = Vec<Vec<u8>>>,
+  I: TessIndex,
+  W: TessVertexData<Deinterleaved, Data = Vec<Vec<u8>>>,
+{
+  unsafe fn render(
+    &mut self,
+    tess: &Self::TessRepr,
+    start_index: usize,
+    vert_nb: usize,
+    inst_nb: usize,
+  ) {
+    let _ = <Self as Tess<V, I, W, Deinterleaved>>::render(tess, start_index, vert_nb, inst_nb);
   }
 }
 

@@ -15,7 +15,7 @@ use luminance::pipeline::{PipelineState, TextureBinding};
 use luminance::pixel::{Floating, RGBA32F};
 use luminance::render_state::RenderState;
 use luminance::shader::{BuiltProgram, Uniform};
-use luminance::tess::{Mode, TessBuilder};
+use luminance::tess::Mode;
 use luminance::texture::{Dim2, Sampler};
 use luminance_derive::UniformInterface;
 use luminance_glfw::GlfwSurface;
@@ -85,16 +85,17 @@ fn main() {
 
   let triangle = surface
     .new_tess()
-    .and_then(|b| b.add_vertices(TRI_VERTICES))
-    .and_then(|b| b.set_mode(Mode::Triangle))
-    .and_then(|b| b.build())
+    .set_vertices(&TRI_VERTICES[..])
+    .set_mode(Mode::Triangle)
+    .build()
     .unwrap();
 
   // we’ll need an attributeless quad to fetch in full screen
-  let quad = TessBuilder::new(&mut surface)
-    .and_then(|b| b.set_vertex_nb(4))
-    .and_then(|b| b.set_mode(Mode::TriangleFan))
-    .and_then(|b| b.build())
+  let quad = surface
+    .new_tess()
+    .set_vertex_nb(4)
+    .set_mode(Mode::TriangleFan)
+    .build()
     .unwrap();
 
   // “screen“ we want to render into our offscreen render
