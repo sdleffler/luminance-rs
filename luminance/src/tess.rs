@@ -436,42 +436,6 @@ where
   W: TessVertexData<S>,
   S: ?Sized,
 {
-  /// Create a new default [`TessBuilder`].
-  ///
-  /// # Notes
-  ///
-  /// Feel free to use the [`GraphicsContext::new_tess_builder`] method for a simpler method.
-  ///
-  /// [`TessBuilder::new_tess_builder`]: crate::backend::tess::TessBuilder::new_tess_builder
-  pub fn new<C>(ctx: &'a mut C) -> Self
-  where
-    C: GraphicsContext<Backend = B>,
-  {
-    TessBuilder {
-      backend: ctx.backend(),
-      vertex_data: None,
-      index_data: Vec::new(),
-      instance_data: None,
-      mode: Mode::Point,
-      vert_nb: 0,
-      inst_nb: 0,
-      restart_index: None,
-      _phantom: PhantomData,
-    }
-  }
-
-  /// Add indices to be bundled in the [`Tess`].
-  ///
-  /// Every time you call that function, the set of indices is replaced by the one you provided.
-  /// The type of expected indices is ruled by the `II` type variable you chose.
-  pub fn set_indices<X>(mut self, indices: X) -> Self
-  where
-    X: Into<Vec<I>>,
-  {
-    self.index_data = indices.into();
-    self
-  }
-
   /// Set the [`Mode`] to connect vertices.
   ///
   /// Calling that function twice replace the previously set value.
@@ -505,33 +469,123 @@ where
   }
 }
 
-impl<'a, B, V, I, W> TessBuilder<'a, B, V, I, W, Interleaved>
+impl<'a, B, V, I, W, S> TessBuilder<'a, B, V, I, W, S>
 where
   B: ?Sized,
-  V: TessVertexData<Interleaved, Data = Vec<V>>,
+  V: TessVertexData<S>,
   I: TessIndex,
-  W: TessVertexData<Interleaved, Data = Vec<W>>,
+  W: TessVertexData<S>,
+  S: ?Sized,
+{
+  /// Create a new default [`TessBuilder`].
+  ///
+  /// # Notes
+  ///
+  /// Feel free to use the [`GraphicsContext::new_tess_builder`] method for a simpler method.
+  ///
+  /// [`TessBuilder::new_tess_builder`]: crate::backend::tess::TessBuilder::new_tess_builder
+  pub fn new<C>(ctx: &'a mut C) -> Self
+  where
+    C: GraphicsContext<Backend = B>,
+  {
+    TessBuilder {
+      backend: ctx.backend(),
+      vertex_data: None,
+      index_data: Vec::new(),
+      instance_data: None,
+      mode: Mode::Point,
+      vert_nb: 0,
+      inst_nb: 0,
+      restart_index: None,
+      _phantom: PhantomData,
+    }
+  }
+}
+
+// set_indices, which works only if I = ()
+impl<'a, B, V, W, S> TessBuilder<'a, B, V, (), W, S>
+where
+  B: ?Sized,
+  V: TessVertexData<S>,
+  W: TessVertexData<S>,
+  S: ?Sized,
+{
+  /// Add indices to be bundled in the [`Tess`].
+  ///
+  /// Every time you call that function, the set of indices is replaced by the one you provided.
+  /// The type of expected indices is ruled by the `II` type variable you chose.
+  pub fn set_indices<I, X>(self, indices: X) -> TessBuilder<'a, B, V, I, W, S>
+  where
+    X: Into<Vec<I>>,
+  {
+    TessBuilder {
+      backend: self.backend,
+      vertex_data: self.vertex_data,
+      index_data: indices.into(),
+      instance_data: self.instance_data,
+      mode: self.mode,
+      vert_nb: self.vert_nb,
+      inst_nb: self.inst_nb,
+      restart_index: None,
+      _phantom: PhantomData,
+    }
+  }
+}
+
+// set_vertices, interleaved version; works only for V = ()
+impl<'a, B, I, W> TessBuilder<'a, B, (), I, W, Interleaved>
+where
+  B: ?Sized,
+  I: TessIndex,
+  W: TessVertexData<Interleaved>,
 {
   /// Add vertices to be bundled in the [`Tess`].
   ///
   /// Every time you call that function, the set of vertices is replaced by the one you provided.
-  pub fn set_vertices<X>(mut self, vertices: X) -> Self
+  pub fn set_vertices<V, X>(self, vertices: X) -> TessBuilder<'a, B, V, I, W, Interleaved>
   where
     X: Into<Vec<V>>,
+    V: TessVertexData<Interleaved, Data = Vec<V>>,
   {
-    self.vertex_data = Some(vertices.into());
-    self
+    TessBuilder {
+      backend: self.backend,
+      vertex_data: Some(vertices.into()),
+      index_data: self.index_data,
+      instance_data: self.instance_data,
+      mode: self.mode,
+      vert_nb: self.vert_nb,
+      inst_nb: self.inst_nb,
+      restart_index: self.restart_index,
+      _phantom: PhantomData,
+    }
   }
+}
 
+impl<'a, B, I, V> TessBuilder<'a, B, V, I, (), Interleaved>
+where
+  B: ?Sized,
+  I: TessIndex,
+  V: TessVertexData<Interleaved>,
+{
   /// Add instances to be bundled in the [`Tess`].
   ///
   /// Every time you call that function, the set of instances is replaced by the one you provided.
-  pub fn set_instances<X>(mut self, instances: X) -> Self
+  pub fn set_instances<W, X>(self, instances: X) -> TessBuilder<'a, B, V, I, W, Interleaved>
   where
     X: Into<Vec<W>>,
+    W: TessVertexData<Interleaved, Data = Vec<W>>,
   {
-    self.instance_data = Some(instances.into());
-    self
+    TessBuilder {
+      backend: self.backend,
+      vertex_data: self.vertex_data,
+      index_data: self.index_data,
+      instance_data: Some(instances.into()),
+      mode: self.mode,
+      vert_nb: self.vert_nb,
+      inst_nb: self.inst_nb,
+      restart_index: self.restart_index,
+      _phantom: PhantomData,
+    }
   }
 }
 
@@ -545,7 +599,7 @@ where
   /// Add vertices to be bundled in the [`Tess`].
   ///
   /// Every time you call that function, the set of vertices is replaced by the one you provided.
-  pub fn set_vertices<A, X>(mut self, attributes: X) -> Self
+  pub fn set_attributes<A, X>(mut self, attributes: X) -> Self
   where
     X: Into<Vec<A>>,
     V: Deinterleave<A>,
@@ -580,7 +634,7 @@ where
   /// Add instances to be bundled in the [`Tess`].
   ///
   /// Every time you call that function, the set of instances is replaced by the one you provided.
-  pub fn set_instances<A, X>(mut self, attributes: X) -> Self
+  pub fn set_instance_attributes<A, X>(mut self, attributes: X) -> Self
   where
     X: Into<Vec<A>>,
     W: Deinterleave<A>,

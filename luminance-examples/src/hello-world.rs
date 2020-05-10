@@ -90,64 +90,23 @@ const TRI_VERTICES: [Vertex; 6] = [
   ),
 ];
 
-// A small struct wrapper used to deinterleave positions.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Vertex)]
-#[vertex(sem = "Semantics")]
-struct Positions {
-  pos: VertexPosition,
-}
-
-// A small struct wrapper used to deinterleave colors.
-#[repr(C)]
-#[derive(Clone, Copy, Debug, PartialEq, Vertex)]
-#[vertex(sem = "Semantics")]
-struct Colors {
-  #[vertex(normalized = "true")]
-  color: VertexColor,
-}
-
 // The vertices, deinterleaved versions. We still define two triangles.
-const TRI_DEINT_POS_VERTICES: &[Positions] = &[
-  Positions {
-    pos: VertexPosition::new([0.5, -0.5]),
-  },
-  Positions {
-    pos: VertexPosition::new([0.0, 0.5]),
-  },
-  Positions {
-    pos: VertexPosition::new([-0.5, -0.5]),
-  },
-  Positions {
-    pos: VertexPosition::new([-0.5, 0.5]),
-  },
-  Positions {
-    pos: VertexPosition::new([0.0, -0.5]),
-  },
-  Positions {
-    pos: VertexPosition::new([0.5, 0.5]),
-  },
+const TRI_DEINT_POS_VERTICES: &[VertexPosition] = &[
+  VertexPosition::new([0.5, -0.5]),
+  VertexPosition::new([0.0, 0.5]),
+  VertexPosition::new([-0.5, -0.5]),
+  VertexPosition::new([-0.5, 0.5]),
+  VertexPosition::new([0.0, -0.5]),
+  VertexPosition::new([0.5, 0.5]),
 ];
 
-const TRI_DEINT_COLOR_VERTICES: &[Colors] = &[
-  Colors {
-    color: VertexColor::new([0, 255, 0]),
-  },
-  Colors {
-    color: VertexColor::new([0, 0, 255]),
-  },
-  Colors {
-    color: VertexColor::new([255, 0, 0]),
-  },
-  Colors {
-    color: VertexColor::new([255, 51, 255]),
-  },
-  Colors {
-    color: VertexColor::new([51, 255, 255]),
-  },
-  Colors {
-    color: VertexColor::new([51, 51, 255]),
-  },
+const TRI_DEINT_COLOR_VERTICES: &[VertexColor] = &[
+  VertexColor::new([0, 255, 0]),
+  VertexColor::new([0, 0, 255]),
+  VertexColor::new([255, 0, 0]),
+  VertexColor::new([255, 51, 255]),
+  VertexColor::new([51, 255, 255]),
+  VertexColor::new([51, 51, 255]),
 ];
 
 // Indices into TRI_VERTICES to use to build up the triangles.
@@ -221,18 +180,18 @@ fn main() {
   // Create direct, deinterleaved tesselations; such tessellations allow to separate vertex
   // attributes in several contiguous regions of memory.
   let direct_deinterleaved_triangles = surface
-    .new_deinterleaved_tess()
-    .set_vertices(&TRI_DEINT_POS_VERTICES[..])
-    .set_vertices(&TRI_DEINT_COLOR_VERTICES[..])
+    .new_deinterleaved_tess::<Vertex, ()>()
+    .set_attributes(&TRI_DEINT_POS_VERTICES[..])
+    .set_attributes(&TRI_DEINT_COLOR_VERTICES[..])
     .set_mode(Mode::Triangle)
     .build()
     .unwrap();
 
   // Create indexed, deinterleaved tessellations; have your cake and fucking eat it, now.
   let indexed_deinterleaved_triangles = surface
-    .new_deinterleaved_tess()
-    .set_vertices(&TRI_DEINT_POS_VERTICES[..])
-    .set_vertices(&TRI_DEINT_COLOR_VERTICES[..])
+    .new_deinterleaved_tess::<Vertex, ()>()
+    .set_attributes(&TRI_DEINT_POS_VERTICES[..])
+    .set_attributes(&TRI_DEINT_COLOR_VERTICES[..])
     .set_indices(&TRI_INDICES[..])
     .set_mode(Mode::Triangle)
     .build()
@@ -287,14 +246,14 @@ fn main() {
           rdr_gate.render(&RenderState::default(), |mut tess_gate| {
             // Pick the right tessellation to use depending on the mode chosen and render it to the
             // surface.
-            let tess = match demo {
+            match demo {
               TessMethod::Direct => tess_gate.render(&direct_triangles),
               TessMethod::Indexed => tess_gate.render(&indexed_triangles),
               TessMethod::DirectDeinterleaved => tess_gate.render(&direct_deinterleaved_triangles),
               TessMethod::IndexedDeinterleaved => {
                 tess_gate.render(&indexed_deinterleaved_triangles)
               }
-            };
+            }
           });
         });
       },
