@@ -105,9 +105,9 @@ fn main() {
 
   let tess = surface
     .new_tess()
-    .and_then(|b| b.set_vertex_nb(4))
-    .and_then(|b| b.set_mode(Mode::TriangleFan))
-    .and_then(|b| b.build())
+    .set_vertex_nb(4)
+    .set_mode(Mode::TriangleFan)
+    .build()
     .unwrap();
 
   let mut back_buffer = surface.back_buffer().unwrap();

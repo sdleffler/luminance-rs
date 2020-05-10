@@ -92,9 +92,9 @@ fn main() {
   // taking one after another in the provided slice
   let tris = surface
     .new_tess()
-    .and_then(|b| b.add_vertices(TRI_VERTICES))
-    .and_then(|b| b.set_mode(Mode::Triangle))
-    .and_then(|b| b.build())
+    .set_vertices(&TRI_VERTICES[..])
+    .set_mode(Mode::Triangle)
+    .build()
     .unwrap();
 
   // whether the image has been generated on disk

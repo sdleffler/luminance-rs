@@ -41,9 +41,9 @@ fn main() {
   // attributes / data); in our case, we’ll just render a triangle, which has three vertices
   let tess = surface
     .new_tess()
-    .and_then(|b| b.set_vertex_nb(3))
-    .and_then(|b| b.set_mode(Mode::Triangle))
-    .and_then(|b| b.build())
+    .set_vertex_nb(3)
+    .set_mode(Mode::Triangle)
+    .build()
     .unwrap();
 
   let mut back_buffer = surface.back_buffer().unwrap();

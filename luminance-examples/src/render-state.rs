@@ -101,15 +101,15 @@ fn main() {
   // create a red and blue triangles
   let red_triangle = surface
     .new_tess()
-    .and_then(|b| b.add_vertices(&TRI_RED_BLUE_VERTICES[0..3]))
-    .and_then(|b| b.set_mode(Mode::Triangle))
-    .and_then(|b| b.build())
+    .set_vertices(&TRI_RED_BLUE_VERTICES[0..3])
+    .set_mode(Mode::Triangle)
+    .build()
     .unwrap();
   let blue_triangle = surface
     .new_tess()
-    .and_then(|b| b.add_vertices(&TRI_RED_BLUE_VERTICES[3..6]))
-    .and_then(|b| b.set_mode(Mode::Triangle))
-    .and_then(|b| b.build())
+    .set_vertices(&TRI_RED_BLUE_VERTICES[3..6])
+    .set_mode(Mode::Triangle)
+    .build()
     .unwrap();
 
   let mut back_buffer = surface.back_buffer().unwrap();
