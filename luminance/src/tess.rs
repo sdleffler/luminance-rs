@@ -355,20 +355,41 @@ impl<V> TessVertexData<Deinterleaved> for V
 where
   V: Vertex,
 {
-  type Data = Vec<Vec<u8>>;
+  type Data = Vec<DeinterleavedData>;
 
   fn coherent_len(data: &Self::Data) -> Result<usize, TessError> {
     if data.is_empty() {
       Ok(0)
     } else {
-      let len = data[0].len();
+      let len = data[0].len;
 
-      if data[1..].iter().any(|a| a.len() != len) {
+      if data[1..].iter().any(|a| a.len != len) {
         Err(TessError::LengthIncoherency(len))
       } else {
         Ok(len)
       }
     }
+  }
+}
+
+/// Deinterleaved data.
+#[derive(Debug, Clone)]
+pub struct DeinterleavedData {
+  raw: Vec<u8>,
+  len: usize,
+}
+
+impl DeinterleavedData {
+  fn new() -> Self {
+    DeinterleavedData {
+      raw: Vec::new(),
+      len: 0,
+    }
+  }
+
+  /// Turn the [`DeinterleavedData`] into its raw representation.
+  pub fn into_vec(self) -> Vec<u8> {
+    self.raw
   }
 }
 
@@ -592,9 +613,9 @@ where
 impl<'a, B, V, I, W> TessBuilder<'a, B, V, I, W, Deinterleaved>
 where
   B: ?Sized,
-  V: TessVertexData<Deinterleaved, Data = Vec<Vec<u8>>>,
+  V: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
   I: TessIndex,
-  W: TessVertexData<Deinterleaved, Data = Vec<Vec<u8>>>,
+  W: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
 {
   /// Add vertices to be bundled in the [`Tess`].
   ///
@@ -604,15 +625,16 @@ where
     X: Into<Vec<A>>,
     V: Deinterleave<A>,
   {
-    let build_raw = |deinterleaved: &mut Vec<Vec<u8>>| {
+    let build_raw = |deinterleaved: &mut Vec<DeinterleavedData>| {
       // turn the attribute into a raw vector (Vec<u8>)
       let boxed_slice = attributes.into().into_boxed_slice();
-      let len_bytes = boxed_slice.len() * std::mem::size_of::<A>();
+      let len = boxed_slice.len();
+      let len_bytes = len * std::mem::size_of::<A>();
       let ptr = Box::into_raw(boxed_slice);
       // please Dog pardon me
-      let data = unsafe { Vec::from_raw_parts(ptr as _, len_bytes, len_bytes) };
+      let raw = unsafe { Vec::from_raw_parts(ptr as _, len_bytes, len_bytes) };
 
-      deinterleaved[V::RANK] = data;
+      deinterleaved[V::RANK] = DeinterleavedData { raw, len };
     };
 
     match self.vertex_data {
@@ -621,7 +643,7 @@ where
       }
 
       None => {
-        let mut deinterleaved = vec![Vec::new(); V::ATTR_COUNT];
+        let mut deinterleaved = vec![DeinterleavedData::new(); V::ATTR_COUNT];
         build_raw(&mut deinterleaved);
 
         self.vertex_data = Some(deinterleaved);
@@ -639,20 +661,21 @@ where
     X: Into<Vec<A>>,
     W: Deinterleave<A>,
   {
-    let build_raw = |deinterleaved: &mut Vec<Vec<u8>>| {
+    let build_raw = |deinterleaved: &mut Vec<DeinterleavedData>| {
       // turn the attribute into a raw vector (Vec<u8>)
       let boxed_slice = attributes.into().into_boxed_slice();
-      let len_bytes = boxed_slice.len() * std::mem::size_of::<A>();
+      let len = boxed_slice.len();
+      let len_bytes = len * std::mem::size_of::<A>();
       let ptr = Box::into_raw(boxed_slice);
       // please Dog pardon me
-      let data = unsafe { Vec::from_raw_parts(ptr as _, len_bytes, len_bytes) };
+      let raw = unsafe { Vec::from_raw_parts(ptr as _, len_bytes, len_bytes) };
 
-      deinterleaved[W::RANK] = data;
+      deinterleaved[W::RANK] = DeinterleavedData { raw, len };
     };
 
     match self.instance_data {
       None => {
-        let mut deinterleaved = vec![Vec::new(); W::ATTR_COUNT];
+        let mut deinterleaved = vec![DeinterleavedData::new(); W::ATTR_COUNT];
         build_raw(&mut deinterleaved);
 
         self.instance_data = Some(deinterleaved);
@@ -714,27 +737,28 @@ where
       // if we don’t have index data, get the length from the vertex data; otherwise, get it from
       // the index data
       if self.index_data.is_empty() {
-        self
-          .vertex_data
-          .as_ref()
-          .ok_or_else(|| TessError::AttributelessError("missing number of vertices".to_owned()))
-          .and_then(V::coherent_len)
+        match self.vertex_data {
+          Some(ref data) => V::coherent_len(data),
+          None => Ok(0),
+        }
       } else {
         Ok(self.index_data.len())
       }
     } else {
       // ensure the length is okay regarding what we have in the index / vertex data
       if self.index_data.is_empty() {
-        let coherent_len = self
-          .vertex_data
-          .as_ref()
-          .ok_or_else(|| TessError::AttributelessError("missing number of vertices".to_owned()))
-          .and_then(V::coherent_len)?;
+        match self.vertex_data {
+          Some(ref data) => {
+            let coherent_len = V::coherent_len(data)?;
 
-        if self.vert_nb <= coherent_len {
-          Ok(self.vert_nb)
-        } else {
-          Err(TessError::LengthIncoherency(self.vert_nb))
+            if self.vert_nb <= coherent_len {
+              Ok(self.vert_nb)
+            } else {
+              Err(TessError::LengthIncoherency(self.vert_nb))
+            }
+          }
+
+          None => Ok(self.vert_nb),
         }
       } else {
         if self.vert_nb <= self.index_data.len() {
@@ -749,11 +773,10 @@ where
   fn guess_instance_len(&self) -> Result<usize, TessError> {
     // as with vertex length, we first check for an explicit number, and if none, we deduce it
     if self.inst_nb == 0 {
-      self
-        .instance_data
-        .as_ref()
-        .ok_or_else(|| TessError::AttributelessError("missing number of instances".to_owned()))
-        .and_then(W::coherent_len)
+      match self.instance_data {
+        Some(ref data) => W::coherent_len(data),
+        None => Ok(0),
+      }
     } else {
       let coherent_len = self
         .instance_data

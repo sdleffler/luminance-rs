@@ -16,7 +16,7 @@ use luminance::backend::tess_gate::TessGate;
 use luminance::pipeline::{PipelineError, PipelineState, Viewport};
 use luminance::pixel::Pixel;
 use luminance::render_state::RenderState;
-use luminance::tess::{Deinterleaved, Interleaved, TessIndex, TessVertexData};
+use luminance::tess::{Deinterleaved, DeinterleavedData, Interleaved, TessIndex, TessVertexData};
 use luminance::texture::Dimensionable;
 
 #[non_exhaustive]
@@ -223,9 +223,9 @@ where
 
 unsafe impl<V, I, W> TessGate<V, I, W, Deinterleaved> for GL33
 where
-  V: TessVertexData<Deinterleaved, Data = Vec<Vec<u8>>>,
+  V: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
   I: TessIndex,
-  W: TessVertexData<Deinterleaved, Data = Vec<Vec<u8>>>,
+  W: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
 {
   unsafe fn render(
     &mut self,
