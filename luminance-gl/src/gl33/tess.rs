@@ -16,8 +16,8 @@ use luminance::backend::tess::{
   VertexSlice as VertexSliceBackend,
 };
 use luminance::tess::{
-  Deinterleaved, Interleaved, Mode, TessError, TessIndex, TessIndexType, TessMapError,
-  TessVertexData,
+  Deinterleaved, DeinterleavedData, Interleaved, Mode, TessError, TessIndex, TessIndexType,
+  TessMapError, TessVertexData,
 };
 use luminance::vertex::{
   Deinterleave, Normalized, Vertex, VertexAttribDesc, VertexAttribDim, VertexAttribType,
@@ -298,9 +298,9 @@ where
 
 unsafe impl<V, I, W> TessBackend<V, I, W, Deinterleaved> for GL33
 where
-  V: TessVertexData<Deinterleaved, Data = Vec<Vec<u8>>>,
+  V: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
   I: TessIndex,
-  W: TessVertexData<Deinterleaved, Data = Vec<Vec<u8>>>,
+  W: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
 {
   type TessRepr = DeinterleavedTess<V, I, W>;
 
@@ -375,9 +375,9 @@ where
 
 unsafe impl<V, I, W, T> VertexSliceBackend<V, I, W, Deinterleaved, T> for GL33
 where
-  V: TessVertexData<Interleaved, Data = Vec<Vec<u8>>> + Deinterleave<T>,
+  V: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>> + Deinterleave<T>,
   I: TessIndex,
-  W: TessVertexData<Interleaved, Data = Vec<Vec<u8>>>,
+  W: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>>,
 {
   type VertexSliceRepr = BufferSlice<T>;
   type VertexSliceMutRepr = BufferSliceMut<T>;
@@ -407,9 +407,9 @@ where
 
 unsafe impl<V, I, W> IndexSliceBackend<V, I, W, Deinterleaved> for GL33
 where
-  V: TessVertexData<Interleaved, Data = Vec<Vec<u8>>>,
+  V: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>>,
   I: TessIndex,
-  W: TessVertexData<Interleaved, Data = Vec<Vec<u8>>>,
+  W: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>>,
 {
   type IndexSliceRepr = BufferSlice<I>;
   type IndexSliceMutRepr = BufferSliceMut<I>;
@@ -433,9 +433,9 @@ where
 
 unsafe impl<V, I, W, T> InstanceSliceBackend<V, I, W, Deinterleaved, T> for GL33
 where
-  V: TessVertexData<Interleaved, Data = Vec<Vec<u8>>>,
+  V: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>>,
   I: TessIndex,
-  W: TessVertexData<Interleaved, Data = Vec<Vec<u8>>> + Deinterleave<T>,
+  W: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>> + Deinterleave<T>,
 {
   type InstanceSliceRepr = BufferSlice<T>;
   type InstanceSliceMutRepr = BufferSliceMut<T>;
@@ -500,7 +500,7 @@ where
 
 fn build_deinterleaved_vertex_buffers<V>(
   gl33: &mut GL33,
-  vertices: Option<Vec<Vec<u8>>>,
+  vertices: Option<Vec<DeinterleavedData>>,
 ) -> Result<Vec<Buffer<u8>>, TessError>
 where
   V: Vertex,
@@ -511,7 +511,7 @@ where
         .into_iter()
         .zip(V::vertex_desc())
         .map(|(attribute, fmt)| {
-          let vb = unsafe { gl33.from_vec(attribute)? };
+          let vb = unsafe { gl33.from_vec(attribute.into_vec())? };
 
           // force binding as it’s meaningful when a vao is bound
           unsafe {
