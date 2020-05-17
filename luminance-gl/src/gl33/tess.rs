@@ -629,7 +629,8 @@ fn offset_based_vertex_weight(descriptors: &[VertexBufferDesc], offsets: &[usize
   )
 }
 
-/// Set the vertex component OpenGL pointers regarding the index of the component (i), the stride
+/// Set the vertex component OpenGL pointers regarding the index of the component and the vertex
+/// stride.
 fn set_component_format(stride: GLsizei, off: usize, desc: &VertexBufferDesc) {
   let attrib_desc = &desc.attrib_desc;
   let index = desc.index as GLuint;

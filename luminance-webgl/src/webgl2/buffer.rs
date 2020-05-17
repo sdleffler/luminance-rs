@@ -15,9 +15,9 @@ use luminance::buffer::BufferError;
 /// WebGL buffer.
 #[derive(Clone)]
 pub struct Buffer<T> {
-  pub(crate) gl_buf: WebGlBuffer,
   /// A cached version of the GPU buffer; emulate persistent mapping.
   pub(crate) buf: Vec<T>,
+  gl_buf: WebGlBuffer,
   state: Rc<RefCell<WebGL2State>>,
 }
 
@@ -79,6 +79,10 @@ impl<T> Buffer<T> {
       bytes as _,
       data,
     );
+  }
+
+  pub(crate) fn handle(&self) -> &WebGlBuffer {
+    &self.gl_buf
   }
 }
 

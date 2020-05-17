@@ -200,8 +200,11 @@ impl error::Error for TessMapError {
 }
 
 /// Possible errors that might occur when dealing with [`Tess`].
+#[non_exhaustive]
 #[derive(Debug)]
 pub enum TessError {
+  /// Cannot create a tessellation.
+  CannotCreate(String),
   /// Error related to attributeless tessellation and/or render.
   AttributelessError(String),
   /// Length incoherency in vertex, index or instance buffers.
@@ -212,13 +215,26 @@ pub enum TessError {
   InternalBufferError(BufferError),
 }
 
+impl TessError {
+  /// Create [`TessError::CannotCreate`].
+  pub fn cannot_create<S>(s: S) -> Self
+  where
+    S: Into<String>,
+  {
+    TessError::CannotCreate(s.into())
+  }
+}
+
 impl fmt::Display for TessError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-    match self {
-      TessError::AttributelessError(s) => write!(f, "Attributeless error: {}", s),
-      TessError::LengthIncoherency(s) => write!(f, "Incoherent size for internal buffers: {}", s),
-      TessError::Overflow(a, b) => write!(f, "Tess overflow error: {}, {}", a, b),
-      TessError::InternalBufferError(e) => write!(f, "internal buffer error: {}", e),
+    match *self {
+      TessError::CannotCreate(ref s) => write!(f, "Creation error: {}", s),
+      TessError::AttributelessError(ref s) => write!(f, "Attributeless error: {}", s),
+      TessError::LengthIncoherency(ref s) => {
+        write!(f, "Incoherent size for internal buffers: {}", s)
+      }
+      TessError::Overflow(ref a, ref b) => write!(f, "Tess overflow error: {}, {}", a, b),
+      TessError::InternalBufferError(ref e) => write!(f, "internal buffer error: {}", e),
     }
   }
 }

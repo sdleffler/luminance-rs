@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 use std::fmt;
 use std::marker::PhantomData;
-use web_sys::{WebGl2RenderingContext, WebGlBuffer};
+use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlVertexArrayObject};
 
 use luminance::blending::{Equation, Factor};
 use luminance::depth_test::DepthComparison;
@@ -96,9 +96,8 @@ pub struct WebGL2State {
   // // framebuffer
   // bound_draw_framebuffer: GLuint,
 
-  // // vertex array
-  // bound_vertex_array: GLuint,
-
+  // vertex array
+  bound_vertex_array: Option<WebGlVertexArrayObject>,
   // // shader program
   // current_program: GLuint,
 }
@@ -146,7 +145,7 @@ impl WebGL2State {
     let bound_array_buffer = None;
     // let bound_element_array_buffer = 0;
     // let bound_draw_framebuffer = Self::get_ctx_bound_draw_framebuffer(ctx)?;
-    // let bound_vertex_array = Self::get_ctx_bound_vertex_array(ctx)?;
+    let bound_vertex_array = None;
     // let current_program = Self::get_ctx_current_program(ctx)?;
 
     Ok(WebGL2State {
@@ -172,7 +171,7 @@ impl WebGL2State {
       bound_array_buffer,
       // bound_element_array_buffer,
       // bound_draw_framebuffer,
-      // bound_vertex_array,
+      bound_vertex_array,
       // current_program,
     })
   }
@@ -352,16 +351,6 @@ impl WebGL2State {
   //   Ok(bound)
   // }
 
-  fn get_ctx_bound_vertex_array(
-    ctx: &WebGl2RenderingContext,
-  ) -> Result<WebGlBuffer, StateQueryError> {
-    ctx
-      .get_parameter(WebGl2RenderingContext::VERTEX_ARRAY_BINDING)
-      .map_err(|_| StateQueryError::UnknownArrayBufferInitialState)?
-      .try_into()
-      .map_err(|_| StateQueryError::UnknownArrayBufferInitialState)
-  }
-
   // fn get_ctx_current_program(ctx: &WebGl2RenderingContext) -> Result<GLuint, StateQueryError> {
   //   let used = ctx
   //     .get_parameter(WebGl2RenderingContext::CURRENT_PROGRAM)
@@ -397,6 +386,23 @@ impl WebGL2State {
     // {
     //   *handle_ = 0;
     // }
+  }
+
+  pub(crate) fn create_vertex_array(&mut self) -> Option<WebGlVertexArrayObject> {
+    self.ctx.create_vertex_array()
+  }
+
+  pub(crate) fn bind_vertex_array(&mut self, vao: Option<&WebGlVertexArrayObject>, bind: Bind) {
+    if bind == Bind::Forced || self.bound_vertex_array.as_ref() != vao {
+      self.ctx.bind_vertex_array(vao);
+      self.bound_vertex_array = vao.cloned();
+    }
+  }
+
+  pub(crate) fn unbind_vertex_array(&mut self, vao: &WebGlVertexArrayObject) {
+    if self.bound_vertex_array.as_ref() == Some(vao) {
+      self.bind_vertex_array(None, Bind::Cached);
+    }
   }
 }
 
