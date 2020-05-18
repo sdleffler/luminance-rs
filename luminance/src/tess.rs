@@ -139,8 +139,23 @@ pub enum Mode {
   /// A general purpose primitive with _n_ vertices, for use in tessellation shaders.
   /// For example, `Mode::Patch(3)` represents triangle patches, so every three vertices in the
   /// buffer form a patch.
+  ///
   /// If you want to employ tessellation shaders, this is the only primitive mode you can use.
   Patch(usize),
+}
+
+impl fmt::Display for Mode {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    match *self {
+      Mode::Point => f.write_str("point"),
+      Mode::Line => f.write_str("line"),
+      Mode::LineStrip => f.write_str("line strip"),
+      Mode::Triangle => f.write_str("triangle"),
+      Mode::TriangleStrip => f.write_str("triangle strip"),
+      Mode::TriangleFan => f.write_str("triangle fan"),
+      Mode::Patch(ref n) => write!(f, "patch ({})", n),
+    }
+  }
 }
 
 /// Error that can occur while trying to map GPU tessellations to host code.
@@ -213,6 +228,8 @@ pub enum TessError {
   Overflow(usize, usize),
   /// Internal error ocurring with a buffer.
   InternalBufferError(BufferError),
+  /// Forbidden primitive mode by hardware.
+  ForbiddenPrimitiveMode(Mode),
 }
 
 impl TessError {
@@ -235,6 +252,7 @@ impl fmt::Display for TessError {
       }
       TessError::Overflow(ref a, ref b) => write!(f, "Tess overflow error: {}, {}", a, b),
       TessError::InternalBufferError(ref e) => write!(f, "internal buffer error: {}", e),
+      TessError::ForbiddenPrimitiveMode(ref e) => write!(f, "forbidden primitive mode: {}", e),
     }
   }
 }
