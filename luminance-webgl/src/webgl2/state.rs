@@ -67,9 +67,6 @@ pub struct WebGL2State {
   // face_culling_order: FaceCullingOrder,
   // face_culling_mode: FaceCullingMode,
 
-  // // vertex restart
-  // vertex_restart: VertexRestart,
-
   // // patch primitive vertex number
   // patch_vertex_nb: usize,
 
@@ -90,8 +87,8 @@ pub struct WebGL2State {
 
   // array buffer
   bound_array_buffer: Option<WebGlBuffer>,
-  // // element buffer
-  // bound_element_array_buffer: GLuint,
+  // element buffer
+  bound_element_array_buffer: Option<WebGlBuffer>,
 
   // // framebuffer
   // bound_draw_framebuffer: GLuint,
@@ -136,14 +133,13 @@ impl WebGL2State {
     //let face_culling_state = Self::get_ctx_face_culling_state(ctx)?;
     //let face_culling_order = Self::get_ctx_face_culling_order(ctx)?;
     //let face_culling_mode = Self::get_ctx_face_culling_mode(ctx)?;
-    //let vertex_restart = Self::get_ctx_vertex_restart(ctx)?;
     //let patch_vertex_nb = 0;
     //let current_texture_unit = Self::get_ctx_current_texture_unit(ctx)?;
     //let bound_textures = vec![(WebGl2RenderingContext::TEXTURE_2D, 0); 48]; // 48 is the platform minimal requirement
     //let texture_swimming_pool = Vec::new();
     //let bound_uniform_buffers = vec![0; 36]; // 36 is the platform minimal requirement
     let bound_array_buffer = None;
-    // let bound_element_array_buffer = 0;
+    let bound_element_array_buffer = None;
     // let bound_draw_framebuffer = Self::get_ctx_bound_draw_framebuffer(ctx)?;
     let bound_vertex_array = None;
     // let current_program = Self::get_ctx_current_program(ctx)?;
@@ -162,14 +158,13 @@ impl WebGL2State {
       // face_culling_state,
       // face_culling_order,
       // face_culling_mode,
-      // vertex_restart,
       // patch_vertex_nb,
       // current_texture_unit,
       // bound_textures,
       // texture_swimming_pool,
       // bound_uniform_buffers,
       bound_array_buffer,
-      // bound_element_array_buffer,
+      bound_element_array_buffer,
       // bound_draw_framebuffer,
       bound_vertex_array,
       // current_program,
@@ -327,19 +322,13 @@ impl WebGL2State {
   //   }
   // }
 
-  // fn get_ctx_vertex_restart(_: &WebGl2RenderingContext) -> Result<VertexRestart, StateQueryError> {
-  //   // implementation note: WebGL2 doesn’t allow to enable nor disable primitive restart as it’s
-  //   // always on
-  //   Ok(VertexRestart::On)
-  // }
-
-  // fn get_ctx_current_texture_unit(ctx: &WebGl2RenderingContext) -> Result<GLenum, StateQueryError> {
-  //   let active_texture = ctx
-  //     .get_parameter(WebGl2RenderingContext::TEXTURE0)
-  //     .try_into()
-  //     .unwrap();
-  //   Ok(active_texture)
-  // }
+  //fn get_ctx_current_texture_unit(ctx: &WebGl2RenderingContext) -> Result<GLenum, StateQueryError> {
+  //  let active_texture = ctx
+  //    .get_parameter(WebGl2RenderingContext::TEXTURE0)
+  //    .try_into()
+  //    .unwrap();
+  //  Ok(active_texture)
+  //}
 
   // fn get_ctx_bound_draw_framebuffer(
   //   ctx: &WebGl2RenderingContext,
@@ -372,13 +361,22 @@ impl WebGL2State {
     }
   }
 
+  pub(crate) fn bind_element_array_buffer(&mut self, buffer: Option<&WebGlBuffer>, bind: Bind) {
+    if bind == Bind::Forced || self.bound_element_array_buffer.as_ref() != buffer {
+      self
+        .ctx
+        .bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, buffer);
+      self.bound_element_array_buffer = buffer.cloned();
+    }
+  }
+
   pub(crate) fn unbind_buffer(&mut self, buffer: &WebGlBuffer) {
     if self.bound_array_buffer.as_ref() == Some(buffer) {
       self.bind_array_buffer(None, Bind::Cached);
+    } else if self.bound_element_array_buffer.as_ref() == Some(buffer) {
+      self.bind_element_array_buffer(None, Bind::Cached);
     }
-    // FIXME: enable this as soon as we add either element buffers or vertex array buffers
-    // else if self.bound_element_array_buffer == handle {
-    //   self.bind_element_array_buffer(0, Bind::Cached);
+    // FIXME: enable this as soon as we add uniform buffers
     // } else if let Some(handle_) = self
     //   .bound_uniform_buffers
     //   .iter_mut()

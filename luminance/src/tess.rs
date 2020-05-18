@@ -159,6 +159,7 @@ impl fmt::Display for Mode {
 }
 
 /// Error that can occur while trying to map GPU tessellations to host code.
+#[non_exhaustive]
 #[derive(Debug, Eq, PartialEq)]
 pub enum TessMapError {
   /// The CPU mapping failed due to buffer errors.

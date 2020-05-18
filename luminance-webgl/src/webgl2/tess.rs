@@ -5,24 +5,18 @@ use luminance::backend::tess::{
   IndexSlice as IndexSliceBackend, InstanceSlice as InstanceSliceBackend, Tess as TessBackend,
   VertexSlice as VertexSliceBackend,
 };
-use luminance::tess::{Interleaved, TessError, TessIndex, TessVertexData};
-use luminance::vertex::{Vertex, VertexBufferDesc};
+use luminance::tess::{Interleaved, Mode, TessError, TessIndex, TessIndexType, TessVertexData};
+use luminance::vertex::{
+  Normalized, Vertex, VertexAttribDesc, VertexAttribDim, VertexAttribType, VertexBufferDesc,
+  VertexInstancing,
+};
 use std::cell::RefCell;
 use std::rc::Rc;
 use web_sys::WebGlVertexArrayObject;
 
 use crate::webgl2::buffer::Buffer;
-use crate::webgl2::state::WebGL2State;
-use crate::webgl2::WebGL2;
-
-/// All the extra data required when doing indexed drawing.
-struct IndexedDrawState<I>
-where
-  I: TessIndex,
-{
-  buffer: Buffer<I>,
-  restart_index: Option<I>,
-}
+use crate::webgl2::state::{Bind, WebGL2State};
+use crate::webgl2::{WebGL2, WebGl2RenderingContext};
 
 struct TessRaw<I>
 where
@@ -32,9 +26,67 @@ where
   mode: u32,
   vert_nb: usize,
   inst_nb: usize,
-  patch_vert_nb: usize,
-  index_state: Option<IndexedDrawState<I>>,
+  // A small note: WebGL2 doesn’t support custom primitive restart index; it assumes the maximum
+  // value of I as being that restart index.
+  index_buffer: Option<Buffer<I>>,
   state: Rc<RefCell<WebGL2State>>,
+}
+
+impl<I> TessRaw<I>
+where
+  I: TessIndex,
+{
+  unsafe fn render(
+    &self,
+    start_index: usize,
+    vert_nb: usize,
+    inst_nb: usize,
+  ) -> Result<(), TessError> {
+    let vert_nb = vert_nb as _;
+    let inst_nb = inst_nb as _;
+
+    let mut gfx_st = self.state.borrow_mut();
+    gfx_st.bind_vertex_array(Some(&self.vao), Bind::Cached);
+
+    match (I::INDEX_TYPE, self.index_buffer.as_ref()) {
+      (Some(index_ty), Some(_)) => {
+        // indexed render
+        let first = (index_ty.bytes() * start_index) as _;
+
+        if inst_nb <= 1 {
+          gfx_st.ctx.draw_elements_with_i32(
+            self.mode,
+            vert_nb,
+            index_type_to_glenum(index_ty),
+            first,
+          );
+        } else {
+          gfx_st.ctx.draw_elements_instanced_with_i32(
+            self.mode,
+            vert_nb,
+            index_type_to_glenum(index_ty),
+            first,
+            inst_nb,
+          );
+        }
+      }
+
+      _ => {
+        // direct render
+        let first = start_index as _;
+
+        if inst_nb <= 1 {
+          gfx_st.ctx.draw_arrays(self.mode, first, vert_nb);
+        } else {
+          gfx_st
+            .ctx
+            .draw_arrays_instanced(self.mode, first, vert_nb, inst_nb);
+        }
+      }
+    }
+
+    Ok(())
+  }
 }
 
 impl<I> Drop for TessRaw<I>
@@ -77,11 +129,6 @@ where
     inst_nb: usize,
     restart_index: Option<I>,
   ) -> Result<Self::TessRepr, TessError> {
-    let patch_vert_nb = match mode {
-      Mode::Patch(nb) => nb,
-      _ => 0,
-    };
-
     let vao = self
       .state
       .borrow_mut()
@@ -96,21 +143,17 @@ where
       .bind_vertex_array(Some(&vao), Bind::Forced);
 
     let vertex_buffer = build_interleaved_vertex_buffer(self, vertex_data)?;
-
-    // in case of indexed render, create an index buffer
-    let index_state = build_index_buffer(self, index_data, restart_index)?;
-
+    let index_buffer = build_index_buffer(self, index_data, restart_index)?;
     let instance_buffer = build_interleaved_vertex_buffer(self, instance_data)?;
 
-    let mode = opengl_mode(mode);
+    let mode = webgl_mode(mode).ok_or_else(|| TessError::ForbiddenPrimitiveMode(mode))?;
     let state = self.state.clone();
     let raw = TessRaw {
       vao,
       mode,
       vert_nb,
       inst_nb,
-      patch_vert_nb,
-      index_state,
+      index_buffer,
       state,
     };
 
@@ -119,6 +162,23 @@ where
       vertex_buffer,
       instance_buffer,
     })
+  }
+
+  unsafe fn tess_vertices_nb(tess: &Self::TessRepr) -> usize {
+    tess.raw.vert_nb
+  }
+
+  unsafe fn tess_instances_nb(tess: &Self::TessRepr) -> usize {
+    tess.raw.inst_nb
+  }
+
+  unsafe fn render(
+    tess: &Self::TessRepr,
+    start_index: usize,
+    vert_nb: usize,
+    inst_nb: usize,
+  ) -> Result<(), TessError> {
+    tess.raw.render(start_index, vert_nb, inst_nb)
   }
 }
 
@@ -155,6 +215,34 @@ where
 
     None => Ok(None),
   }
+}
+
+/// Turn a [`Vec`] of indices to a [`Buffer`], if indices are present.
+fn build_index_buffer<I>(
+  webgl2: &mut WebGL2,
+  data: Vec<I>,
+  restart_index: Option<I>,
+) -> Result<Option<Buffer<I>>, TessError>
+where
+  I: TessIndex,
+{
+  let ib = if !data.is_empty() {
+    let ib = unsafe { webgl2.from_vec(data)? };
+
+    // force binding as it’s meaningful when a vao is bound
+    unsafe {
+      webgl2
+        .state
+        .borrow_mut()
+        .bind_element_array_buffer(Some(ib.handle()), Bind::Forced);
+    }
+
+    Some(ib)
+  } else {
+    None
+  };
+
+  Ok(ib)
 }
 
 /// Give WebGL types information on the content of the VBO by setting vertex descriptors and
@@ -240,8 +328,8 @@ fn set_component_format(
       VertexAttribType::Floating => {
         ctx.vertex_attrib_pointer_with_i32(
           index,
-          dim_as_size(attrib_desc.dim),
-          opengl_sized_type(&attrib_desc),
+          dim_as_size(attrib_desc.dim) as _,
+          webgl_sized_type(&attrib_desc),
           false,
           stride as _,
           off as _,
@@ -254,8 +342,8 @@ fn set_component_format(
         // non-normalized integrals / booleans
         ctx.vertex_attrib_i_pointer_with_i32(
           index,
-          dim_as_size(attrib_desc.dim),
-          opengl_sized_type(&attrib_desc),
+          dim_as_size(attrib_desc.dim) as _,
+          webgl_sized_type(&attrib_desc),
           stride as _,
           off as _,
         );
@@ -265,8 +353,8 @@ fn set_component_format(
         // normalized integrals
         ctx.vertex_attrib_pointer_with_i32(
           index,
-          dim_as_size(attrib_desc.dim),
-          opengl_sized_type(&attrib_desc),
+          dim_as_size(attrib_desc.dim) as _,
+          webgl_sized_type(&attrib_desc),
           true,
           stride as _,
           off as _,
@@ -285,7 +373,7 @@ fn set_component_format(
   }
 }
 
-fn opengl_sized_type(f: &VertexAttribDesc) -> u32 {
+fn webgl_sized_type(f: &VertexAttribDesc) -> u32 {
   match (f.ty, f.unit_size) {
     (VertexAttribType::Integral(_), 1) => WebGl2RenderingContext::BYTE,
     (VertexAttribType::Integral(_), 2) => WebGl2RenderingContext::SHORT,
@@ -300,15 +388,15 @@ fn opengl_sized_type(f: &VertexAttribDesc) -> u32 {
   }
 }
 
-fn opengl_mode(mode: Mode) -> u32 {
+fn webgl_mode(mode: Mode) -> Option<u32> {
   match mode {
-    Mode::Point => WebGl2RenderingContext::POINTS,
-    Mode::Line => WebGl2RenderingContext::LINES,
-    Mode::LineStrip => WebGl2RenderingContext::LINE_STRIP,
-    Mode::TrianWebGl2RenderingContexte => WebGl2RenderingContext::TRIANGLES,
-    Mode::TrianWebGl2RenderingContexteFan => WebGl2RenderingContext::TRIANGLE_FAN,
-    Mode::TrianWebGl2RenderingContexteStrip => WebGl2RenderingContext::TRIANGLE_STRIP,
-    Mode::Patch(_) => WebGl2RenderingContext::PATCHES,
+    Mode::Point => Some(WebGl2RenderingContext::POINTS),
+    Mode::Line => Some(WebGl2RenderingContext::LINES),
+    Mode::LineStrip => Some(WebGl2RenderingContext::LINE_STRIP),
+    Mode::Triangle => Some(WebGl2RenderingContext::TRIANGLES),
+    Mode::TriangleFan => Some(WebGl2RenderingContext::TRIANGLE_FAN),
+    Mode::TriangleStrip => Some(WebGl2RenderingContext::TRIANGLE_STRIP),
+    Mode::Patch(_) => None,
   }
 }
 
