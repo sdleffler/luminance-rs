@@ -3,6 +3,7 @@
 use std::cell::RefCell;
 use std::cmp::Ordering;
 use std::mem;
+use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
 use std::slice;
 use web_sys::{WebGl2RenderingContext, WebGlBuffer};
@@ -12,22 +13,30 @@ use crate::webgl2::WebGL2;
 use luminance::backend::buffer::{Buffer as BufferBackend, BufferSlice as BufferSliceBackend};
 use luminance::buffer::BufferError;
 
-/// WebGL buffer.
-#[derive(Clone)]
-pub struct Buffer<T> {
-  /// A cached version of the GPU buffer; emulate persistent mapping.
-  pub(crate) buf: Vec<T>,
-  gl_buf: WebGlBuffer,
+/// Wrapped WebGL buffer.
+///
+/// Used to drop the buffer.
+#[derive(Clone, Debug)]
+struct BufferWrapper {
+  handle: WebGlBuffer,
   state: Rc<RefCell<WebGL2State>>,
 }
 
-impl<T> Drop for Buffer<T> {
+impl Drop for BufferWrapper {
   fn drop(&mut self) {
     let mut state = self.state.borrow_mut();
 
-    state.unbind_buffer(&self.gl_buf);
-    state.ctx.delete_buffer(Some(&self.gl_buf));
+    state.unbind_buffer(&self.handle);
+    state.ctx.delete_buffer(Some(&self.handle));
   }
+}
+
+/// WebGL buffer.
+#[derive(Clone, Debug)]
+pub struct Buffer<T> {
+  /// A cached version of the GPU buffer; emulate persistent mapping.
+  pub(crate) buf: Vec<T>,
+  gl_buf: BufferWrapper,
 }
 
 impl<T> Buffer<T> {
@@ -43,10 +52,10 @@ impl<T> Buffer<T> {
 
     // generate a buffer and force binding the handle; this prevent side-effects from previous bound
     // resources to prevent binding the buffer
-    let gl_buf = state
+    let handle = state
       .create_buffer()
       .ok_or_else(|| BufferError::CannotCreate)?;
-    state.bind_array_buffer(Some(&gl_buf), Bind::Forced);
+    state.bind_array_buffer(Some(&handle), Bind::Forced);
 
     let bytes = mem::size_of::<T>() * len;
     state.ctx.buffer_data_with_i32(
@@ -55,11 +64,12 @@ impl<T> Buffer<T> {
       WebGl2RenderingContext::STREAM_DRAW,
     );
 
-    Ok(Buffer {
-      gl_buf,
-      buf,
+    let gl_buf = BufferWrapper {
+      handle,
       state: webgl2.state.clone(),
-    })
+    };
+
+    Ok(Buffer { buf, gl_buf })
   }
 
   /// Update the WebGL buffer by copying the cached vec.
@@ -82,7 +92,19 @@ impl<T> Buffer<T> {
   }
 
   pub(crate) fn handle(&self) -> &WebGlBuffer {
-    &self.gl_buf
+    &self.gl_buf.handle
+  }
+
+  pub(crate) fn into_raw(self) -> Buffer<u8> {
+    let boxed = self.buf.into_boxed_slice();
+    let len = boxed.len();
+    let ptr = Box::into_raw(boxed) as _;
+    let buf = unsafe { Vec::from_raw_parts(ptr, len, len) };
+
+    Buffer {
+      buf,
+      gl_buf: self.gl_buf,
+    }
   }
 }
 
@@ -107,10 +129,10 @@ where
     let mut state = self.state.borrow_mut();
     let len = vec.len();
 
-    let gl_buf = state
+    let handle = state
       .create_buffer()
       .ok_or_else(|| BufferError::CannotCreate)?;
-    state.bind_array_buffer(Some(&gl_buf), Bind::Forced);
+    state.bind_array_buffer(Some(&handle), Bind::Forced);
 
     let bytes = mem::size_of::<T>() * len;
     let data = slice::from_raw_parts(vec.as_ptr() as *const _, bytes);
@@ -120,11 +142,12 @@ where
       WebGl2RenderingContext::STREAM_DRAW,
     );
 
-    Ok(Buffer {
-      gl_buf,
-      buf: vec,
+    let gl_buf = BufferWrapper {
+      handle,
       state: self.state.clone(),
-    })
+    };
+
+    Ok(Buffer { gl_buf, buf: vec })
   }
 
   unsafe fn repeat(&mut self, len: usize, value: T) -> Result<Self::BufferRepr, BufferError> {
@@ -152,8 +175,8 @@ where
       buffer.buf[i] = x;
 
       // then update the WebGL buffer
-      let mut state = buffer.state.borrow_mut();
-      Buffer::<T>::update_gl_buffer(&mut state, &buffer.gl_buf, buffer.buf.as_ptr(), i, 1);
+      let mut state = buffer.gl_buf.state.borrow_mut();
+      Buffer::<T>::update_gl_buffer(&mut state, &buffer.gl_buf.handle, buffer.buf.as_ptr(), i, 1);
 
       Ok(())
     }
@@ -188,10 +211,10 @@ where
     buffer.buf.extend_from_slice(values);
 
     // update the data on GPU
-    let mut state = buffer.state.borrow_mut();
+    let mut state = buffer.gl_buf.state.borrow_mut();
     Buffer::<T>::update_gl_buffer(
       &mut state,
-      &buffer.gl_buf,
+      &buffer.gl_buf.handle,
       buffer.buf.as_ptr(),
       0,
       values.len(),
@@ -206,10 +229,10 @@ where
       *item = x;
     }
 
-    let mut state = buffer.state.borrow_mut();
+    let mut state = buffer.gl_buf.state.borrow_mut();
     Buffer::<T>::update_gl_buffer(
       &mut state,
-      &buffer.gl_buf,
+      &buffer.gl_buf.handle,
       buffer.buf.as_ptr(),
       0,
       buffer.buf.len(),
@@ -224,7 +247,7 @@ where
 // update the GPU buffer on the Drop implementation.
 
 pub struct BufferSlice<T> {
-  gl_buf: WebGlBuffer,
+  handle: WebGlBuffer,
   ptr: *const T,
   len: usize,
   state: Rc<RefCell<WebGL2State>>,
@@ -233,12 +256,20 @@ pub struct BufferSlice<T> {
 impl<T> Drop for BufferSlice<T> {
   fn drop(&mut self) {
     let mut state = self.state.borrow_mut();
-    Buffer::<T>::update_gl_buffer(&mut state, &self.gl_buf, self.ptr, 0, self.len);
+    Buffer::<T>::update_gl_buffer(&mut state, &self.handle, self.ptr, 0, self.len);
+  }
+}
+
+impl<T> Deref for BufferSlice<T> {
+  type Target = [T];
+
+  fn deref(&self) -> &Self::Target {
+    unsafe { slice::from_raw_parts(self.ptr, self.len) }
   }
 }
 
 pub struct BufferSliceMut<T> {
-  gl_buf: WebGlBuffer,
+  handle: WebGlBuffer,
   ptr: *mut T,
   len: usize,
   state: Rc<RefCell<WebGL2State>>,
@@ -247,7 +278,21 @@ pub struct BufferSliceMut<T> {
 impl<T> Drop for BufferSliceMut<T> {
   fn drop(&mut self) {
     let mut state = self.state.borrow_mut();
-    Buffer::<T>::update_gl_buffer(&mut state, &self.gl_buf, self.ptr, 0, self.len);
+    Buffer::<T>::update_gl_buffer(&mut state, &self.handle, self.ptr, 0, self.len);
+  }
+}
+
+impl<T> Deref for BufferSliceMut<T> {
+  type Target = [T];
+
+  fn deref(&self) -> &Self::Target {
+    unsafe { slice::from_raw_parts(self.ptr as *const _, self.len) }
+  }
+}
+
+impl<T> DerefMut for BufferSliceMut<T> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
   }
 }
 
@@ -261,10 +306,10 @@ where
 
   unsafe fn slice_buffer(buffer: &Self::BufferRepr) -> Result<Self::SliceRepr, BufferError> {
     let slice = BufferSlice {
-      gl_buf: buffer.gl_buf.clone(),
+      handle: buffer.gl_buf.handle.clone(),
       ptr: buffer.buf.as_ptr(),
       len: buffer.buf.len(),
-      state: buffer.state.clone(),
+      state: buffer.gl_buf.state.clone(),
     };
 
     Ok(slice)
@@ -274,10 +319,10 @@ where
     buffer: &mut Self::BufferRepr,
   ) -> Result<Self::SliceMutRepr, BufferError> {
     let slice = BufferSliceMut {
-      gl_buf: buffer.gl_buf.clone(),
+      handle: buffer.gl_buf.handle.clone(),
       ptr: buffer.buf.as_mut_ptr(),
       len: buffer.buf.len(),
-      state: buffer.state.clone(),
+      state: buffer.gl_buf.state.clone(),
     };
 
     Ok(slice)

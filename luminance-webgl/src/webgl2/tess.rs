@@ -1,20 +1,24 @@
 //! WebGL2 tessellation implementation.
 
-use luminance::backend::buffer::Buffer as _;
+use luminance::backend::buffer::{Buffer as _, BufferSlice as _};
 use luminance::backend::tess::{
   IndexSlice as IndexSliceBackend, InstanceSlice as InstanceSliceBackend, Tess as TessBackend,
   VertexSlice as VertexSliceBackend,
 };
-use luminance::tess::{Interleaved, Mode, TessError, TessIndex, TessIndexType, TessVertexData};
+use luminance::tess::{
+  Deinterleaved, DeinterleavedData, Interleaved, Mode, TessError, TessIndex, TessIndexType,
+  TessMapError, TessVertexData,
+};
 use luminance::vertex::{
   Normalized, Vertex, VertexAttribDesc, VertexAttribDim, VertexAttribType, VertexBufferDesc,
   VertexInstancing,
 };
 use std::cell::RefCell;
+use std::marker::PhantomData;
 use std::rc::Rc;
 use web_sys::WebGlVertexArrayObject;
 
-use crate::webgl2::buffer::Buffer;
+use crate::webgl2::buffer::{Buffer, BufferSlice, BufferSliceMut};
 use crate::webgl2::state::{Bind, WebGL2State};
 use crate::webgl2::{WebGL2, WebGl2RenderingContext};
 
@@ -182,6 +186,168 @@ where
   }
 }
 
+unsafe impl<V, I, W> VertexSliceBackend<V, I, W, Interleaved, V> for WebGL2
+where
+  V: TessVertexData<Interleaved, Data = Vec<V>>,
+  I: TessIndex,
+  W: TessVertexData<Interleaved, Data = Vec<W>>,
+{
+  type VertexSliceRepr = BufferSlice<V>;
+  type VertexSliceMutRepr = BufferSliceMut<V>;
+
+  unsafe fn vertices(tess: &mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError> {
+    match tess.vertex_buffer {
+      Some(ref vb) => Ok(WebGL2::slice_buffer(vb)?),
+      None => Err(TessMapError::ForbiddenAttributelessMapping),
+    }
+  }
+
+  unsafe fn vertices_mut(
+    tess: &mut Self::TessRepr,
+  ) -> Result<Self::VertexSliceMutRepr, TessMapError> {
+    match tess.vertex_buffer {
+      Some(ref mut vb) => Ok(WebGL2::slice_buffer_mut(vb)?),
+      None => Err(TessMapError::ForbiddenAttributelessMapping),
+    }
+  }
+}
+
+unsafe impl<V, I, W> IndexSliceBackend<V, I, W, Interleaved> for WebGL2
+where
+  V: TessVertexData<Interleaved, Data = Vec<V>>,
+  I: TessIndex,
+  W: TessVertexData<Interleaved, Data = Vec<W>>,
+{
+  type IndexSliceRepr = BufferSlice<I>;
+  type IndexSliceMutRepr = BufferSliceMut<I>;
+
+  unsafe fn indices(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError> {
+    match tess.raw.index_buffer {
+      Some(ref buffer) => Ok(WebGL2::slice_buffer(buffer)?),
+      None => Err(TessMapError::ForbiddenAttributelessMapping),
+    }
+  }
+
+  unsafe fn indices_mut(
+    tess: &mut Self::TessRepr,
+  ) -> Result<Self::IndexSliceMutRepr, TessMapError> {
+    match tess.raw.index_buffer {
+      Some(ref mut buffer) => Ok(WebGL2::slice_buffer_mut(buffer)?),
+      None => Err(TessMapError::ForbiddenAttributelessMapping),
+    }
+  }
+}
+
+unsafe impl<V, I, W> InstanceSliceBackend<V, I, W, Interleaved, W> for WebGL2
+where
+  V: TessVertexData<Interleaved, Data = Vec<V>>,
+  I: TessIndex,
+  W: TessVertexData<Interleaved, Data = Vec<W>>,
+{
+  type InstanceSliceRepr = BufferSlice<W>;
+  type InstanceSliceMutRepr = BufferSliceMut<W>;
+
+  unsafe fn instances(tess: &mut Self::TessRepr) -> Result<Self::InstanceSliceRepr, TessMapError> {
+    match tess.instance_buffer {
+      Some(ref vb) => Ok(WebGL2::slice_buffer(vb)?),
+      None => Err(TessMapError::ForbiddenAttributelessMapping),
+    }
+  }
+
+  unsafe fn instances_mut(
+    tess: &mut Self::TessRepr,
+  ) -> Result<Self::InstanceSliceMutRepr, TessMapError> {
+    match tess.instance_buffer {
+      Some(ref mut vb) => Ok(WebGL2::slice_buffer_mut(vb)?),
+      None => Err(TessMapError::ForbiddenAttributelessMapping),
+    }
+  }
+}
+
+pub struct DeinterleavedTess<V, I, W>
+where
+  V: Vertex,
+  I: TessIndex,
+  W: Vertex,
+{
+  raw: TessRaw<I>,
+  vertex_buffers: Vec<Buffer<u8>>,
+  instance_buffers: Vec<Buffer<u8>>,
+  _phantom: PhantomData<*const (V, W)>,
+}
+
+unsafe impl<V, I, W> TessBackend<V, I, W, Deinterleaved> for WebGL2
+where
+  V: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
+  I: TessIndex,
+  W: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
+{
+  type TessRepr = DeinterleavedTess<V, I, W>;
+
+  unsafe fn build(
+    &mut self,
+    vertex_data: Option<V::Data>,
+    index_data: Vec<I>,
+    instance_data: Option<W::Data>,
+    mode: Mode,
+    vert_nb: usize,
+    inst_nb: usize,
+    restart_index: Option<I>,
+  ) -> Result<Self::TessRepr, TessError> {
+    let vao = self
+      .state
+      .borrow_mut()
+      .create_vertex_array()
+      .ok_or_else(|| TessError::cannot_create("the backend failed to create the VAO"))?;
+
+    // force binding the vertex array so that previously bound vertex arrays (possibly the same
+    // handle) don’t prevent us from binding here
+    self
+      .state
+      .borrow_mut()
+      .bind_vertex_array(Some(&vao), Bind::Forced);
+
+    let vertex_buffers = build_deinterleaved_vertex_buffers::<V>(self, vertex_data)?;
+    let index_buffer = build_index_buffer(self, index_data, restart_index)?;
+    let instance_buffers = build_deinterleaved_vertex_buffers::<W>(self, instance_data)?;
+
+    let mode = webgl_mode(mode).ok_or_else(|| TessError::ForbiddenPrimitiveMode(mode))?;
+    let state = self.state.clone();
+    let raw = TessRaw {
+      vao,
+      mode,
+      vert_nb,
+      inst_nb,
+      index_buffer,
+      state,
+    };
+
+    Ok(DeinterleavedTess {
+      raw,
+      vertex_buffers,
+      instance_buffers,
+      _phantom: PhantomData,
+    })
+  }
+
+  unsafe fn tess_vertices_nb(tess: &Self::TessRepr) -> usize {
+    tess.raw.vert_nb
+  }
+
+  unsafe fn tess_instances_nb(tess: &Self::TessRepr) -> usize {
+    tess.raw.inst_nb
+  }
+
+  unsafe fn render(
+    tess: &Self::TessRepr,
+    start_index: usize,
+    vert_nb: usize,
+    inst_nb: usize,
+  ) -> Result<(), TessError> {
+    tess.raw.render(start_index, vert_nb, inst_nb)
+  }
+}
+
 fn build_interleaved_vertex_buffer<V>(
   webgl2: &mut WebGL2,
   vertices: Option<Vec<V>>,
@@ -214,6 +380,39 @@ where
     }
 
     None => Ok(None),
+  }
+}
+
+fn build_deinterleaved_vertex_buffers<V>(
+  webgl2: &mut WebGL2,
+  vertices: Option<Vec<DeinterleavedData>>,
+) -> Result<Vec<Buffer<u8>>, TessError>
+where
+  V: Vertex,
+{
+  match vertices {
+    Some(attributes) => {
+      attributes
+        .into_iter()
+        .zip(V::vertex_desc())
+        .map(|(attribute, fmt)| {
+          let vb = unsafe { webgl2.from_vec(attribute.into_vec())? };
+
+          // force binding as it’s meaningful when a vao is bound
+          unsafe {
+            webgl2
+              .state
+              .borrow_mut()
+              .bind_array_buffer(Some(vb.handle()), Bind::Forced);
+            set_vertex_pointers(&mut webgl2.state.borrow_mut().ctx, &[fmt]);
+          }
+
+          Ok(vb.into_raw())
+        })
+        .collect::<Result<Vec<_>, _>>()
+    }
+
+    None => Ok(Vec::new()),
   }
 }
 
