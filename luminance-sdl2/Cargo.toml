@@ -23,3 +23,6 @@ gl = "0.14"
 luminance = "0.40"
 luminance-gl = "0.14"
 sdl2 = "0.33"
+
+[dev-dependencies]
+sdl2 = { features = ["bundled"] }
