@@ -25,4 +25,4 @@ luminance-gl = "0.14"
 sdl2 = "0.33"
 
 [dev-dependencies]
-sdl2 = { features = ["bundled"] }
+sdl2 = { version = "0.33", features = ["bundled"] }
