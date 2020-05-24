@@ -10,8 +10,8 @@ use luminance::tess::{
   TessMapError, TessVertexData,
 };
 use luminance::vertex::{
-  Normalized, Vertex, VertexAttribDesc, VertexAttribDim, VertexAttribType, VertexBufferDesc,
-  VertexInstancing,
+  Deinterleave, Normalized, Vertex, VertexAttribDesc, VertexAttribDim, VertexAttribType,
+  VertexBufferDesc, VertexInstancing,
 };
 use std::cell::RefCell;
 use std::marker::PhantomData;
@@ -345,6 +345,96 @@ where
     inst_nb: usize,
   ) -> Result<(), TessError> {
     tess.raw.render(start_index, vert_nb, inst_nb)
+  }
+}
+
+unsafe impl<V, I, W, T> VertexSliceBackend<V, I, W, Deinterleaved, T> for WebGL2
+where
+  V: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>> + Deinterleave<T>,
+  I: TessIndex,
+  W: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>>,
+{
+  type VertexSliceRepr = BufferSlice<T>;
+  type VertexSliceMutRepr = BufferSliceMut<T>;
+
+  unsafe fn vertices(tess: &mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError> {
+    if tess.vertex_buffers.is_empty() {
+      Err(TessMapError::ForbiddenAttributelessMapping)
+    } else {
+      let buffer = &tess.vertex_buffers[V::RANK];
+      let slice = WebGL2::slice_buffer(buffer)?.transmute();
+      Ok(slice)
+    }
+  }
+
+  unsafe fn vertices_mut(
+    tess: &mut Self::TessRepr,
+  ) -> Result<Self::VertexSliceMutRepr, TessMapError> {
+    if tess.vertex_buffers.is_empty() {
+      Err(TessMapError::ForbiddenAttributelessMapping)
+    } else {
+      let buffer = &mut tess.vertex_buffers[V::RANK];
+      let slice = WebGL2::slice_buffer_mut(buffer)?.transmute();
+      Ok(slice)
+    }
+  }
+}
+
+unsafe impl<V, I, W> IndexSliceBackend<V, I, W, Deinterleaved> for WebGL2
+where
+  V: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>>,
+  I: TessIndex,
+  W: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>>,
+{
+  type IndexSliceRepr = BufferSlice<I>;
+  type IndexSliceMutRepr = BufferSliceMut<I>;
+
+  unsafe fn indices(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError> {
+    match tess.raw.index_buffer {
+      Some(ref buffer) => Ok(WebGL2::slice_buffer(buffer)?),
+      None => Err(TessMapError::ForbiddenAttributelessMapping),
+    }
+  }
+
+  unsafe fn indices_mut(
+    tess: &mut Self::TessRepr,
+  ) -> Result<Self::IndexSliceMutRepr, TessMapError> {
+    match tess.raw.index_buffer {
+      Some(ref mut buffer) => Ok(WebGL2::slice_buffer_mut(buffer)?),
+      None => Err(TessMapError::ForbiddenAttributelessMapping),
+    }
+  }
+}
+
+unsafe impl<V, I, W, T> InstanceSliceBackend<V, I, W, Deinterleaved, T> for WebGL2
+where
+  V: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>>,
+  I: TessIndex,
+  W: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>> + Deinterleave<T>,
+{
+  type InstanceSliceRepr = BufferSlice<T>;
+  type InstanceSliceMutRepr = BufferSliceMut<T>;
+
+  unsafe fn instances(tess: &mut Self::TessRepr) -> Result<Self::InstanceSliceRepr, TessMapError> {
+    if tess.instance_buffers.is_empty() {
+      Err(TessMapError::ForbiddenAttributelessMapping)
+    } else {
+      let buffer = &tess.instance_buffers[W::RANK];
+      let slice = WebGL2::slice_buffer(buffer)?.transmute();
+      Ok(slice)
+    }
+  }
+
+  unsafe fn instances_mut(
+    tess: &mut Self::TessRepr,
+  ) -> Result<Self::InstanceSliceMutRepr, TessMapError> {
+    if tess.instance_buffers.is_empty() {
+      Err(TessMapError::ForbiddenAttributelessMapping)
+    } else {
+      let buffer = &mut tess.instance_buffers[W::RANK];
+      let slice = WebGL2::slice_buffer_mut(buffer)?.transmute();
+      Ok(slice)
+    }
   }
 }
 

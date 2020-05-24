@@ -2,6 +2,7 @@
 
 use std::cell::RefCell;
 use std::cmp::Ordering;
+use std::marker::PhantomData;
 use std::mem;
 use std::ops::{Deref, DerefMut};
 use std::rc::Rc;
@@ -70,25 +71,6 @@ impl<T> Buffer<T> {
     };
 
     Ok(Buffer { buf, gl_buf })
-  }
-
-  /// Update the WebGL buffer by copying the cached vec.
-  fn update_gl_buffer(
-    state: &mut WebGL2State,
-    gl_buf: &WebGlBuffer,
-    data: *const T,
-    offset: usize,
-    size: usize,
-  ) {
-    state.bind_array_buffer(Some(gl_buf), Bind::Cached);
-
-    let bytes = size * mem::size_of::<T>();
-    let data = unsafe { slice::from_raw_parts(data as _, bytes) };
-    state.ctx.buffer_sub_data_with_i32_and_u8_array(
-      WebGl2RenderingContext::ARRAY_BUFFER,
-      bytes as _,
-      data,
-    );
   }
 
   pub(crate) fn handle(&self) -> &WebGlBuffer {
@@ -176,7 +158,14 @@ where
 
       // then update the WebGL buffer
       let mut state = buffer.gl_buf.state.borrow_mut();
-      Buffer::<T>::update_gl_buffer(&mut state, &buffer.gl_buf.handle, buffer.buf.as_ptr(), i, 1);
+      let bytes = mem::size_of::<T>() * buffer_len;
+      update_webgl_buffer(
+        &mut state,
+        &buffer.gl_buf.handle,
+        buffer.buf.as_ptr() as *const u8,
+        bytes,
+        i,
+      );
 
       Ok(())
     }
@@ -212,10 +201,11 @@ where
 
     // update the data on GPU
     let mut state = buffer.gl_buf.state.borrow_mut();
-    Buffer::<T>::update_gl_buffer(
+    let bytes = mem::size_of::<T>() * buffer_len;
+    update_webgl_buffer(
       &mut state,
       &buffer.gl_buf.handle,
-      buffer.buf.as_ptr(),
+      buffer.buf.as_ptr() as *const u8,
       0,
       values.len(),
     );
@@ -230,21 +220,18 @@ where
     }
 
     let mut state = buffer.gl_buf.state.borrow_mut();
-    Buffer::<T>::update_gl_buffer(
+    let bytes = buffer.buf.len() * mem::size_of::<T>();
+    update_webgl_buffer(
       &mut state,
       &buffer.gl_buf.handle,
-      buffer.buf.as_ptr(),
+      buffer.buf.as_ptr() as *const u8,
+      bytes,
       0,
-      buffer.buf.len(),
     );
 
     Ok(())
   }
 }
-
-// Here, for buffer slices, we are going to use the property that when a buffer is mapped (immutably
-// or mutably), we are the only owner of it. We can then _only_ write to the mapped buffer, and then
-// update the GPU buffer on the Drop implementation.
 
 pub struct BufferSlice<T> {
   handle: WebGlBuffer,
@@ -253,10 +240,23 @@ pub struct BufferSlice<T> {
   state: Rc<RefCell<WebGL2State>>,
 }
 
-impl<T> Drop for BufferSlice<T> {
-  fn drop(&mut self) {
-    let mut state = self.state.borrow_mut();
-    Buffer::<T>::update_gl_buffer(&mut state, &self.handle, self.ptr, 0, self.len);
+impl BufferSlice<u8> {
+  /// Transmute to another type.
+  ///
+  /// This method is highly unsafe and should only be used when certain the target type is the
+  /// one actually represented by the raw bytes.
+  pub(crate) unsafe fn transmute<T>(self) -> BufferSlice<T> {
+    let handle = self.handle;
+    let ptr = self.len as *const T;
+    let len = self.len / mem::size_of::<T>();
+    let state = self.state;
+
+    BufferSlice {
+      handle,
+      ptr,
+      len,
+      state,
+    }
   }
 }
 
@@ -268,17 +268,39 @@ impl<T> Deref for BufferSlice<T> {
   }
 }
 
-pub struct BufferSliceMut<T> {
+/// Buffer mutable slice wrapper.
+///
+/// When a buffer is mapped, we are the only owner of it. We can then read or write from/to the
+/// mapped buffer, and then update the GPU buffer on the [`Drop`] implementation.
+pub struct BufferSliceMutWrapper {
   handle: WebGlBuffer,
-  ptr: *mut T,
-  len: usize,
+  ptr: *mut u8,
+  bytes: usize,
   state: Rc<RefCell<WebGL2State>>,
 }
 
-impl<T> Drop for BufferSliceMut<T> {
+impl Drop for BufferSliceMutWrapper {
   fn drop(&mut self) {
     let mut state = self.state.borrow_mut();
-    Buffer::<T>::update_gl_buffer(&mut state, &self.handle, self.ptr, 0, self.len);
+    update_webgl_buffer(&mut state, &self.handle, self.ptr, self.bytes, 0);
+  }
+}
+
+pub struct BufferSliceMut<T> {
+  raw: BufferSliceMutWrapper,
+  _phantom: PhantomData<T>,
+}
+
+impl BufferSliceMut<u8> {
+  /// Transmute to another type.
+  ///
+  /// This method is highly unsafe and should only be used when certain the target type is the
+  /// one actually represented by the raw bytes.
+  pub(crate) unsafe fn transmute<T>(self) -> BufferSliceMut<T> {
+    BufferSliceMut {
+      raw: self.raw,
+      _phantom: PhantomData,
+    }
   }
 }
 
@@ -286,13 +308,20 @@ impl<T> Deref for BufferSliceMut<T> {
   type Target = [T];
 
   fn deref(&self) -> &Self::Target {
-    unsafe { slice::from_raw_parts(self.ptr as *const _, self.len) }
+    unsafe {
+      slice::from_raw_parts(
+        self.raw.ptr as *const T,
+        self.raw.bytes * mem::size_of::<T>(),
+      )
+    }
   }
 }
 
 impl<T> DerefMut for BufferSliceMut<T> {
   fn deref_mut(&mut self) -> &mut Self::Target {
-    unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
+    unsafe {
+      slice::from_raw_parts_mut(self.raw.ptr as *mut T, self.raw.bytes * mem::size_of::<T>())
+    }
   }
 }
 
@@ -318,11 +347,15 @@ where
   unsafe fn slice_buffer_mut(
     buffer: &mut Self::BufferRepr,
   ) -> Result<Self::SliceMutRepr, BufferError> {
-    let slice = BufferSliceMut {
+    let raw = BufferSliceMutWrapper {
       handle: buffer.gl_buf.handle.clone(),
-      ptr: buffer.buf.as_mut_ptr(),
-      len: buffer.buf.len(),
+      ptr: buffer.buf.as_mut_ptr() as *mut u8,
+      bytes: buffer.buf.len() / mem::size_of::<T>(),
       state: buffer.gl_buf.state.clone(),
+    };
+    let slice = BufferSliceMut {
+      raw,
+      _phantom: PhantomData,
     };
 
     Ok(slice)
@@ -333,6 +366,27 @@ where
   }
 
   unsafe fn obtain_slice_mut(slice: &mut Self::SliceMutRepr) -> Result<&mut [T], BufferError> {
-    Ok(slice::from_raw_parts_mut(slice.ptr, slice.len))
+    Ok(slice::from_raw_parts_mut(
+      slice.raw.ptr as *mut T,
+      slice.raw.bytes * mem::size_of::<T>(),
+    ))
   }
+}
+
+/// Update a WebGL buffer by copying an input slice.
+fn update_webgl_buffer(
+  state: &mut WebGL2State,
+  gl_buf: &WebGlBuffer,
+  data: *const u8,
+  bytes: usize,
+  offset: usize,
+) {
+  state.bind_array_buffer(Some(gl_buf), Bind::Cached);
+
+  let data = unsafe { slice::from_raw_parts(data as _, bytes) };
+  state.ctx.buffer_sub_data_with_i32_and_u8_array(
+    WebGl2RenderingContext::ARRAY_BUFFER,
+    bytes as i32,
+    data,
+  );
 }
