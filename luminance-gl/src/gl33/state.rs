@@ -55,9 +55,13 @@ where
     self.0 = Some(value);
   }
 
+  /// Check if the cached value is invalid regarding a value.
+  ///
+  /// A non-cached value (i.e. empty) is always invalid whatever compared value. If a value is
+  /// already cached, then it’s invalid if it’s not equal ([`PartialEq`]) to the input value.
   fn is_invalid(&self, new_val: &T) -> bool {
     match &self.0 {
-      Some(ref t) => t == new_val,
+      Some(ref t) => t != new_val,
       _ => true,
     }
   }
