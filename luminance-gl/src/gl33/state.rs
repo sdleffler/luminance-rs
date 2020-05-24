@@ -35,6 +35,20 @@ impl BindingStack {
   }
 }
 
+/// Cached value.
+///
+/// A cached value is used to prevent issuing costy GPU commands if we know the target value is
+/// already set to what the command tries to set. For instance, if you ask to use a texture ID
+/// `34` once, that value will be set on the GPU and cached on our side. Later, if no other texture
+/// setting has occurred, if you ask to use the texture ID `34` again, because the value is cached,
+/// we know the GPU is already using it, so we don’t have to perform anything GPU-wise.
+///
+/// This optimization has limits and sometimes, because of side-effects, it is not possible to cache
+/// something correctly.
+///
+/// Note: do not confuse [`Cached`] with [`Bind`]. The latter is for internal use only and
+/// is used to either use the regular cache mechanism or override it to force a value to be
+/// written. It cannot be used to invalidate a setting for later use.
 struct Cached<T>(Option<T>)
 where
   T: PartialEq;
@@ -43,10 +57,14 @@ impl<T> Cached<T>
 where
   T: PartialEq,
 {
+  /// Cache a value.
   fn new(initial: T) -> Self {
     Cached(Some(initial))
   }
 
+  /// Explicitly invalidate a value.
+  ///
+  /// This is necessary when we want to be able to force a GPU command to run.
   fn invalidate(&mut self) {
     self.0 = None;
   }
@@ -216,110 +234,111 @@ impl GLState {
     }
   }
 
-  /// Invalidate the cached vertex array
+  /// Invalidate the currently in-use vertex array.
   pub fn invalidate_vertex_array(&mut self) {
     self.bound_vertex_array = 0;
   }
 
-  /// Invalidate the array buffer
+  /// Invalidate the currently in-use array buffer.
   pub fn invalidate_array_buffer(&mut self) {
     self.bound_array_buffer = 0;
   }
 
-  /// Invalidate the shader program
+  /// Invalidate the currently in-use shader program.
   pub fn invalidate_shader_program(&mut self) {
     self.current_program = 0;
   }
 
-  /// Invalidate the framebuffer
+  /// Invalidate the currently in-use framebuffer.
   pub fn invalidate_framebuffer(&mut self) {
     self.bound_draw_framebuffer.invalidate();
   }
 
-  /// Invalidate the element array buffer
+  /// Invalidate the currently in-use element array buffer.
   pub fn invalidate_element_array_buffer(&mut self) {
     self.bound_element_array_buffer = 0;
   }
 
-  /// Invalidate the texture unit
+  /// Invalidate the currently in-use texture unit.
   pub fn invalidate_texture_unit(&mut self) {
     self.current_texture_unit.invalidate();
   }
 
-  /// Invalidate the texture bindings
+  /// Invalidate the texture bindings.
   pub fn invalidate_bound_textures(&mut self) {
-    self
-      .bound_textures
-      .iter_mut()
-      .for_each(|t| *t = (gl::TEXTURE_2D, 0));
+    for t in &mut self.bound_textures {
+      *t = (gl::TEXTURE_2D, 0);
+    }
   }
 
-  /// Invalidate the uniform buffer bindings
+  /// Invalidate the uniform buffer bindings.
   pub fn invalidate_bound_uniform_buffers(&mut self) {
-    self.bound_uniform_buffers.iter_mut().for_each(|b| *b = 0);
+    for b in &mut self.bound_uniform_buffers {
+      *b = 0;
+    }
   }
 
-  /// Invalidate the viewport
+  /// Invalidate the currently in-use viewport.
   pub fn invalidate_viewport(&mut self) {
     self.viewport.invalidate()
   }
 
-  /// Invalidate the clear color
+  /// Invalidate the currently in-use clear color.
   pub fn invalidate_clear_color(&mut self) {
     self.clear_color.invalidate()
   }
 
-  /// Invalidate the blending state
+  /// Invalidate the currently in-use blending state.
   pub fn invalidate_blending_state(&mut self) {
     self.blending_state.invalidate()
   }
 
-  /// Invalidate the blending equation
+  /// Invalidate the currently in-use blending equation.
   pub fn invalidate_blending_equation(&mut self) {
     self.blending_equation.invalidate()
   }
 
-  /// Invalidate the blending function
+  /// Invalidate the currently in-use blending function.
   pub fn invalidate_blending_func(&mut self) {
     self.blending_func.invalidate()
   }
 
-  /// Invalidate the depth test
+  /// Invalidate the currently in-use depth test.
   pub fn invalidate_depth_test(&mut self) {
     self.depth_test.invalidate()
   }
 
-  /// Invalidate the depth test comparison
+  /// Invalidate the currently in-use depth test comparison.
   pub fn invalidate_depth_test_comparison(&mut self) {
     self.depth_test_comparison.invalidate()
   }
 
-  /// Invalidate the face culling state
+  /// Invalidate the currently in-use face culling state.
   pub fn invalidate_face_culling_state(&mut self) {
     self.face_culling_state.invalidate()
   }
 
-  /// Invalidate the face culling order
+  /// Invalidate the currently in-use face culling order.
   pub fn invalidate_face_culling_order(&mut self) {
     self.face_culling_order.invalidate()
   }
 
-  /// Invalidate the face culling mode
+  /// Invalidate the currently in-use face culling mode.
   pub fn invalidate_face_culling_mode(&mut self) {
     self.face_culling_mode.invalidate()
   }
 
-  /// Invalidate the vertex restart
+  /// Invalidate the currently in-use vertex restart state.
   pub fn invalidate_vertex_restart(&mut self) {
     self.vertex_restart.invalidate()
   }
 
-  /// Invalidate the patch vertex number
+  /// Invalidate the currently in-use patch vertex number.
   pub fn invalidate_patch_vertex_nb(&mut self) {
     self.patch_vertex_nb.invalidate()
   }
 
-  /// Invalidate the SRGB framebuffer flag
+  /// Invalidate the currently in-use sRGB framebuffer state.
   pub fn reset_srgb_framebuffer_enabled(&mut self) {
     self.srgb_framebuffer_enabled.invalidate()
   }
