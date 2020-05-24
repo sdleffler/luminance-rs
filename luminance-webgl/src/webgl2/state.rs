@@ -4,7 +4,7 @@ use std::cell::RefCell;
 use std::convert::TryInto;
 use std::fmt;
 use std::marker::PhantomData;
-use web_sys::{WebGl2RenderingContext, WebGlBuffer};
+use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlVertexArrayObject};
 
 use luminance::blending::{Equation, Factor};
 use luminance::depth_test::DepthComparison;
@@ -13,6 +13,7 @@ use luminance::face_culling::{FaceCullingMode, FaceCullingOrder};
 // TLS synchronization barrier for `GLState`.
 thread_local!(static TLS_ACQUIRE_GFX_STATE: RefCell<Option<()>> = RefCell::new(Some(())));
 
+#[derive(Debug)]
 pub(crate) struct BindingStack {
   pub(crate) next_texture_unit: u32,
   pub(crate) free_texture_units: Vec<u32>,
@@ -38,6 +39,7 @@ impl BindingStack {
 /// as a forward-gate to all the exposed features from the low-level API but
 /// adds a small cache layer over it to prevent from issuing the same API call (with
 /// the same parameters).
+#[derive(Debug)]
 pub struct WebGL2State {
   _phantom: PhantomData<*const ()>, // !Send and !Sync
 
@@ -67,9 +69,6 @@ pub struct WebGL2State {
   // face_culling_order: FaceCullingOrder,
   // face_culling_mode: FaceCullingMode,
 
-  // // vertex restart
-  // vertex_restart: VertexRestart,
-
   // // patch primitive vertex number
   // patch_vertex_nb: usize,
 
@@ -90,15 +89,14 @@ pub struct WebGL2State {
 
   // array buffer
   bound_array_buffer: Option<WebGlBuffer>,
-  // // element buffer
-  // bound_element_array_buffer: GLuint,
+  // element buffer
+  bound_element_array_buffer: Option<WebGlBuffer>,
 
   // // framebuffer
   // bound_draw_framebuffer: GLuint,
 
-  // // vertex array
-  // bound_vertex_array: GLuint,
-
+  // vertex array
+  bound_vertex_array: Option<WebGlVertexArrayObject>,
   // // shader program
   // current_program: GLuint,
 }
@@ -137,16 +135,15 @@ impl WebGL2State {
     //let face_culling_state = Self::get_ctx_face_culling_state(ctx)?;
     //let face_culling_order = Self::get_ctx_face_culling_order(ctx)?;
     //let face_culling_mode = Self::get_ctx_face_culling_mode(ctx)?;
-    //let vertex_restart = Self::get_ctx_vertex_restart(ctx)?;
     //let patch_vertex_nb = 0;
     //let current_texture_unit = Self::get_ctx_current_texture_unit(ctx)?;
     //let bound_textures = vec![(WebGl2RenderingContext::TEXTURE_2D, 0); 48]; // 48 is the platform minimal requirement
     //let texture_swimming_pool = Vec::new();
     //let bound_uniform_buffers = vec![0; 36]; // 36 is the platform minimal requirement
     let bound_array_buffer = None;
-    // let bound_element_array_buffer = 0;
+    let bound_element_array_buffer = None;
     // let bound_draw_framebuffer = Self::get_ctx_bound_draw_framebuffer(ctx)?;
-    // let bound_vertex_array = Self::get_ctx_bound_vertex_array(ctx)?;
+    let bound_vertex_array = None;
     // let current_program = Self::get_ctx_current_program(ctx)?;
 
     Ok(WebGL2State {
@@ -163,16 +160,15 @@ impl WebGL2State {
       // face_culling_state,
       // face_culling_order,
       // face_culling_mode,
-      // vertex_restart,
       // patch_vertex_nb,
       // current_texture_unit,
       // bound_textures,
       // texture_swimming_pool,
       // bound_uniform_buffers,
       bound_array_buffer,
-      // bound_element_array_buffer,
+      bound_element_array_buffer,
       // bound_draw_framebuffer,
-      // bound_vertex_array,
+      bound_vertex_array,
       // current_program,
     })
   }
@@ -328,19 +324,13 @@ impl WebGL2State {
   //   }
   // }
 
-  // fn get_ctx_vertex_restart(_: &WebGl2RenderingContext) -> Result<VertexRestart, StateQueryError> {
-  //   // implementation note: WebGL2 doesn’t allow to enable nor disable primitive restart as it’s
-  //   // always on
-  //   Ok(VertexRestart::On)
-  // }
-
-  // fn get_ctx_current_texture_unit(ctx: &WebGl2RenderingContext) -> Result<GLenum, StateQueryError> {
-  //   let active_texture = ctx
-  //     .get_parameter(WebGl2RenderingContext::TEXTURE0)
-  //     .try_into()
-  //     .unwrap();
-  //   Ok(active_texture)
-  // }
+  //fn get_ctx_current_texture_unit(ctx: &WebGl2RenderingContext) -> Result<GLenum, StateQueryError> {
+  //  let active_texture = ctx
+  //    .get_parameter(WebGl2RenderingContext::TEXTURE0)
+  //    .try_into()
+  //    .unwrap();
+  //  Ok(active_texture)
+  //}
 
   // fn get_ctx_bound_draw_framebuffer(
   //   ctx: &WebGl2RenderingContext,
@@ -351,16 +341,6 @@ impl WebGL2State {
   //     .unwrap();
   //   Ok(bound)
   // }
-
-  fn get_ctx_bound_vertex_array(
-    ctx: &WebGl2RenderingContext,
-  ) -> Result<WebGlBuffer, StateQueryError> {
-    ctx
-      .get_parameter(WebGl2RenderingContext::VERTEX_ARRAY_BINDING)
-      .map_err(|_| StateQueryError::UnknownArrayBufferInitialState)?
-      .try_into()
-      .map_err(|_| StateQueryError::UnknownArrayBufferInitialState)
-  }
 
   // fn get_ctx_current_program(ctx: &WebGl2RenderingContext) -> Result<GLuint, StateQueryError> {
   //   let used = ctx
@@ -383,13 +363,22 @@ impl WebGL2State {
     }
   }
 
+  pub(crate) fn bind_element_array_buffer(&mut self, buffer: Option<&WebGlBuffer>, bind: Bind) {
+    if bind == Bind::Forced || self.bound_element_array_buffer.as_ref() != buffer {
+      self
+        .ctx
+        .bind_buffer(WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER, buffer);
+      self.bound_element_array_buffer = buffer.cloned();
+    }
+  }
+
   pub(crate) fn unbind_buffer(&mut self, buffer: &WebGlBuffer) {
     if self.bound_array_buffer.as_ref() == Some(buffer) {
       self.bind_array_buffer(None, Bind::Cached);
+    } else if self.bound_element_array_buffer.as_ref() == Some(buffer) {
+      self.bind_element_array_buffer(None, Bind::Cached);
     }
-    // FIXME: enable this as soon as we add either element buffers or vertex array buffers
-    // else if self.bound_element_array_buffer == handle {
-    //   self.bind_element_array_buffer(0, Bind::Cached);
+    // FIXME: enable this as soon as we add uniform buffers
     // } else if let Some(handle_) = self
     //   .bound_uniform_buffers
     //   .iter_mut()
@@ -397,6 +386,23 @@ impl WebGL2State {
     // {
     //   *handle_ = 0;
     // }
+  }
+
+  pub(crate) fn create_vertex_array(&mut self) -> Option<WebGlVertexArrayObject> {
+    self.ctx.create_vertex_array()
+  }
+
+  pub(crate) fn bind_vertex_array(&mut self, vao: Option<&WebGlVertexArrayObject>, bind: Bind) {
+    if bind == Bind::Forced || self.bound_vertex_array.as_ref() != vao {
+      self.ctx.bind_vertex_array(vao);
+      self.bound_vertex_array = vao.cloned();
+    }
+  }
+
+  pub(crate) fn unbind_vertex_array(&mut self, vao: &WebGlVertexArrayObject) {
+    if self.bound_vertex_array.as_ref() == Some(vao) {
+      self.bind_vertex_array(None, Bind::Cached);
+    }
   }
 }
 

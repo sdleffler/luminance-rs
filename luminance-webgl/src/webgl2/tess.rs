@@ -1,15 +1,5 @@
-use gl;
-use gl::types::*;
-use std::cell::RefCell;
-use std::marker::PhantomData;
-use std::os::raw::c_void;
-use std::ptr;
-use std::rc::Rc;
+//! WebGL2 tessellation implementation.
 
-use crate::gl33::buffer::{Buffer, BufferSlice, BufferSliceMut};
-use crate::gl33::state::{Bind, GLState};
-use crate::gl33::vertex_restart::VertexRestart;
-use crate::gl33::GL33;
 use luminance::backend::buffer::{Buffer as _, BufferSlice as _};
 use luminance::backend::tess::{
   IndexSlice as IndexSliceBackend, InstanceSlice as InstanceSliceBackend, Tess as TessBackend,
@@ -23,27 +13,27 @@ use luminance::vertex::{
   Deinterleave, Normalized, Vertex, VertexAttribDesc, VertexAttribDim, VertexAttribType,
   VertexBufferDesc, VertexInstancing,
 };
+use std::cell::RefCell;
+use std::marker::PhantomData;
+use std::rc::Rc;
+use web_sys::WebGlVertexArrayObject;
 
-/// All the extra data required when doing indexed drawing.
-struct IndexedDrawState<I>
-where
-  I: TessIndex,
-{
-  buffer: Buffer<I>,
-  restart_index: Option<I>,
-}
+use crate::webgl2::buffer::{Buffer, BufferSlice, BufferSliceMut};
+use crate::webgl2::state::{Bind, WebGL2State};
+use crate::webgl2::{WebGL2, WebGl2RenderingContext};
 
 struct TessRaw<I>
 where
   I: TessIndex,
 {
-  vao: GLenum,
-  mode: GLenum,
+  vao: WebGlVertexArrayObject,
+  mode: u32,
   vert_nb: usize,
   inst_nb: usize,
-  patch_vert_nb: usize,
-  index_state: Option<IndexedDrawState<I>>,
-  state: Rc<RefCell<GLState>>,
+  // A small note: WebGL2 doesn’t support custom primitive restart index; it assumes the maximum
+  // value of I as being that restart index.
+  index_buffer: Option<Buffer<I>>,
+  state: Rc<RefCell<WebGL2State>>,
 }
 
 impl<I> TessRaw<I>
@@ -56,32 +46,26 @@ where
     vert_nb: usize,
     inst_nb: usize,
   ) -> Result<(), TessError> {
-    let vert_nb = vert_nb as GLsizei;
-    let inst_nb = inst_nb as GLsizei;
+    let vert_nb = vert_nb as _;
+    let inst_nb = inst_nb as _;
 
     let mut gfx_st = self.state.borrow_mut();
-    gfx_st.bind_vertex_array(self.vao, Bind::Cached);
+    gfx_st.bind_vertex_array(Some(&self.vao), Bind::Cached);
 
-    if self.mode == gl::PATCHES {
-      gfx_st.set_patch_vertex_nb(self.patch_vert_nb);
-    }
-
-    match (I::INDEX_TYPE, self.index_state.as_ref()) {
-      (Some(index_ty), Some(index_state)) => {
+    match (I::INDEX_TYPE, self.index_buffer.as_ref()) {
+      (Some(index_ty), Some(_)) => {
         // indexed render
-        let first = (index_ty.bytes() * start_index) as *const c_void;
-
-        if let Some(restart_index) = index_state.restart_index {
-          gfx_st.set_vertex_restart(VertexRestart::On);
-          gl::PrimitiveRestartIndex(restart_index.try_into_u32().unwrap_or(0));
-        } else {
-          gfx_st.set_vertex_restart(VertexRestart::Off);
-        }
+        let first = (index_ty.bytes() * start_index) as _;
 
         if inst_nb <= 1 {
-          gl::DrawElements(self.mode, vert_nb, index_type_to_glenum(index_ty), first);
+          gfx_st.ctx.draw_elements_with_i32(
+            self.mode,
+            vert_nb,
+            index_type_to_glenum(index_ty),
+            first,
+          );
         } else {
-          gl::DrawElementsInstanced(
+          gfx_st.ctx.draw_elements_instanced_with_i32(
             self.mode,
             vert_nb,
             index_type_to_glenum(index_ty),
@@ -93,12 +77,14 @@ where
 
       _ => {
         // direct render
-        let first = start_index as GLint;
+        let first = start_index as _;
 
         if inst_nb <= 1 {
-          gl::DrawArrays(self.mode, first, vert_nb);
+          gfx_st.ctx.draw_arrays(self.mode, first, vert_nb);
         } else {
-          gl::DrawArraysInstanced(self.mode, first, vert_nb, inst_nb);
+          gfx_st
+            .ctx
+            .draw_arrays_instanced(self.mode, first, vert_nb, inst_nb);
         }
       }
     }
@@ -112,10 +98,9 @@ where
   I: TessIndex,
 {
   fn drop(&mut self) {
-    unsafe {
-      self.state.borrow_mut().unbind_vertex_array();
-      gl::DeleteVertexArrays(1, &self.vao);
-    }
+    let mut state = self.state.borrow_mut();
+    state.unbind_vertex_array(&self.vao);
+    state.ctx.delete_vertex_array(Some(&self.vao));
   }
 }
 
@@ -130,7 +115,7 @@ where
   instance_buffer: Option<Buffer<W>>,
 }
 
-unsafe impl<V, I, W> TessBackend<V, I, W, Interleaved> for GL33
+unsafe impl<V, I, W> TessBackend<V, I, W, Interleaved> for WebGL2
 where
   V: TessVertexData<Interleaved, Data = Vec<V>>,
   I: TessIndex,
@@ -148,39 +133,34 @@ where
     inst_nb: usize,
     restart_index: Option<I>,
   ) -> Result<Self::TessRepr, TessError> {
-    let mut vao: GLuint = 0;
-
-    let patch_vert_nb = match mode {
-      Mode::Patch(nb) => nb,
-      _ => 0,
-    };
-
-    gl::GenVertexArrays(1, &mut vao);
+    let vao = self
+      .state
+      .borrow_mut()
+      .create_vertex_array()
+      .ok_or_else(|| TessError::cannot_create("the backend failed to create the VAO"))?;
 
     // force binding the vertex array so that previously bound vertex arrays (possibly the same
     // handle) don’t prevent us from binding here
-    self.state.borrow_mut().bind_vertex_array(vao, Bind::Forced);
+    self
+      .state
+      .borrow_mut()
+      .bind_vertex_array(Some(&vao), Bind::Forced);
 
     let vertex_buffer = build_interleaved_vertex_buffer(self, vertex_data)?;
-
-    // in case of indexed render, create an index buffer
-    let index_state = build_index_buffer(self, index_data, restart_index)?;
-
+    let index_buffer = build_index_buffer(self, index_data, restart_index)?;
     let instance_buffer = build_interleaved_vertex_buffer(self, instance_data)?;
 
-    let mode = opengl_mode(mode);
+    let mode = webgl_mode(mode).ok_or_else(|| TessError::ForbiddenPrimitiveMode(mode))?;
     let state = self.state.clone();
     let raw = TessRaw {
       vao,
       mode,
       vert_nb,
       inst_nb,
-      patch_vert_nb,
-      index_state,
+      index_buffer,
       state,
     };
 
-    // convert to OpenGL-friendly internals and return
     Ok(InterleavedTess {
       raw,
       vertex_buffer,
@@ -206,7 +186,7 @@ where
   }
 }
 
-unsafe impl<V, I, W> VertexSliceBackend<V, I, W, Interleaved, V> for GL33
+unsafe impl<V, I, W> VertexSliceBackend<V, I, W, Interleaved, V> for WebGL2
 where
   V: TessVertexData<Interleaved, Data = Vec<V>>,
   I: TessIndex,
@@ -217,7 +197,7 @@ where
 
   unsafe fn vertices(tess: &mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError> {
     match tess.vertex_buffer {
-      Some(ref vb) => Ok(GL33::slice_buffer(vb)?),
+      Some(ref vb) => Ok(WebGL2::slice_buffer(vb)?),
       None => Err(TessMapError::ForbiddenAttributelessMapping),
     }
   }
@@ -226,13 +206,13 @@ where
     tess: &mut Self::TessRepr,
   ) -> Result<Self::VertexSliceMutRepr, TessMapError> {
     match tess.vertex_buffer {
-      Some(ref mut vb) => Ok(GL33::slice_buffer_mut(vb)?),
+      Some(ref mut vb) => Ok(WebGL2::slice_buffer_mut(vb)?),
       None => Err(TessMapError::ForbiddenAttributelessMapping),
     }
   }
 }
 
-unsafe impl<V, I, W> IndexSliceBackend<V, I, W, Interleaved> for GL33
+unsafe impl<V, I, W> IndexSliceBackend<V, I, W, Interleaved> for WebGL2
 where
   V: TessVertexData<Interleaved, Data = Vec<V>>,
   I: TessIndex,
@@ -242,8 +222,8 @@ where
   type IndexSliceMutRepr = BufferSliceMut<I>;
 
   unsafe fn indices(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError> {
-    match tess.raw.index_state {
-      Some(ref state) => Ok(GL33::slice_buffer(&state.buffer)?),
+    match tess.raw.index_buffer {
+      Some(ref buffer) => Ok(WebGL2::slice_buffer(buffer)?),
       None => Err(TessMapError::ForbiddenAttributelessMapping),
     }
   }
@@ -251,14 +231,14 @@ where
   unsafe fn indices_mut(
     tess: &mut Self::TessRepr,
   ) -> Result<Self::IndexSliceMutRepr, TessMapError> {
-    match tess.raw.index_state {
-      Some(ref mut state) => Ok(GL33::slice_buffer_mut(&mut state.buffer)?),
+    match tess.raw.index_buffer {
+      Some(ref mut buffer) => Ok(WebGL2::slice_buffer_mut(buffer)?),
       None => Err(TessMapError::ForbiddenAttributelessMapping),
     }
   }
 }
 
-unsafe impl<V, I, W> InstanceSliceBackend<V, I, W, Interleaved, W> for GL33
+unsafe impl<V, I, W> InstanceSliceBackend<V, I, W, Interleaved, W> for WebGL2
 where
   V: TessVertexData<Interleaved, Data = Vec<V>>,
   I: TessIndex,
@@ -269,7 +249,7 @@ where
 
   unsafe fn instances(tess: &mut Self::TessRepr) -> Result<Self::InstanceSliceRepr, TessMapError> {
     match tess.instance_buffer {
-      Some(ref vb) => Ok(GL33::slice_buffer(vb)?),
+      Some(ref vb) => Ok(WebGL2::slice_buffer(vb)?),
       None => Err(TessMapError::ForbiddenAttributelessMapping),
     }
   }
@@ -278,7 +258,7 @@ where
     tess: &mut Self::TessRepr,
   ) -> Result<Self::InstanceSliceMutRepr, TessMapError> {
     match tess.instance_buffer {
-      Some(ref mut vb) => Ok(GL33::slice_buffer_mut(vb)?),
+      Some(ref mut vb) => Ok(WebGL2::slice_buffer_mut(vb)?),
       None => Err(TessMapError::ForbiddenAttributelessMapping),
     }
   }
@@ -296,7 +276,7 @@ where
   _phantom: PhantomData<*const (V, W)>,
 }
 
-unsafe impl<V, I, W> TessBackend<V, I, W, Deinterleaved> for GL33
+unsafe impl<V, I, W> TessBackend<V, I, W, Deinterleaved> for WebGL2
 where
   V: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
   I: TessIndex,
@@ -314,39 +294,34 @@ where
     inst_nb: usize,
     restart_index: Option<I>,
   ) -> Result<Self::TessRepr, TessError> {
-    let mut vao: GLuint = 0;
-
-    let patch_vert_nb = match mode {
-      Mode::Patch(nb) => nb,
-      _ => 0,
-    };
-
-    gl::GenVertexArrays(1, &mut vao);
+    let vao = self
+      .state
+      .borrow_mut()
+      .create_vertex_array()
+      .ok_or_else(|| TessError::cannot_create("the backend failed to create the VAO"))?;
 
     // force binding the vertex array so that previously bound vertex arrays (possibly the same
     // handle) don’t prevent us from binding here
-    self.state.borrow_mut().bind_vertex_array(vao, Bind::Forced);
+    self
+      .state
+      .borrow_mut()
+      .bind_vertex_array(Some(&vao), Bind::Forced);
 
     let vertex_buffers = build_deinterleaved_vertex_buffers::<V>(self, vertex_data)?;
-
-    // in case of indexed render, create an index buffer
-    let index_state = build_index_buffer(self, index_data, restart_index)?;
-
+    let index_buffer = build_index_buffer(self, index_data, restart_index)?;
     let instance_buffers = build_deinterleaved_vertex_buffers::<W>(self, instance_data)?;
 
-    let mode = opengl_mode(mode);
+    let mode = webgl_mode(mode).ok_or_else(|| TessError::ForbiddenPrimitiveMode(mode))?;
     let state = self.state.clone();
     let raw = TessRaw {
       vao,
       mode,
       vert_nb,
       inst_nb,
-      patch_vert_nb,
-      index_state,
+      index_buffer,
       state,
     };
 
-    // convert to OpenGL-friendly internals and return
     Ok(DeinterleavedTess {
       raw,
       vertex_buffers,
@@ -373,7 +348,7 @@ where
   }
 }
 
-unsafe impl<V, I, W, T> VertexSliceBackend<V, I, W, Deinterleaved, T> for GL33
+unsafe impl<V, I, W, T> VertexSliceBackend<V, I, W, Deinterleaved, T> for WebGL2
 where
   V: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>> + Deinterleave<T>,
   I: TessIndex,
@@ -387,7 +362,7 @@ where
       Err(TessMapError::ForbiddenAttributelessMapping)
     } else {
       let buffer = &tess.vertex_buffers[V::RANK];
-      let slice = GL33::slice_buffer(buffer)?.transmute();
+      let slice = WebGL2::slice_buffer(buffer)?.transmute();
       Ok(slice)
     }
   }
@@ -399,13 +374,13 @@ where
       Err(TessMapError::ForbiddenAttributelessMapping)
     } else {
       let buffer = &mut tess.vertex_buffers[V::RANK];
-      let slice = GL33::slice_buffer_mut(buffer)?.transmute();
+      let slice = WebGL2::slice_buffer_mut(buffer)?.transmute();
       Ok(slice)
     }
   }
 }
 
-unsafe impl<V, I, W> IndexSliceBackend<V, I, W, Deinterleaved> for GL33
+unsafe impl<V, I, W> IndexSliceBackend<V, I, W, Deinterleaved> for WebGL2
 where
   V: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>>,
   I: TessIndex,
@@ -415,8 +390,8 @@ where
   type IndexSliceMutRepr = BufferSliceMut<I>;
 
   unsafe fn indices(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError> {
-    match tess.raw.index_state {
-      Some(ref state) => Ok(GL33::slice_buffer(&state.buffer)?),
+    match tess.raw.index_buffer {
+      Some(ref buffer) => Ok(WebGL2::slice_buffer(buffer)?),
       None => Err(TessMapError::ForbiddenAttributelessMapping),
     }
   }
@@ -424,14 +399,14 @@ where
   unsafe fn indices_mut(
     tess: &mut Self::TessRepr,
   ) -> Result<Self::IndexSliceMutRepr, TessMapError> {
-    match tess.raw.index_state {
-      Some(ref mut state) => Ok(GL33::slice_buffer_mut(&mut state.buffer)?),
+    match tess.raw.index_buffer {
+      Some(ref mut buffer) => Ok(WebGL2::slice_buffer_mut(buffer)?),
       None => Err(TessMapError::ForbiddenAttributelessMapping),
     }
   }
 }
 
-unsafe impl<V, I, W, T> InstanceSliceBackend<V, I, W, Deinterleaved, T> for GL33
+unsafe impl<V, I, W, T> InstanceSliceBackend<V, I, W, Deinterleaved, T> for WebGL2
 where
   V: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>>,
   I: TessIndex,
@@ -445,7 +420,7 @@ where
       Err(TessMapError::ForbiddenAttributelessMapping)
     } else {
       let buffer = &tess.instance_buffers[W::RANK];
-      let slice = GL33::slice_buffer(buffer)?.transmute();
+      let slice = WebGL2::slice_buffer(buffer)?.transmute();
       Ok(slice)
     }
   }
@@ -457,14 +432,14 @@ where
       Err(TessMapError::ForbiddenAttributelessMapping)
     } else {
       let buffer = &mut tess.instance_buffers[W::RANK];
-      let slice = GL33::slice_buffer_mut(buffer)?.transmute();
+      let slice = WebGL2::slice_buffer_mut(buffer)?.transmute();
       Ok(slice)
     }
   }
 }
 
 fn build_interleaved_vertex_buffer<V>(
-  gl33: &mut GL33,
+  webgl2: &mut WebGL2,
   vertices: Option<Vec<V>>,
 ) -> Result<Option<Buffer<V>>, TessError>
 where
@@ -477,16 +452,16 @@ where
       let vb = if vertices.is_empty() {
         None
       } else {
-        let vb = unsafe { gl33.from_vec(vertices)? };
+        let vb = unsafe { webgl2.from_vec(vertices)? };
 
         // force binding as it’s meaningful when a vao is bound
         unsafe {
-          gl33
+          webgl2
             .state
             .borrow_mut()
-            .bind_array_buffer(vb.handle(), Bind::Forced)
+            .bind_array_buffer(Some(vb.handle()), Bind::Forced)
         };
-        set_vertex_pointers(&fmt);
+        set_vertex_pointers(&mut webgl2.state.borrow_mut().ctx, &fmt);
 
         Some(vb)
       };
@@ -499,7 +474,7 @@ where
 }
 
 fn build_deinterleaved_vertex_buffers<V>(
-  gl33: &mut GL33,
+  webgl2: &mut WebGL2,
   vertices: Option<Vec<DeinterleavedData>>,
 ) -> Result<Vec<Buffer<u8>>, TessError>
 where
@@ -511,15 +486,15 @@ where
         .into_iter()
         .zip(V::vertex_desc())
         .map(|(attribute, fmt)| {
-          let vb = unsafe { gl33.from_vec(attribute.into_vec())? };
+          let vb = unsafe { webgl2.from_vec(attribute.into_vec())? };
 
           // force binding as it’s meaningful when a vao is bound
           unsafe {
-            gl33
+            webgl2
               .state
               .borrow_mut()
-              .bind_array_buffer(vb.handle(), Bind::Forced);
-            set_vertex_pointers(&[fmt]);
+              .bind_array_buffer(Some(vb.handle()), Bind::Forced);
+            set_vertex_pointers(&mut webgl2.state.borrow_mut().ctx, &[fmt]);
           }
 
           Ok(vb.into_raw())
@@ -531,27 +506,24 @@ where
   }
 }
 
-/// Turn a [`Vec`] of indices to an [`IndexedDrawState`].
+/// Turn a [`Vec`] of indices to a [`Buffer`], if indices are present.
 fn build_index_buffer<I>(
-  gl33: &mut GL33,
+  webgl2: &mut WebGL2,
   data: Vec<I>,
   restart_index: Option<I>,
-) -> Result<Option<IndexedDrawState<I>>, TessError>
+) -> Result<Option<Buffer<I>>, TessError>
 where
   I: TessIndex,
 {
-  let ids = if !data.is_empty() {
-    let ib = IndexedDrawState {
-      buffer: unsafe { gl33.from_vec(data)? },
-      restart_index,
-    };
+  let ib = if !data.is_empty() {
+    let ib = unsafe { webgl2.from_vec(data)? };
 
     // force binding as it’s meaningful when a vao is bound
     unsafe {
-      gl33
+      webgl2
         .state
         .borrow_mut()
-        .bind_element_array_buffer(ib.buffer.handle(), Bind::Forced);
+        .bind_element_array_buffer(Some(ib.handle()), Bind::Forced);
     }
 
     Some(ib)
@@ -559,12 +531,12 @@ where
     None
   };
 
-  Ok(ids)
+  Ok(ib)
 }
 
-/// Give OpenGL types information on the content of the VBO by setting vertex descriptors and pointers
-/// to buffer memory.
-fn set_vertex_pointers(descriptors: &[VertexBufferDesc]) {
+/// Give WebGL types information on the content of the VBO by setting vertex descriptors and
+/// pointers to buffer memory.
+fn set_vertex_pointers(ctx: &mut WebGl2RenderingContext, descriptors: &[VertexBufferDesc]) {
   // this function sets the vertex attribute pointer for the input list by computing:
   //   - The vertex attribute ID: this is the “rank” of the attribute in the input list (order
   //     matters, for short).
@@ -572,10 +544,10 @@ fn set_vertex_pointers(descriptors: &[VertexBufferDesc]) {
   //   - The offsets: each attribute has a given offset in the buffer. This is computed by
   //     accumulating the size of all previously set attributes.
   let offsets = aligned_offsets(descriptors);
-  let vertex_weight = offset_based_vertex_weight(descriptors, &offsets) as GLsizei;
+  let vertex_weight = offset_based_vertex_weight(descriptors, &offsets);
 
   for (desc, off) in descriptors.iter().zip(offsets) {
-    set_component_format(vertex_weight, off, desc);
+    set_component_format(ctx, vertex_weight, off, desc);
   }
 }
 
@@ -607,7 +579,7 @@ fn component_weight(f: &VertexAttribDesc) -> usize {
   dim_as_size(f.dim) as usize * f.unit_size
 }
 
-fn dim_as_size(d: VertexAttribDim) -> GLint {
+fn dim_as_size(d: VertexAttribDim) -> usize {
   match d {
     VertexAttribDim::Dim1 => 1,
     VertexAttribDim::Dim2 => 2,
@@ -631,20 +603,25 @@ fn offset_based_vertex_weight(descriptors: &[VertexBufferDesc], offsets: &[usize
 
 /// Set the vertex component OpenGL pointers regarding the index of the component and the vertex
 /// stride.
-fn set_component_format(stride: GLsizei, off: usize, desc: &VertexBufferDesc) {
+fn set_component_format(
+  ctx: &mut WebGl2RenderingContext,
+  stride: usize,
+  off: usize,
+  desc: &VertexBufferDesc,
+) {
   let attrib_desc = &desc.attrib_desc;
-  let index = desc.index as GLuint;
+  let index = desc.index as u32;
 
   unsafe {
     match attrib_desc.ty {
       VertexAttribType::Floating => {
-        gl::VertexAttribPointer(
+        ctx.vertex_attrib_pointer_with_i32(
           index,
-          dim_as_size(attrib_desc.dim),
-          opengl_sized_type(&attrib_desc),
-          gl::FALSE,
-          stride,
-          ptr::null::<c_void>().add(off),
+          dim_as_size(attrib_desc.dim) as _,
+          webgl_sized_type(&attrib_desc),
+          false,
+          stride as _,
+          off as _,
         );
       }
 
@@ -652,24 +629,24 @@ fn set_component_format(stride: GLsizei, off: usize, desc: &VertexBufferDesc) {
       | VertexAttribType::Unsigned(Normalized::No)
       | VertexAttribType::Boolean => {
         // non-normalized integrals / booleans
-        gl::VertexAttribIPointer(
+        ctx.vertex_attrib_i_pointer_with_i32(
           index,
-          dim_as_size(attrib_desc.dim),
-          opengl_sized_type(&attrib_desc),
-          stride,
-          ptr::null::<c_void>().add(off),
+          dim_as_size(attrib_desc.dim) as _,
+          webgl_sized_type(&attrib_desc),
+          stride as _,
+          off as _,
         );
       }
 
       _ => {
         // normalized integrals
-        gl::VertexAttribPointer(
+        ctx.vertex_attrib_pointer_with_i32(
           index,
-          dim_as_size(attrib_desc.dim),
-          opengl_sized_type(&attrib_desc),
-          gl::TRUE,
-          stride,
-          ptr::null::<c_void>().add(off),
+          dim_as_size(attrib_desc.dim) as _,
+          webgl_sized_type(&attrib_desc),
+          true,
+          stride as _,
+          off as _,
         );
       }
     }
@@ -679,41 +656,43 @@ fn set_component_format(stride: GLsizei, off: usize, desc: &VertexBufferDesc) {
       VertexInstancing::On => 1,
       VertexInstancing::Off => 0,
     };
-    gl::VertexAttribDivisor(index, divisor);
+    ctx.vertex_attrib_divisor(index, divisor);
 
-    gl::EnableVertexAttribArray(index);
+    ctx.enable_vertex_attrib_array(index);
   }
 }
 
-fn opengl_sized_type(f: &VertexAttribDesc) -> GLenum {
+fn webgl_sized_type(f: &VertexAttribDesc) -> u32 {
   match (f.ty, f.unit_size) {
-    (VertexAttribType::Integral(_), 1) => gl::BYTE,
-    (VertexAttribType::Integral(_), 2) => gl::SHORT,
-    (VertexAttribType::Integral(_), 4) => gl::INT,
-    (VertexAttribType::Unsigned(_), 1) | (VertexAttribType::Boolean, 1) => gl::UNSIGNED_BYTE,
-    (VertexAttribType::Unsigned(_), 2) => gl::UNSIGNED_SHORT,
-    (VertexAttribType::Unsigned(_), 4) => gl::UNSIGNED_INT,
-    (VertexAttribType::Floating, 4) => gl::FLOAT,
+    (VertexAttribType::Integral(_), 1) => WebGl2RenderingContext::BYTE,
+    (VertexAttribType::Integral(_), 2) => WebGl2RenderingContext::SHORT,
+    (VertexAttribType::Integral(_), 4) => WebGl2RenderingContext::INT,
+    (VertexAttribType::Unsigned(_), 1) | (VertexAttribType::Boolean, 1) => {
+      WebGl2RenderingContext::UNSIGNED_BYTE
+    }
+    (VertexAttribType::Unsigned(_), 2) => WebGl2RenderingContext::UNSIGNED_SHORT,
+    (VertexAttribType::Unsigned(_), 4) => WebGl2RenderingContext::UNSIGNED_INT,
+    (VertexAttribType::Floating, 4) => WebGl2RenderingContext::FLOAT,
     _ => panic!("unsupported vertex component format: {:?}", f),
   }
 }
 
-fn opengl_mode(mode: Mode) -> GLenum {
+fn webgl_mode(mode: Mode) -> Option<u32> {
   match mode {
-    Mode::Point => gl::POINTS,
-    Mode::Line => gl::LINES,
-    Mode::LineStrip => gl::LINE_STRIP,
-    Mode::Triangle => gl::TRIANGLES,
-    Mode::TriangleFan => gl::TRIANGLE_FAN,
-    Mode::TriangleStrip => gl::TRIANGLE_STRIP,
-    Mode::Patch(_) => gl::PATCHES,
+    Mode::Point => Some(WebGl2RenderingContext::POINTS),
+    Mode::Line => Some(WebGl2RenderingContext::LINES),
+    Mode::LineStrip => Some(WebGl2RenderingContext::LINE_STRIP),
+    Mode::Triangle => Some(WebGl2RenderingContext::TRIANGLES),
+    Mode::TriangleFan => Some(WebGl2RenderingContext::TRIANGLE_FAN),
+    Mode::TriangleStrip => Some(WebGl2RenderingContext::TRIANGLE_STRIP),
+    Mode::Patch(_) => None,
   }
 }
 
-fn index_type_to_glenum(ty: TessIndexType) -> GLenum {
+fn index_type_to_glenum(ty: TessIndexType) -> u32 {
   match ty {
-    TessIndexType::U8 => gl::UNSIGNED_BYTE,
-    TessIndexType::U16 => gl::UNSIGNED_SHORT,
-    TessIndexType::U32 => gl::UNSIGNED_INT,
+    TessIndexType::U8 => WebGl2RenderingContext::UNSIGNED_BYTE,
+    TessIndexType::U16 => WebGl2RenderingContext::UNSIGNED_SHORT,
+    TessIndexType::U32 => WebGl2RenderingContext::UNSIGNED_INT,
   }
 }
