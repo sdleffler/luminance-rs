@@ -16,6 +16,7 @@ use luminance::face_culling::{FaceCullingMode, FaceCullingOrder};
 // Note: disable on no_std.
 thread_local!(static TLS_ACQUIRE_GFX_STATE: RefCell<Option<()>> = RefCell::new(Some(())));
 
+#[derive(Debug)]
 pub(crate) struct BindingStack {
   pub(crate) next_texture_unit: u32,
   pub(crate) free_texture_units: Vec<u32>,
@@ -49,6 +50,7 @@ impl BindingStack {
 /// Note: do not confuse [`Cached`] with [`Bind`]. The latter is for internal use only and
 /// is used to either use the regular cache mechanism or override it to force a value to be
 /// written. It cannot be used to invalidate a setting for later use.
+#[derive(Debug)]
 struct Cached<T>(Option<T>)
 where
   T: PartialEq;
@@ -91,6 +93,7 @@ where
 /// as a forward-gate to all the exposed features from the low-level API but
 /// adds a small cache layer over it to prevent from issuing the same API call (with
 /// the same parameters).
+#[derive(Debug)]
 pub struct GLState {
   _a: PhantomData<*const ()>, // !Send and !Sync
 
