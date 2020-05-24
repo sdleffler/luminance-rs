@@ -27,4 +27,8 @@ impl GL33 {
       state: Rc::new(RefCell::new(state)),
     })
   }
+
+  pub unsafe fn state(&self) -> &Rc<RefCell<GLState>> {
+    &self.state
+  }
 }
