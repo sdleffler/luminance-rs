@@ -28,7 +28,7 @@ impl GL33 {
     })
   }
 
-  pub fn state(&self) -> &Rc<RefCell<GLState>> {
+  pub unsafe fn state(&self) -> &Rc<RefCell<GLState>> {
     &self.state
   }
 }
