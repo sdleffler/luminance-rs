@@ -22,7 +22,7 @@ maintenance = { status = "actively-developed" }
 gl = "0.14"
 luminance = "0.40"
 luminance-gl = "0.14"
-sdl2 = "0.33"
+sdl2 = "0.34"
 
 [dev-dependencies]
-sdl2 = { version = "0.33", features = ["bundled"] }
+sdl2 = { version = "0.34", features = ["bundled"] }
