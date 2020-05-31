@@ -26,5 +26,7 @@ version = "0.3.37"
 features = [
   "WebGl2RenderingContext",
   "WebGlBuffer",
+  "WebGlFramebuffer",
+  "WebGlTexture",
   "WebGlVertexArrayObject",
 ]

@@ -149,6 +149,19 @@ pub enum Dim {
   Dim2Array,
 }
 
+impl fmt::Display for Dim {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    match *self {
+      Dim::Dim1 => f.write_str("1D"),
+      Dim::Dim2 => f.write_str("2D"),
+      Dim::Dim3 => f.write_str("3D"),
+      Dim::Cubemap => f.write_str("cubemap"),
+      Dim::Dim1Array => f.write_str("1D array"),
+      Dim::Dim2Array => f.write_str("2D array"),
+    }
+  }
+}
+
 /// 1D dimension.
 #[derive(Clone, Copy, Debug)]
 pub struct Dim1;
@@ -460,6 +473,13 @@ pub enum TextureError {
   /// Sometimes, some hardware might not support a given pixel format (or the format exists on
   /// the interface side but doesn’t in the implementation). That error represents such a case.
   UnsupportedPixelFormat(PixelFormat),
+  /// Cannot retrieve texels from a texture.
+  ///
+  /// That error might happen on some hardware implementations if the user tries to retrieve
+  /// texels from a texture that doesn’t support getting its texels retrieved.
+  CannotRetrieveTexels(String),
+  /// Failed to upload texels.
+  CannotUploadTexels(String),
 }
 
 impl fmt::Display for TextureError {
@@ -469,13 +489,23 @@ impl fmt::Display for TextureError {
         write!(f, "texture storage creation failed: {}", e)
       }
 
-      TextureError::NotEnoughPixels(expected, provided) => write!(
+      TextureError::NotEnoughPixels(ref expected, ref provided) => write!(
         f,
         "not enough texels provided: expected {} bytes, provided {} bytes",
         expected, provided
       ),
 
-      TextureError::UnsupportedPixelFormat(fmt) => write!(f, "unsupported pixel format: {:?}", fmt),
+      TextureError::UnsupportedPixelFormat(ref fmt) => {
+        write!(f, "unsupported pixel format: {:?}", fmt)
+      }
+
+      TextureError::CannotRetrieveTexels(ref e) => {
+        write!(f, "cannot retrieve texture’s texels: {}", e)
+      }
+
+      TextureError::CannotUploadTexels(ref e) => {
+        write!(f, "cannot upload texels to texture: {}", e)
+      }
     }
   }
 }

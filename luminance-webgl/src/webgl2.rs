@@ -1,8 +1,10 @@
 //! WebGL 2.0 backend support.
 
 pub mod buffer;
+pub mod pixel;
 pub(crate) mod state;
 pub mod tess;
+pub mod texture;
 
 use crate::webgl2::state::{StateQueryError, WebGL2State};
 use std::cell::RefCell;
