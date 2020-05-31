@@ -99,7 +99,7 @@ where
 {
   fn drop(&mut self) {
     let mut state = self.state.borrow_mut();
-    state.unbind_vertex_array(&self.vao);
+    state.bind_vertex_array(None, Bind::Cached);
     state.ctx.delete_vertex_array(Some(&self.vao));
   }
 }
@@ -455,12 +455,10 @@ where
         let vb = unsafe { webgl2.from_vec(vertices)? };
 
         // force binding as it’s meaningful when a vao is bound
-        unsafe {
-          webgl2
-            .state
-            .borrow_mut()
-            .bind_array_buffer(Some(vb.handle()), Bind::Forced)
-        };
+        webgl2
+          .state
+          .borrow_mut()
+          .bind_array_buffer(Some(vb.handle()), Bind::Forced);
         set_vertex_pointers(&mut webgl2.state.borrow_mut().ctx, &fmt);
 
         Some(vb)
@@ -489,13 +487,11 @@ where
           let vb = unsafe { webgl2.from_vec(attribute.into_vec())? };
 
           // force binding as it’s meaningful when a vao is bound
-          unsafe {
-            webgl2
-              .state
-              .borrow_mut()
-              .bind_array_buffer(Some(vb.handle()), Bind::Forced);
-            set_vertex_pointers(&mut webgl2.state.borrow_mut().ctx, &[fmt]);
-          }
+          webgl2
+            .state
+            .borrow_mut()
+            .bind_array_buffer(Some(vb.handle()), Bind::Forced);
+          set_vertex_pointers(&mut webgl2.state.borrow_mut().ctx, &[fmt]);
 
           Ok(vb.into_raw())
         })
@@ -519,12 +515,10 @@ where
     let ib = unsafe { webgl2.from_vec(data)? };
 
     // force binding as it’s meaningful when a vao is bound
-    unsafe {
-      webgl2
-        .state
-        .borrow_mut()
-        .bind_element_array_buffer(Some(ib.handle()), Bind::Forced);
-    }
+    webgl2
+      .state
+      .borrow_mut()
+      .bind_element_array_buffer(Some(ib.handle()), Bind::Forced);
 
     Some(ib)
   } else {
@@ -612,54 +606,52 @@ fn set_component_format(
   let attrib_desc = &desc.attrib_desc;
   let index = desc.index as u32;
 
-  unsafe {
-    match attrib_desc.ty {
-      VertexAttribType::Floating => {
-        ctx.vertex_attrib_pointer_with_i32(
-          index,
-          dim_as_size(attrib_desc.dim) as _,
-          webgl_sized_type(&attrib_desc),
-          false,
-          stride as _,
-          off as _,
-        );
-      }
-
-      VertexAttribType::Integral(Normalized::No)
-      | VertexAttribType::Unsigned(Normalized::No)
-      | VertexAttribType::Boolean => {
-        // non-normalized integrals / booleans
-        ctx.vertex_attrib_i_pointer_with_i32(
-          index,
-          dim_as_size(attrib_desc.dim) as _,
-          webgl_sized_type(&attrib_desc),
-          stride as _,
-          off as _,
-        );
-      }
-
-      _ => {
-        // normalized integrals
-        ctx.vertex_attrib_pointer_with_i32(
-          index,
-          dim_as_size(attrib_desc.dim) as _,
-          webgl_sized_type(&attrib_desc),
-          true,
-          stride as _,
-          off as _,
-        );
-      }
+  match attrib_desc.ty {
+    VertexAttribType::Floating => {
+      ctx.vertex_attrib_pointer_with_i32(
+        index,
+        dim_as_size(attrib_desc.dim) as _,
+        webgl_sized_type(&attrib_desc),
+        false,
+        stride as _,
+        off as _,
+      );
     }
 
-    // set vertex attribute divisor based on the vertex instancing configuration
-    let divisor = match desc.instancing {
-      VertexInstancing::On => 1,
-      VertexInstancing::Off => 0,
-    };
-    ctx.vertex_attrib_divisor(index, divisor);
+    VertexAttribType::Integral(Normalized::No)
+    | VertexAttribType::Unsigned(Normalized::No)
+    | VertexAttribType::Boolean => {
+      // non-normalized integrals / booleans
+      ctx.vertex_attrib_i_pointer_with_i32(
+        index,
+        dim_as_size(attrib_desc.dim) as _,
+        webgl_sized_type(&attrib_desc),
+        stride as _,
+        off as _,
+      );
+    }
 
-    ctx.enable_vertex_attrib_array(index);
+    _ => {
+      // normalized integrals
+      ctx.vertex_attrib_pointer_with_i32(
+        index,
+        dim_as_size(attrib_desc.dim) as _,
+        webgl_sized_type(&attrib_desc),
+        true,
+        stride as _,
+        off as _,
+      );
+    }
   }
+
+  // set vertex attribute divisor based on the vertex instancing configuration
+  let divisor = match desc.instancing {
+    VertexInstancing::On => 1,
+    VertexInstancing::Off => 0,
+  };
+  ctx.vertex_attrib_divisor(index, divisor);
+
+  ctx.enable_vertex_attrib_array(index);
 }
 
 fn webgl_sized_type(f: &VertexAttribDesc) -> u32 {
