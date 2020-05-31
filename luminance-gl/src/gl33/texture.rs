@@ -1,5 +1,10 @@
 use gl;
 use gl::types::*;
+use luminance::backend::texture::{Texture as TextureBackend, TextureBase};
+use luminance::pixel::{Pixel, PixelFormat};
+use luminance::texture::{
+  Dim, Dimensionable, GenMipmaps, MagFilter, MinFilter, Sampler, TextureError, Wrap,
+};
 use std::cell::RefCell;
 use std::mem;
 use std::os::raw::c_void;
@@ -10,11 +15,6 @@ use crate::gl33::depth_test::depth_comparison_to_glenum;
 use crate::gl33::pixel::opengl_pixel_format;
 use crate::gl33::state::GLState;
 use crate::gl33::GL33;
-use luminance::backend::texture::{Texture as TextureBackend, TextureBase};
-use luminance::pixel::{Pixel, PixelFormat};
-use luminance::texture::{
-  Dim, Dimensionable, GenMipmaps, MagFilter, MinFilter, Sampler, TextureError, Wrap,
-};
 
 pub struct Texture {
   pub(crate) handle: GLuint, // handle to the GPU texture object
@@ -170,7 +170,6 @@ where
   where
     P::RawEncoding: Copy + Default,
   {
-    let mut texels = Vec::new();
     let pf = P::pixel_format();
     let (format, _, ty) = opengl_pixel_format(pf).unwrap();
 
@@ -189,7 +188,7 @@ where
     set_pack_alignment(skip_bytes);
 
     // resize the vec to allocate enough space to host the returned texels
-    texels.resize_with((w * h) as usize * pf.canals_len(), Default::default);
+    let mut texels = vec![Default::default(); (w * h) as usize * pf.canals_len()];
 
     gl::GetTexImage(
       texture.target,

@@ -371,7 +371,7 @@ impl GLState {
       self.texture_swimming_pool.resize(available + needed, 0);
       let textures = &mut self.texture_swimming_pool[available..];
 
-      unsafe { gl::GenTextures(1, textures.as_mut_ptr()) };
+      unsafe { gl::GenTextures(needed as _, textures.as_mut_ptr()) };
     }
   }
 
