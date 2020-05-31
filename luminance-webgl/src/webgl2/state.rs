@@ -1,14 +1,11 @@
 //! Graphics state.
 
 use std::cell::RefCell;
-use std::convert::TryInto;
 use std::fmt;
 use std::marker::PhantomData;
-use web_sys::{WebGl2RenderingContext, WebGlBuffer, WebGlVertexArrayObject};
-
-use luminance::blending::{Equation, Factor};
-use luminance::depth_test::DepthComparison;
-use luminance::face_culling::{FaceCullingMode, FaceCullingOrder};
+use web_sys::{
+  WebGl2RenderingContext, WebGlBuffer, WebGlFramebuffer, WebGlTexture, WebGlVertexArrayObject,
+};
 
 // TLS synchronization barrier for `GLState`.
 thread_local!(static TLS_ACQUIRE_GFX_STATE: RefCell<Option<()>> = RefCell::new(Some(())));
@@ -72,17 +69,9 @@ pub struct WebGL2State {
   // // patch primitive vertex number
   // patch_vertex_nb: usize,
 
-  // // texture
-  // current_texture_unit: GLenum,
-  // bound_textures: Vec<(GLenum, GLuint)>,
-
-  // // texture buffer used to optimize texture creation; regular textures typically will never ask
-  // // for fetching from this set but framebuffers, who often generate several textures, might use
-  // // this opportunity to get N textures (color, depth and stencil) at once, in a single CPU / GPU
-  // // roundtrip
-  // //
-  // // fishy fishy
-  // texture_swimming_pool: Vec<GLuint>,
+  // texture
+  current_texture_unit: usize,
+  bound_textures: Vec<(u32, Option<WebGlTexture>)>,
 
   // // uniform buffer
   // bound_uniform_buffers: Vec<GLuint>,
@@ -92,8 +81,14 @@ pub struct WebGL2State {
   // element buffer
   bound_element_array_buffer: Option<WebGlBuffer>,
 
-  // // framebuffer
+  // framebuffer
   // bound_draw_framebuffer: GLuint,
+  bound_read_framebuffer: Option<WebGlFramebuffer>,
+
+  // A special framebuffer used to read textures (workaround the fact WebGL2 doesn’t have
+  // support of glGetTexImage). That object will never be created until trying to read a
+  // texture’s image.
+  readback_framebuffer: Option<WebGlFramebuffer>,
 
   // vertex array
   bound_vertex_array: Option<WebGlVertexArrayObject>,
@@ -136,13 +131,14 @@ impl WebGL2State {
     //let face_culling_order = Self::get_ctx_face_culling_order(ctx)?;
     //let face_culling_mode = Self::get_ctx_face_culling_mode(ctx)?;
     //let patch_vertex_nb = 0;
-    //let current_texture_unit = Self::get_ctx_current_texture_unit(ctx)?;
-    //let bound_textures = vec![(WebGl2RenderingContext::TEXTURE_2D, 0); 48]; // 48 is the platform minimal requirement
-    //let texture_swimming_pool = Vec::new();
-    //let bound_uniform_buffers = vec![0; 36]; // 36 is the platform minimal requirement
+    let current_texture_unit = 0;
+    let bound_textures = vec![(WebGl2RenderingContext::TEXTURE0, None); 48]; // 48 is the platform minimal requirement
+                                                                             //let bound_uniform_buffers = vec![0; 36]; // 36 is the platform minimal requirement
     let bound_array_buffer = None;
     let bound_element_array_buffer = None;
     // let bound_draw_framebuffer = Self::get_ctx_bound_draw_framebuffer(ctx)?;
+    let bound_read_framebuffer = None;
+    let readback_framebuffer = None;
     let bound_vertex_array = None;
     // let current_program = Self::get_ctx_current_program(ctx)?;
 
@@ -161,93 +157,18 @@ impl WebGL2State {
       // face_culling_order,
       // face_culling_mode,
       // patch_vertex_nb,
-      // current_texture_unit,
-      // bound_textures,
-      // texture_swimming_pool,
+      current_texture_unit,
+      bound_textures,
       // bound_uniform_buffers,
       bound_array_buffer,
       bound_element_array_buffer,
       // bound_draw_framebuffer,
+      bound_read_framebuffer,
+      readback_framebuffer,
       bound_vertex_array,
       // current_program,
     })
   }
-
-  // fn get_ctx_viewport(ctx: &WebGl2RenderingContext) -> Result<[GLint; 4], StateQueryError> {
-  //   let viewport: Vec<_> = ctx
-  //     .get_parameter(WebGl2RenderingContext::VIEWPORT)
-  //     .try_into()
-  //     .map_err(|_| StateQueryError::UnknownViewportInitialState)?;
-
-  //   if viewport.len() != 4 {
-  //     return Err(StateQueryError::UnknownViewportInitialState);
-  //   }
-
-  //   Ok([viewport[0], viewport[1], viewport[2], viewport[3]])
-  // }
-
-  // fn get_ctx_clear_color(ctx: &WebGl2RenderingContext) -> Result<[GLfloat; 4], StateQueryError> {
-  //   let color: Vec<f64> = ctx
-  //     .get_parameter(WebGl2RenderingContext::COLOR_CLEAR_VALUE)
-  //     .try_into()
-  //     .map_err(|_| StateQueryError::UnknownClearColorInitialState)?;
-
-  //   if color.len() != 4 {
-  //     return Err(StateQueryError::UnknownClearColorInitialState);
-  //   }
-
-  //   Ok([color[0] as _, color[1] as _, color[2] as _, color[3] as _])
-  // }
-
-  // fn get_ctx_blending_state(
-  //   ctx: &WebGl2RenderingContext,
-  // ) -> Result<BlendingState, StateQueryError> {
-  //   let enabled = ctx.is_enabled(WebGl2RenderingContext::BLEND);
-
-  //   let state = if enabled {
-  //     BlendingState::On
-  //   } else {
-  //     BlendingState::Off
-  //   };
-
-  //   Ok(state)
-  // }
-
-  // fn get_ctx_blending_equation(ctx: &WebGl2RenderingContext) -> Result<Equation, StateQueryError> {
-  //   let data: GLenum = ctx
-  //     .get_parameter(WebGl2RenderingContext::BLEND_EQUATION_RGB)
-  //     .try_into()
-  //     .unwrap();
-
-  //   match data {
-  //     WebGl2RenderingContext::FUNC_ADD => Ok(Equation::Additive),
-  //     WebGl2RenderingContext::FUNC_SUBTRACT => Ok(Equation::Subtract),
-  //     WebGl2RenderingContext::FUNC_REVERSE_SUBTRACT => Ok(Equation::ReverseSubtract),
-  //     WebGl2RenderingContext::MIN => Ok(Equation::Min),
-  //     WebGl2RenderingContext::MAX => Ok(Equation::Max),
-  //     _ => Err(StateQueryError::UnknownBlendingEquation(data)),
-  //   }
-  // }
-
-  // fn get_ctx_blending_factors(
-  //   ctx: &WebGl2RenderingContext,
-  // ) -> Result<(Factor, Factor), StateQueryError> {
-  //   let src: GLint = ctx
-  //     .get_parameter(WebGl2RenderingContext::BLEND_SRC_RGB)
-  //     .try_into()
-  //     .unwrap();
-  //   let dst: GLint = ctx
-  //     .get_parameter(WebGl2RenderingContext::BLEND_DST_RGB)
-  //     .try_into()
-  //     .unwrap();
-
-  //   let src_k = Self::from_gl_blending_factor(src as GLenum)
-  //     .map_err(StateQueryError::UnknownBlendingSrcFactor)?;
-  //   let dst_k = Self::from_gl_blending_factor(dst as GLenum)
-  //     .map_err(StateQueryError::UnknownBlendingDstFactor)?;
-
-  //   Ok((src_k, dst_k))
-  // }
 
   // #[inline]
   // fn from_gl_blending_factor(factor: GLenum) -> Result<Factor, GLenum> {
@@ -265,89 +186,6 @@ impl WebGL2State {
   //     WebGl2RenderingContext::SRC_ALPHA_SATURATE => Ok(Factor::SrcAlphaSaturate),
   //     _ => Err(factor),
   //   }
-  // }
-
-  // fn get_ctx_depth_test(ctx: &WebGl2RenderingContext) -> Result<DepthTest, StateQueryError> {
-  //   let enabled = ctx.is_enabled(WebGl2RenderingContext::DEPTH_TEST);
-
-  //   let test = if enabled {
-  //     DepthTest::On
-  //   } else {
-  //     DepthTest::Off
-  //   };
-
-  //   Ok(test)
-  // }
-
-  // fn get_ctx_face_culling_state(
-  //   ctx: &WebGl2RenderingContext,
-  // ) -> Result<FaceCullingState, StateQueryError> {
-  //   let enabled = ctx.is_enabled(WebGl2RenderingContext::CULL_FACE);
-
-  //   let state = if enabled {
-  //     FaceCullingState::On
-  //   } else {
-  //     FaceCullingState::Off
-  //   };
-
-  //   Ok(state)
-  // }
-
-  // fn get_ctx_face_culling_order(
-  //   ctx: &WebGl2RenderingContext,
-  // ) -> Result<FaceCullingOrder, StateQueryError> {
-  //   let order: GLenum = ctx
-  //     .get_parameter(WebGl2RenderingContext::FRONT_FACE)
-  //     .try_into()
-  //     .unwrap();
-
-  //   match order {
-  //     WebGl2RenderingContext::CCW => Ok(FaceCullingOrder::CCW),
-  //     WebGl2RenderingContext::CW => Ok(FaceCullingOrder::CW),
-  //     _ => Err(StateQueryError::UnknownFaceCullingOrder(order)),
-  //   }
-  // }
-
-  // fn get_ctx_face_culling_mode(
-  //   ctx: &WebGl2RenderingContext,
-  // ) -> Result<FaceCullingMode, StateQueryError> {
-  //   let mode: GLenum = ctx
-  //     .get_parameter(WebGl2RenderingContext::CULL_FACE_MODE)
-  //     .try_into()
-  //     .unwrap();
-
-  //   match mode {
-  //     WebGl2RenderingContext::FRONT => Ok(FaceCullingMode::Front),
-  //     WebGl2RenderingContext::BACK => Ok(FaceCullingMode::Back),
-  //     WebGl2RenderingContext::FRONT_AND_BACK => Ok(FaceCullingMode::Both),
-  //     _ => Err(StateQueryError::UnknownFaceCullingMode(mode)),
-  //   }
-  // }
-
-  //fn get_ctx_current_texture_unit(ctx: &WebGl2RenderingContext) -> Result<GLenum, StateQueryError> {
-  //  let active_texture = ctx
-  //    .get_parameter(WebGl2RenderingContext::TEXTURE0)
-  //    .try_into()
-  //    .unwrap();
-  //  Ok(active_texture)
-  //}
-
-  // fn get_ctx_bound_draw_framebuffer(
-  //   ctx: &WebGl2RenderingContext,
-  // ) -> Result<GLuint, StateQueryError> {
-  //   let bound = ctx
-  //     .get_parameter(WebGl2RenderingContext::DRAW_FRAMEBUFFER_BINDING)
-  //     .try_into()
-  //     .unwrap();
-  //   Ok(bound)
-  // }
-
-  // fn get_ctx_current_program(ctx: &WebGl2RenderingContext) -> Result<GLuint, StateQueryError> {
-  //   let used = ctx
-  //     .get_parameter(WebGl2RenderingContext::CURRENT_PROGRAM)
-  //     .try_into()
-  //     .unwrap();
-  //   Ok(used)
   // }
 
   pub(crate) fn create_buffer(&mut self) -> Option<WebGlBuffer> {
@@ -399,10 +237,61 @@ impl WebGL2State {
     }
   }
 
-  pub(crate) fn unbind_vertex_array(&mut self, vao: &WebGlVertexArrayObject) {
-    if self.bound_vertex_array.as_ref() == Some(vao) {
-      self.bind_vertex_array(None, Bind::Cached);
+  pub(crate) fn create_texture(&mut self) -> Option<WebGlTexture> {
+    self.ctx.create_texture()
+  }
+
+  pub(crate) fn bind_texture(&mut self, target: u32, handle: Option<&WebGlTexture>) {
+    let unit = self.current_texture_unit;
+
+    match self.bound_textures.get(unit) {
+      Some((t, ref h)) if target != *t || handle != h.as_ref() => {
+        self.ctx.bind_texture(target, handle);
+        self.bound_textures[unit] = (target, handle.cloned());
+      }
+
+      None => {
+        self.ctx.bind_texture(target, handle);
+
+        // not enough available texture units; let’s grow a bit more
+        self
+          .bound_textures
+          .resize(unit + 1, (WebGl2RenderingContext::TEXTURE_2D, None));
+        self.bound_textures[unit] = (target, handle.cloned());
+      }
+
+      _ => (), // cached
     }
+  }
+
+  pub(crate) fn create_framebuffer(&mut self) -> Option<WebGlFramebuffer> {
+    self.ctx.create_framebuffer()
+  }
+
+  pub(crate) fn create_or_get_readback_framebuffer(&mut self) -> Option<WebGlFramebuffer> {
+    self.readback_framebuffer.clone().or_else(|| {
+      // create the readback framebuffer if not already created
+      self.readback_framebuffer = self.create_framebuffer();
+      self.readback_framebuffer.clone()
+    })
+  }
+
+  pub(crate) fn bind_read_framebuffer(&mut self, handle: Option<&WebGlFramebuffer>) {
+    if self.bound_read_framebuffer.as_ref() != handle {
+      self
+        .ctx
+        .bind_framebuffer(WebGl2RenderingContext::READ_FRAMEBUFFER, handle);
+      self.bound_read_framebuffer = handle.cloned();
+    }
+  }
+}
+
+impl Drop for WebGL2State {
+  fn drop(&mut self) {
+    // drop the readback framebuffer if it was allocated
+    self
+      .ctx
+      .delete_framebuffer(self.readback_framebuffer.as_ref());
   }
 }
 
@@ -519,16 +408,3 @@ pub enum VertexRestart {
   /// Vertex restart is disabled.
   Off,
 }
-
-//pub(crate) fn depth_comparison_to_glenum(dc: DepthComparison) -> GLenum {
-//  match dc {
-//    DepthComparison::Never => WebGl2RenderingContext::NEVER,
-//    DepthComparison::Always => WebGl2RenderingContext::ALWAYS,
-//    DepthComparison::Equal => WebGl2RenderingContext::EQUAL,
-//    DepthComparison::NotEqual => WebGl2RenderingContext::NOTEQUAL,
-//    DepthComparison::Less => WebGl2RenderingContext::LESS,
-//    DepthComparison::LessOrEqual => WebGl2RenderingContext::LEQUAL,
-//    DepthComparison::Greater => WebGl2RenderingContext::GREATER,
-//    DepthComparison::GreaterOrEqual => WebGl2RenderingContext::GEQUAL,
-//  }
-//}
