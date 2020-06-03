@@ -3,7 +3,7 @@
 //! Such a state controls how the GPU must operate some fixed pipeline functionality, such as the
 //! blending, depth test or face culling operations.
 
-use crate::blending::Blending;
+use crate::blending::{Blending, BlendingMode};
 use crate::depth_test::DepthComparison;
 use crate::face_culling::FaceCulling;
 
@@ -14,7 +14,7 @@ use crate::face_culling::FaceCulling;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RenderState {
   /// Blending configuration.
-  pub blending: Option<Blending>,
+  pub blending: Option<BlendingMode>,
   /// Depth test configuration.
   pub depth_test: Option<DepthComparison>,
   /// Face culling configuration.
@@ -28,13 +28,24 @@ impl RenderState {
     B: Into<Option<Blending>>,
   {
     RenderState {
-      blending: blending.into(),
+      blending: blending.into().map(|x| x.into()),
+      ..self
+    }
+  }
+
+  /// Override the blending configuration using separate blending.
+  pub fn set_blending_separate(self, blending_rgb: Blending, blending_alpha: Blending) -> Self {
+    RenderState {
+      blending: Some(BlendingMode::Separate {
+        rgb: blending_rgb,
+        alpha: blending_alpha,
+      }),
       ..self
     }
   }
 
   /// Blending configuration.
-  pub fn blending(self) -> Option<Blending> {
+  pub fn blending(self) -> Option<BlendingMode> {
     self.blending
   }
 
