@@ -193,8 +193,11 @@ where
 }
 
 /// Framebuffer error.
+#[non_exhaustive]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum FramebufferError {
+  /// Cannot create the framebuffer on the GPU.
+  CannotCreate,
   /// Texture error.
   ///
   /// This happen while creating / associating the color / depth slots.
@@ -203,14 +206,22 @@ pub enum FramebufferError {
   ///
   /// This happens when finalizing the construction of the framebuffer.
   Incomplete(IncompleteReason),
+  /// Cannot attach something to a framebuffer.
+  UnsupportedAttachment,
 }
 
 impl fmt::Display for FramebufferError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
+      FramebufferError::CannotCreate => {
+        f.write_str("cannot create the framebuffer on the GPU side")
+      }
+
       FramebufferError::TextureError(ref e) => write!(f, "framebuffer texture error: {}", e),
 
       FramebufferError::Incomplete(ref e) => write!(f, "incomplete framebuffer: {}", e),
+
+      FramebufferError::UnsupportedAttachment => f.write_str("unsupported framebuffer attachment"),
     }
   }
 }
@@ -218,8 +229,10 @@ impl fmt::Display for FramebufferError {
 impl std::error::Error for FramebufferError {
   fn source(&self) -> Option<&(dyn std::error::Error + 'static)> {
     match self {
+      FramebufferError::CannotCreate => None,
       FramebufferError::TextureError(e) => Some(e),
       FramebufferError::Incomplete(e) => Some(e),
+      FramebufferError::UnsupportedAttachment => None,
     }
   }
 }

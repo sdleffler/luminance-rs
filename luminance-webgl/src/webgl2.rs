@@ -1,6 +1,7 @@
 //! WebGL 2.0 backend support.
 
 pub mod buffer;
+pub mod framebuffer;
 pub mod pixel;
 pub(crate) mod state;
 pub mod tess;

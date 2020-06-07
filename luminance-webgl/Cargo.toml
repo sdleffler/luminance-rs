@@ -20,6 +20,7 @@ luminance = "0.40"
 serde = "1"
 serde_derive = "1"
 wasm-bindgen = "0.2.60"
+js-sys = "0.3.40"
 
 [dependencies.web-sys]
 version = "0.3.37"
@@ -27,6 +28,7 @@ features = [
   "WebGl2RenderingContext",
   "WebGlBuffer",
   "WebGlFramebuffer",
+  "WebGlRenderbuffer",
   "WebGlTexture",
   "WebGlVertexArrayObject",
 ]

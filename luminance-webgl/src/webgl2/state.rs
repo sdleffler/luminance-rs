@@ -73,6 +73,14 @@ pub struct WebGL2State {
   current_texture_unit: usize,
   bound_textures: Vec<(u32, Option<WebGlTexture>)>,
 
+  // texture buffer used to optimize texture creation; regular textures typically will never ask
+  // for fetching from this set but framebuffers, who often generate several textures, might use
+  // this opportunity to get N textures (color, depth and stencil) at once, in a single CPU / GPU
+  // roundtrip
+  //
+  // fishy fishy
+  texture_swimming_pool: Vec<Option<WebGlTexture>>,
+
   // // uniform buffer
   // bound_uniform_buffers: Vec<GLuint>,
 
@@ -82,7 +90,7 @@ pub struct WebGL2State {
   bound_element_array_buffer: Option<WebGlBuffer>,
 
   // framebuffer
-  // bound_draw_framebuffer: GLuint,
+  bound_draw_framebuffer: Option<WebGlFramebuffer>,
   bound_read_framebuffer: Option<WebGlFramebuffer>,
 
   // A special framebuffer used to read textures (workaround the fact WebGL2 doesn’t have
@@ -133,10 +141,11 @@ impl WebGL2State {
     //let patch_vertex_nb = 0;
     let current_texture_unit = 0;
     let bound_textures = vec![(WebGl2RenderingContext::TEXTURE0, None); 48]; // 48 is the platform minimal requirement
-                                                                             //let bound_uniform_buffers = vec![0; 36]; // 36 is the platform minimal requirement
+    let texture_swimming_pool = Vec::new();
+    //let bound_uniform_buffers = vec![0; 36]; // 36 is the platform minimal requirement
     let bound_array_buffer = None;
     let bound_element_array_buffer = None;
-    // let bound_draw_framebuffer = Self::get_ctx_bound_draw_framebuffer(ctx)?;
+    let bound_draw_framebuffer = None;
     let bound_read_framebuffer = None;
     let readback_framebuffer = None;
     let bound_vertex_array = None;
@@ -159,10 +168,11 @@ impl WebGL2State {
       // patch_vertex_nb,
       current_texture_unit,
       bound_textures,
+      texture_swimming_pool,
       // bound_uniform_buffers,
       bound_array_buffer,
       bound_element_array_buffer,
-      // bound_draw_framebuffer,
+      bound_draw_framebuffer,
       bound_read_framebuffer,
       readback_framebuffer,
       bound_vertex_array,
@@ -238,7 +248,30 @@ impl WebGL2State {
   }
 
   pub(crate) fn create_texture(&mut self) -> Option<WebGlTexture> {
-    self.ctx.create_texture()
+    self
+      .texture_swimming_pool
+      .pop()
+      .flatten()
+      .or_else(|| self.ctx.create_texture())
+  }
+
+  /// Reserve at least a given number of textures.
+  pub(crate) fn reserve_textures(&mut self, nb: usize) {
+    let available = self.texture_swimming_pool.len();
+    let needed = nb.max(available) - available;
+
+    if needed > 0 {
+      // resize the internal buffer to hold all the new textures and create a slice starting from
+      // the previous end to the new end
+      self.texture_swimming_pool.resize(available + needed, None);
+
+      for _ in 0..needed {
+        match self.ctx.create_texture() {
+          Some(texture) => self.texture_swimming_pool.push(Some(texture)),
+          None => break,
+        }
+      }
+    }
   }
 
   pub(crate) fn bind_texture(&mut self, target: u32, handle: Option<&WebGlTexture>) {
@@ -274,6 +307,15 @@ impl WebGL2State {
       self.readback_framebuffer = self.create_framebuffer();
       self.readback_framebuffer.clone()
     })
+  }
+
+  pub(crate) fn bind_draw_framebuffer(&mut self, handle: Option<&WebGlFramebuffer>) {
+    if self.bound_draw_framebuffer.as_ref() != handle {
+      self
+        .ctx
+        .bind_framebuffer(WebGl2RenderingContext::FRAMEBUFFER, handle);
+      self.bound_draw_framebuffer = handle.cloned();
+    }
   }
 
   pub(crate) fn bind_read_framebuffer(&mut self, handle: Option<&WebGlFramebuffer>) {
