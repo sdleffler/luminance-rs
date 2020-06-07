@@ -15,8 +15,8 @@ use crate::webgl2::state::WebGL2State;
 use crate::webgl2::WebGL2;
 
 pub struct Texture {
-  handle: WebGlTexture,
-  target: u32, // “type” of the texture; used for bindings
+  pub(crate) handle: WebGlTexture,
+  pub(crate) target: u32, // “type” of the texture; used for bindings
   mipmaps: usize,
   state: Rc<RefCell<WebGL2State>>,
 }
