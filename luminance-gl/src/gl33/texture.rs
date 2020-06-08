@@ -51,7 +51,7 @@ where
 
     let mut state = self.state.borrow_mut();
 
-    let handle = state.generate_texture();
+    let handle = state.create_texture();
     state.bind_texture(target, handle);
 
     create_texture::<D>(target, size, mipmaps, P::pixel_format(), sampler)?;
