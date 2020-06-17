@@ -3,6 +3,7 @@
 pub mod buffer;
 pub mod framebuffer;
 pub mod pixel;
+pub mod shader;
 pub(crate) mod state;
 pub mod tess;
 pub mod texture;

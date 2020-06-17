@@ -26,9 +26,13 @@ js-sys = "0.3.40"
 version = "0.3.37"
 features = [
   "WebGl2RenderingContext",
+  "WebGlActiveInfo",
   "WebGlBuffer",
   "WebGlFramebuffer",
   "WebGlRenderbuffer",
+  "WebGlProgram",
+  "WebGlShader",
   "WebGlTexture",
+  "WebGlUniformLocation",
   "WebGlVertexArrayObject",
 ]

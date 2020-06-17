@@ -226,8 +226,11 @@ where
 }
 
 /// Errors that a [`Program`] can generate.
+#[non_exhaustive]
 #[derive(Debug)]
 pub enum ProgramError {
+  /// Creating the program failed.
+  CreationFailed(String),
   /// A shader stage failed to compile or validate its state.
   StageError(StageError),
   /// Program link failed. You can inspect the reason by looking at the contained [`String`].
@@ -239,6 +242,8 @@ pub enum ProgramError {
 impl fmt::Display for ProgramError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
+      ProgramError::CreationFailed(ref e) => write!(f, "cannot create shader program: {}", e),
+
       ProgramError::StageError(ref e) => write!(f, "shader program has stage error: {}", e),
 
       ProgramError::LinkFailed(ref s) => write!(f, "shader program failed to link: {}", s),
