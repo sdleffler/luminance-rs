@@ -20,7 +20,6 @@ use luminance::render_state::RenderState;
 use luminance::tess::{Deinterleaved, DeinterleavedData, Interleaved, TessIndex, TessVertexData};
 use luminance::texture::Dimensionable;
 
-#[non_exhaustive]
 pub struct Pipeline {
   state: Rc<RefCell<GLState>>,
 }
