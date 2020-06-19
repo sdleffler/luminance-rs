@@ -1,5 +1,5 @@
 name: CI
-on: [push, pull_request]
+on: [pull_request]
 
 jobs:
   build-linux:
@@ -55,11 +55,17 @@ jobs:
           cargo sync-readme -c
           cd $GITHUB_WORKSPACE/luminance-derive
           cargo sync-readme -c
-          cd $GITHUB_WORKSPACE/luminance-windowing
+          cd $GITHUB_WORKSPACE/luminance-gl
           cargo sync-readme -c
           cd $GITHUB_WORKSPACE/luminance-glfw
           cargo sync-readme -c
           cd $GITHUB_WORKSPACE/luminance-glutin
+          cargo sync-readme -c
+          cd $GITHUB_WORKSPACE/luminance-sdl2
+          cargo sync-readme -c
+          cd $GITHUB_WORKSPACE/luminance-webgl
+          cargo sync-readme -c
+          cd $GITHUB_WORKSPACE/luminance-windowing
           cargo sync-readme -c
       - name: rustfmt
         run: cargo fmt -- --check
