@@ -37,20 +37,6 @@ impl BindingStack {
   }
 }
 
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) struct BlendingFactors {
-  src_rgb: Factor,
-  dst_rgb: Factor,
-  src_alpha: Factor,
-  dst_alpha: Factor,
-}
-
-#[derive(Debug, PartialEq, Eq)]
-pub(crate) struct BlendingEquations {
-  rgb: Equation,
-  alpha: Equation,
-}
-
 /// Cached value.
 ///
 /// A cached value is used to prevent issuing costy GPU commands if we know the target value is
@@ -420,13 +406,14 @@ impl GLState {
   }
 
   pub(crate) unsafe fn set_blending_equation(&mut self, equation: Equation) {
-    let new_blend_eq = BlendingEquations {
+    let equations = BlendingEquations {
       rgb: equation,
       alpha: equation,
     };
-    if self.blending_equations.is_invalid(&new_blend_eq) {
+
+    if self.blending_equations.is_invalid(&equations) {
       gl::BlendEquation(from_blending_equation(equation));
-      self.blending_equations.set(new_blend_eq);
+      self.blending_equations.set(equations);
     }
   }
 
@@ -435,29 +422,32 @@ impl GLState {
     equation_rgb: Equation,
     equation_alpha: Equation,
   ) {
-    let new_blend_eq = BlendingEquations {
+    let equations = BlendingEquations {
       rgb: equation_rgb,
       alpha: equation_alpha,
     };
-    if self.blending_equations.is_invalid(&new_blend_eq) {
+
+    if self.blending_equations.is_invalid(&equations) {
       gl::BlendEquationSeparate(
         from_blending_equation(equation_rgb),
         from_blending_equation(equation_alpha),
       );
-      self.blending_equations.set(new_blend_eq);
+
+      self.blending_equations.set(equations);
     }
   }
 
   pub(crate) unsafe fn set_blending_func(&mut self, src: Factor, dst: Factor) {
-    let new_blending_funcs = BlendingFactors {
+    let funcs = BlendingFactors {
       src_rgb: src,
       dst_rgb: dst,
       src_alpha: src,
       dst_alpha: dst,
     };
-    if self.blending_funcs.is_invalid(&new_blending_funcs) {
+
+    if self.blending_funcs.is_invalid(&funcs) {
       gl::BlendFunc(from_blending_factor(src), from_blending_factor(dst));
-      self.blending_funcs.set(new_blending_funcs);
+      self.blending_funcs.set(funcs);
     }
   }
 
@@ -468,20 +458,22 @@ impl GLState {
     src_alpha: Factor,
     dst_alpha: Factor,
   ) {
-    let new_blending_funcs = BlendingFactors {
+    let funcs = BlendingFactors {
       src_rgb,
       dst_rgb,
       src_alpha,
       dst_alpha,
     };
-    if self.blending_funcs.is_invalid(&new_blending_funcs) {
+
+    if self.blending_funcs.is_invalid(&funcs) {
       gl::BlendFuncSeparate(
         from_blending_factor(src_rgb),
         from_blending_factor(dst_rgb),
         from_blending_factor(src_alpha),
         from_blending_factor(dst_alpha),
       );
-      self.blending_funcs.set(new_blending_funcs);
+
+      self.blending_funcs.set(funcs);
     }
   }
 
@@ -563,6 +555,7 @@ impl GLState {
 
   pub(crate) unsafe fn set_texture_unit(&mut self, unit: u32) {
     let unit = unit as GLenum;
+
     if self.current_texture_unit.is_invalid(&unit) {
       gl::ActiveTexture(gl::TEXTURE0 + unit);
       self.current_texture_unit.set(unit);
@@ -595,7 +588,7 @@ impl GLState {
   pub(crate) unsafe fn bind_buffer_base(&mut self, handle: GLuint, binding: u32) {
     let binding_ = binding as usize;
 
-    match self.bound_uniform_buffers.get(binding_).cloned() {
+    match self.bound_uniform_buffers.get(binding_) {
       Some(handle_) if handle != handle_ => {
         gl::BindBufferBase(gl::UNIFORM_BUFFER, binding as GLuint, handle);
         self.bound_uniform_buffers[binding_] = handle;
@@ -805,6 +798,48 @@ unsafe fn get_ctx_blending_state() -> Result<BlendingState, StateQueryError> {
   }
 }
 
+unsafe fn get_ctx_blending_equations() -> Result<BlendingEquations, StateQueryError> {
+  let mut rgb = gl::FUNC_ADD as GLint;
+  let mut alpha = gl::FUNC_ADD as GLint;
+
+  gl::GetIntegerv(gl::BLEND_EQUATION_RGB, &mut rgb);
+  gl::GetIntegerv(gl::BLEND_EQUATION_ALPHA, &mut alpha);
+
+  let rgb = map_enum_to_blending_equation(rgb as GLenum)?;
+  let alpha = map_enum_to_blending_equation(alpha as GLenum)?;
+
+  Ok(BlendingEquations { rgb, alpha })
+}
+
+unsafe fn get_ctx_blending_factors() -> Result<BlendingFactors, StateQueryError> {
+  let mut src_rgb = gl::ONE as GLint;
+  let mut dst_rgb = gl::ZERO as GLint;
+  let mut src_alpha = gl::ONE as GLint;
+  let mut dst_alpha = gl::ZERO as GLint;
+
+  gl::GetIntegerv(gl::BLEND_SRC_RGB, &mut src_rgb);
+  gl::GetIntegerv(gl::BLEND_DST_RGB, &mut dst_rgb);
+  gl::GetIntegerv(gl::BLEND_SRC_ALPHA, &mut src_alpha);
+  gl::GetIntegerv(gl::BLEND_DST_ALPHA, &mut dst_alpha);
+
+  let src_rgb = from_gl_blending_factor(src_rgb as GLenum)
+    .map_err(StateQueryError::UnknownBlendingSrcFactor)?;
+  let dst_rgb = from_gl_blending_factor(dst_rgb as GLenum)
+    .map_err(StateQueryError::UnknownBlendingDstFactor)?;
+  let src_alpha = from_gl_blending_factor(src_alpha as GLenum)
+    .map_err(StateQueryError::UnknownBlendingSrcFactor)?;
+  let dst_alpha = from_gl_blending_factor(dst_alpha as GLenum)
+    .map_err(StateQueryError::UnknownBlendingDstFactor)?;
+
+  Ok(BlendingFactors {
+    src_rgb,
+    dst_rgb,
+    src_alpha,
+    dst_alpha,
+  })
+}
+
+#[inline]
 fn map_enum_to_blending_equation(data: GLenum) -> Result<Equation, StateQueryError> {
   match data {
     gl::FUNC_ADD => Ok(Equation::Additive),
@@ -814,52 +849,6 @@ fn map_enum_to_blending_equation(data: GLenum) -> Result<Equation, StateQueryErr
     gl::MAX => Ok(Equation::Max),
     _ => Err(StateQueryError::UnknownBlendingEquation(data)),
   }
-}
-
-unsafe fn get_ctx_blending_equations() -> Result<BlendingEquations, StateQueryError> {
-  let mut data_rgb = gl::FUNC_ADD as GLint;
-  let mut data_alpha = gl::FUNC_ADD as GLint;
-  gl::GetIntegerv(gl::BLEND_EQUATION_RGB, &mut data_rgb);
-  gl::GetIntegerv(gl::BLEND_EQUATION_ALPHA, &mut data_alpha);
-
-  let data_rgb = data_rgb as GLenum;
-  let data_alpha = data_alpha as GLenum;
-  match (
-    map_enum_to_blending_equation(data_rgb),
-    map_enum_to_blending_equation(data_alpha),
-  ) {
-    (Ok(rgb), Ok(alpha)) => Ok(BlendingEquations { rgb, alpha }),
-    (Err(a), _) => Err(a),
-    (_, Err(b)) => Err(b),
-  }
-}
-
-unsafe fn get_ctx_blending_factors() -> Result<BlendingFactors, StateQueryError> {
-  let mut src_k_rgb = gl::ONE as GLint;
-  let mut dst_k_rgb = gl::ZERO as GLint;
-  let mut src_k_alpha = gl::ONE as GLint;
-  let mut dst_k_alpha = gl::ZERO as GLint;
-
-  gl::GetIntegerv(gl::BLEND_SRC_RGB, &mut src_k_rgb);
-  gl::GetIntegerv(gl::BLEND_DST_RGB, &mut dst_k_rgb);
-  gl::GetIntegerv(gl::BLEND_SRC_ALPHA, &mut src_k_alpha);
-  gl::GetIntegerv(gl::BLEND_DST_ALPHA, &mut dst_k_alpha);
-
-  let src_rgb = from_gl_blending_factor(src_k_rgb as GLenum)
-    .map_err(StateQueryError::UnknownBlendingSrcFactor)?;
-  let dst_rgb = from_gl_blending_factor(dst_k_rgb as GLenum)
-    .map_err(StateQueryError::UnknownBlendingDstFactor)?;
-  let src_alpha = from_gl_blending_factor(src_k_alpha as GLenum)
-    .map_err(StateQueryError::UnknownBlendingSrcFactor)?;
-  let dst_alpha = from_gl_blending_factor(dst_k_alpha as GLenum)
-    .map_err(StateQueryError::UnknownBlendingDstFactor)?;
-
-  Ok(BlendingFactors {
-    src_rgb,
-    dst_rgb,
-    src_alpha,
-    dst_alpha,
-  })
 }
 
 #[inline]
@@ -976,6 +965,20 @@ pub(crate) enum BlendingState {
   On,
   /// Disable blending.
   Off,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct BlendingFactors {
+  src_rgb: Factor,
+  dst_rgb: Factor,
+  src_alpha: Factor,
+  dst_alpha: Factor,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct BlendingEquations {
+  rgb: Equation,
+  alpha: Equation,
 }
 
 /// Whether or not depth test should be enabled.

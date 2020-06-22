@@ -1,11 +1,5 @@
 use gl::types::*;
 
-use std::cell::RefCell;
-use std::marker::PhantomData;
-use std::rc::Rc;
-
-use crate::gl33::state::{BlendingState, DepthTest, FaceCullingState, GLState};
-use crate::gl33::GL33;
 use luminance::backend::pipeline::{
   Pipeline as PipelineBackend, PipelineBase, PipelineBuffer, PipelineTexture,
 };
@@ -19,6 +13,12 @@ use luminance::pixel::Pixel;
 use luminance::render_state::RenderState;
 use luminance::tess::{Deinterleaved, DeinterleavedData, Interleaved, TessIndex, TessVertexData};
 use luminance::texture::Dimensionable;
+use std::cell::RefCell;
+use std::marker::PhantomData;
+use std::rc::Rc;
+
+use crate::gl33::state::{BlendingState, DepthTest, FaceCullingState, GLState};
+use crate::gl33::GL33;
 
 pub struct Pipeline {
   state: Rc<RefCell<GLState>>,
