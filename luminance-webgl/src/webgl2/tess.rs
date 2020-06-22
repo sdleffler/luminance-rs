@@ -131,7 +131,7 @@ where
     mode: Mode,
     vert_nb: usize,
     inst_nb: usize,
-    restart_index: Option<I>,
+    _: Option<I>,
   ) -> Result<Self::TessRepr, TessError> {
     let vao = self
       .state
@@ -147,7 +147,7 @@ where
       .bind_vertex_array(Some(&vao), Bind::Forced);
 
     let vertex_buffer = build_interleaved_vertex_buffer(self, vertex_data)?;
-    let index_buffer = build_index_buffer(self, index_data, restart_index)?;
+    let index_buffer = build_index_buffer(self, index_data)?;
     let instance_buffer = build_interleaved_vertex_buffer(self, instance_data)?;
 
     let mode = webgl_mode(mode).ok_or_else(|| TessError::ForbiddenPrimitiveMode(mode))?;
@@ -292,7 +292,7 @@ where
     mode: Mode,
     vert_nb: usize,
     inst_nb: usize,
-    restart_index: Option<I>,
+    _: Option<I>,
   ) -> Result<Self::TessRepr, TessError> {
     let vao = self
       .state
@@ -308,7 +308,7 @@ where
       .bind_vertex_array(Some(&vao), Bind::Forced);
 
     let vertex_buffers = build_deinterleaved_vertex_buffers::<V>(self, vertex_data)?;
-    let index_buffer = build_index_buffer(self, index_data, restart_index)?;
+    let index_buffer = build_index_buffer(self, index_data)?;
     let instance_buffers = build_deinterleaved_vertex_buffers::<W>(self, instance_data)?;
 
     let mode = webgl_mode(mode).ok_or_else(|| TessError::ForbiddenPrimitiveMode(mode))?;
@@ -503,11 +503,7 @@ where
 }
 
 /// Turn a [`Vec`] of indices to a [`Buffer`], if indices are present.
-fn build_index_buffer<I>(
-  webgl2: &mut WebGL2,
-  data: Vec<I>,
-  restart_index: Option<I>,
-) -> Result<Option<Buffer<I>>, TessError>
+fn build_index_buffer<I>(webgl2: &mut WebGL2, data: Vec<I>) -> Result<Option<Buffer<I>>, TessError>
 where
   I: TessIndex,
 {

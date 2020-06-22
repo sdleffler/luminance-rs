@@ -206,8 +206,8 @@ where
       &mut state,
       &buffer.gl_buf.handle,
       buffer.buf.as_ptr() as *const u8,
+      bytes,
       0,
-      values.len(),
     );
 
     Ok(())
@@ -384,9 +384,12 @@ fn update_webgl_buffer(
   state.bind_array_buffer(Some(gl_buf), Bind::Cached);
 
   let data = unsafe { slice::from_raw_parts(data as _, bytes) };
-  state.ctx.buffer_sub_data_with_i32_and_u8_array(
-    WebGl2RenderingContext::ARRAY_BUFFER,
-    bytes as i32,
-    data,
-  );
+  state
+    .ctx
+    .buffer_sub_data_with_i32_and_u8_array_and_src_offset(
+      WebGl2RenderingContext::ARRAY_BUFFER,
+      offset as _,
+      data,
+      0,
+    );
 }

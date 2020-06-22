@@ -589,7 +589,7 @@ impl GLState {
     let binding_ = binding as usize;
 
     match self.bound_uniform_buffers.get(binding_) {
-      Some(handle_) if handle != handle_ => {
+      Some(&handle_) if handle != handle_ => {
         gl::BindBufferBase(gl::UNIFORM_BUFFER, binding as GLuint, handle);
         self.bound_uniform_buffers[binding_] = handle;
       }
