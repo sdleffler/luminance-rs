@@ -711,6 +711,7 @@ fn from_blending_factor(factor: Factor) -> GLenum {
 }
 
 /// An error that might happen when the context is queried.
+#[non_exhaustive]
 #[derive(Debug)]
 pub enum StateQueryError {
   /// The [`GLState`] object is unavailable.
