@@ -177,6 +177,7 @@ impl fmt::Display for StageType {
 }
 
 /// Errors that shader stages can emit.
+#[non_exhaustive]
 #[derive(Clone, Debug)]
 pub enum StageError {
   /// Occurs when a shader fails to compile.
@@ -297,6 +298,7 @@ impl From<ProgramWarning> for ProgramError {
 }
 
 /// Warnings related to uniform issues.
+#[non_exhaustive]
 #[derive(Debug)]
 pub enum UniformWarning {
   /// Inactive uniform (not in use / no participation to the final output in shaders).

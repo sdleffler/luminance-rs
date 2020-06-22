@@ -456,6 +456,7 @@ pub enum GenMipmaps {
 }
 
 /// Errors that might happen when working with textures.
+#[non_exhaustive]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum TextureError {
   /// A texture’s storage failed to be created.
