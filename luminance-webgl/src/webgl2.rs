@@ -2,6 +2,7 @@
 
 pub mod buffer;
 pub mod framebuffer;
+pub mod pipeline;
 pub mod pixel;
 pub mod shader;
 pub(crate) mod state;
