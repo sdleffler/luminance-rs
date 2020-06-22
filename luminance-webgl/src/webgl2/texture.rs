@@ -21,6 +21,12 @@ pub struct Texture {
   state: Rc<RefCell<WebGL2State>>,
 }
 
+impl Texture {
+  pub(crate) fn handle(&self) -> &WebGlTexture {
+    &self.handle
+  }
+}
+
 impl Drop for Texture {
   fn drop(&mut self) {
     self

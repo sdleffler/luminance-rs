@@ -1,10 +1,15 @@
 //! Graphics state.
 
+use js_sys::{Float32Array, Int32Array};
+use luminance::blending::{Equation, Factor};
+use luminance::depth_test::DepthComparison;
+use luminance::face_culling::{FaceCullingMode, FaceCullingOrder};
 use std::cell::RefCell;
 use std::fmt;
 use std::marker::PhantomData;
 use web_sys::{
-  WebGl2RenderingContext, WebGlBuffer, WebGlFramebuffer, WebGlTexture, WebGlVertexArrayObject,
+  WebGl2RenderingContext, WebGlBuffer, WebGlFramebuffer, WebGlProgram, WebGlTexture,
+  WebGlVertexArrayObject,
 };
 
 // TLS synchronization barrier for `GLState`.
@@ -46,31 +51,28 @@ pub struct WebGL2State {
   // binding stack
   binding_stack: BindingStack,
 
-  // // viewport
-  // viewport: [GLint; 4],
+  // viewport
+  viewport: [i32; 4],
 
-  // // clear buffers
-  // clear_color: [GLfloat; 4],
+  // clear buffers
+  clear_color: [f32; 4],
 
-  // // blending
-  // blending_state: BlendingState,
-  // blending_equation: Equation,
-  // blending_func: (Factor, Factor),
+  // blending
+  blending_state: BlendingState,
+  blending_equations: BlendingEquations,
+  blending_funcs: BlendingFactors,
 
-  // // depth test
-  // depth_test: DepthTest,
-  // depth_test_comparison: DepthComparison,
+  // depth test
+  depth_test: DepthTest,
+  depth_test_comparison: DepthComparison,
 
-  // // face culling
-  // face_culling_state: FaceCullingState,
-  // face_culling_order: FaceCullingOrder,
-  // face_culling_mode: FaceCullingMode,
-
-  // // patch primitive vertex number
-  // patch_vertex_nb: usize,
+  // face culling
+  face_culling_state: FaceCullingState,
+  face_culling_order: FaceCullingOrder,
+  face_culling_mode: FaceCullingMode,
 
   // texture
-  current_texture_unit: usize,
+  current_texture_unit: u32,
   bound_textures: Vec<(u32, Option<WebGlTexture>)>,
 
   // texture buffer used to optimize texture creation; regular textures typically will never ask
@@ -81,8 +83,8 @@ pub struct WebGL2State {
   // fishy fishy
   texture_swimming_pool: Vec<Option<WebGlTexture>>,
 
-  // // uniform buffer
-  // bound_uniform_buffers: Vec<GLuint>,
+  // uniform buffer
+  bound_uniform_buffers: Vec<Option<WebGlBuffer>>,
 
   // array buffer
   bound_array_buffer: Option<WebGlBuffer>,
@@ -100,8 +102,8 @@ pub struct WebGL2State {
 
   // vertex array
   bound_vertex_array: Option<WebGlVertexArrayObject>,
-  // // shader program
-  // current_program: GLuint,
+  // shader program
+  current_program: Option<WebGlProgram>,
 }
 
 impl WebGL2State {
@@ -126,80 +128,93 @@ impl WebGL2State {
   }
 
   /// Get a `GraphicsContext` from the current OpenGL context.
-  fn get_from_context(ctx: WebGl2RenderingContext) -> Result<Self, StateQueryError> {
+  fn get_from_context(mut ctx: WebGl2RenderingContext) -> Result<Self, StateQueryError> {
     let binding_stack = BindingStack::new();
-    //let viewport = Self::get_ctx_viewport(ctx)?;
-    //let clear_color = Self::get_ctx_clear_color(ctx)?;
-    //let blending_state = Self::get_ctx_blending_state(ctx)?;
-    //let blending_equation = Self::get_ctx_blending_equation(ctx)?;
-    //let blending_func = Self::get_ctx_blending_factors(ctx)?;
-    //let depth_test = Self::get_ctx_depth_test(ctx)?;
-    //let depth_test_comparison = DepthComparison::Less;
-    //let face_culling_state = Self::get_ctx_face_culling_state(ctx)?;
-    //let face_culling_order = Self::get_ctx_face_culling_order(ctx)?;
-    //let face_culling_mode = Self::get_ctx_face_culling_mode(ctx)?;
-    //let patch_vertex_nb = 0;
+    let viewport = get_ctx_viewport(&mut ctx)?;
+    let clear_color = get_ctx_clear_color(&mut ctx)?;
+    let blending_state = get_ctx_blending_state(&mut ctx);
+    let blending_equations = get_ctx_blending_equations(&mut ctx)?;
+    let blending_funcs = get_ctx_blending_factors(&mut ctx)?;
+    let depth_test = get_ctx_depth_test(&mut ctx);
+    let depth_test_comparison = DepthComparison::Less;
+    let face_culling_state = get_ctx_face_culling_state(&mut ctx);
+    let face_culling_order = get_ctx_face_culling_order(&mut ctx)?;
+    let face_culling_mode = get_ctx_face_culling_mode(&mut ctx)?;
     let current_texture_unit = 0;
     let bound_textures = vec![(WebGl2RenderingContext::TEXTURE0, None); 48]; // 48 is the platform minimal requirement
     let texture_swimming_pool = Vec::new();
-    //let bound_uniform_buffers = vec![0; 36]; // 36 is the platform minimal requirement
+    let bound_uniform_buffers = vec![None; 36]; // 36 is the platform minimal requirement
     let bound_array_buffer = None;
     let bound_element_array_buffer = None;
     let bound_draw_framebuffer = None;
     let bound_read_framebuffer = None;
     let readback_framebuffer = None;
     let bound_vertex_array = None;
-    // let current_program = Self::get_ctx_current_program(ctx)?;
+    let current_program = None;
 
     Ok(WebGL2State {
       _phantom: PhantomData,
       ctx,
       binding_stack,
-      // viewport,
-      // clear_color,
-      // blending_state,
-      // blending_equation,
-      // blending_func,
-      // depth_test,
-      // depth_test_comparison,
-      // face_culling_state,
-      // face_culling_order,
-      // face_culling_mode,
-      // patch_vertex_nb,
+      viewport,
+      clear_color,
+      blending_state,
+      blending_equations,
+      blending_funcs,
+      depth_test,
+      depth_test_comparison,
+      face_culling_state,
+      face_culling_order,
+      face_culling_mode,
       current_texture_unit,
       bound_textures,
       texture_swimming_pool,
-      // bound_uniform_buffers,
+      bound_uniform_buffers,
       bound_array_buffer,
       bound_element_array_buffer,
       bound_draw_framebuffer,
       bound_read_framebuffer,
       readback_framebuffer,
       bound_vertex_array,
-      // current_program,
+      current_program,
     })
   }
 
-  // #[inline]
-  // fn from_gl_blending_factor(factor: GLenum) -> Result<Factor, GLenum> {
-  //   match factor {
-  //     WebGl2RenderingContext::ONE => Ok(Factor::One),
-  //     WebGl2RenderingContext::ZERO => Ok(Factor::Zero),
-  //     WebGl2RenderingContext::SRC_COLOR => Ok(Factor::SrcColor),
-  //     WebGl2RenderingContext::ONE_MINUS_SRC_COLOR => Ok(Factor::SrcColorComplement),
-  //     WebGl2RenderingContext::DST_COLOR => Ok(Factor::DestColor),
-  //     WebGl2RenderingContext::ONE_MINUS_DST_COLOR => Ok(Factor::DestColorComplement),
-  //     WebGl2RenderingContext::SRC_ALPHA => Ok(Factor::SrcAlpha),
-  //     WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA => Ok(Factor::SrcAlphaComplement),
-  //     WebGl2RenderingContext::DST_ALPHA => Ok(Factor::DstAlpha),
-  //     WebGl2RenderingContext::ONE_MINUS_DST_ALPHA => Ok(Factor::DstAlphaComplement),
-  //     WebGl2RenderingContext::SRC_ALPHA_SATURATE => Ok(Factor::SrcAlphaSaturate),
-  //     _ => Err(factor),
-  //   }
-  // }
+  pub(crate) fn binding_stack_mut(&mut self) -> &mut BindingStack {
+    &mut self.binding_stack
+  }
 
   pub(crate) fn create_buffer(&mut self) -> Option<WebGlBuffer> {
     self.ctx.create_buffer()
+  }
+
+  pub(crate) fn bind_buffer_base(&mut self, handle: &WebGlBuffer, binding: u32) {
+    match self.bound_uniform_buffers.get(binding as usize) {
+      Some(ref handle_) if Some(handle) != handle_.as_ref() => {
+        self.ctx.bind_buffer_base(
+          WebGl2RenderingContext::UNIFORM_BUFFER,
+          binding,
+          Some(handle),
+        );
+        self.bound_uniform_buffers[binding as usize] = Some(handle.clone());
+      }
+
+      None => {
+        self.ctx.bind_buffer_base(
+          WebGl2RenderingContext::UNIFORM_BUFFER,
+          binding,
+          Some(handle),
+        );
+
+        // not enough registered buffer bindings; let’s grow a bit more
+        self
+          .bound_uniform_buffers
+          .resize(binding as usize + 1, None);
+        self.bound_uniform_buffers[binding as usize] = Some(handle.clone());
+      }
+
+      _ => (), // cached
+    }
   }
 
   pub(crate) fn bind_array_buffer(&mut self, buffer: Option<&WebGlBuffer>, bind: Bind) {
@@ -225,15 +240,13 @@ impl WebGL2State {
       self.bind_array_buffer(None, Bind::Cached);
     } else if self.bound_element_array_buffer.as_ref() == Some(buffer) {
       self.bind_element_array_buffer(None, Bind::Cached);
+    } else if let Some(handle_) = self
+      .bound_uniform_buffers
+      .iter_mut()
+      .find(|h| h.as_ref() == Some(buffer))
+    {
+      *handle_ = None;
     }
-    // FIXME: enable this as soon as we add uniform buffers
-    // } else if let Some(handle_) = self
-    //   .bound_uniform_buffers
-    //   .iter_mut()
-    //   .find(|h| **h == handle)
-    // {
-    //   *handle_ = 0;
-    // }
   }
 
   pub(crate) fn create_vertex_array(&mut self) -> Option<WebGlVertexArrayObject> {
@@ -274,8 +287,17 @@ impl WebGL2State {
     }
   }
 
+  pub(crate) fn set_texture_unit(&mut self, unit: u32) {
+    if self.current_texture_unit != unit {
+      self
+        .ctx
+        .active_texture(WebGl2RenderingContext::TEXTURE0 + unit);
+      self.current_texture_unit = unit;
+    }
+  }
+
   pub(crate) fn bind_texture(&mut self, target: u32, handle: Option<&WebGlTexture>) {
-    let unit = self.current_texture_unit;
+    let unit = self.current_texture_unit as usize;
 
     match self.bound_textures.get(unit) {
       Some((t, ref h)) if target != *t || handle != h.as_ref() => {
@@ -326,6 +348,176 @@ impl WebGL2State {
       self.bound_read_framebuffer = handle.cloned();
     }
   }
+
+  pub(crate) fn use_program(&mut self, handle: Option<&WebGlProgram>) {
+    if self.current_program.as_ref() != handle {
+      self.ctx.use_program(handle);
+      self.current_program = handle.cloned();
+    }
+  }
+
+  pub(crate) fn set_viewport(&mut self, viewport: [i32; 4]) {
+    if self.viewport != viewport {
+      self
+        .ctx
+        .viewport(viewport[0], viewport[1], viewport[2], viewport[3]);
+      self.viewport = viewport;
+    }
+  }
+
+  pub(crate) fn set_clear_color(&mut self, clear_color: [f32; 4]) {
+    if self.clear_color != clear_color {
+      self.ctx.clear_color(
+        clear_color[0],
+        clear_color[1],
+        clear_color[2],
+        clear_color[3],
+      );
+      self.clear_color = clear_color;
+    }
+  }
+
+  pub(crate) fn set_blending_state(&mut self, state: BlendingState) {
+    if self.blending_state != state {
+      match state {
+        BlendingState::On => self.ctx.enable(WebGl2RenderingContext::BLEND),
+        BlendingState::Off => self.ctx.disable(WebGl2RenderingContext::BLEND),
+      }
+
+      self.blending_state = state;
+    }
+  }
+
+  pub(crate) fn set_blending_equation(&mut self, equation: Equation) {
+    let equations = BlendingEquations {
+      rgb: equation,
+      alpha: equation,
+    };
+
+    if self.blending_equations != equations {
+      self
+        .ctx
+        .blend_equation(blending_equation_to_webgl(equation));
+      self.blending_equations = equations;
+    }
+  }
+
+  pub(crate) fn set_blending_equation_separate(
+    &mut self,
+    equation_rgb: Equation,
+    equation_alpha: Equation,
+  ) {
+    let equations = BlendingEquations {
+      rgb: equation_rgb,
+      alpha: equation_alpha,
+    };
+
+    if self.blending_equations != equations {
+      self.ctx.blend_equation_separate(
+        blending_equation_to_webgl(equation_rgb),
+        blending_equation_to_webgl(equation_alpha),
+      );
+
+      self.blending_equations = equations;
+    }
+  }
+
+  pub(crate) fn set_blending_func(&mut self, src: Factor, dst: Factor) {
+    let funcs = BlendingFactors {
+      src_rgb: src,
+      dst_rgb: dst,
+      src_alpha: src,
+      dst_alpha: dst,
+    };
+
+    if self.blending_funcs != funcs {
+      self
+        .ctx
+        .blend_func(blending_factor_to_webgl(src), blending_factor_to_webgl(dst));
+
+      self.blending_funcs = funcs;
+    }
+  }
+
+  pub(crate) fn set_blending_func_separate(
+    &mut self,
+    src_rgb: Factor,
+    dst_rgb: Factor,
+    src_alpha: Factor,
+    dst_alpha: Factor,
+  ) {
+    let funcs = BlendingFactors {
+      src_rgb,
+      dst_rgb,
+      src_alpha,
+      dst_alpha,
+    };
+    if self.blending_funcs != funcs {
+      self.ctx.blend_func_separate(
+        blending_factor_to_webgl(src_rgb),
+        blending_factor_to_webgl(dst_rgb),
+        blending_factor_to_webgl(src_alpha),
+        blending_factor_to_webgl(dst_alpha),
+      );
+
+      self.blending_funcs = funcs;
+    }
+  }
+
+  pub(crate) fn set_depth_test(&mut self, depth_test: DepthTest) {
+    if self.depth_test != depth_test {
+      match depth_test {
+        DepthTest::On => self.ctx.enable(WebGl2RenderingContext::DEPTH_TEST),
+        DepthTest::Off => self.ctx.disable(WebGl2RenderingContext::DEPTH_TEST),
+      }
+
+      self.depth_test = depth_test;
+    }
+  }
+
+  pub(crate) fn set_depth_test_comparison(&mut self, depth_test_comparison: DepthComparison) {
+    if self.depth_test_comparison != depth_test_comparison {
+      self
+        .ctx
+        .depth_func(depth_comparison_to_webgl(depth_test_comparison));
+
+      self.depth_test_comparison = depth_test_comparison;
+    }
+  }
+
+  pub(crate) fn set_face_culling_state(&mut self, state: FaceCullingState) {
+    if self.face_culling_state != state {
+      match state {
+        FaceCullingState::On => self.ctx.enable(WebGl2RenderingContext::CULL_FACE),
+        FaceCullingState::Off => self.ctx.disable(WebGl2RenderingContext::CULL_FACE),
+      }
+
+      self.face_culling_state = state;
+    }
+  }
+
+  pub(crate) fn set_face_culling_order(&mut self, order: FaceCullingOrder) {
+    if self.face_culling_order != order {
+      match order {
+        FaceCullingOrder::CW => self.ctx.front_face(WebGl2RenderingContext::CW),
+        FaceCullingOrder::CCW => self.ctx.front_face(WebGl2RenderingContext::CCW),
+      }
+
+      self.face_culling_order = order;
+    }
+  }
+
+  pub(crate) fn set_face_culling_mode(&mut self, mode: FaceCullingMode) {
+    if self.face_culling_mode != mode {
+      match mode {
+        FaceCullingMode::Front => self.ctx.cull_face(WebGl2RenderingContext::FRONT),
+        FaceCullingMode::Back => self.ctx.cull_face(WebGl2RenderingContext::BACK),
+        FaceCullingMode::Both => self.ctx.cull_face(WebGl2RenderingContext::FRONT_AND_BACK),
+      }
+
+      self.face_culling_mode = mode;
+    }
+  }
 }
 
 impl Drop for WebGL2State {
@@ -347,64 +539,264 @@ pub enum StateQueryError {
   UnavailableGLState,
   /// Unknown array buffer initial state.
   UnknownArrayBufferInitialState,
-  // /// Unknown viewport initial state.
-  // UnknownViewportInitialState,
-  // /// Unknown clear color initial state.
-  // UnknownClearColorInitialState,
-  // /// Corrupted blending state.
-  // UnknownBlendingState(GLboolean),
-  // /// Corrupted blending equation.
-  // UnknownBlendingEquation(GLenum),
-  // /// Corrupted blending source factor.
-  // UnknownBlendingSrcFactor(GLenum),
-  // /// Corrupted blending destination factor.
-  // UnknownBlendingDstFactor(GLenum),
-  // /// Corrupted depth test state.
-  // UnknownDepthTestState(GLboolean),
-  // /// Corrupted face culling state.
-  // UnknownFaceCullingState(GLboolean),
-  // /// Corrupted face culling order.
-  // UnknownFaceCullingOrder(GLenum),
-  // /// Corrupted face culling mode.
-  // UnknownFaceCullingMode(GLenum),
-  // /// Corrupted vertex restart state.
-  // UnknownVertexRestartState(GLboolean),
+  /// Unknown viewport initial state.
+  UnknownViewportInitialState,
+  /// Unknown clear color initial state.
+  UnknownClearColorInitialState,
+  /// Corrupted blending equation.
+  UnknownBlendingEquation(u32),
+  /// RGB blending equation couldn’t be retrieved when initializing the WebGL2 state.
+  CannotRetrieveBlendingEquationRGB,
+  /// Alpha blending equation couldn’t be retrieved when initializing the WebGL2 state.
+  CannotRetrieveBlendingEquationAlpha,
+  /// Source RGB factor couldn’t be retrieved when initializing the WebGL2 state.
+  CannotRetrieveBlendingSrcFactorRGB,
+  /// Source alpha factor couldn’t be retrieved when initializing the WebGL2 state.
+  CannotRetrieveBlendingSrcFactorAlpha,
+  /// Destination RGB factor couldn’t be retrieved when initializing the WebGL2 state.
+  CannotRetrieveBlendingDstFactorRGB,
+  /// Destination alpha factor couldn’t be retrieved when initializing the WebGL2 state.
+  CannotRetrieveBlendingDstFactorAlpha,
+  /// Corrupted blending source factor (RGB).
+  UnknownBlendingSrcFactorRGB(u32),
+  /// Corrupted blending source factor (alpha).
+  UnknownBlendingSrcFactorAlpha(u32),
+  /// Corrupted blending destination factor (RGB).
+  UnknownBlendingDstFactorRGB(u32),
+  /// Corrupted blending destination factor (alpha).
+  UnknownBlendingDstFactorAlpha(u32),
+  /// Corrupted face culling order.
+  UnknownFaceCullingOrder,
+  /// Corrupted face culling mode.
+  UnknownFaceCullingMode,
 }
 
 impl fmt::Display for StateQueryError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
       StateQueryError::UnavailableGLState => write!(f, "unavailable graphics state"),
+
       StateQueryError::UnknownArrayBufferInitialState => {
         write!(f, "unknown array buffer initial state")
-      } // StateQueryError::UnknownViewportInitialState => write!(f, "unknown viewport initial state"),
-        // StateQueryError::UnknownClearColorInitialState => {
-        //   write!(f, "unknown clear color initial state")
-        // }
-        // StateQueryError::UnknownBlendingState(ref s) => write!(f, "unknown blending state: {}", s),
-        // StateQueryError::UnknownBlendingEquation(ref e) => {
-        //   write!(f, "unknown blending equation: {}", e)
-        // }
-        // StateQueryError::UnknownBlendingSrcFactor(ref k) => {
-        //   write!(f, "unknown blending source factor: {}", k)
-        // }
-        // StateQueryError::UnknownBlendingDstFactor(ref k) => {
-        //   write!(f, "unknown blending destination factor: {}", k)
-        // }
-        // StateQueryError::UnknownDepthTestState(ref s) => write!(f, "unknown depth test state: {}", s),
-        // StateQueryError::UnknownFaceCullingState(ref s) => {
-        //   write!(f, "unknown face culling state: {}", s)
-        // }
-        // StateQueryError::UnknownFaceCullingOrder(ref o) => {
-        //   write!(f, "unknown face culling order: {}", o)
-        // }
-        // StateQueryError::UnknownFaceCullingMode(ref m) => {
-        //   write!(f, "unknown face culling mode: {}", m)
-        // }
-        // StateQueryError::UnknownVertexRestartState(ref s) => {
-        //   write!(f, "unknown vertex restart state: {}", s)
-        // }
+      }
+
+      StateQueryError::UnknownViewportInitialState => write!(f, "unknown viewport initial state"),
+
+      StateQueryError::UnknownClearColorInitialState => {
+        write!(f, "unknown clear color initial state")
+      }
+
+      StateQueryError::UnknownBlendingEquation(ref e) => {
+        write!(f, "unknown blending equation: {}", e)
+      }
+
+      StateQueryError::CannotRetrieveBlendingEquationRGB => {
+        f.write_str("cannot retrieve blending equation (RGB)")
+      }
+
+      StateQueryError::CannotRetrieveBlendingEquationAlpha => {
+        f.write_str("cannot retrieve blending equation (alpha)")
+      }
+
+      StateQueryError::CannotRetrieveBlendingSrcFactorRGB => {
+        f.write_str("cannot retrieve blending source factor (RGB)")
+      }
+
+      StateQueryError::CannotRetrieveBlendingSrcFactorAlpha => {
+        f.write_str("cannot retrieve blending source factor (alpha)")
+      }
+
+      StateQueryError::CannotRetrieveBlendingDstFactorRGB => {
+        f.write_str("cannot retrieve blending destination factor (RGB)")
+      }
+
+      StateQueryError::CannotRetrieveBlendingDstFactorAlpha => {
+        f.write_str("cannot retrieve blending destination factor (alpha)")
+      }
+
+      StateQueryError::UnknownBlendingSrcFactorRGB(ref k) => {
+        write!(f, "unknown blending source factor (RGB): {}", k)
+      }
+
+      StateQueryError::UnknownBlendingSrcFactorAlpha(ref k) => {
+        write!(f, "unknown blending source factor (alpha): {}", k)
+      }
+
+      StateQueryError::UnknownBlendingDstFactorRGB(ref k) => {
+        write!(f, "unknown blending destination factor (RGB): {}", k)
+      }
+
+      StateQueryError::UnknownBlendingDstFactorAlpha(ref k) => {
+        write!(f, "unknown blending destination factor (alpha): {}", k)
+      }
+
+      StateQueryError::UnknownFaceCullingOrder => f.write_str("unknown face culling order"),
+
+      StateQueryError::UnknownFaceCullingMode => f.write_str("unknown face culling mode"),
     }
+  }
+}
+
+impl std::error::Error for StateQueryError {}
+
+fn get_ctx_viewport(ctx: &mut WebGl2RenderingContext) -> Result<[i32; 4], StateQueryError> {
+  let parameter = ctx
+    .get_parameter(WebGl2RenderingContext::VIEWPORT)
+    .map_err(|_| StateQueryError::UnknownViewportInitialState)?;
+  let array: Int32Array = parameter.into();
+
+  if array.length() != 4 {
+    return Err(StateQueryError::UnknownViewportInitialState);
+  }
+
+  let mut viewport = [0; 4];
+  array.copy_to(&mut viewport); // safe thanks to the test above on array.length() above
+
+  Ok(viewport)
+}
+
+fn get_ctx_clear_color(ctx: &mut WebGl2RenderingContext) -> Result<[f32; 4], StateQueryError> {
+  let parameter = ctx
+    .get_parameter(WebGl2RenderingContext::COLOR_CLEAR_VALUE)
+    .map_err(|_| StateQueryError::UnknownClearColorInitialState)?;
+  let array: Float32Array = parameter.into();
+
+  if array.length() != 4 {
+    return Err(StateQueryError::UnknownClearColorInitialState);
+  }
+
+  let mut color = [0.0; 4];
+  array.copy_to(&mut color); // safe thanks to the test above on array.length() above
+
+  Ok(color)
+}
+
+fn get_ctx_blending_state(ctx: &mut WebGl2RenderingContext) -> BlendingState {
+  if ctx.is_enabled(WebGl2RenderingContext::BLEND) {
+    BlendingState::On
+  } else {
+    BlendingState::Off
+  }
+}
+
+fn get_ctx_blending_equations(
+  ctx: &mut WebGl2RenderingContext,
+) -> Result<BlendingEquations, StateQueryError> {
+  let rgb = get_webgl_param(ctx, WebGl2RenderingContext::BLEND_EQUATION_RGB)
+    .ok_or_else(|| StateQueryError::CannotRetrieveBlendingEquationRGB)
+    .and_then(map_enum_to_blending_equation)?;
+  let alpha = get_webgl_param(ctx, WebGl2RenderingContext::BLEND_EQUATION_ALPHA)
+    .ok_or_else(|| StateQueryError::CannotRetrieveBlendingEquationAlpha)
+    .and_then(map_enum_to_blending_equation)?;
+
+  Ok(BlendingEquations { rgb, alpha })
+}
+
+#[inline]
+fn map_enum_to_blending_equation(data: u32) -> Result<Equation, StateQueryError> {
+  match data {
+    WebGl2RenderingContext::FUNC_ADD => Ok(Equation::Additive),
+    WebGl2RenderingContext::FUNC_SUBTRACT => Ok(Equation::Subtract),
+    WebGl2RenderingContext::FUNC_REVERSE_SUBTRACT => Ok(Equation::ReverseSubtract),
+    WebGl2RenderingContext::MIN => Ok(Equation::Min),
+    WebGl2RenderingContext::MAX => Ok(Equation::Max),
+    _ => Err(StateQueryError::UnknownBlendingEquation(data)),
+  }
+}
+
+fn get_ctx_blending_factors(
+  ctx: &mut WebGl2RenderingContext,
+) -> Result<BlendingFactors, StateQueryError> {
+  let src_rgb = get_webgl_param(ctx, WebGl2RenderingContext::BLEND_SRC_RGB)
+    .ok_or_else(|| StateQueryError::CannotRetrieveBlendingSrcFactorRGB)?;
+  let src_rgb =
+    from_gl_blending_factor(src_rgb).map_err(StateQueryError::UnknownBlendingSrcFactorRGB)?;
+
+  let src_alpha = get_webgl_param(ctx, WebGl2RenderingContext::BLEND_SRC_ALPHA)
+    .ok_or_else(|| StateQueryError::CannotRetrieveBlendingSrcFactorAlpha)?;
+  let src_alpha =
+    from_gl_blending_factor(src_alpha).map_err(StateQueryError::UnknownBlendingSrcFactorAlpha)?;
+
+  let dst_rgb = get_webgl_param(ctx, WebGl2RenderingContext::BLEND_DST_RGB)
+    .ok_or_else(|| StateQueryError::CannotRetrieveBlendingDstFactorRGB)?;
+  let dst_rgb =
+    from_gl_blending_factor(dst_rgb).map_err(StateQueryError::UnknownBlendingDstFactorRGB)?;
+
+  let dst_alpha = get_webgl_param(ctx, WebGl2RenderingContext::BLEND_DST_ALPHA)
+    .ok_or_else(|| StateQueryError::CannotRetrieveBlendingDstFactorAlpha)?;
+  let dst_alpha =
+    from_gl_blending_factor(dst_alpha).map_err(StateQueryError::UnknownBlendingDstFactorAlpha)?;
+
+  Ok(BlendingFactors {
+    src_rgb,
+    dst_rgb,
+    src_alpha,
+    dst_alpha,
+  })
+}
+
+#[inline]
+fn from_gl_blending_factor(factor: u32) -> Result<Factor, u32> {
+  match factor {
+    WebGl2RenderingContext::ONE => Ok(Factor::One),
+    WebGl2RenderingContext::ZERO => Ok(Factor::Zero),
+    WebGl2RenderingContext::SRC_COLOR => Ok(Factor::SrcColor),
+    WebGl2RenderingContext::ONE_MINUS_SRC_COLOR => Ok(Factor::SrcColorComplement),
+    WebGl2RenderingContext::DST_COLOR => Ok(Factor::DestColor),
+    WebGl2RenderingContext::ONE_MINUS_DST_COLOR => Ok(Factor::DestColorComplement),
+    WebGl2RenderingContext::SRC_ALPHA => Ok(Factor::SrcAlpha),
+    WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA => Ok(Factor::SrcAlphaComplement),
+    WebGl2RenderingContext::DST_ALPHA => Ok(Factor::DstAlpha),
+    WebGl2RenderingContext::ONE_MINUS_DST_ALPHA => Ok(Factor::DstAlphaComplement),
+    WebGl2RenderingContext::SRC_ALPHA_SATURATE => Ok(Factor::SrcAlphaSaturate),
+    _ => Err(factor),
+  }
+}
+
+fn get_ctx_depth_test(ctx: &mut WebGl2RenderingContext) -> DepthTest {
+  let enabled = ctx.is_enabled(WebGl2RenderingContext::DEPTH_TEST);
+
+  if enabled {
+    DepthTest::On
+  } else {
+    DepthTest::Off
+  }
+}
+
+fn get_ctx_face_culling_state(ctx: &mut WebGl2RenderingContext) -> FaceCullingState {
+  let enabled = ctx.is_enabled(WebGl2RenderingContext::CULL_FACE);
+
+  if enabled {
+    FaceCullingState::On
+  } else {
+    FaceCullingState::Off
+  }
+}
+
+fn get_ctx_face_culling_order(
+  ctx: &mut WebGl2RenderingContext,
+) -> Result<FaceCullingOrder, StateQueryError> {
+  let order = get_webgl_param(ctx, WebGl2RenderingContext::FRONT_FACE)
+    .ok_or_else(|| StateQueryError::UnknownFaceCullingOrder)?;
+
+  match order {
+    WebGl2RenderingContext::CCW => Ok(FaceCullingOrder::CCW),
+    WebGl2RenderingContext::CW => Ok(FaceCullingOrder::CW),
+    _ => Err(StateQueryError::UnknownFaceCullingOrder),
+  }
+}
+
+fn get_ctx_face_culling_mode(
+  ctx: &mut WebGl2RenderingContext,
+) -> Result<FaceCullingMode, StateQueryError> {
+  let mode = get_webgl_param(ctx, WebGl2RenderingContext::CULL_FACE_MODE)
+    .ok_or_else(|| StateQueryError::UnknownFaceCullingMode)?;
+
+  match mode {
+    WebGl2RenderingContext::FRONT => Ok(FaceCullingMode::Front),
+    WebGl2RenderingContext::BACK => Ok(FaceCullingMode::Back),
+    WebGl2RenderingContext::FRONT_AND_BACK => Ok(FaceCullingMode::Both),
+    _ => Err(StateQueryError::UnknownFaceCullingMode),
   }
 }
 
@@ -422,6 +814,20 @@ pub(crate) enum BlendingState {
   On,
   /// Disable blending.
   Off,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct BlendingFactors {
+  src_rgb: Factor,
+  dst_rgb: Factor,
+  src_alpha: Factor,
+  dst_alpha: Factor,
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub(crate) struct BlendingEquations {
+  rgb: Equation,
+  alpha: Equation,
 }
 
 /// Whether or not depth test should be enabled.
@@ -442,11 +848,53 @@ pub(crate) enum FaceCullingState {
   Off,
 }
 
-/// Whether or not vertex restart is enabled.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub enum VertexRestart {
-  /// Vertex restart is enabled.
-  On,
-  /// Vertex restart is disabled.
-  Off,
+#[inline]
+fn depth_comparison_to_webgl(dc: DepthComparison) -> u32 {
+  match dc {
+    DepthComparison::Never => WebGl2RenderingContext::NEVER,
+    DepthComparison::Always => WebGl2RenderingContext::ALWAYS,
+    DepthComparison::Equal => WebGl2RenderingContext::EQUAL,
+    DepthComparison::NotEqual => WebGl2RenderingContext::NOTEQUAL,
+    DepthComparison::Less => WebGl2RenderingContext::LESS,
+    DepthComparison::LessOrEqual => WebGl2RenderingContext::LEQUAL,
+    DepthComparison::Greater => WebGl2RenderingContext::GREATER,
+    DepthComparison::GreaterOrEqual => WebGl2RenderingContext::GEQUAL,
+  }
+}
+
+#[inline]
+fn blending_equation_to_webgl(equation: Equation) -> u32 {
+  match equation {
+    Equation::Additive => WebGl2RenderingContext::FUNC_ADD,
+    Equation::Subtract => WebGl2RenderingContext::FUNC_SUBTRACT,
+    Equation::ReverseSubtract => WebGl2RenderingContext::FUNC_REVERSE_SUBTRACT,
+    Equation::Min => WebGl2RenderingContext::MIN,
+    Equation::Max => WebGl2RenderingContext::MAX,
+  }
+}
+
+#[inline]
+fn blending_factor_to_webgl(factor: Factor) -> u32 {
+  match factor {
+    Factor::One => WebGl2RenderingContext::ONE,
+    Factor::Zero => WebGl2RenderingContext::ZERO,
+    Factor::SrcColor => WebGl2RenderingContext::SRC_COLOR,
+    Factor::SrcColorComplement => WebGl2RenderingContext::ONE_MINUS_SRC_COLOR,
+    Factor::DestColor => WebGl2RenderingContext::DST_COLOR,
+    Factor::DestColorComplement => WebGl2RenderingContext::ONE_MINUS_DST_COLOR,
+    Factor::SrcAlpha => WebGl2RenderingContext::SRC_ALPHA,
+    Factor::SrcAlphaComplement => WebGl2RenderingContext::ONE_MINUS_SRC_ALPHA,
+    Factor::DstAlpha => WebGl2RenderingContext::DST_ALPHA,
+    Factor::DstAlphaComplement => WebGl2RenderingContext::ONE_MINUS_DST_ALPHA,
+    Factor::SrcAlphaSaturate => WebGl2RenderingContext::SRC_ALPHA_SATURATE,
+  }
+}
+
+/// Get a typed WebGL parameter.
+fn get_webgl_param(ctx: &mut WebGl2RenderingContext, param: u32) -> Option<u32> {
+  ctx
+    .get_parameter(param)
+    .ok()
+    .and_then(|x| x.as_f64())
+    .map(|x| x as u32)
 }

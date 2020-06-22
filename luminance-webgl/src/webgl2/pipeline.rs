@@ -1,11 +1,5 @@
-use gl::types::*;
+//! Pipeline support for WebGL2.
 
-use std::cell::RefCell;
-use std::marker::PhantomData;
-use std::rc::Rc;
-
-use crate::gl33::state::{BlendingState, DepthTest, FaceCullingState, GLState};
-use crate::gl33::GL33;
 use luminance::backend::pipeline::{
   Pipeline as PipelineBackend, PipelineBase, PipelineBuffer, PipelineTexture,
 };
@@ -19,21 +13,29 @@ use luminance::pixel::Pixel;
 use luminance::render_state::RenderState;
 use luminance::tess::{Deinterleaved, DeinterleavedData, Interleaved, TessIndex, TessVertexData};
 use luminance::texture::Dimensionable;
+use std::cell::RefCell;
+use std::marker::PhantomData;
+use std::rc::Rc;
+use web_sys::WebGl2RenderingContext;
+
+use crate::webgl2::state::{BlendingState, DepthTest, FaceCullingState, WebGL2State};
+use crate::webgl2::WebGL2;
 
 pub struct Pipeline {
-  state: Rc<RefCell<GLState>>,
+  state: Rc<RefCell<WebGL2State>>,
 }
 
 pub struct BoundBuffer {
   pub(crate) binding: u32,
-  state: Rc<RefCell<GLState>>,
+  state: Rc<RefCell<WebGL2State>>,
 }
 
 impl Drop for BoundBuffer {
   fn drop(&mut self) {
     // place the binding into the free list
-    let mut state = self.state.borrow_mut();
-    state
+    self
+      .state
+      .borrow_mut()
       .binding_stack_mut()
       .free_buffer_bindings
       .push(self.binding);
@@ -46,7 +48,7 @@ where
   P: Pixel,
 {
   pub(crate) unit: u32,
-  state: Rc<RefCell<GLState>>,
+  state: Rc<RefCell<WebGL2State>>,
   _phantom: PhantomData<*const (D, P)>,
 }
 
@@ -57,12 +59,16 @@ where
 {
   fn drop(&mut self) {
     // place the binding into the free list
-    let mut state = self.state.borrow_mut();
-    state.binding_stack_mut().free_texture_units.push(self.unit);
+    self
+      .state
+      .borrow_mut()
+      .binding_stack_mut()
+      .free_texture_units
+      .push(self.unit);
   }
 }
 
-unsafe impl PipelineBase for GL33 {
+unsafe impl PipelineBase for WebGL2 {
   type PipelineRepr = Pipeline;
 
   unsafe fn new_pipeline(&mut self) -> Result<Self::PipelineRepr, PipelineError> {
@@ -74,7 +80,7 @@ unsafe impl PipelineBase for GL33 {
   }
 }
 
-unsafe impl<D> PipelineBackend<D> for GL33
+unsafe impl<D> PipelineBackend<D> for WebGL2
 where
   D: Dimensionable,
 {
@@ -85,53 +91,44 @@ where
   ) {
     let mut state = self.state.borrow_mut();
 
-    state.bind_draw_framebuffer(framebuffer.handle);
+    state.bind_draw_framebuffer(framebuffer.handle.as_ref());
 
     let clear_color = pipeline_state.clear_color;
+    state.set_clear_color(clear_color);
+
     let size = framebuffer.size;
 
-    match pipeline_state.viewport {
-      Viewport::Whole => {
-        state.set_viewport([0, 0, D::width(size) as GLint, D::height(size) as GLint]);
-      }
-
+    let (x, y, w, h) = match pipeline_state.viewport {
+      Viewport::Whole => (0, 0, D::width(size), D::height(size)),
       Viewport::Specific {
         x,
         y,
         width,
         height,
-      } => {
-        state.set_viewport([x as GLint, y as GLint, width as GLint, height as GLint]);
-      }
-    }
+      } => (x, y, width, height),
+    };
 
-    state.set_clear_color([
-      clear_color[0] as _,
-      clear_color[1] as _,
-      clear_color[2] as _,
-      clear_color[3] as _,
-    ]);
+    state.set_viewport([x as _, y as _, w as _, h as _]);
 
     if pipeline_state.clear_color_enabled || pipeline_state.clear_depth_enabled {
       let color_bit = if pipeline_state.clear_color_enabled {
-        gl::COLOR_BUFFER_BIT
+        WebGl2RenderingContext::COLOR_BUFFER_BIT
       } else {
         0
       };
 
       let depth_bit = if pipeline_state.clear_depth_enabled {
-        gl::DEPTH_BUFFER_BIT
+        WebGl2RenderingContext::DEPTH_BUFFER_BIT
       } else {
         0
       };
-      gl::Clear(color_bit | depth_bit);
-    }
 
-    state.enable_srgb_framebuffer(pipeline_state.srgb_enabled);
+      state.ctx.clear(color_bit | depth_bit);
+    }
   }
 }
 
-unsafe impl<T> PipelineBuffer<T> for GL33
+unsafe impl<T> PipelineBuffer<T> for WebGL2
 where
   T: Copy,
 {
@@ -164,7 +161,7 @@ where
   }
 }
 
-unsafe impl<D, P> PipelineTexture<D, P> for GL33
+unsafe impl<D, P> PipelineTexture<D, P> for WebGL2
 where
   D: Dimensionable,
   P: Pixel,
@@ -190,7 +187,7 @@ where
     });
 
     state.set_texture_unit(unit);
-    state.bind_texture(texture.target, texture.handle);
+    state.bind_texture(texture.target, Some(texture.handle()));
 
     Ok(BoundTexture {
       unit,
@@ -204,7 +201,7 @@ where
   }
 }
 
-unsafe impl<V, I, W> TessGate<V, I, W, Interleaved> for GL33
+unsafe impl<V, I, W> TessGate<V, I, W, Interleaved> for WebGL2
 where
   V: TessVertexData<Interleaved, Data = Vec<V>>,
   I: TessIndex,
@@ -221,7 +218,7 @@ where
   }
 }
 
-unsafe impl<V, I, W> TessGate<V, I, W, Deinterleaved> for GL33
+unsafe impl<V, I, W> TessGate<V, I, W, Deinterleaved> for WebGL2
 where
   V: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
   I: TessIndex,
@@ -238,51 +235,54 @@ where
   }
 }
 
-unsafe impl RenderGate for GL33 {
+unsafe impl RenderGate for WebGL2 {
   unsafe fn enter_render_state(&mut self, rdr_st: &RenderState) {
-    let mut gfx_state = self.state.borrow_mut();
+    let mut state = self.state.borrow_mut();
 
     match rdr_st.blending {
       Some(blending) => {
-        gfx_state.set_blending_state(BlendingState::On);
+        state.set_blending_state(BlendingState::On);
         match blending {
           BlendingMode::Combined(b) => {
-            gfx_state.set_blending_equation(b.equation);
-            gfx_state.set_blending_func(b.src, b.dst);
+            state.set_blending_equation(b.equation);
+            state.set_blending_func(b.src, b.dst);
           }
           BlendingMode::Separate { rgb, alpha } => {
-            gfx_state.set_blending_equation_separate(rgb.equation, alpha.equation);
-            gfx_state.set_blending_func_separate(rgb.src, rgb.dst, alpha.src, alpha.dst);
+            state.set_blending_equation_separate(rgb.equation, alpha.equation);
+            state.set_blending_func_separate(rgb.src, rgb.dst, alpha.src, alpha.dst);
           }
         }
       }
       None => {
-        gfx_state.set_blending_state(BlendingState::Off);
+        state.set_blending_state(BlendingState::Off);
       }
     }
 
     if let Some(depth_comparison) = rdr_st.depth_test {
-      gfx_state.set_depth_test(DepthTest::On);
-      gfx_state.set_depth_test_comparison(depth_comparison);
+      state.set_depth_test(DepthTest::On);
+      state.set_depth_test_comparison(depth_comparison);
     } else {
-      gfx_state.set_depth_test(DepthTest::Off);
+      state.set_depth_test(DepthTest::Off);
     }
 
     match rdr_st.face_culling {
       Some(face_culling) => {
-        gfx_state.set_face_culling_state(FaceCullingState::On);
-        gfx_state.set_face_culling_order(face_culling.order);
-        gfx_state.set_face_culling_mode(face_culling.mode);
+        state.set_face_culling_state(FaceCullingState::On);
+        state.set_face_culling_order(face_culling.order);
+        state.set_face_culling_mode(face_culling.mode);
       }
       None => {
-        gfx_state.set_face_culling_state(FaceCullingState::Off);
+        state.set_face_culling_state(FaceCullingState::Off);
       }
     }
   }
 }
 
-unsafe impl ShadingGate for GL33 {
+unsafe impl ShadingGate for WebGL2 {
   unsafe fn apply_shader_program(&mut self, shader_program: &Self::ProgramRepr) {
-    self.state.borrow_mut().use_program(shader_program.handle);
+    self
+      .state
+      .borrow_mut()
+      .use_program(Some(&shader_program.handle));
   }
 }
