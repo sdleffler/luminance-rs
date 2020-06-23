@@ -55,6 +55,8 @@ jobs:
           cargo sync-readme -c
           cd $GITHUB_WORKSPACE/luminance-derive
           cargo sync-readme -c
+          cd $GITHUB_WORKSPACE/luminance-front
+          cargo sync-readme -c
           cd $GITHUB_WORKSPACE/luminance-gl
           cargo sync-readme -c
           cd $GITHUB_WORKSPACE/luminance-glfw

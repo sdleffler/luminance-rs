@@ -351,6 +351,7 @@ impl From<UniformWarning> for ProgramWarning {
 impl error::Error for UniformWarning {}
 
 /// Warnings related to vertex attributes issues.
+#[non_exhaustive]
 #[derive(Debug)]
 pub enum VertexAttribWarning {
   /// Inactive vertex attribute (not read).
