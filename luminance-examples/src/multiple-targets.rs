@@ -70,37 +70,33 @@ fn main() {
 
   let mut program = match surface
     .new_shader_program::<Semantics, (), ()>()
-    .from_strings(VS, None, None, FS) {
-        Ok(BuiltProgram {
-            program,
-            warnings,
-        }) => {
-            for warning in &warnings {
-                eprintln!("triangle shader warning: {:?}", warning);
-            }
-            program
-        }
-        Err(e) => {
-            panic!("{}", e);
-        }
-    };
+    .from_strings(VS, None, None, FS)
+  {
+    Ok(BuiltProgram { program, warnings }) => {
+      for warning in &warnings {
+        eprintln!("triangle shader warning: {:?}", warning);
+      }
+      program
+    }
+    Err(e) => {
+      panic!("{}", e);
+    }
+  };
 
   let mut copy_program = match surface
     .new_shader_program::<(), (), ShaderInterface>()
-    .from_strings(COPY_VS, None, None, COPY_FS) {
-        Ok(BuiltProgram {
-            program,
-            warnings,
-        }) => {
-            for warning in &warnings {
-                eprintln!("copy shader warning: {:?}", warning);
-            }
-            program
-        }
-        Err(e) => {
-            panic!("{}", e);
-        }
-    };
+    .from_strings(COPY_VS, None, None, COPY_FS)
+  {
+    Ok(BuiltProgram { program, warnings }) => {
+      for warning in &warnings {
+        eprintln!("copy shader warning: {:?}", warning);
+      }
+      program
+    }
+    Err(e) => {
+      panic!("{}", e);
+    }
+  };
 
   let triangle = surface
     .new_tess()

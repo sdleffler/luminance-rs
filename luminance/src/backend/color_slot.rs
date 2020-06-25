@@ -114,12 +114,22 @@ macro_rules! impl_color_slot_tuple {
         mipmaps: usize,
         sampler: &Sampler,
         framebuffer: &mut B::FramebufferRepr,
-        attachment_index: usize,
+        mut attachment_index: usize,
       ) -> Result<Self::ColorTextures, FramebufferError>
       where
         C: GraphicsContext<Backend = B>, {
           Ok(
-            ($(<$pf as ColorSlot<B, D>>::reify_color_textures(ctx, size, mipmaps, sampler, framebuffer, attachment_index + 1)?),*)
+            ($({
+                attachment_index += 1;
+                <$pf as ColorSlot<B, D>>::reify_color_textures(
+                    ctx,
+                    size,
+                    mipmaps,
+                    sampler,
+                    framebuffer,
+                    attachment_index - 1,
+                    )?
+            }),*)
           )
       }
     }
