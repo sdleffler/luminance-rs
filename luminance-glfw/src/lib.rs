@@ -20,6 +20,7 @@ use std::sync::mpsc::Receiver;
 pub use glfw::{Action, InitError, Key, MouseButton, WindowEvent};
 
 /// Error that can be risen while creating a surface.
+#[non_exhaustive]
 #[derive(Debug)]
 pub enum GlfwSurfaceError {
   /// Initialization of the surface went wrong.
