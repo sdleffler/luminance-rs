@@ -36,6 +36,10 @@ name = "offscreen"
 path = "src/offscreen.rs"
 
 [[bin]]
+name = "multiple-targets"
+path = "src/multiple-targets.rs"
+
+[[bin]]
 name = "query-texture-texels"
 path = "src/query-texture-texels.rs"
 
