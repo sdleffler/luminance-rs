@@ -18,11 +18,12 @@ edition = "2018"
 [badges]
 maintenance = { status = "actively-developed" }
 
+[features]
+default = ["bundled"]
+bundled = ["sdl2/bundled"]
+
 [dependencies]
 gl = "0.14"
 luminance = "0.40"
 luminance-gl = "0.14"
-sdl2 = "0.34"
-
-[dev-dependencies]
-sdl2 = { version = "0.34", features = ["bundled"] }
+sdl2 = "0.34.2"
