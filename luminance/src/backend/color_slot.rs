@@ -106,22 +106,58 @@ macro_rules! impl_color_slot_tuple {
 
       fn color_formats() -> Vec<PixelFormat> {
         vec![$($pf::pixel_format()),*]
+
       }
 
-      fn reify_color_textures<C>(
-        ctx: &mut C,
-        size: D::Size,
-        mipmaps: usize,
-        sampler: &Sampler,
-        framebuffer: &mut B::FramebufferRepr,
-        attachment_index: usize,
-      ) -> Result<Self::ColorTextures, FramebufferError>
-      where
-        C: GraphicsContext<Backend = B>, {
-          Ok(
-            ($(<$pf as ColorSlot<B, D>>::reify_color_textures(ctx, size, mipmaps, sampler, framebuffer, attachment_index + 1)?),*)
-          )
-      }
+      impl_reify_color_textures!{ $($pf),* }
+    }
+  }
+}
+
+// A small helper macro to implement reify_color_textures in impl_color_slot_tuple!.
+//
+// We need this macro so that we can implement the increment logic without having to do weird
+// arithmetic at runtime or have dead code.
+macro_rules! impl_reify_color_textures {
+  ($pf:ident , $($pfr:ident),*) => {
+    fn reify_color_textures<C>(
+      ctx: &mut C,
+      size: D::Size,
+      mipmaps: usize,
+      sampler: &Sampler,
+      framebuffer: &mut B::FramebufferRepr,
+      mut attachment_index: usize,
+    ) -> Result<Self::ColorTextures, FramebufferError>
+    where
+      C: GraphicsContext<Backend = B>,
+    {
+      let textures = (
+        // first element of the tuple
+        <$pf as ColorSlot<B, D>>::reify_color_textures(
+          ctx,
+          size,
+          mipmaps,
+          sampler,
+          framebuffer,
+          attachment_index,
+        )?,
+        // rest of the tuple
+        $({
+          attachment_index += 1;
+          let texture = <$pfr as ColorSlot<B, D>>::reify_color_textures(
+            ctx,
+            size,
+            mipmaps,
+            sampler,
+            framebuffer,
+            attachment_index,
+          )?;
+
+          texture
+        }),*
+      );
+
+      Ok(textures)
     }
   }
 }
