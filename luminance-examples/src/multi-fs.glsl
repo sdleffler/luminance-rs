@@ -1,9 +1,9 @@
 in vec3 v_color;
 
-out vec4 frag_color;
-out vec4 frag_white;
+out vec3 frag_color;
+out float frag_white;
 
 void main() {
-  frag_color = vec4(v_color, 1.);
-  frag_white = vec4(1.);
+  frag_color = v_color.rgb;
+  frag_white = 1.;
 }

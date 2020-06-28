@@ -13,9 +13,9 @@ use glfw::{Action, Context as _, Key, WindowEvent};
 use luminance::context::GraphicsContext as _;
 use luminance::framebuffer::Framebuffer;
 use luminance::pipeline::{PipelineState, TextureBinding};
-use luminance::pixel::{Floating, RGBA32F};
+use luminance::pixel::{Floating, R32F, RGB32F};
 use luminance::render_state::RenderState;
-use luminance::shader::{BuiltProgram, Uniform};
+use luminance::shader::Uniform;
 use luminance::tess::Mode;
 use luminance::texture::{Dim2, Sampler};
 use luminance_derive::UniformInterface;
@@ -68,35 +68,17 @@ fn main() {
   )
   .expect("GLFW surface creation");
 
-  let mut program = match surface
+  let mut program = surface
     .new_shader_program::<Semantics, (), ()>()
     .from_strings(VS, None, None, FS)
-  {
-    Ok(BuiltProgram { program, warnings }) => {
-      for warning in &warnings {
-        eprintln!("triangle shader warning: {:?}", warning);
-      }
-      program
-    }
-    Err(e) => {
-      panic!("{}", e);
-    }
-  };
+    .unwrap()
+    .ignore_warnings();
 
-  let mut copy_program = match surface
+  let mut copy_program = surface
     .new_shader_program::<(), (), ShaderInterface>()
     .from_strings(COPY_VS, None, None, COPY_FS)
-  {
-    Ok(BuiltProgram { program, warnings }) => {
-      for warning in &warnings {
-        eprintln!("copy shader warning: {:?}", warning);
-      }
-      program
-    }
-    Err(e) => {
-      panic!("{}", e);
-    }
-  };
+    .unwrap()
+    .ignore_warnings();
 
   let triangle = surface
     .new_tess()
@@ -119,7 +101,7 @@ fn main() {
   // offscreen buffer with two color slots that we will render in the first place
   let (w, h) = surface.window.get_framebuffer_size();
   let mut offscreen_buffer = surface
-    .new_framebuffer::<Dim2, (RGBA32F, RGBA32F), ()>([w as u32, h as u32], 0, Sampler::default())
+    .new_framebuffer::<Dim2, (RGB32F, R32F), ()>([w as u32, h as u32], 0, Sampler::default())
     .expect("framebuffer creation");
 
   // hack to update the offscreen buffer if needed; this is needed because we cannot update the
