@@ -189,8 +189,7 @@ where
       unit
     });
 
-    state.set_texture_unit(unit);
-    state.bind_texture(texture.target, texture.handle);
+    state.bind_texture_at(texture.target, texture.handle, unit);
 
     Ok(BoundTexture {
       unit,

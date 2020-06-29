@@ -562,21 +562,31 @@ impl GLState {
     }
   }
 
+  /// Bind a texture at the current texture unit.
   pub(crate) unsafe fn bind_texture(&mut self, target: GLenum, handle: GLuint) {
     // Unwrap should be safe here, because we should always bind the texture unit before we bind the texture.
     // Maybe this should be handled differently?
-    let unit = self.current_texture_unit.0.unwrap() as usize;
+    let unit = self.current_texture_unit.0.unwrap();
+    self.bind_texture_at(target, handle, unit);
+  }
 
-    match self.bound_textures.get(unit).cloned() {
+  /// Bind the texture at the provided texture unit.
+  pub(crate) unsafe fn bind_texture_at(&mut self, target: GLenum, handle: GLuint, unit: u32) {
+    match self.bound_textures.get(unit as usize).cloned() {
+      // there’s a abound texture, which is different from the one we want to bind
       Some((target_, handle_)) if target != target_ || handle != handle_ => {
+        self.set_texture_unit(unit);
         gl::BindTexture(target, handle);
-        self.bound_textures[unit] = (target, handle);
+        self.bound_textures[unit as usize] = (target, handle);
       }
 
+      // no texture bound at this unit; bind it
       None => {
+        self.set_texture_unit(unit);
         gl::BindTexture(target, handle);
 
         // not enough registered texture units; let’s grow a bit more
+        let unit = unit as usize;
         self.bound_textures.resize(unit + 1, (gl::TEXTURE_2D, 0));
         self.bound_textures[unit] = (target, handle);
       }
