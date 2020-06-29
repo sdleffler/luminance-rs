@@ -15,6 +15,20 @@ pub(crate) enum StructImplError {
   UnsupportedUnit,
 }
 
+impl StructImplError {
+  pub(crate) fn semantics_error(e: AttrError) -> Self {
+    StructImplError::SemanticsError(e)
+  }
+
+  pub(crate) fn field_error(e: AttrError) -> Self {
+    StructImplError::FieldError(e)
+  }
+
+  pub(crate) fn unsupported_unit() -> Self {
+    StructImplError::UnsupportedUnit
+  }
+}
+
 impl fmt::Display for StructImplError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
@@ -46,7 +60,7 @@ where
 {
   // search the semantics name
   let sem_type: Type = get_field_attr_once(&ident, attrs.clone(), "vertex", "sem", KNOWN_SUBKEYS)
-    .map_err(StructImplError::SemanticsError)?;
+    .map_err(StructImplError::semantics_error)?;
 
   let instancing = get_instancing(&ident, attrs.clone())?;
 
@@ -101,7 +115,7 @@ where
       Ok(output.into())
     }
 
-    Fields::Unit => Err(StructImplError::UnsupportedUnit),
+    Fields::Unit => Err(StructImplError::unsupported_unit()),
   }
 }
 
@@ -124,7 +138,7 @@ where
       AttrError::CannotFindAttribute(..) => Ok(false),
       _ => Err(e),
     })
-    .map_err(StructImplError::FieldError)?;
+    .map_err(StructImplError::field_error)?;
 
   let field_ty = &field.ty;
   let vertex_attrib_desc = if normalized {
@@ -232,5 +246,5 @@ where
 
       _ => Err(e),
     })
-    .map_err(StructImplError::FieldError)
+    .map_err(StructImplError::field_error)
 }
