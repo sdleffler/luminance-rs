@@ -147,10 +147,7 @@ where
 
   unsafe fn set(buffer: &mut Self::BufferRepr, i: usize, x: T) -> Result<(), BufferError> {
     if i >= buffer.buf.len() {
-      Err(BufferError::Overflow {
-        index: i,
-        buffer_len: buffer.buf.len(),
-      })
+      Err(BufferError::overflow(i, buffer.buf.len()))
     } else {
       // update cache first
       buffer.buf[i] = x;
@@ -175,19 +172,9 @@ where
 
     // error if we don’t pass the right number of items
     match provided_len.cmp(&buffer_len) {
-      Ordering::Less => {
-        return Err(BufferError::TooFewValues {
-          provided_len,
-          buffer_len,
-        })
-      }
+      Ordering::Less => return Err(BufferError::too_few_values(provided_len, buffer_len)),
 
-      Ordering::Greater => {
-        return Err(BufferError::TooManyValues {
-          provided_len,
-          buffer_len,
-        })
-      }
+      Ordering::Greater => return Err(BufferError::too_many_values(provided_len, buffer_len)),
 
       _ => (),
     }
@@ -332,7 +319,7 @@ where
     let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *const T;
 
     if ptr.is_null() {
-      Err(BufferError::MapFailed)
+      Err(BufferError::map_failed())
     } else {
       let handle = buffer.handle();
       let state = buffer.gl_buf.state.clone();
@@ -355,7 +342,7 @@ where
     let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_WRITE) as *mut T;
 
     if ptr.is_null() {
-      Err(BufferError::MapFailed)
+      Err(BufferError::map_failed())
     } else {
       let handle = buffer.handle();
       let state = buffer.gl_buf.state.clone();

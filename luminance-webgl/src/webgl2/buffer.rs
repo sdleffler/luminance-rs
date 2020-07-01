@@ -55,7 +55,7 @@ impl<T> Buffer<T> {
     // resources to prevent binding the buffer
     let handle = state
       .create_buffer()
-      .ok_or_else(|| BufferError::CannotCreate)?;
+      .ok_or_else(|| BufferError::cannot_create())?;
     state.bind_array_buffer(Some(&handle), Bind::Forced);
 
     let bytes = mem::size_of::<T>() * len;
@@ -113,7 +113,7 @@ where
 
     let handle = state
       .create_buffer()
-      .ok_or_else(|| BufferError::CannotCreate)?;
+      .ok_or_else(|| BufferError::cannot_create())?;
     state.bind_array_buffer(Some(&handle), Bind::Forced);
 
     let bytes = mem::size_of::<T>() * len;
@@ -148,10 +148,7 @@ where
     let buffer_len = buffer.buf.len();
 
     if i >= buffer_len {
-      Err(BufferError::Overflow {
-        index: i,
-        buffer_len,
-      })
+      Err(BufferError::overflow(i, buffer_len))
     } else {
       // update the cache first
       buffer.buf[i] = x;
@@ -177,19 +174,9 @@ where
 
     // error if we don’t pass the right number of items
     match len.cmp(&buffer_len) {
-      Ordering::Less => {
-        return Err(BufferError::TooFewValues {
-          provided_len: len,
-          buffer_len,
-        })
-      }
+      Ordering::Less => return Err(BufferError::too_few_values(len, buffer_len)),
 
-      Ordering::Greater => {
-        return Err(BufferError::TooManyValues {
-          provided_len: len,
-          buffer_len,
-        })
-      }
+      Ordering::Greater => return Err(BufferError::too_many_values(len, buffer_len)),
 
       _ => (),
     }
