@@ -186,6 +186,18 @@ pub enum StageError {
   UnsupportedType(StageType),
 }
 
+impl StageError {
+  /// Occurs when a shader fails to compile.
+  pub fn compilation_failed(ty: StageType, reason: impl Into<String>) -> Self {
+    StageError::CompilationFailed(ty, reason.into())
+  }
+
+  /// Occurs when you try to create a shader which type is not supported on the current hardware.
+  pub fn unsupported_type(ty: StageType) -> Self {
+    StageError::UnsupportedType(ty)
+  }
+}
+
 impl fmt::Display for StageError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
@@ -238,6 +250,28 @@ pub enum ProgramError {
   LinkFailed(String),
   /// A program warning.
   Warning(ProgramWarning),
+}
+
+impl ProgramError {
+  /// Creating the program failed.
+  pub fn creation_failed(reason: impl Into<String>) -> Self {
+    ProgramError::CreationFailed(reason.into())
+  }
+
+  /// A shader stage failed to compile or validate its state.
+  pub fn stage_error(e: StageError) -> Self {
+    ProgramError::StageError(e)
+  }
+
+  /// Program link failed. You can inspect the reason by looking at the contained [`String`].
+  pub fn link_failed(reason: impl Into<String>) -> Self {
+    ProgramError::LinkFailed(reason.into())
+  }
+
+  /// A program warning.
+  pub fn warning(w: ProgramWarning) -> Self {
+    ProgramError::Warning(w)
+  }
 }
 
 impl fmt::Display for ProgramError {
@@ -356,6 +390,13 @@ impl error::Error for UniformWarning {}
 pub enum VertexAttribWarning {
   /// Inactive vertex attribute (not read).
   Inactive(String),
+}
+
+impl VertexAttribWarning {
+  /// Inactive vertex attribute (not read).
+  pub fn inactive(attrib: impl Into<String>) -> Self {
+    VertexAttribWarning::Inactive(attrib.into())
+  }
 }
 
 impl fmt::Display for VertexAttribWarning {
