@@ -218,7 +218,7 @@ where
   unsafe fn vertices(tess: &mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError> {
     match tess.vertex_buffer {
       Some(ref vb) => Ok(GL33::slice_buffer(vb)?),
-      None => Err(TessMapError::ForbiddenAttributelessMapping),
+      None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
 
@@ -227,7 +227,7 @@ where
   ) -> Result<Self::VertexSliceMutRepr, TessMapError> {
     match tess.vertex_buffer {
       Some(ref mut vb) => Ok(GL33::slice_buffer_mut(vb)?),
-      None => Err(TessMapError::ForbiddenAttributelessMapping),
+      None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
 }
@@ -244,7 +244,7 @@ where
   unsafe fn indices(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError> {
     match tess.raw.index_state {
       Some(ref state) => Ok(GL33::slice_buffer(&state.buffer)?),
-      None => Err(TessMapError::ForbiddenAttributelessMapping),
+      None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
 
@@ -253,7 +253,7 @@ where
   ) -> Result<Self::IndexSliceMutRepr, TessMapError> {
     match tess.raw.index_state {
       Some(ref mut state) => Ok(GL33::slice_buffer_mut(&mut state.buffer)?),
-      None => Err(TessMapError::ForbiddenAttributelessMapping),
+      None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
 }
@@ -270,7 +270,7 @@ where
   unsafe fn instances(tess: &mut Self::TessRepr) -> Result<Self::InstanceSliceRepr, TessMapError> {
     match tess.instance_buffer {
       Some(ref vb) => Ok(GL33::slice_buffer(vb)?),
-      None => Err(TessMapError::ForbiddenAttributelessMapping),
+      None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
 
@@ -279,7 +279,7 @@ where
   ) -> Result<Self::InstanceSliceMutRepr, TessMapError> {
     match tess.instance_buffer {
       Some(ref mut vb) => Ok(GL33::slice_buffer_mut(vb)?),
-      None => Err(TessMapError::ForbiddenAttributelessMapping),
+      None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
 }
@@ -384,7 +384,7 @@ where
 
   unsafe fn vertices(tess: &mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError> {
     if tess.vertex_buffers.is_empty() {
-      Err(TessMapError::ForbiddenAttributelessMapping)
+      Err(TessMapError::forbidden_attributeless_mapping())
     } else {
       let buffer = &tess.vertex_buffers[V::RANK];
       let slice = GL33::slice_buffer(buffer)?.transmute();
@@ -396,7 +396,7 @@ where
     tess: &mut Self::TessRepr,
   ) -> Result<Self::VertexSliceMutRepr, TessMapError> {
     if tess.vertex_buffers.is_empty() {
-      Err(TessMapError::ForbiddenAttributelessMapping)
+      Err(TessMapError::forbidden_attributeless_mapping())
     } else {
       let buffer = &mut tess.vertex_buffers[V::RANK];
       let slice = GL33::slice_buffer_mut(buffer)?.transmute();
@@ -417,7 +417,7 @@ where
   unsafe fn indices(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError> {
     match tess.raw.index_state {
       Some(ref state) => Ok(GL33::slice_buffer(&state.buffer)?),
-      None => Err(TessMapError::ForbiddenAttributelessMapping),
+      None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
 
@@ -426,7 +426,7 @@ where
   ) -> Result<Self::IndexSliceMutRepr, TessMapError> {
     match tess.raw.index_state {
       Some(ref mut state) => Ok(GL33::slice_buffer_mut(&mut state.buffer)?),
-      None => Err(TessMapError::ForbiddenAttributelessMapping),
+      None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
 }
@@ -442,7 +442,7 @@ where
 
   unsafe fn instances(tess: &mut Self::TessRepr) -> Result<Self::InstanceSliceRepr, TessMapError> {
     if tess.instance_buffers.is_empty() {
-      Err(TessMapError::ForbiddenAttributelessMapping)
+      Err(TessMapError::forbidden_attributeless_mapping())
     } else {
       let buffer = &tess.instance_buffers[W::RANK];
       let slice = GL33::slice_buffer(buffer)?.transmute();
@@ -454,7 +454,7 @@ where
     tess: &mut Self::TessRepr,
   ) -> Result<Self::InstanceSliceMutRepr, TessMapError> {
     if tess.instance_buffers.is_empty() {
-      Err(TessMapError::ForbiddenAttributelessMapping)
+      Err(TessMapError::forbidden_attributeless_mapping())
     } else {
       let buffer = &mut tess.instance_buffers[W::RANK];
       let slice = GL33::slice_buffer_mut(buffer)?.transmute();
