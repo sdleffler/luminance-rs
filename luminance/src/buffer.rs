@@ -294,6 +294,39 @@ pub enum BufferError {
   MapFailed,
 }
 
+impl BufferError {
+  /// Cannot create [`Buffer`].
+  pub fn cannot_create() -> Self {
+    BufferError::CannotCreate
+  }
+
+  /// Overflow when setting a value with a specific index.
+  pub fn overflow(index: usize, buffer_len: usize) -> Self {
+    BufferError::Overflow { index, buffer_len }
+  }
+
+  /// Too few values were passed to fill a buffer.
+  pub fn too_few_values(provided_len: usize, buffer_len: usize) -> Self {
+    BufferError::TooFewValues {
+      provided_len,
+      buffer_len,
+    }
+  }
+
+  /// Too many values were passed to fill a buffer.
+  pub fn too_many_values(provided_len: usize, buffer_len: usize) -> Self {
+    BufferError::TooManyValues {
+      provided_len,
+      buffer_len,
+    }
+  }
+
+  /// Buffer mapping failed.
+  pub fn map_failed() -> Self {
+    BufferError::MapFailed
+  }
+}
+
 impl fmt::Display for BufferError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {

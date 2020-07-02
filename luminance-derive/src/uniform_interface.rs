@@ -8,6 +8,7 @@ use syn::{DataStruct, Fields, Ident, Path, PathArguments, Type, TypePath};
 // accepted sub keys for the "vertex" key
 const KNOWN_SUBKEYS: &[&str] = &["name", "unbound"];
 
+#[non_exhaustive]
 #[derive(Debug)]
 pub(crate) enum DeriveUniformInterfaceError {
   UnsupportedUnnamed,
@@ -15,6 +16,28 @@ pub(crate) enum DeriveUniformInterfaceError {
   UnboundError(AttrError),
   NameError(AttrError),
   IncorrectlyWrappedType(Type),
+}
+
+impl DeriveUniformInterfaceError {
+  pub(crate) fn unsupported_unnamed() -> Self {
+    DeriveUniformInterfaceError::UnsupportedUnnamed
+  }
+
+  pub(crate) fn unsupported_unit() -> Self {
+    DeriveUniformInterfaceError::UnsupportedUnit
+  }
+
+  pub(crate) fn unbound_error(e: AttrError) -> Self {
+    DeriveUniformInterfaceError::UnboundError(e)
+  }
+
+  pub(crate) fn name_error(e: AttrError) -> Self {
+    DeriveUniformInterfaceError::NameError(e)
+  }
+
+  pub(crate) fn incorrectly_wrapped_type(ty: Type) -> Self {
+    DeriveUniformInterfaceError::IncorrectlyWrappedType(ty)
+  }
 }
 
 impl fmt::Display for DeriveUniformInterfaceError {
@@ -66,7 +89,7 @@ pub(crate) fn generate_uniform_interface_impl(
           "unbound",
           KNOWN_SUBKEYS,
         )
-        .map_err(DeriveUniformInterfaceError::UnboundError)?;
+        .map_err(DeriveUniformInterfaceError::unbound_error)?;
         let name =
           get_field_attr_once(&ident, field.attrs.iter(), "uniform", "name", KNOWN_SUBKEYS)
             .map(|ident: Ident| ident.to_string())
@@ -75,7 +98,7 @@ pub(crate) fn generate_uniform_interface_impl(
 
               _ => Err(e),
             })
-            .map_err(DeriveUniformInterfaceError::NameError)?;
+            .map_err(DeriveUniformInterfaceError::name_error)?;
 
         // the build call is the code that gets a uniform and possibly fails if bound; also handles
         // renaming
@@ -90,7 +113,7 @@ pub(crate) fn generate_uniform_interface_impl(
         };
 
         let field_ty = extract_uniform_type(&field.ty).ok_or(
-          DeriveUniformInterfaceError::IncorrectlyWrappedType(field.ty),
+          DeriveUniformInterfaceError::incorrectly_wrapped_type(field.ty),
         )?;
         field_names.push(field_ident.clone());
         field_decls.push(quote! {
@@ -122,8 +145,8 @@ pub(crate) fn generate_uniform_interface_impl(
       Ok(output.into())
     }
 
-    Fields::Unnamed(_) => Err(DeriveUniformInterfaceError::UnsupportedUnnamed),
-    Fields::Unit => Err(DeriveUniformInterfaceError::UnsupportedUnit),
+    Fields::Unnamed(_) => Err(DeriveUniformInterfaceError::unsupported_unnamed()),
+    Fields::Unit => Err(DeriveUniformInterfaceError::unsupported_unit()),
   }
 }
 

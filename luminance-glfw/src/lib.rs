@@ -39,7 +39,6 @@ pub enum GlfwSurfaceError {
   GraphicsStateError(StateQueryError),
 }
 
-// TODO: better implementation
 impl fmt::Display for GlfwSurfaceError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {

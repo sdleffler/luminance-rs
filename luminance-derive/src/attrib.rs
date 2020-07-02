@@ -11,6 +11,36 @@ pub(crate) enum AttrError {
   UnknownSubKey(Ident, String, String),
 }
 
+impl AttrError {
+  pub(crate) fn several(field: Ident, key: impl Into<String>, sub_key: impl Into<String>) -> Self {
+    AttrError::Several(field, key.into(), sub_key.into())
+  }
+
+  pub(crate) fn cannot_find_attribute(
+    field: Ident,
+    key: impl Into<String>,
+    sub_key: impl Into<String>,
+  ) -> Self {
+    AttrError::CannotFindAttribute(field, key.into(), sub_key.into())
+  }
+
+  pub(crate) fn cannot_parse_attribute(
+    field: Ident,
+    key: impl Into<String>,
+    sub_key: impl Into<String>,
+  ) -> Self {
+    AttrError::CannotParseAttribute(field, key.into(), sub_key.into())
+  }
+
+  pub(crate) fn unknown_sub_key(
+    field: Ident,
+    key: impl Into<String>,
+    sub_key: impl Into<String>,
+  ) -> Self {
+    AttrError::UnknownSubKey(field, key.into(), sub_key.into())
+  }
+}
+
 impl fmt::Display for AttrError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
@@ -64,20 +94,12 @@ where
           if let NestedMeta::Meta(Meta::NameValue(ref mnv)) = nested {
             if mnv.path.is_ident(sub_key) {
               if lit.is_some() {
-                return Err(AttrError::Several(
-                  field_ident.clone(),
-                  key.to_owned(),
-                  sub_key.to_owned(),
-                ));
+                return Err(AttrError::several(field_ident.clone(), key, sub_key));
               }
 
               if let Lit::Str(ref strlit) = mnv.lit {
                 lit = Some(strlit.parse().map_err(|_| {
-                  AttrError::CannotParseAttribute(
-                    field_ident.clone(),
-                    key.to_owned(),
-                    sub_key.to_owned(),
-                  )
+                  AttrError::cannot_parse_attribute(field_ident.clone(), key, sub_key)
                 })?);
               }
             } else {
@@ -89,9 +111,9 @@ where
                 .unwrap_or_else(String::new);
 
               if !known_subkeys.contains(&ident_str.as_str()) {
-                return Err(AttrError::UnknownSubKey(
+                return Err(AttrError::unknown_sub_key(
                   field_ident.clone(),
-                  key.to_owned(),
+                  key,
                   ident_str,
                 ));
               }
@@ -104,9 +126,7 @@ where
     }
   }
 
-  lit.ok_or_else(|| {
-    AttrError::CannotFindAttribute(field_ident.clone(), key.to_owned(), sub_key.to_owned())
-  })
+  lit.ok_or_else(|| AttrError::cannot_find_attribute(field_ident.clone(), key, sub_key))
 }
 
 /// Get and parse an attribute on a field or a variant that must appear only once with the following
@@ -134,11 +154,7 @@ where
           if let NestedMeta::Meta(Meta::Path(ref path)) = nested {
             if path.is_ident(sub_key) {
               if flag {
-                return Err(AttrError::Several(
-                  field_ident.clone(),
-                  key.to_owned(),
-                  sub_key.to_owned(),
-                ));
+                return Err(AttrError::several(field_ident.clone(), key, sub_key));
               }
 
               flag = true;
@@ -150,7 +166,7 @@ where
                 .unwrap_or_else(String::new);
 
               if !known_subkeys.contains(&ident_str.as_str()) {
-                return Err(AttrError::UnknownSubKey(
+                return Err(AttrError::unknown_sub_key(
                   field_ident.clone(),
                   key.to_owned(),
                   ident_str,

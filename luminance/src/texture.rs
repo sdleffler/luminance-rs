@@ -465,10 +465,14 @@ pub enum TextureError {
   TextureStorageCreationFailed(String),
   /// Not enough pixel data provided for the given area asked.
   ///
-  /// The first [`usize`] is the number of expected bytes to be uploaded and the second [`usize`] is
-  /// the number you provided. You must provide at least as many pixels as expected by the area in
-  /// the texture you’re uploading to.
-  NotEnoughPixels(usize, usize),
+  /// You must provide at least as many pixels as expected by the area in the texture you’re
+  /// uploading to.
+  NotEnoughPixels {
+    /// Expected number of pixels in bytes.
+    expected_bytes: usize,
+    /// Provided number of pixels in bytes.
+    provided_bytes: usize,
+  },
   /// Unsupported pixel format.
   ///
   /// Sometimes, some hardware might not support a given pixel format (or the format exists on
@@ -483,6 +487,36 @@ pub enum TextureError {
   CannotUploadTexels(String),
 }
 
+impl TextureError {
+  /// A texture’s storage failed to be created.
+  pub fn texture_storage_creation_failed(reason: impl Into<String>) -> Self {
+    TextureError::TextureStorageCreationFailed(reason.into())
+  }
+
+  /// Not enough pixel data provided for the given area asked.
+  pub fn not_enough_pixels(expected_bytes: usize, provided_bytes: usize) -> Self {
+    TextureError::NotEnoughPixels {
+      expected_bytes,
+      provided_bytes,
+    }
+  }
+
+  /// Unsupported pixel format.
+  pub fn unsupported_pixel_format(pf: PixelFormat) -> Self {
+    TextureError::UnsupportedPixelFormat(pf)
+  }
+
+  /// Cannot retrieve texels from a texture.
+  pub fn cannot_retrieve_texels(reason: impl Into<String>) -> Self {
+    TextureError::CannotRetrieveTexels(reason.into())
+  }
+
+  /// Failed to upload texels.
+  pub fn cannot_upload_texels(reason: impl Into<String>) -> Self {
+    TextureError::CannotUploadTexels(reason.into())
+  }
+}
+
 impl fmt::Display for TextureError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
@@ -490,10 +524,13 @@ impl fmt::Display for TextureError {
         write!(f, "texture storage creation failed: {}", e)
       }
 
-      TextureError::NotEnoughPixels(ref expected, ref provided) => write!(
+      TextureError::NotEnoughPixels {
+        ref expected_bytes,
+        ref provided_bytes,
+      } => write!(
         f,
         "not enough texels provided: expected {} bytes, provided {} bytes",
-        expected, provided
+        expected_bytes, provided_bytes
       ),
 
       TextureError::UnsupportedPixelFormat(ref fmt) => {

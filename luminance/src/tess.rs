@@ -176,6 +176,35 @@ pub enum TessMapError {
   ForbiddenDeinterleavedMapping,
 }
 
+impl TessMapError {
+  /// The CPU mapping failed due to buffer errors.
+  pub fn buffer_map_error(e: BufferError) -> Self {
+    TessMapError::BufferMapError(e)
+  }
+
+  /// Vertex target type is not the same as the one stored in the buffer.
+  pub fn vertex_type_mismatch(a: VertexDesc, b: VertexDesc) -> Self {
+    TessMapError::VertexTypeMismatch(a, b)
+  }
+
+  /// Index target type is not the same as the one stored in the buffer.
+  pub fn index_type_mismatch(a: TessIndexType, b: TessIndexType) -> Self {
+    TessMapError::IndexTypeMismatch(a, b)
+  }
+
+  /// The CPU mapping failed because you cannot map an attributeless tessellation since it doesn’t
+  /// have any vertex attribute.
+  pub fn forbidden_attributeless_mapping() -> Self {
+    TessMapError::ForbiddenAttributelessMapping
+  }
+
+  /// The CPU mapping failed because currently, mapping deinterleaved buffers is not supported via
+  /// a single slice.
+  pub fn forbidden_deinterleaved_mapping() -> Self {
+    TessMapError::ForbiddenDeinterleavedMapping
+  }
+}
+
 impl fmt::Display for TessMapError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
@@ -202,7 +231,7 @@ impl fmt::Display for TessMapError {
 
 impl From<BufferError> for TessMapError {
   fn from(e: BufferError) -> Self {
-    TessMapError::BufferMapError(e)
+    TessMapError::buffer_map_error(e)
   }
 }
 
@@ -225,8 +254,6 @@ pub enum TessError {
   AttributelessError(String),
   /// Length incoherency in vertex, index or instance buffers.
   LengthIncoherency(usize),
-  /// Overflow when accessing underlying buffers.
-  Overflow(usize, usize),
   /// Internal error ocurring with a buffer.
   InternalBufferError(BufferError),
   /// Forbidden primitive mode by hardware.
@@ -234,12 +261,29 @@ pub enum TessError {
 }
 
 impl TessError {
-  /// Create [`TessError::CannotCreate`].
-  pub fn cannot_create<S>(s: S) -> Self
-  where
-    S: Into<String>,
-  {
-    TessError::CannotCreate(s.into())
+  /// Cannot create a tessellation.
+  pub fn cannot_create(e: impl Into<String>) -> Self {
+    TessError::CannotCreate(e.into())
+  }
+
+  /// Error related to attributeless tessellation and/or render.
+  pub fn attributeless_error(e: impl Into<String>) -> Self {
+    TessError::AttributelessError(e.into())
+  }
+
+  /// Length incoherency in vertex, index or instance buffers.
+  pub fn length_incoherency(len: usize) -> Self {
+    TessError::LengthIncoherency(len)
+  }
+
+  /// Internal error ocurring with a buffer.
+  pub fn internal_buffer_error(e: BufferError) -> Self {
+    TessError::InternalBufferError(e)
+  }
+
+  /// Forbidden primitive mode by hardware.
+  pub fn forbidden_primitive_mode(mode: Mode) -> Self {
+    TessError::ForbiddenPrimitiveMode(mode)
   }
 }
 
@@ -251,7 +295,6 @@ impl fmt::Display for TessError {
       TessError::LengthIncoherency(ref s) => {
         write!(f, "Incoherent size for internal buffers: {}", s)
       }
-      TessError::Overflow(ref a, ref b) => write!(f, "Tess overflow error: {}, {}", a, b),
       TessError::InternalBufferError(ref e) => write!(f, "internal buffer error: {}", e),
       TessError::ForbiddenPrimitiveMode(ref e) => write!(f, "forbidden primitive mode: {}", e),
     }
@@ -260,7 +303,7 @@ impl fmt::Display for TessError {
 
 impl From<BufferError> for TessError {
   fn from(e: BufferError) -> Self {
-    TessError::InternalBufferError(e)
+    TessError::internal_buffer_error(e)
   }
 }
 
@@ -399,7 +442,7 @@ where
       let len = data[0].len;
 
       if data[1..].iter().any(|a| a.len != len) {
-        Err(TessError::LengthIncoherency(len))
+        Err(TessError::length_incoherency(len))
       } else {
         Ok(len)
       }
@@ -789,7 +832,7 @@ where
             if self.vert_nb <= coherent_len {
               Ok(self.vert_nb)
             } else {
-              Err(TessError::LengthIncoherency(self.vert_nb))
+              Err(TessError::length_incoherency(self.vert_nb))
             }
           }
 
@@ -799,7 +842,7 @@ where
         if self.vert_nb <= self.index_data.len() {
           Ok(self.vert_nb)
         } else {
-          Err(TessError::LengthIncoherency(self.vert_nb))
+          Err(TessError::length_incoherency(self.vert_nb))
         }
       }
     }
@@ -816,13 +859,13 @@ where
       let coherent_len = self
         .instance_data
         .as_ref()
-        .ok_or_else(|| TessError::AttributelessError("missing number of instances".to_owned()))
+        .ok_or_else(|| TessError::attributeless_error("missing number of instances"))
         .and_then(W::coherent_len)?;
 
       if self.inst_nb <= coherent_len {
         Ok(self.inst_nb)
       } else {
-        Err(TessError::LengthIncoherency(self.inst_nb))
+        Err(TessError::length_incoherency(self.inst_nb))
       }
     }
   }
@@ -1224,11 +1267,11 @@ pub enum TessViewError {
 impl fmt::Display for TessViewError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match self {
-	    TessViewError::IncorrectViewWindow{ capacity, start, nb } => {
-		write!(f, "TessView incorrect window error: requested slice size {} starting at {}, but capacity is only {}",
-		       nb, start, capacity)
-	    }
-	}
+      TessViewError::IncorrectViewWindow{ capacity, start, nb } => {
+        write!(f, "TessView incorrect window error: requested slice size {} starting at {}, but capacity is only {}",
+          nb, start, capacity)
+      }
+    }
   }
 }
 

@@ -64,7 +64,7 @@ impl Program {
 
         log.set_len(log_len as usize);
 
-        Err(ProgramError::LinkFailed(String::from_utf8(log).unwrap()))
+        Err(ProgramError::link_failed(String::from_utf8(log).unwrap()))
       }
     }
   }
@@ -91,7 +91,7 @@ impl UniformBuilder {
     };
 
     if location < 0 {
-      Err(UniformWarning::Inactive(name.to_owned()))
+      Err(UniformWarning::inactive(name))
     } else {
       Ok(unsafe { Uniform::new(location) })
     }
@@ -107,7 +107,7 @@ impl UniformBuilder {
     };
 
     if location == gl::INVALID_INDEX {
-      Err(UniformWarning::Inactive(name.to_owned()))
+      Err(UniformWarning::inactive(name))
     } else {
       Ok(unsafe { Uniform::new(location as _) })
     }
@@ -125,9 +125,9 @@ unsafe impl Shader for GL33 {
     let handle = gl::CreateShader(opengl_shader_type(ty));
 
     if handle == 0 {
-      return Err(StageError::CompilationFailed(
+      return Err(StageError::compilation_failed(
         ty,
-        "unable to create shader stage".to_owned(),
+        "unable to create shader stage",
       ));
     }
 
@@ -151,7 +151,7 @@ unsafe impl Shader for GL33 {
 
       log.set_len(log_len as usize);
 
-      Err(StageError::CompilationFailed(
+      Err(StageError::compilation_failed(
         ty,
         String::from_utf8(log).unwrap(),
       ))
@@ -384,7 +384,7 @@ fn get_vertex_attrib_location(
   };
 
   if location < 0 {
-    Err(VertexAttribWarning::Inactive(name.to_owned()))
+    Err(VertexAttribWarning::inactive(name))
   } else {
     Ok(location as _)
   }

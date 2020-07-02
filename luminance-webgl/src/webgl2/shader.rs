@@ -66,7 +66,7 @@ impl Stage {
 
       state.ctx.delete_shader(Some(&handle));
 
-      Err(StageError::CompilationFailed(ty, log))
+      Err(StageError::compilation_failed(ty, log))
     }
   }
 
@@ -155,7 +155,7 @@ impl Program {
         .ctx
         .get_program_info_log(handle)
         .unwrap_or("unknown link error".to_owned());
-      Err(ProgramError::LinkFailed(log))
+      Err(ProgramError::link_failed(log))
     }
   }
 
@@ -200,7 +200,7 @@ impl UniformBuilder {
         Ok(unsafe { Uniform::new(idx) })
       }
 
-      None => Err(UniformWarning::Inactive(name.to_owned())),
+      None => Err(UniformWarning::inactive(name)),
     }
   }
 
@@ -215,7 +215,7 @@ impl UniformBuilder {
       .get_uniform_block_index(&self.handle, name);
 
     if location == WebGl2RenderingContext::INVALID_INDEX {
-      Err(UniformWarning::Inactive(name.to_owned()))
+      Err(UniformWarning::inactive(name))
     } else {
       Ok(unsafe { Uniform::new(location as _) })
     }
@@ -431,7 +431,7 @@ fn get_vertex_attrib_location(
   let location = state.ctx.get_attrib_location(program.handle(), name);
 
   if location < 0 {
-    Err(VertexAttribWarning::Inactive(name.to_owned()))
+    Err(VertexAttribWarning::inactive(name))
   } else {
     Ok(location)
   }

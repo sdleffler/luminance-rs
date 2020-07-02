@@ -13,6 +13,16 @@ pub(crate) enum SemanticsImplError {
   NoField,
 }
 
+impl SemanticsImplError {
+  pub(crate) fn attribute_errors(errors: impl IntoIterator<Item = AttrError>) -> Self {
+    SemanticsImplError::AttributeErrors(errors.into_iter().collect())
+  }
+
+  pub(crate) fn no_field() -> Self {
+    SemanticsImplError::NoField
+  }
+}
+
 impl fmt::Display for SemanticsImplError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
@@ -162,11 +172,11 @@ pub(crate) fn generate_enum_semantics_impl(
   }
 
   if !errors.is_empty() {
-    return Err(SemanticsImplError::AttributeErrors(errors));
+    return Err(SemanticsImplError::attribute_errors(errors));
   }
 
   if semantics_set.is_empty() {
-    return Err(SemanticsImplError::NoField);
+    return Err(SemanticsImplError::no_field());
   }
 
   // output generation

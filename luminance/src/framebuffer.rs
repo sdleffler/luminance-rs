@@ -210,6 +210,28 @@ pub enum FramebufferError {
   UnsupportedAttachment,
 }
 
+impl FramebufferError {
+  /// Cannot create the framebuffer on the GPU.
+  pub fn cannot_create() -> Self {
+    FramebufferError::CannotCreate
+  }
+
+  /// Texture error.
+  pub fn texture_error(e: TextureError) -> Self {
+    FramebufferError::TextureError(e)
+  }
+
+  /// Incomplete error.
+  pub fn incomplete(e: IncompleteReason) -> Self {
+    FramebufferError::Incomplete(e)
+  }
+
+  /// Cannot attach something to a framebuffer.
+  pub fn unsupported_attachment() -> Self {
+    FramebufferError::UnsupportedAttachment
+  }
+}
+
 impl fmt::Display for FramebufferError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
