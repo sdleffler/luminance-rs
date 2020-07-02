@@ -250,8 +250,8 @@ where
         Ok(texels)
       }
 
-      None => Err(TextureError::CannotRetrieveTexels(
-        "unavailable readback framebuffer".to_owned(),
+      None => Err(TextureError::cannot_retrieve_texels(
+        "unavailable readback framebuffer",
       )),
     }
   }
@@ -440,11 +440,11 @@ where
           Ok(())
         }
 
-        _ => Err(TextureError::UnsupportedPixelFormat(pf)),
+        _ => Err(TextureError::unsupported_pixel_format(pf)),
       }
     }
 
-    None => Err(TextureError::UnsupportedPixelFormat(pf)),
+    None => Err(TextureError::unsupported_pixel_format(pf)),
   }
 }
 
@@ -599,7 +599,7 @@ where
 
   if input_bytes < expected_bytes {
     // potential segfault / overflow; abort
-    return Err(TextureError::NotEnoughPixels(expected_bytes, input_bytes));
+    return Err(TextureError::not_enough_pixels(expected_bytes, input_bytes));
   }
 
   // set the pixel row alignment to the required value for uploading data according to the width
@@ -704,10 +704,10 @@ where
           .map_err(|e| TextureError::CannotUploadTexels(format!("{:?}", e)))?;
       }
 
-      _ => return Err(TextureError::UnsupportedPixelFormat(pf)),
+      _ => return Err(TextureError::unsupported_pixel_format(pf)),
     },
 
-    None => return Err(TextureError::UnsupportedPixelFormat(pf)),
+    None => return Err(TextureError::unsupported_pixel_format(pf)),
   }
 
   Ok(())

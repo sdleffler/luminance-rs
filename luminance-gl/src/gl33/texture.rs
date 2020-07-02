@@ -396,7 +396,7 @@ where
       }
     }
 
-    None => Err(TextureError::TextureStorageCreationFailed(format!(
+    None => Err(TextureError::texture_storage_creation_failed(format!(
       "unsupported texture pixel format: {:?}",
       pf
     ))),
@@ -562,7 +562,7 @@ where
 
   if input_bytes < expected_bytes {
     // potential segfault / overflow; abort
-    return Err(TextureError::NotEnoughPixels(expected_bytes, input_bytes));
+    return Err(TextureError::not_enough_pixels(expected_bytes, input_bytes));
   }
 
   // set the pixel row alignment to the required value for uploading data according to the width
@@ -660,7 +660,7 @@ where
       },
     },
 
-    None => return Err(TextureError::UnsupportedPixelFormat(pf)),
+    None => return Err(TextureError::unsupported_pixel_format(pf)),
   }
 
   Ok(())
