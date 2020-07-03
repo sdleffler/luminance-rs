@@ -9,7 +9,8 @@ pub(crate) mod state;
 pub mod tess;
 pub mod texture;
 
-use crate::webgl2::state::{StateQueryError, WebGL2State};
+pub use crate::webgl2::state::StateQueryError;
+use crate::webgl2::state::WebGL2State;
 use std::cell::RefCell;
 use std::rc::Rc;
 use web_sys::WebGl2RenderingContext;

@@ -17,6 +17,7 @@ crate-type=  ["cdylib"]
 
 [dependencies]
 luminance = "0.40"
+luminance-webgl = "0.1"
 luminance-windowing = "0.9"
 wasm-bindgen = "0.2.63"
 

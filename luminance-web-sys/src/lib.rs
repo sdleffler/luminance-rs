@@ -1,7 +1,9 @@
+use luminance::context::GraphicsContext;
+use luminance_webgl::webgl2::{StateQueryError, WebGL2};
 use luminance_windowing::{WindowDim, WindowOpt};
 use std::fmt;
-use wasm_bindgen::JsValue;
-use web_sys::{Document, HtmlCanvasElement, WebGl2RenderingContext, Window};
+use wasm_bindgen::JsCast as _;
+use web_sys::{Document, HtmlCanvasElement, Window};
 
 /// web-sys errors that might occur while initializing and using the platform.
 #[non_exhaustive]
@@ -12,6 +14,7 @@ pub enum WebSysWebGL2SurfaceError {
   NotSuchCanvasElement(String),
   CannotGrabWebGL2Context,
   NoAvailableWebGL2Context,
+  StateQueryError(StateQueryError),
 }
 
 impl WebSysWebGL2SurfaceError {
@@ -50,27 +53,33 @@ impl fmt::Display for WebSysWebGL2SurfaceError {
       WebSysWebGL2SurfaceError::NoAvailableWebGL2Context => {
         f.write_str("no available WebGL2 context")
       }
+      WebSysWebGL2SurfaceError::StateQueryError(ref e) => {
+        write!(f, "WebGL2 state query error: {}", e)
+      }
     }
   }
 }
 
 impl std::error::Error for WebSysWebGL2SurfaceError {}
 
+impl From<StateQueryError> for WebSysWebGL2SurfaceError {
+  fn from(e: StateQueryError) -> Self {
+    WebSysWebGL2SurfaceError::StateQueryError(e)
+  }
+}
+
 /// web-sys surface for WebGL2.
 pub struct WebSysWebGL2Surface {
-  window: Window,
-  document: Document,
-  canvas: HtmlCanvasElement,
-  context: WebGl2RenderingContext,
+  pub window: Window,
+  pub document: Document,
+  pub canvas: HtmlCanvasElement,
+  backend: WebGL2,
 }
 
 impl WebSysWebGL2Surface {
-  pub fn new(
-    canvas_name: &str,
-    dim: WindowDim,
-    title: impl AsRef<str>,
-    win_opt: WindowOpt,
-  ) -> Result<Self, WebSysWebGL2SurfaceError> {
+  /// Create a new [`WebSysWebGL2Surface`] based on the name of the DOM canvas element named by
+  /// `canvas_name`.
+  pub fn new(canvas_name: &str, win_opt: WindowOpt) -> Result<Self, WebSysWebGL2SurfaceError> {
     let window = web_sys::window().ok_or_else(|| WebSysWebGL2SurfaceError::cannot_grab_window())?;
 
     let document = window
@@ -80,10 +89,11 @@ impl WebSysWebGL2Surface {
     let canvas = document
       .get_element_by_id(canvas_name)
       .ok_or_else(|| WebSysWebGL2SurfaceError::not_such_canvas_element(canvas_name))?;
-    let canvas: JsValue = canvas.into();
-    let canvas: web_sys::HtmlCanvasElement = canvas.into();
+    let canvas = canvas
+      .dyn_into::<HtmlCanvasElement>()
+      .map_err(|_| WebSysWebGL2SurfaceError::not_such_canvas_element(canvas_name))?;
 
-    match dim {
+    match win_opt.dim {
       WindowDim::Windowed { width, height } | WindowDim::FullscreenRestricted { width, height } => {
         canvas.set_width(width);
         canvas.set_height(height);
@@ -94,17 +104,28 @@ impl WebSysWebGL2Surface {
 
     let webgl2 = canvas
       .get_context("webgl2")
-      .map_err(|_| WebSysWebGL2SurfaceError::CannotGrabWebGL2Context)?
-      .ok_or_else(|| WebSysWebGL2SurfaceError::NoAvailableWebGL2Context)?;
-    let webgl2: &JsValue = webgl2.as_ref();
-    let webgl2 = webgl2.clone();
-    let context: web_sys::WebGl2RenderingContext = webgl2.into();
+      .map_err(|_| WebSysWebGL2SurfaceError::cannot_grab_webgl2_context())?
+      .ok_or_else(|| WebSysWebGL2SurfaceError::no_available_webgl2_context())?;
+    let ctx = webgl2
+      .dyn_into()
+      .map_err(|_| WebSysWebGL2SurfaceError::no_available_webgl2_context())?;
+
+    // create the backend object and return the whole object
+    let backend = WebGL2::new(ctx)?;
 
     Ok(Self {
       window,
       document,
       canvas,
-      context,
+      backend,
     })
+  }
+}
+
+unsafe impl GraphicsContext for WebSysWebGL2Surface {
+  type Backend = WebGL2;
+
+  fn backend(&mut self) -> &mut Self::Backend {
+    &mut self.backend
   }
 }
