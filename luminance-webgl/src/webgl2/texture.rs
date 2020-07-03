@@ -185,7 +185,7 @@ where
     P::RawEncoding: Copy + Default,
   {
     let pf = P::pixel_format();
-    let (format, _, ty) = webgl_pixel_format(pf).unwrap();
+    let (format, _, ty) = webgl_pixel_format(pf).ok_or(TextureError::UnsupportedPixelFormat(pf))?;
 
     let mut gfx_state = texture.state.borrow_mut();
     gfx_state.bind_texture(texture.target, Some(&texture.handle));
