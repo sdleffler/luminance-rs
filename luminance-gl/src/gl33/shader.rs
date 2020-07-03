@@ -60,8 +60,6 @@ impl Program {
         let mut log: Vec<u8> = Vec::with_capacity(log_len as usize);
         gl::GetProgramInfoLog(handle, log_len, null_mut(), log.as_mut_ptr() as *mut GLchar);
 
-        gl::DeleteProgram(handle);
-
         log.set_len(log_len as usize);
 
         Err(ProgramError::link_failed(String::from_utf8(log).unwrap()))
