@@ -12,6 +12,10 @@
 
 * [History](#history)
 * [The luminance ecosystem](#the-luminance-ecosystem)
+  * [Core crates](#core-crates)
+  * [Backend crates](#backend-crates)
+  * [Platform crates](#platform-crates)
+  * [Other crates](#other-crates)
 * [Learning](#learning)
 * [Contributing](#contributing)
 * [Dependent projects](#dependent-projects)
@@ -46,60 +50,79 @@ experience with [OpenGL] or [Vulkan].
 
 The strengths of **luminance** are:
 
-  - Easy to learn: the concepts, based on [OpenGL], are applied to _graphics_, not _general-purpose
-    programming on GPU_. Using **luminance** will help you wrap your fingers around what graphics
-		programming is about and it will help you to, perhaps, jump to lower abstractions like
-		[gfx-hal], if you ever need to.
-  - Performant: by using Rust and being designed around the concept of good performances,
-    **luminance** should allow you to build nice and fast simulations, animations and video games.
-    Remember that games you played years ago didn’t have [Vulkan] and were impressive nonetheless.
-		It’s unlikely you will get 100% out of your GPU by using **luminance** since it’s built over
-		technologies that are not using 100% of your GPU. Unless you need and know exactly why you need
-		100% of your GPU, you should be _just fine™_.
-  - Elegant: the design is heavily based on functional programming concepts such as typeclasses,
-		associated types, singleton types, existentials, contravariant resources, procedural macros,
-		strong typing, etc. Plus, every bit of possible _stateful_ computations is hidden behind a
-    system of smart state, removing the need to worry about side-effects. **luminance** still has
-    mutation (unless its Haskell version) but the Rust type system and borrow checker allows for
-    safe mutations.
-  - Modern: the whole **luminance** ecosystem tries its best to stay up-to-date with Rust evolutions
-    and features. On the same level, the underneath technologies are kept up-to-date and might even
-    change if a more modern and more adapted one emerges ([Vulkan] might eventually get adopted but
-    this is just an idea for now).
-  - _Enough opinionated_: a big bet with **luminance** was to make it opinionated, but not too much.
-    It needs to be opinionated to allow some design constructs to be possible and optimize
-    performance and allow for extra safety. However, it must not be too much to prevent it to become
-    a _framework_. **luminance** is a _library_, not a _framework_, meaning that it will adapt to
-   	how **you** think you should design your software, not the other way around. That is limited to
-    the design of **luminance** but you shouldn’t feel too hands-tied.
+- Easy to learn: the concepts, based on [OpenGL], are applied to _graphics_, not _general-purpose
+  programming on GPU_. Using **luminance** will help you wrap your fingers around what graphics
+      	programming is about and it will help you to, perhaps, jump to lower abstractions like
+      	[gfx-hal], if you ever need to.
+- Performant: by using Rust and being designed around the concept of good performances,
+  **luminance** should allow you to build nice and fast simulations, animations and video games.
+  Remember that games you played years ago didn’t have [Vulkan] and were impressive nonetheless.
+      	It’s unlikely you will get 100% out of your GPU by using **luminance** since it’s built over
+      	technologies that are not using 100% of your GPU. Unless you need and know exactly why you need
+      	100% of your GPU, you should be _just fine™_.
+- Elegant: the design is heavily based on functional programming concepts such as typeclasses,
+      	associated types, singleton types, existentials, contravariant resources, procedural macros,
+      	strong typing, etc. Plus, every bit of possible _stateful_ computations is hidden behind a
+  system of smart state, removing the need to worry about side-effects. **luminance** still has
+  mutation (unless its Haskell version) but the Rust type system and borrow checker allows for
+  safe mutations.
+- Modern: the whole **luminance** ecosystem tries its best to stay up-to-date with Rust evolutions
+  and features. On the same level, the underneath technologies are kept up-to-date and might even
+  change if a more modern and more adapted one emerges ([Vulkan] might eventually get adopted but
+  this is just an idea for now).
+- _Enough opinionated_: a big bet with **luminance** was to make it opinionated, but not too much.
+  It needs to be opinionated to allow some design constructs to be possible and optimize
+  performance and allow for extra safety. However, it must not be too much to prevent it to become
+  a _framework_. **luminance** is a _library_, not a _framework_, meaning that it will adapt to
+ 	how **you** think you should design your software, not the other way around. That is limited to
+  the design of **luminance** but you shouldn’t feel too hands-tied.
 
 # The luminance ecosystem
 
-It is currently composed of four different crates:
+It is currently composed of several different crates:
 
-  - [luminance]: the core crate, exposing a graphics API that aims to be easy to learn, safe,
-    type-safe, stateless and fun!
-  - [luminance-derive]: a companion crate to [luminance] you’re very likely to enjoy; it will help
-    you derive important traits for your application or library to work. You should definitely
-    invest some time in the documentation of this crate; it’s easy and well explained.
-  - [luminance-windowing]: a small interface crate for windowing purposes. It’s unlikely you will
-    need it, but it provides some basic and shared data structures you might use.
-  - [luminance-glfw]: an implementation of [luminance-windowing] for [GLFW](https://www.glfw.org)
-    (via [glfw](https://crates.io/crates/glfw)).
-  - [luminance-glutin]: an implementation of [luminance-windowing] for [glutin].
+## Core crates
+
+- [luminance]: the core crate, exposing a graphics API that aims to be easy to learn, safe,
+  type-safe, stateless and fun!
+- [luminance-derive]: a companion crate to [luminance] you’re very likely to enjoy; it will help
+  you derive important traits for your application or library to work. You should definitely
+  invest some time in the documentation of this crate; it’s easy and well explained.
+- [luminance-front]: a _front facing_ set of [luminance] re-exports to make it easy to use the
+  library as a end-user developer by picking a backend type at compile-time, most of the time
+  based on your compilation target.
+
+## Backend crates
+
+- [luminance-gl]: a crate gathering OpenGL backends. Several versions might be supported.
+- [luminance-webgl]: a crate gathering WebGL backends. Several versions might be supported.
+
+## Platform crates
+
+- [luminance-glfw]: a platform implementation for [GLFW](https://www.glfw.org)
+  (via [glfw](https://crates.io/crates/glfw)).
+- [luminance-glutin]: a platform implementation for [glutin].
+- [luminance-sdl2]: a platform implementation for [sdl2].
+- [luminance-web-sys]: a platform implementation for [web-sys].
+- [luminance-windowing]: a small interface crate for windowing purposes. It’s unlikely you will
+  need it, but it provides some basic and shared data structures you might use.
+
+## Other crates
+
+- [luminance-examples]: a combination of examples to show off some features / techniques.
 
 # Learning
 
-[luminance] has two main and official mechanisms to learn:
+[luminance] has two main and official resources to learn:
 
-  - The [book](https://rust-tutorials.github.io/learn-luminance). It contains various chapters,
-    including tutorials and onboarding newcomers. It will not provide you with the best description
-    of a given feature as it focuses more on the overall comprehension and explaining than code
-    directly. It also fits people who don’t know anything about rendering.
-  - The [examples](luminance-examples/README.md). They are like unit tests: each introduces and
-    focuses on a very specific aspect or feature. You should read them if you are interested in
-    a specific feature. They’re not well suited to learn from scratch and they are weaker than a
-    structured tutorial but more concise.
+- The [book](https://rust-tutorials.github.io/learn-luminance). It contains various chapters,
+  including tutorials and onboarding newcomers. It will not provide you with the best description
+  of a given feature as it focuses more on the overall comprehension and explaining than code
+  directly. It also fits people who don’t know anything about rendering.
+- The [examples](luminance-examples/README.md). They are like unit tests: each introduces and
+  focuses on a very specific aspect or feature. You should read them if you are interested in
+  a specific feature. They’re not well suited to learn from scratch and they are weaker than a
+  structured tutorial but more concise.
 
 You should try both ways and see which one fits the best for you!
 
@@ -127,11 +150,17 @@ Those projects use luminance:
 
 [luminance]: ./luminance
 [luminance-derive]: ./luminance-derive
-[luminance-windowing]: ./luminance-windowing
+[luminance-glfw]: ./luminance-gl
 [luminance-glfw]: ./luminance-glfw
 [luminance-glutin]: ./luminance-glutin
+[luminance-sdl2]: ./luminance-sdl2
+[luminance-webgl]: ./luminance-webgl
+[luminance-web-sys]: ./luminance-web-sys
+[luminance-windowing]: ./luminance-windowing
 [glutin]: https://crates.io/crates/glutin
 [gfx-hal]: https://crates.io/crates/gfx-hal
+[sdl2]: https://crates.io/crates/sdl2
+[web-sys]: https://crates.io/crates/web-sys
 [Vulkan]: https://www.khronos.org/vulkan
 [Opengl]: https://www.khronos.org/opengl
 [BSD-3-Clause]: https://opensource.org/licenses/BSD-3-Clause
