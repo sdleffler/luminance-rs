@@ -47,7 +47,7 @@ This project is a _free  and  open-source_ project. It has no financial motivati
 ## Documentation and help
 
 - [The online documentation](https://crates.io/crates/luminance).
-- [The book](https://rust-tutorials.github.io/learn-luminance):
+- [The book](https://rust-tutorials.github.io/learn-luminance).
 - [My blog](https://phaazon.net/blog), which contains various articles on luminance.
 
 # Style conventions
@@ -60,11 +60,16 @@ with the top-level `rustfmt.toml` file.
 Coding convention is enforced in the Continuous Integration pipeline. If you want your work to be
 mergeable, format your code.
 
+> Note: please do not format your code in a separate, standalone commit. This way of doing is
+> considered as a bad practice as the commit will not contain _anything_ useful (but code
+> reformatted). Please format all your commits. You can use various tools in your editor to do so,
+> such as [rust-analyzer](https://github.com/rust-analyzer/rust-analyzer).
+
 # How to make a change
 
 ## Process
 
-The typical process is to base your work on the `master`. The `master` branch must always contain a stable
+The typical process is to base your work on the `master` branch. The `master` branch must always contain a stable
 version of the project. It is possible to make changes by basing your work on other branches but the source
 of truth is `master`. If you want to synchronize with other people on other branches, feel free to.
 
@@ -79,7 +84,8 @@ The process is:
   - `feature/new-feature-here`: if you’re adding some work.
   - `doc/whatever`: if you’re updating documentation, comments, etc.
   - Free for anything else.
-  - The special `release/*` branch is used to back-port changes from newer versions to previous versions.
+  - The special `release/*` branch is used to either back-port changes from newer versions to previous
+    versions, or to release new versions by updating `Cargo.toml` files, changelogs, etc.
 4. Make some commits!
 5. Once you’re ready, open a Pull Request (PR) to merge your work on `master`. For instance, open a PR for
   `master <-- feature/something-new`.
@@ -88,9 +94,6 @@ The process is:
 8. Once the CI is all green, someone (likely me [@phaazon]) will merge your code and close your PR.
 9. Feel free to delete your branch.
 
-I would be very grateful if you can integrate in your commits one commit that modifies the a `CHANGELOG.md`
-file to explain what you’ve been doing.
-
 ## Git conventions
 
 It is **highly appreciated** if you can format your git messages such as:
@@ -98,7 +101,8 @@ It is **highly appreciated** if you can format your git messages such as:
 > Starting with a uppercase letter, ending with a dot. #343
 >
 > The #343 after the dot is appreciated to link to issues. Feel free to add, like this message, more context
-> and/or precision to your git message.
+> and/or precision to your git message. You don’t have it in the first line of the commit message,
+> but if you are fixing a bug or implementing a feature thas has an issue linked, please reference it.
 
 I’m very strict on git messages as I use them to write `CHANGELOG.md` files. Don’t be surprised if I ask you
 to edit a commit message. :)
