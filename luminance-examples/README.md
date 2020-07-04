@@ -8,7 +8,6 @@ all examples.
 
 If you think a specific feature is missing, feel free to open a PR and add new examples!
 
-
 > Have fun!
 
 <!-- vim-markdown-toc GFM -->
