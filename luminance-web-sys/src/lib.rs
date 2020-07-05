@@ -79,13 +79,17 @@ pub struct WebSysWebGL2Surface {
 impl WebSysWebGL2Surface {
   /// Create a new [`WebSysWebGL2Surface`] based on the name of the DOM canvas element named by
   /// `canvas_name`.
-  pub fn new(canvas_name: &str, win_opt: WindowOpt) -> Result<Self, WebSysWebGL2SurfaceError> {
+  pub fn new(
+    canvas_name: impl AsRef<str>,
+    win_opt: WindowOpt,
+  ) -> Result<Self, WebSysWebGL2SurfaceError> {
     let window = web_sys::window().ok_or_else(|| WebSysWebGL2SurfaceError::cannot_grab_window())?;
 
     let document = window
       .document()
       .ok_or_else(|| WebSysWebGL2SurfaceError::cannot_grab_document())?;
 
+    let canvas_name = canvas_name.as_ref();
     let canvas = document
       .get_element_by_id(canvas_name)
       .ok_or_else(|| WebSysWebGL2SurfaceError::not_such_canvas_element(canvas_name))?;
