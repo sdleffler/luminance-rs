@@ -42,7 +42,11 @@ pub struct Buffer<T> {
 
 impl<T> Buffer<T> {
   /// Create a new buffer from a length and a type. This is needed to implement repeat without Default.
-  fn new(webgl2: &mut WebGL2, len: usize, clear_value: T) -> Result<Self, BufferError>
+  ///
+  /// The `target` parameter allows to create the buffer with
+  /// [`WebGl2RenderingContext::ARRAY_BUFFER`] or [`WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER`]
+  /// directly, as WebGL2 doesn’t support changing the target type after the buffer is created.
+  fn new(webgl2: &mut WebGL2, len: usize, clear_value: T, target: u32) -> Result<Self, BufferError>
   where
     T: Copy,
   {
@@ -56,14 +60,13 @@ impl<T> Buffer<T> {
     let handle = state
       .create_buffer()
       .ok_or_else(|| BufferError::cannot_create())?;
-    state.bind_array_buffer(Some(&handle), Bind::Forced);
+
+    Self::bind(&mut state, &handle, target)?;
 
     let bytes = mem::size_of::<T>() * len;
-    state.ctx.buffer_data_with_i32(
-      WebGl2RenderingContext::ARRAY_BUFFER,
-      bytes as i32,
-      WebGl2RenderingContext::STREAM_DRAW,
-    );
+    state
+      .ctx
+      .buffer_data_with_i32(target, bytes as i32, WebGl2RenderingContext::STREAM_DRAW);
 
     let gl_buf = BufferWrapper {
       handle,
@@ -71,6 +74,51 @@ impl<T> Buffer<T> {
     };
 
     Ok(Buffer { buf, gl_buf })
+  }
+
+  pub(crate) fn from_vec(
+    webgl2: &mut WebGL2,
+    vec: Vec<T>,
+    target: u32,
+  ) -> Result<Self, BufferError> {
+    let mut state = webgl2.state.borrow_mut();
+    let len = vec.len();
+
+    let handle = state
+      .create_buffer()
+      .ok_or_else(|| BufferError::cannot_create())?;
+
+    Self::bind(&mut state, &handle, target)?;
+
+    let bytes = mem::size_of::<T>() * len;
+    let data = unsafe { slice::from_raw_parts(vec.as_ptr() as *const _, bytes) };
+    state
+      .ctx
+      .buffer_data_with_u8_array(target, data, WebGl2RenderingContext::STREAM_DRAW);
+
+    let gl_buf = BufferWrapper {
+      handle,
+      state: webgl2.state.clone(),
+    };
+
+    Ok(Buffer { gl_buf, buf: vec })
+  }
+
+  /// Bind a buffer to a given state regarding the input target.
+  fn bind(state: &mut WebGL2State, handle: &WebGlBuffer, target: u32) -> Result<(), BufferError> {
+    // depending on the buffer target, we are not going to bind it the same way, as the first bind
+    // is actually meaningful in WebGL2
+    match target {
+      WebGl2RenderingContext::ARRAY_BUFFER => state.bind_array_buffer(Some(handle), Bind::Forced),
+      WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER => {
+        state.bind_element_array_buffer(Some(handle), Bind::Forced)
+      }
+
+      // a bit opaque but should never happen
+      _ => return Err(BufferError::CannotCreate),
+    }
+
+    Ok(())
   }
 
   pub(crate) fn handle(&self) -> &WebGlBuffer {
@@ -100,7 +148,12 @@ where
   where
     T: Default,
   {
-    Buffer::<T>::new(self, len, T::default())
+    Buffer::<T>::new(
+      self,
+      len,
+      T::default(),
+      WebGl2RenderingContext::ARRAY_BUFFER,
+    )
   }
 
   unsafe fn len(buffer: &Self::BufferRepr) -> usize {
@@ -108,32 +161,11 @@ where
   }
 
   unsafe fn from_vec(&mut self, vec: Vec<T>) -> Result<Self::BufferRepr, BufferError> {
-    let mut state = self.state.borrow_mut();
-    let len = vec.len();
-
-    let handle = state
-      .create_buffer()
-      .ok_or_else(|| BufferError::cannot_create())?;
-    state.bind_array_buffer(Some(&handle), Bind::Forced);
-
-    let bytes = mem::size_of::<T>() * len;
-    let data = slice::from_raw_parts(vec.as_ptr() as *const _, bytes);
-    state.ctx.buffer_data_with_u8_array(
-      WebGl2RenderingContext::ARRAY_BUFFER,
-      data,
-      WebGl2RenderingContext::STREAM_DRAW,
-    );
-
-    let gl_buf = BufferWrapper {
-      handle,
-      state: self.state.clone(),
-    };
-
-    Ok(Buffer { gl_buf, buf: vec })
+    Buffer::from_vec(self, vec, WebGl2RenderingContext::ARRAY_BUFFER)
   }
 
   unsafe fn repeat(&mut self, len: usize, value: T) -> Result<Self::BufferRepr, BufferError> {
-    Buffer::<T>::new(self, len, value)
+    Buffer::<T>::new(self, len, value, WebGl2RenderingContext::ARRAY_BUFFER)
   }
 
   unsafe fn at(buffer: &Self::BufferRepr, i: usize) -> Option<T> {

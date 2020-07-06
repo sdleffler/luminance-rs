@@ -1,0 +1,24 @@
+[package]
+name = "luminance-examples-web"
+version = "1.0.0"
+authors = ["Dimitri Sabadie <dimitri.sabadie@gmail.com>"]
+description = "Stateless and type-safe graphics framework"
+keywords = ["stateless", "type-safe", "graphics", "luminance"]
+categories = ["rendering::graphics-api"]
+homepage = "https://github.com/phaazon/luminance-rs"
+repository = "https://github.com/phaazon/luminance-rs"
+documentation = "https://docs.rs/luminance"
+readme = "README.md"
+edition = "2018"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+luminance = "0.40"
+luminance-front = "0.1"
+luminance-derive = "0.6"
+luminance-web-sys = "0.1"
+luminance-windowing = "0.9"
+wasm-bindgen = "0.2.63"
+web-sys = { version = "*", features = ["console"] }

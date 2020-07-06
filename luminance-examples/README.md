@@ -6,8 +6,13 @@ Each example comes in with a few explanations and how to use them at the top of 
 A [common](./src/common/mod.rs) module is present so that the code can be shared and referenced from
 all examples.
 
-If you think a specific feature is missing, feel free to open a PR and add new examples!
+Also, some examples might be target-dependent (such as web examples). You will need specific
+instructions to compile them, which are located at each example’s entry below.
 
+If you think a specific feature is missing, feel free to open a PR and add new examples! The more
+we have, the better! Also, keep in mind that this example repository is _not the proper way to
+learn [luminance] as a whole!_ If you would like to learn from scratch, it is highly recommended to
+have a look at [the book] first.
 
 > Have fun!
 
@@ -25,6 +30,7 @@ If you think a specific feature is missing, feel free to open a PR and add new e
 * [10 — Vertex Instancing](#10--vertex-instancing)
 * [11 — Query texture texels](#11--query-texture-texels)
 * [12 — Displacement Map](#12--displacement-map)
+* [13 — Hello world](#13--hello-world)
 
 <!-- vim-markdown-toc -->
 
@@ -36,6 +42,8 @@ are necessary to wrap your fingers around, especially _vertex semantics_, _buffe
 procedural macros_, _graphics pipelines_, etc. etc.
 
 ![](../docs/imgs/01-screenshot.png)
+
+> A version using [glutin] is available [here](./src/hello-world-glutin.rs).
 
 ## [02 — Render State](./src/render-state.rs)
 
@@ -103,6 +111,24 @@ Query texture texels from a framebuffer and output them as a rendered image on y
 
 ## [12 — Displacement Map](./src/displacement-map.rs)
 
-Use a grayscale texture to implement _displacement map_ on a color map.
+Use a grayscale texture to implement a _displacement map_ effect on a color map.
 
 ![](../docs/imgs/displacement_map.gif)
+
+## [13 — Hello world](./src/hello-world-web.rs)
+
+A hello world made for the web! You will need to serve some web files in order to try that
+example, as it relies on web technologies such as [wasm]. You can go light of speed by using the
+amazing [cargo-web] plugin to `cargo`. Install it first with:
+
+```sh
+cargo install cargo-web
+```
+
+TODO
+
+[luminance]: https://crates.io/crates/luminance
+[glutin]: https://crates.io/crates/glutin
+[the book]: https://rust-tutorials.github.io/learn-luminance
+[wasm]: https://webassembly.org
+[cargo-web]: https://crates.io/crates/cargo-web

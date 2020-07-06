@@ -9,42 +9,110 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libxrandr-dev xorg-dev libsdl2-dev
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Build
-        run: cargo build --verbose
+        run: |
+          cd $GITHUB_WORKSPACE/luminance && cargo build
+          cd $GITHUB_WORKSPACE/luminance-derive && cargo build
+          cd $GITHUB_WORKSPACE/luminance-examples && cargo build
+          cd $GITHUB_WORKSPACE/luminance-front && cargo build
+          cd $GITHUB_WORKSPACE/luminance-gl && cargo build
+          cd $GITHUB_WORKSPACE/luminance-glfw && cargo build
+          cd $GITHUB_WORKSPACE/luminance-glutin && cargo build
+          cd $GITHUB_WORKSPACE/luminance-sdl2 && cargo build
+          cd $GITHUB_WORKSPACE/luminance-windowing && cargo build
       - name: Test
-        run: cargo test --verbose
+        run: |
+          cd $GITHUB_WORKSPACE/luminance && cargo test
+          cd $GITHUB_WORKSPACE/luminance-derive && cargo test
+          cd $GITHUB_WORKSPACE/luminance-examples && cargo test
+          cd $GITHUB_WORKSPACE/luminance-front && cargo test
+          cd $GITHUB_WORKSPACE/luminance-gl && cargo test
+          cd $GITHUB_WORKSPACE/luminance-glfw && cargo test
+          cd $GITHUB_WORKSPACE/luminance-glutin && cargo test
+          cd $GITHUB_WORKSPACE/luminance-sdl2 && cargo test
+          cd $GITHUB_WORKSPACE/luminance-windowing && cargo test
 
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Build
-        run: cargo build --verbose
+        run: |
+          cd luminance && cargo build && cd ..
+          cd luminance-derive && cargo build && cd ..
+          cd luminance-examples && cargo build && cd ..
+          cd luminance-front && cargo build && cd ..
+          cd luminance-gl && cargo build && cd ..
+          cd luminance-glfw && cargo build && cd ..
+          cd luminance-glutin && cargo build && cd ..
+          cd luminance-sdl2 && cargo build && cd ..
+          cd luminance-windowing && cargo build && cd ..
       - name: Test
-        run: cargo test --verbose
+        run: |
+          cd luminance && cargo test && cd ..
+          cd luminance-derive && cargo test && cd ..
+          cd luminance-examples && cargo test && cd ..
+          cd luminance-front && cargo test && cd ..
+          cd luminance-gl && cargo test && cd ..
+          cd luminance-glfw && cargo test && cd ..
+          cd luminance-glutin && cargo test && cd ..
+          cd luminance-sdl2 && cargo test && cd ..
+          cd luminance-windowing && cargo test && cd ..
 
   build-macosx:
     runs-on: macOS-latest
     steps:
       - name: Install dependencies
         run: brew install SDL2
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Install Rust
         run: curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --profile=minimal
       - name: Build
         run: |
           . ~/.cargo/env
-          cargo build --verbose
+          cd $GITHUB_WORKSPACE/luminance && cargo build
+          cd $GITHUB_WORKSPACE/luminance-derive && cargo build
+          cd $GITHUB_WORKSPACE/luminance-examples && cargo build
+          cd $GITHUB_WORKSPACE/luminance-front && cargo build
+          cd $GITHUB_WORKSPACE/luminance-gl && cargo build
+          cd $GITHUB_WORKSPACE/luminance-glfw && cargo build
+          cd $GITHUB_WORKSPACE/luminance-glutin && cargo build
+          cd $GITHUB_WORKSPACE/luminance-sdl2 && cargo build
+          cd $GITHUB_WORKSPACE/luminance-windowing && cargo build
       - name: Test
         run: |
           . ~/.cargo/env
-          cargo test --verbose
+          cd $GITHUB_WORKSPACE/luminance && cargo test
+          cd $GITHUB_WORKSPACE/luminance-derive && cargo test
+          cd $GITHUB_WORKSPACE/luminance-examples && cargo test
+          cd $GITHUB_WORKSPACE/luminance-front && cargo test
+          cd $GITHUB_WORKSPACE/luminance-gl && cargo test
+          cd $GITHUB_WORKSPACE/luminance-glfw && cargo test
+          cd $GITHUB_WORKSPACE/luminance-glutin && cargo test
+          cd $GITHUB_WORKSPACE/luminance-sdl2 && cargo test
+          cd $GITHUB_WORKSPACE/luminance-windowing && cargo test
+
+  build-wasm:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install rustup WASM toolchain
+        run: rustup target install wasm32-unknown-unknown
+      - uses: actions/checkout@v2
+      - name: Build
+        run: |
+          cd $GITHUB_WORKSPACE/luminance-examples-web
+          yarn install
+          yarn build
+
+          cd $GITHUB_WORKSPACE/luminance-front && cargo build --target wasm32-unknown-unknown
+          cd $GITHUB_WORKSPACE/luminance-web-sys && cargo build --target wasm32-unknown-unknown
+          cd $GITHUB_WORKSPACE/luminance-webgl && cargo build --target wasm32-unknown-unknown
 
   quality:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v1
+      - uses: actions/checkout@v2
       - name: Install dependencies
         run: |
           cargo install --force cargo-sync-readme
@@ -64,6 +132,8 @@ jobs:
           cd $GITHUB_WORKSPACE/luminance-glutin
           cargo sync-readme -c
           cd $GITHUB_WORKSPACE/luminance-sdl2
+          cargo sync-readme -c
+          cd $GITHUB_WORKSPACE/luminance-web-sys
           cargo sync-readme -c
           cd $GITHUB_WORKSPACE/luminance-webgl
           cargo sync-readme -c

@@ -1,6 +1,6 @@
 //! WebGL2 tessellation implementation.
 
-use luminance::backend::buffer::{Buffer as _, BufferSlice as _};
+use luminance::backend::buffer::BufferSlice as _;
 use luminance::backend::tess::{
   IndexSlice as IndexSliceBackend, InstanceSlice as InstanceSliceBackend, Tess as TessBackend,
   VertexSlice as VertexSliceBackend,
@@ -452,7 +452,7 @@ where
       let vb = if vertices.is_empty() {
         None
       } else {
-        let vb = unsafe { webgl2.from_vec(vertices)? };
+        let vb = Buffer::from_vec(webgl2, vertices, WebGl2RenderingContext::ARRAY_BUFFER)?;
 
         // force binding as it’s meaningful when a vao is bound
         webgl2
@@ -484,7 +484,11 @@ where
         .into_iter()
         .zip(V::vertex_desc())
         .map(|(attribute, fmt)| {
-          let vb = unsafe { webgl2.from_vec(attribute.into_vec())? };
+          let vb = Buffer::from_vec(
+            webgl2,
+            attribute.into_vec(),
+            WebGl2RenderingContext::ARRAY_BUFFER,
+          )?;
 
           // force binding as it’s meaningful when a vao is bound
           webgl2
@@ -508,7 +512,7 @@ where
   I: TessIndex,
 {
   let ib = if !data.is_empty() {
-    let ib = unsafe { webgl2.from_vec(data)? };
+    let ib = Buffer::from_vec(webgl2, data, WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER)?;
 
     // force binding as it’s meaningful when a vao is bound
     webgl2
