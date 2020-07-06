@@ -12,9 +12,6 @@ documentation = "https://docs.rs/luminance-web-sys"
 readme = "README.md"
 edition = "2018"
 
-[lib]
-crate-type=  ["cdylib"]
-
 [dependencies]
 luminance = "0.40"
 luminance-webgl = "0.1"
