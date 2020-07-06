@@ -8,14 +8,17 @@
 //!
 //! https://docs.rs/luminance
 
-use luminance::context::GraphicsContext as _;
-use luminance::pipeline::PipelineState;
-use luminance::render_state::RenderState;
-use luminance::tess::Mode;
 use luminance_derive::{Semantics, Vertex};
+use luminance_front::context::GraphicsContext as _;
+use luminance_front::pipeline::PipelineState;
+use luminance_front::render_state::RenderState;
+use luminance_front::shader::Program;
+use luminance_front::tess::{Deinterleaved, Interleaved, Mode, Tess};
 use luminance_web_sys::WebSysWebGL2Surface;
 use luminance_windowing::WindowOpt;
+use std::sync::mpsc::channel;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsCast as _;
 
 // We get the shader at compile time from local files
 const VS: &'static str = include_str!("../../luminance-examples/src/simple-vs.glsl");
@@ -136,15 +139,26 @@ impl TessMethod {
   }
 }
 
+/// A convenient type to return as opaque to JS.
+pub struct Scene {
+  surface: WebSysWebGL2Surface,
+  program: Program<Semantics, (), ()>,
+  direct_triangles: Tess<Vertex, (), (), Interleaved>,
+  indexed_triangles: Tess<Vertex, u8, (), Interleaved>,
+  direct_deinterleaved_triangles: Tess<Vertex, (), (), Deinterleaved>,
+  indexed_deinterleaved_triangles: Tess<Vertex, u8, (), Deinterleaved>,
+  tess_method: TessMethod,
+}
+
+/// Get the whole scene and expose it on the JS side.
 #[wasm_bindgen]
-pub fn hello_world(canvas_name: &str) {
+pub fn get_scene(canvas_name: &str) -> *mut Scene {
   // First thing first: we create a new surface to render to and get events from.
   let mut surface =
     WebSysWebGL2Surface::new(canvas_name, WindowOpt::default()).expect("web-sys surface");
 
   // We need a program to “shade” our triangles and to tell luminance which is the input vertex
   // type, and we’re not interested in the other two type variables for this sample.
-
   let mut program = surface
     .new_shader_program::<Semantics, (), ()>()
     .from_strings(VS, None, None, FS)
@@ -191,74 +205,56 @@ pub fn hello_world(canvas_name: &str) {
     .build()
     .unwrap();
 
-  //// The back buffer, which we will make our render into (we make it mutable so that we can change
-  //// it whenever the window dimensions change).
-  let mut back_buffer = surface.back_buffer().unwrap();
-  let mut demo = TessMethod::Direct;
-  let mut resize = false;
+  let tess_method = TessMethod::Direct;
 
-  println!("now rendering {:?}", demo);
+  let boxed = Box::new(Scene {
+    surface,
+    program,
+    direct_triangles,
+    indexed_triangles,
+    direct_deinterleaved_triangles,
+    indexed_deinterleaved_triangles,
+    tess_method,
+  });
 
-  'app: loop {
-    // // For all the events on the surface.
-    // surface.window.glfw.poll_events();
-    // for (_, event) in surface.events_rx.try_iter() {
-    //   match event {
-    //     // If we close the window or press escape, quit the main loop (i.e. quit the application).
-    //     WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
+  Box::leak(boxed)
+}
 
-    //     // If we hit the spacebar, change the kind of tessellation.
-    //     WindowEvent::Key(Key::Space, _, Action::Release, _) => {
-    //       demo = demo.toggle();
-    //       println!("now rendering {:?}", demo);
-    //     }
+#[wasm_bindgen]
+pub fn render_scene(scene: *mut Scene) {
+  let scene = unsafe { scene.as_mut().unwrap() };
+  let back_buffer = scene.surface.back_buffer().unwrap();
+  let tess_method = scene.tess_method;
+  let program = &mut scene.program;
+  let direct_triangles = &scene.direct_triangles;
+  let indexed_triangles = &scene.indexed_triangles;
+  let direct_deinterleaved_triangles = &scene.direct_deinterleaved_triangles;
+  let indexed_deinterleaved_triangles = &scene.indexed_deinterleaved_triangles;
 
-    //     // Handle window resizing.
-    //     WindowEvent::FramebufferSize(..) => {
-    //       resize = true;
-    //     }
-
-    //     _ => (),
-    //   }
-    // }
-
-    if resize {
-      // Simply ask another backbuffer at the right dimension (no allocation / reallocation).
-      back_buffer = surface.back_buffer().unwrap();
-      resize = false;
-    }
-
-    // Create a new dynamic pipeline that will render to the back buffer and must clear it with
-    // pitch black prior to do any render to it.
-    let render = surface.new_pipeline_gate().pipeline(
+  // Create a new dynamic pipeline that will render to the back buffer and must clear it with
+  // pitch black prior to do any render to it.
+  scene
+    .surface
+    .new_pipeline_gate()
+    .pipeline(
       &back_buffer,
       &PipelineState::default(),
       |_, mut shd_gate| {
         // Start shading with our program.
-        shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
+        shd_gate.shade(program, |_, _, mut rdr_gate| {
           // Start rendering things with the default render state provided by luminance.
           rdr_gate.render(&RenderState::default(), |mut tess_gate| {
             // Pick the right tessellation to use depending on the mode chosen and render it to the
             // surface.
-            match demo {
-              TessMethod::Direct => tess_gate.render(&direct_triangles),
-              TessMethod::Indexed => tess_gate.render(&indexed_triangles),
-              TessMethod::DirectDeinterleaved => tess_gate.render(&direct_deinterleaved_triangles),
-              TessMethod::IndexedDeinterleaved => {
-                tess_gate.render(&indexed_deinterleaved_triangles)
-              }
+            match tess_method {
+              TessMethod::Direct => tess_gate.render(direct_triangles),
+              TessMethod::Indexed => tess_gate.render(indexed_triangles),
+              TessMethod::DirectDeinterleaved => tess_gate.render(direct_deinterleaved_triangles),
+              TessMethod::IndexedDeinterleaved => tess_gate.render(indexed_deinterleaved_triangles),
             }
           });
         });
       },
-    );
-
-    // Finally, swap the backbuffer with the frontbuffer in order to render our triangles onto your
-    // screen.
-    if render.is_ok() {
-      // surface.window.swap_buffers();
-    } else {
-      break 'app;
-    }
-  }
+    )
+    .unwrap()
 }
