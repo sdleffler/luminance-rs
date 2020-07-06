@@ -221,6 +221,22 @@ pub fn get_scene(canvas_name: &str) -> *mut Scene {
 }
 
 #[wasm_bindgen]
+pub fn toggle_tess_method(scene: *mut Scene) {
+  let scene = unsafe { scene.as_mut().unwrap() };
+  let prev_meth = scene.tess_method;
+
+  scene.tess_method = scene.tess_method.toggle();
+
+  web_sys::console::log_1(
+    &format!(
+      "toggling tess method from {:?} to {:?}",
+      prev_meth, scene.tess_method
+    )
+    .into(),
+  );
+}
+
+#[wasm_bindgen]
 pub fn render_scene(scene: *mut Scene) {
   let scene = unsafe { scene.as_mut().unwrap() };
   let back_buffer = scene.surface.back_buffer().unwrap();
