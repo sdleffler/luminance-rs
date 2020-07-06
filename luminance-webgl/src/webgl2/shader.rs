@@ -300,8 +300,9 @@ fn webgl_shader_type(ty: StageType) -> Option<u32> {
   }
 }
 
-const GLSL_PRAGMA: &str = "#version 330 core\n\
-                           #extension GL_ARB_separate_shader_objects : require\n";
+const GLSL_PRAGMA: &str = "#version 300 es\n\
+                           precision highp float;\n\
+                           precision highp int;\n";
 
 fn patch_shader_src(src: &str) -> String {
   let mut pragma = String::from(GLSL_PRAGMA);
