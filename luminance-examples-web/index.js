@@ -13,7 +13,6 @@ rust
     window.onkeypress = (event) => {
       switch (event.key) {
         case ' ':
-          console.log("toggling the tess method");
           wasm.toggle_tess_method(scene);
           break;
 

@@ -16,9 +16,7 @@ use luminance_front::shader::Program;
 use luminance_front::tess::{Deinterleaved, Interleaved, Mode, Tess};
 use luminance_web_sys::WebSysWebGL2Surface;
 use luminance_windowing::WindowOpt;
-use std::sync::mpsc::channel;
 use wasm_bindgen::prelude::*;
-use wasm_bindgen::JsCast as _;
 
 // We get the shader at compile time from local files
 const VS: &'static str = include_str!("../../luminance-examples/src/simple-vs.glsl");
@@ -140,6 +138,7 @@ impl TessMethod {
 }
 
 /// A convenient type to return as opaque to JS.
+#[wasm_bindgen]
 pub struct Scene {
   surface: WebSysWebGL2Surface,
   program: Program<Semantics, (), ()>,
@@ -152,7 +151,7 @@ pub struct Scene {
 
 /// Get the whole scene and expose it on the JS side.
 #[wasm_bindgen]
-pub fn get_scene(canvas_name: &str) -> *mut Scene {
+pub fn get_scene(canvas_name: &str) -> Scene {
   // First thing first: we create a new surface to render to and get events from.
   let mut surface =
     WebSysWebGL2Surface::new(canvas_name, WindowOpt::default()).expect("web-sys surface");
@@ -207,7 +206,7 @@ pub fn get_scene(canvas_name: &str) -> *mut Scene {
 
   let tess_method = TessMethod::Direct;
 
-  let boxed = Box::new(Scene {
+  Scene {
     surface,
     program,
     direct_triangles,
@@ -215,14 +214,11 @@ pub fn get_scene(canvas_name: &str) -> *mut Scene {
     direct_deinterleaved_triangles,
     indexed_deinterleaved_triangles,
     tess_method,
-  });
-
-  Box::leak(boxed)
+  }
 }
 
 #[wasm_bindgen]
-pub fn toggle_tess_method(scene: *mut Scene) {
-  let scene = unsafe { scene.as_mut().unwrap() };
+pub fn toggle_tess_method(scene: &mut Scene) {
   let prev_meth = scene.tess_method;
 
   scene.tess_method = scene.tess_method.toggle();
@@ -237,8 +233,7 @@ pub fn toggle_tess_method(scene: *mut Scene) {
 }
 
 #[wasm_bindgen]
-pub fn render_scene(scene: *mut Scene) {
-  let scene = unsafe { scene.as_mut().unwrap() };
+pub fn render_scene(scene: &mut Scene) {
   let back_buffer = scene.surface.back_buffer().unwrap();
   let tess_method = scene.tess_method;
   let program = &mut scene.program;
