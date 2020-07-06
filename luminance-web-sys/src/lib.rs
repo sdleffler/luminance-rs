@@ -1,4 +1,6 @@
 use luminance::context::GraphicsContext;
+use luminance::framebuffer::{Framebuffer, FramebufferError};
+use luminance::texture::Dim2;
 use luminance_webgl::webgl2::{StateQueryError, WebGL2};
 use luminance_windowing::{WindowDim, WindowOpt};
 use std::fmt;
@@ -123,6 +125,12 @@ impl WebSysWebGL2Surface {
       canvas,
       backend,
     })
+  }
+
+  /// Get the back buffer.
+  pub fn back_buffer(&mut self) -> Result<Framebuffer<WebGL2, Dim2, (), ()>, FramebufferError> {
+    let dim = [self.canvas.width(), self.canvas.height()];
+    Framebuffer::back_buffer(self, dim)
   }
 }
 
