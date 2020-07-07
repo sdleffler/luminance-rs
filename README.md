@@ -52,17 +52,17 @@ The strengths of **luminance** are:
 
 - Easy to learn: the concepts, based on [OpenGL], are applied to _graphics_, not _general-purpose
   programming on GPU_. Using **luminance** will help you wrap your fingers around what graphics
-      	programming is about and it will help you to, perhaps, jump to lower abstractions like
-      	[gfx-hal], if you ever need to.
+  programming is about and it will help you to, perhaps, jump to lower abstractions like
+  [gfx-hal], if you ever need to.
 - Performant: by using Rust and being designed around the concept of good performances,
   **luminance** should allow you to build nice and fast simulations, animations and video games.
   Remember that games you played years ago didn’t have [Vulkan] and were impressive nonetheless.
-      	It’s unlikely you will get 100% out of your GPU by using **luminance** since it’s built over
-      	technologies that are not using 100% of your GPU. Unless you need and know exactly why you need
-      	100% of your GPU, you should be _just fine™_.
+  It’s unlikely you will get 100% out of your GPU by using **luminance** since it’s built over
+  technologies that are not using 100% of your GPU. Unless you need and know exactly why you need
+  100% of your GPU, you should be _just fine™_.
 - Elegant: the design is heavily based on functional programming concepts such as typeclasses,
-      	associated types, singleton types, existentials, contravariant resources, procedural macros,
-      	strong typing, etc. Plus, every bit of possible _stateful_ computations is hidden behind a
+  associated types, singleton types, existentials, contravariant resources, procedural macros,
+  strong typing, etc. Plus, every bit of possible _stateful_ computations is hidden behind a
   system of smart state, removing the need to worry about side-effects. **luminance** still has
   mutation (unless its Haskell version) but the Rust type system and borrow checker allows for
   safe mutations.
@@ -74,7 +74,7 @@ The strengths of **luminance** are:
   It needs to be opinionated to allow some design constructs to be possible and optimize
   performance and allow for extra safety. However, it must not be too much to prevent it to become
   a _framework_. **luminance** is a _library_, not a _framework_, meaning that it will adapt to
- 	how **you** think you should design your software, not the other way around. That is limited to
+  how **you** think you should design your software, not the other way around. That is limited to
   the design of **luminance** but you shouldn’t feel too hands-tied.
 
 # The luminance ecosystem
@@ -150,13 +150,14 @@ Those projects use luminance:
 
 [luminance]: ./luminance
 [luminance-derive]: ./luminance-derive
-[luminance-glfw]: ./luminance-gl
+[luminance-gl]: ./luminance-gl
 [luminance-glfw]: ./luminance-glfw
 [luminance-glutin]: ./luminance-glutin
 [luminance-sdl2]: ./luminance-sdl2
 [luminance-webgl]: ./luminance-webgl
 [luminance-web-sys]: ./luminance-web-sys
 [luminance-windowing]: ./luminance-windowing
+[luminance-front]: ./luminance-front
 [glutin]: https://crates.io/crates/glutin
 [gfx-hal]: https://crates.io/crates/gfx-hal
 [sdl2]: https://crates.io/crates/sdl2
