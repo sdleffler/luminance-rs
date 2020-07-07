@@ -110,6 +110,7 @@ It is currently composed of several different crates:
 ## Other crates
 
 - [luminance-examples]: a combination of examples to show off some features / techniques.
+- [luminance-examples-web]: same as above, but for the Web.
 
 # Learning
 
@@ -158,6 +159,7 @@ Those projects use luminance:
 [luminance-web-sys]: ./luminance-web-sys
 [luminance-windowing]: ./luminance-windowing
 [luminance-front]: ./luminance-front
+[luminance-examples]: ./luminance-examples
 [glutin]: https://crates.io/crates/glutin
 [gfx-hal]: https://crates.io/crates/gfx-hal
 [sdl2]: https://crates.io/crates/sdl2
