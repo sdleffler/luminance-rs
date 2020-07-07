@@ -10,3 +10,5 @@ extern crate serde_derive;
 #[macro_use]
 mod slice;
 pub mod webgl2;
+
+pub use webgl2::WebGL2;
