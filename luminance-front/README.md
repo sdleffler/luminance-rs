@@ -1,3 +1,5 @@
+# luminance-front
+
 <!-- cargo-sync-readme start -->
 
 [luminance], but with a backend type picked at compile-time.

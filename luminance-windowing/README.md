@@ -1,3 +1,5 @@
+# luminance-windowing
+
 <!-- cargo-sync-readme start -->
 
 # The windowing types for luminance
