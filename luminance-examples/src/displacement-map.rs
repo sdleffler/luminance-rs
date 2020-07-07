@@ -68,12 +68,9 @@ fn main() {
   .expect("Could not load displacement map")
   .to_rgb();
 
-  let mut surface = GlfwSurface::new_gl33(
-    WindowDim::Windowed { width, height },
-    "Displacement Map",
-    WindowOpt::default(),
-  )
-  .expect("Could not create GLFW surface");
+  let dim = WindowDim::Windowed { width, height };
+  let mut surface = GlfwSurface::new_gl33("Displacement Map", WindowOpt::default().set_dim(dim))
+    .expect("Could not create GLFW surface");
 
   let texels = texture_image.into_raw();
   let mut tex = surface

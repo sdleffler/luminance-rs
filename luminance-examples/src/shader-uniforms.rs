@@ -56,15 +56,12 @@ struct ShaderInterface {
 }
 
 fn main() {
-  let mut surface = GlfwSurface::new_gl33(
-    WindowDim::Windowed {
-      width: 960,
-      height: 540,
-    },
-    "Hello, world!",
-    WindowOpt::default(),
-  )
-  .expect("GLFW surface creation");
+  let dim = WindowDim::Windowed {
+    width: 960,
+    height: 540,
+  };
+  let mut surface = GlfwSurface::new_gl33("Hello, world!", WindowOpt::default().set_dim(dim))
+    .expect("GLFW surface creation");
 
   // see the use of our uniform interface here as thirds type variable
   let mut program = surface

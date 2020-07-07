@@ -70,15 +70,12 @@ struct Colors {
 
 fn main() {
   // first thing first: we create a new surface to render to and get events from
-  let mut surface = GlfwSurface::new_gl33(
-    WindowDim::Windowed {
-      width: 960,
-      height: 540,
-    },
-    "Hello, world!",
-    WindowOpt::default(),
-  )
-  .expect("GLFW surface creation");
+  let dim = WindowDim::Windowed {
+    width: 960,
+    height: 540,
+  };
+  let mut surface = GlfwSurface::new_gl33("Hello, world!", WindowOpt::default().set_dim(dim))
+    .expect("GLFW surface creation");
 
   // we need a program to “shade” our triangles and to tell luminance which is the input vertex
   // type, and we’re not interested in the other two type variables for this sample

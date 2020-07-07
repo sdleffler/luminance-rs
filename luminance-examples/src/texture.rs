@@ -48,12 +48,9 @@ fn run(texture_path: &Path) {
   let img = read_image(texture_path).expect("error while reading image on disk");
   let (width, height) = img.dimensions();
 
-  let mut surface = GlfwSurface::new_gl33(
-    WindowDim::Windowed { width, height },
-    "Hello, world!",
-    WindowOpt::default(),
-  )
-  .expect("GLFW surface creation");
+  let dim = WindowDim::Windowed { width, height };
+  let mut surface = GlfwSurface::new_gl33("Hello, world!", WindowOpt::default().set_dim(dim))
+    .expect("GLFW surface creation");
 
   let mut tex = load_from_disk(&mut surface, img);
 

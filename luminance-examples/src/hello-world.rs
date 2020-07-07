@@ -138,13 +138,13 @@ impl TessMethod {
 
 fn main() {
   // First thing first: we create a new surface to render to and get events from.
+  let dim = WindowDim::Windowed {
+    width: 960,
+    height: 540,
+  };
   let mut surface = GlfwSurface::new_gl33(
-    WindowDim::Windowed {
-      width: 960,
-      height: 540,
-    },
     "Hello, world; from OpenGL 3.3!",
-    WindowOpt::default(),
+    WindowOpt::default().set_dim(dim),
   )
   .expect("GLFW surface creation");
 

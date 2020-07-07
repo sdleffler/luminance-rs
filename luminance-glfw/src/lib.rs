@@ -79,7 +79,7 @@ pub struct GlfwSurface {
 
 impl GlfwSurface {
   /// Create a [`GlfwSurface`].
-  pub fn new_gl33<S>(dim: WindowDim, title: S, win_opt: WindowOpt) -> Result<Self, GlfwSurfaceError>
+  pub fn new_gl33<S>(title: S, win_opt: WindowOpt) -> Result<Self, GlfwSurfaceError>
   where
     S: AsRef<str>,
   {
@@ -101,6 +101,7 @@ impl GlfwSurface {
 
     // open a window in windowed or fullscreen mode
     let title = title.as_ref();
+    let dim = win_opt.dim;
     let (mut window, events_rx) = match dim {
       WindowDim::Windowed { width, height } => glfw
         .create_window(width, height, title, WindowMode::Windowed)
