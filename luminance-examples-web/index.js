@@ -10,6 +10,7 @@ rust
     // get the scene and set it up (events)
     const scene = wasm.get_scene('luminance-canvas');
 
+    // handle the space (' ') key to toggle the tess method
     window.onkeypress = (event) => {
       switch (event.key) {
         case ' ':
