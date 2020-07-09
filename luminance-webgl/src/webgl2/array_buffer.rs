@@ -2,9 +2,9 @@
 ///
 /// This is an unsafe operation, as <$buffer>::view() requires that the underlying memory not be moved until the Array Buffer is dropped.
 ///
-/// Primitives: u8, i8, u16, i16, u32, i32, f32, f64
+/// Supported primitives: u8, i8, u16, i16, u32, i32, f32, f64
 ///
-/// Tuples: T, (T, T), (T, T, T), and (T, T, T, T)
+/// Supported tuples: T, (T, T), (T, T, T), and (T, T, T, T)
 pub trait IntoArrayBuffer: Sized {
   unsafe fn into_array_buffer(texels: &[Self]) -> js_sys::Object;
 }
@@ -33,10 +33,8 @@ macro_rules! impl_tuple_IntoArrayBuffer {
 
     impl IntoArrayBuffer for $tuple {
       unsafe fn into_array_buffer(texels: &[Self]) -> js_sys::Object {
-        let slice = std::slice::from_raw_parts(
-          texels.as_ptr() as *const $t,
-          texels.len() * $n * std::mem::size_of::<$tuple>(),
-        );
+        let slice: &[$t] =
+          std::slice::from_raw_parts(texels.as_ptr() as *const $t, texels.len() * $n);
 
         <$buffer>::view(slice).into()
       }
