@@ -158,7 +158,7 @@ pub fn get_scene(canvas_name: &str) -> Scene {
 
   // We need a program to “shade” our triangles and to tell luminance which is the input vertex
   // type, and we’re not interested in the other two type variables for this sample.
-  let mut program = surface
+  let program = surface
     .new_shader_program::<Semantics, (), ()>()
     .from_strings(VS, None, None, FS)
     .expect("program creation")
