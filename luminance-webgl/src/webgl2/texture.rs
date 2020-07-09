@@ -10,6 +10,7 @@ use std::rc::Rc;
 use std::slice;
 use web_sys::{WebGl2RenderingContext, WebGlTexture};
 
+use super::array_buffer::IntoArrayBuffer;
 use crate::webgl2::pixel::webgl_pixel_format;
 use crate::webgl2::state::WebGL2State;
 use crate::webgl2::WebGL2;
@@ -45,6 +46,8 @@ unsafe impl<D, P> TextureBackend<D, P> for WebGL2
 where
   D: Dimensionable,
   P: Pixel,
+  P::Encoding: IntoArrayBuffer,
+  P::RawEncoding: IntoArrayBuffer,
 {
   unsafe fn new_texture(
     &mut self,
@@ -392,9 +395,7 @@ where
           create_texture_2d_storage(
             state,
             WebGl2RenderingContext::TEXTURE_2D,
-            format,
             iformat,
-            encoding,
             D::width(size),
             D::height(size),
             mipmaps,
@@ -407,9 +408,7 @@ where
           create_texture_3d_storage(
             state,
             WebGl2RenderingContext::TEXTURE_3D,
-            format,
             iformat,
-            encoding,
             D::width(size),
             D::height(size),
             D::depth(size),
@@ -429,9 +428,7 @@ where
           create_texture_3d_storage(
             state,
             WebGl2RenderingContext::TEXTURE_2D_ARRAY,
-            format,
             iformat,
-            encoding,
             D::width(size),
             D::height(size),
             D::depth(size),
@@ -451,33 +448,14 @@ where
 fn create_texture_2d_storage(
   state: &mut WebGL2State,
   target: u32,
-  format: u32,
   iformat: u32,
-  encoding: u32,
   w: u32,
   h: u32,
   mipmaps: usize,
 ) -> Result<(), TextureError> {
-  for level in 0..mipmaps {
-    let div = 1 << level as u32;
-    let w = w / div;
-    let h = h / div;
-
-    state
-      .ctx
-      .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_i32(
-        target,
-        level as i32,
-        iformat as i32,
-        w as i32,
-        h as i32,
-        0,
-        format,
-        encoding,
-        0,
-      )
-      .map_err(|e| TextureError::TextureStorageCreationFailed(format!("{:?}", e)))?;
-  }
+  state
+    .ctx
+    .tex_storage_2d(target, mipmaps as i32, iformat, w as i32, h as i32);
 
   Ok(())
 }
@@ -485,36 +463,20 @@ fn create_texture_2d_storage(
 fn create_texture_3d_storage(
   state: &mut WebGL2State,
   target: u32,
-  format: u32,
   iformat: u32,
-  encoding: u32,
   w: u32,
   h: u32,
   d: u32,
   mipmaps: usize,
 ) -> Result<(), TextureError> {
-  for level in 0..mipmaps {
-    let div = 1 << level as u32;
-    let w = w / div;
-    let h = h / div;
-    let d = d / div;
-
-    state
-      .ctx
-      .tex_image_3d_with_i32(
-        target,
-        level as i32,
-        iformat as i32,
-        w as i32,
-        h as i32,
-        d as i32,
-        0,
-        format,
-        encoding,
-        0,
-      )
-      .map_err(|e| TextureError::TextureStorageCreationFailed(format!("{:?}", e)))?;
-  }
+  state.ctx.tex_storage_3d(
+    target,
+    mipmaps as i32,
+    iformat,
+    w as i32,
+    h as i32,
+    d as i32,
+  );
 
   Ok(())
 }
@@ -578,7 +540,6 @@ fn set_pack_alignment(state: &mut WebGL2State, skip_bytes: usize) {
     .ctx
     .pixel_storei(WebGl2RenderingContext::PACK_ALIGNMENT, pack_alignment);
 }
-
 // Upload texels into the texture’s memory. Becareful of the type of texels you send down.
 fn upload_texels<D, P, T>(
   state: &mut WebGL2State,
@@ -590,6 +551,7 @@ fn upload_texels<D, P, T>(
 where
   D: Dimensionable,
   P: Pixel,
+  T: IntoArrayBuffer,
 {
   // number of bytes in the input texels argument
   let input_bytes = texels.len() * mem::size_of::<T>();
@@ -608,12 +570,20 @@ where
   let skip_bytes = (D::width(size) as usize * pf_size) % 8;
   set_unpack_alignment(state, skip_bytes);
 
+  let array_buffer;
+  unsafe {
+    array_buffer = T::into_array_buffer(texels);
+  }
+
   match webgl_pixel_format(pf) {
     Some((format, _, encoding)) => match D::dim() {
       Dim::Dim2 => {
+        // if pf.encoding == Type::Floating {
+        //   let texels = texels.iter().map(|e| e as f32)
+        // }
         state
           .ctx
-          .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_u8_array_and_src_offset(
+          .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_array_buffer_view_and_src_offset(
             target,
             0,
             D::x_offset(off) as i32,
@@ -622,12 +592,7 @@ where
             D::height(size) as i32,
             format,
             encoding,
-            unsafe {
-              slice::from_raw_parts(
-                texels.as_ptr() as *const u8,
-                texels.len() * mem::size_of::<T>(),
-              )
-            },
+            &array_buffer,
             0,
           )
           .map_err(|e| TextureError::CannotUploadTexels(format!("{:?}", e)))?;
@@ -636,7 +601,7 @@ where
       Dim::Dim3 => {
         state
           .ctx
-          .tex_sub_image_3d_with_opt_u8_array(
+          .tex_sub_image_3d_with_opt_array_buffer_view(
             target,
             0,
             D::x_offset(off) as i32,
@@ -647,12 +612,7 @@ where
             D::depth(size) as i32,
             format,
             encoding,
-            unsafe {
-              Some(slice::from_raw_parts(
-                texels.as_ptr() as *const u8,
-                texels.len() * mem::size_of::<T>(),
-              ))
-            },
+            Some(&array_buffer),
           )
           .map_err(|e| TextureError::CannotUploadTexels(format!("{:?}", e)))?;
       }
@@ -660,7 +620,7 @@ where
       Dim::Cubemap => {
         state
           .ctx
-          .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_u8_array_and_src_offset(
+          .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_array_buffer_view_and_src_offset(
             WebGl2RenderingContext::TEXTURE_CUBE_MAP_POSITIVE_X + D::z_offset(off),
             0,
             D::x_offset(off) as i32,
@@ -669,12 +629,7 @@ where
             D::height(size) as i32,
             format,
             encoding,
-            unsafe {
-              slice::from_raw_parts(
-                texels.as_ptr() as *const u8,
-                texels.len() * mem::size_of::<T>(),
-              )
-            },
+            &array_buffer,
             0,
           )
           .map_err(|e| TextureError::CannotUploadTexels(format!("{:?}", e)))?;
@@ -683,7 +638,7 @@ where
       Dim::Dim2Array => {
         state
           .ctx
-          .tex_sub_image_3d_with_opt_u8_array(
+          .tex_sub_image_3d_with_opt_array_buffer_view(
             target,
             0,
             D::x_offset(off) as i32,
@@ -694,12 +649,7 @@ where
             D::depth(size) as i32,
             format,
             encoding,
-            unsafe {
-              Some(slice::from_raw_parts(
-                texels.as_ptr() as *const u8,
-                texels.len() * mem::size_of::<T>(),
-              ))
-            },
+            Some(&array_buffer),
           )
           .map_err(|e| TextureError::CannotUploadTexels(format!("{:?}", e)))?;
       }
