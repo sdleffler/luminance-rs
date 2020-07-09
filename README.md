@@ -136,14 +136,19 @@ Please read the [CONTRIBUTING](CONTRIBUTING.md) document.
 Those projects use luminance:
 
 - [Céleri Rémoulade](https://github.com/phaazon/celeri-remoulade).
-  - A demoscene production by [@phaazon](https://github.com/phaazon), released at Evoke 2016 in the PC Demo category.
+  - A demoscene production by [@phaazon](https://github.com/phaazon), released at Evoke 2016 in the
+    PC Demo category.
 - [Outline 2017 Invitro](https://github.com/phaazon/outline-2017-invitro).
   - A demoscene production by [@phaazon](https://github.com/phaazon),
   released at Revision 2017 in the PC Demo category.
 - [Dali Renderer](https://github.com/austinjones/dali-rs)
-  - A rendering library by [@austinjones](https://github.com/austinjones), designed to generate high-resolution digital paintings to be printed on canvas.
+  - A rendering library by [@austinjones](https://github.com/austinjones), designed to generate
+    high-resolution digital paintings to be printed on canvas.
 - [Rx](https://rx.cloudhead.io)
-  - A modern and minimalist pixel editor. Rx's GL backend is built on `luminance`.
+  - A modern and minimalist pixel editor. Rx's GL backend is built on luminance.
+- [luminance-glyph](https://github.com/JohnDoneth/luminance-glyph)
+  - A fast text renderer for luminance by [@JohnDoneth](https://github.com/JohnDoneth), powered by
+    [glyph_brush](https://crates.io/crates/glyph_brush).
 
 # Licenses
 
