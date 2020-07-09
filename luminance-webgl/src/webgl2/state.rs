@@ -129,6 +129,8 @@ impl WebGL2State {
 
   /// Get a `GraphicsContext` from the current OpenGL context.
   fn get_from_context(mut ctx: WebGl2RenderingContext) -> Result<Self, StateQueryError> {
+    load_webgl2_extensions(&mut ctx)?;
+
     let binding_stack = BindingStack::new();
     let viewport = get_ctx_viewport(&mut ctx)?;
     let clear_color = get_ctx_clear_color(&mut ctx)?;
@@ -140,6 +142,7 @@ impl WebGL2State {
     let face_culling_state = get_ctx_face_culling_state(&mut ctx);
     let face_culling_order = get_ctx_face_culling_order(&mut ctx)?;
     let face_culling_mode = get_ctx_face_culling_mode(&mut ctx)?;
+
     let current_texture_unit = 0;
     let bound_textures = vec![(WebGl2RenderingContext::TEXTURE0, None); 48]; // 48 is the platform minimal requirement
     let texture_swimming_pool = Vec::new();
@@ -558,6 +561,8 @@ pub enum StateQueryError {
   CannotRetrieveBlendingDstFactorRGB,
   /// Destination alpha factor couldn’t be retrieved when initializing the WebGL2 state.
   CannotRetrieveBlendingDstFactorAlpha,
+  /// Required WebGL extensions cannot be enabled
+  CannotRetrieveRequiredWebGL2Extensions(Vec<String>),
   /// Corrupted blending source factor (RGB).
   UnknownBlendingSrcFactorRGB(u32),
   /// Corrupted blending source factor (alpha).
@@ -614,6 +619,12 @@ impl fmt::Display for StateQueryError {
       StateQueryError::CannotRetrieveBlendingDstFactorAlpha => {
         f.write_str("cannot retrieve blending destination factor (alpha)")
       }
+
+      StateQueryError::CannotRetrieveRequiredWebGL2Extensions(ref extensions) => write!(
+        f,
+        "missing WebGL2 extensions: [{}]",
+        extensions.join(", ").as_str()
+      ),
 
       StateQueryError::UnknownBlendingSrcFactorRGB(ref k) => {
         write!(f, "unknown blending source factor (RGB): {}", k)
@@ -799,6 +810,30 @@ fn get_ctx_face_culling_mode(
     WebGl2RenderingContext::FRONT_AND_BACK => Ok(FaceCullingMode::Both),
     _ => Err(StateQueryError::UnknownFaceCullingMode),
   }
+}
+
+fn load_webgl2_extensions(ctx: &mut WebGl2RenderingContext) -> Result<(), StateQueryError> {
+  let required_extensions = ["OES_texture_float_linear", "EXT_color_buffer_float"];
+
+  let available_extensions: Vec<&str> = required_extensions
+    .iter()
+    .map(|ext| (*ext, ctx.get_extension(ext)))
+    .flat_map(|(ext, result)| result.ok().flatten().map(|_| ext))
+    .collect();
+
+  if available_extensions.len() < required_extensions.len() {
+    let missing_extensions: Vec<String> = required_extensions
+      .iter()
+      .filter(|e| !available_extensions.contains(e))
+      .map(|e| e.to_string())
+      .collect();
+
+    return Err(StateQueryError::CannotRetrieveRequiredWebGL2Extensions(
+      missing_extensions,
+    ));
+  }
+
+  Ok(())
 }
 
 /// Should the binding be cached or forced to the provided value?
