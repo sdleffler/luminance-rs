@@ -11,6 +11,8 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.40](#040)
+  * [Migration from 0.39](#migration-from-039)
 * [0.39](#039)
   * [Major changes](#major-changes)
   * [Minor changes](#minor-changes)
@@ -114,6 +116,225 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.40
+
+> ?
+
+- Remove features. Both `"std"` and `"gl"` were removed. See the [luminance-gl] crate if you want
+  to use OpenGL. Right now, the demand for `no_std` being inexistent, its support got dropped
+  as well; there is no replacement.
+- Rework completely the [luminance] crate to make it backend-agnostic. In pre-luminance-0.40, a
+  type such as `Buffer<T>` had only one type variable. From now on, types get an additional first
+  type parameter, noted `B`, which represents the backend the type is compatible with. The type
+  `Buffer<B, T>` a backend-agnostic buffer of type `T`. [luminance] doesn’t contain any effectful
+  code: you will have to select a backend type.
+- Introduce the [luminance-gl] backend type crate. This crate exposes the `GL33` backend type that
+  implements the various traits exported from `luminance::backend::*` needed to be implemented to
+  effectively run code on a device (typically a GPU).
+- The `TessBuilder` and `Tess` types have been completely reworked to support several type-safe
+  features:
+  - _Type state_: `TessBuilder` now implements a form of _type state_ safety to ensure that some
+    functions / methods are available for a few types only. Calling those functions will mutate
+    the type of `TessBuilder`, giving access to other methods.
+  - _Refinement typing_: `Tess` and `TessBuilder` are now customized via several type variables.
+    Among them, the type of vertex (`V`), the type of index (`I`), the type of vertex instance
+    attribute (`W`) and the type of vertex storage (`S`). The latter is described later below.
+  - _Type-driven APIs_: instead of providing an index to a method to set a specific attribute set,
+    you simply use the same method but with a different type: it will automatically detect where
+    to put the data you provide (same for reading / slicing). This new way of doing is a huge
+    improvement in the comfort, elegancy and safety when using the `Tess` APIs. More on this
+    in the migration guide below.
+- Introduce the `Vertices{,Mut}`, `Indices{,Mut}` and `Instances{,Mut}` types, representing
+  mapped slices of respectively vertices, indices and vertex instance data.
+- `Tess` now supports slicing deinterleaved memory, while it was forbidden before.
+- `Tess` now embarks the concept of memory interleaving or deinterleaving in its type via the
+ `S` type variable.
+- Bound resources (textures, buffers) were redesigned as well to be friendlier to use. Previously,
+  you would typically use a [BoundTexture](https://docs.rs/luminance/0.39.0/luminance/pipeline/struct.BoundTexture.html)
+  as a uniform. Now, a bound texture gives you the method `BoundTexture::binding` that can be
+  passed as uniform in shaders — same applies to bound buffers. That change was required to make
+  scarce resources bind in a more flexible and backend-agnostic way.
+- Completely remove any OpenGL-related symbol. Those now belong to [luminance-gl]
+- Introduce the `ProgramInterface` type. This type is a new _bridge_ type between a `Program` and
+  various things you can do with its interface. Right now, it supports both setting `Uniform`
+  values from the uniform interface, and, as before, provides a method to make dynamic uniform
+  queries (useful if you’re writing a GUI or scripting, for instance).
+- Change the way `Uniform` objects work. They do not have the `Uniform::update` method anymore
+  and their meaning have changed a bit. They are now used as “keys” you can pass to a
+  `ProgramInterface` to update the respective shader variable. The difference yields an API that
+  is more flexible and will authorize more optimization by the backends.
+- Introduce the `TextureBinding` and `BufferBinding` in place of `BoundTexture` and `BoundBuffer`.
+  The two later still exist and provide a method (`binding()`) to get the two former. As described
+  above, the binding objects can be passed to update a `Uniform` and allow for a more flexible
+  interface that can work with several backends.
+- Internal refactoring of various functions and macros.
+- `Texture::get_raw_texels` now works on immutable textures rather than mutable ones.
+- Remove the `luminance::linear` module. It contained type aliases for matrices that don’t really
+  make sense to be aliased, as they are really used only at a few places.
+- Framebuffers and textures mutability schemes have been fixed to correctly lock them in place when
+  needed.
+- The `luminance::vertex_restart` module has been deleted as it’s now a backend-dependent feature.
+- The blending (i.e. `RenderState::set_blending`) has been made more user-friendly by removing the
+  weird and confusing triple and replacing it with the `Blending` type.
+- Add the [luminance logo].
+- Add support for [dependabot].
+- Remove the `bin/viewer` project. This project is still available as part of the Chapter 3 of the
+  Learn Luminance book, [here](https://github.com/rust-tutorials/learn-luminance/tree/master/examples/chapter-3).
+- Add the possibility to move color slots and/or depth slots out of a `Framebuffer`.
+- Make all errors `#[non_exhaustive]`. This will be a breaking change for you if you used to
+  pattern-match against any error, but from now on any new error variant can be released as a
+  minor bump.
+- Buffer and tessellation slicing is now made safer: once you have asked to slice a buffer or a
+  tessellation, you can use `Deref` and `DerefMut` to directly access the mapped memory.
+- Fix a bug in shader programs that would perform double-free on the GPU when dropped in various
+  tricky situations.
+- Rename `GraphicsContext::pipeline_gate` into `GraphicsContext::new_pipeline_gate`.
+- Fix the boolean encoding of boolean vertex attributes. It was incorrectly set and wrong type
+  formats were passed to the GPU.
+- Add the `ProgramBuilder` helper type. This type allows you to create shader programs without
+  having to worry too much about the highly generic interface of shader programs by letting
+  rustc infer the type variables for you.
+- Add the [luminance-webgl] crate as a backend implementation of WebGL2 to get start with.
+- Implement `std::error::Error` for various types of the crate.
+- Add the [luminance-sdl2] crate as a platform implementation for the [sdl2] crate.
+- Update the [CONTRIBUTING](../CONTRIBUTING.md) file.
+- Rename `Buffer::from_slice` into `Buffer::from_vec`. The big difference is that the input data
+  must now be owned. However, you shouldn’t have lots of things to do as the interface takes a
+  `Into<Vec<T>>`, so your previous slice should work and gets cloned here.
+- Add support for separate RGB/alpha blending. You can now provide per-RGB and per-alpha blending
+  equations and factors.
+- Enrich the possible shader errors that can happen.
+- Add the [luminance-front] crate. This is a very special crate which goal is to simplify working
+  with [luminance] types. See the migration guide below for further details.
+- Add helper methods to create error types requiring owned data via a better API.
+- Rename `TessSlice` into `TessView` and updated the subsequente method to make them simpler to
+  remember (e.g. `one_whole` -> `whole`, etc.)
+- The shader code now lives in `luminance::shader`.
+- Make `RenderState`’s fields private so that adding new features to render states is not a
+  breaking change (`#[non_exhaustive]` is not really wanted here).
+
+## Migration from 0.39
+
+- The backend architecture has a lot of impact on the internals and, by default, on the types you
+  might be using, such as `Buffer<T>` vs. `Buffer<B, T>`. You have three possibilities to migrate
+  your types there:
+  1. Either use a generic version by constraining `B` in `Buffer<B, T>` correctly (e.g. you need
+    to constrain it with `luminance::backend::Buffer<T>` for normal operations and
+    `luminance::backend::BufferSlice<T>` if you plan to slice it.
+  2. Use a specific version of `B` by using a backend type. The advantage is that it’s easier but
+    the drawback is that you will not be able to adapt to several backends.
+  3. Use [luminance-front], that will automatically pick the right backend type for you and will
+    provide type aliases without having to care about `B`. Hence,
+    `luminance::buffer::Buffer<B, T>` becomes `luminance_front::buffer::Buffer<T>`. The backend
+    type is selected at compile type based on your compile target and optionally the feature
+    gates you enable.
+- Selecting a backend type is just a better of either using [luminance-gl] and letting it do it for
+  you, or depend on the backend crate you want, such as [luminance-gl] or [luminance-webgl], pick
+  the type, such as `luminance_gl::GL33` or `luminance_webgl::WebGL2` and use it when creating
+  a surface. Normally, if you use a platform crate, such as [luminance-glfw], [luminance-glutin] or
+  [luminance-web-sys], all this selection should be done automatically for you.
+- Tessellations (`TessBuilder` and `Tess`) have been considerably reworked and most of the work you
+  will have to migrate will be there. On 0.39, builders’ methods were fallible, requiring you to
+  either warp your `Tess` creation in a `Result<_, TessError>` function, or use the
+  `Result::and_then` combinator — you could also use `Result::unwrap` / `Result::expect`, but
+  _don’t_. In this release, only the last call `build` is fallible, so you can now chain the method
+  in a more traditional and Rust way. The other massive difference is how you will pass data:
+  - If you were using [add_vertices](https://docs.rs/luminance/0.39.0/luminance/tess/struct.TessBuilder.html#method.add_vertices),
+    three possible situations:
+    - You made _no_ call to it: you still don’t need to make any call.
+    - You made a _single_ call to it: it means that you are using _interleaved memory_; and the
+      input slice you pass represents an ordered list of vertices, with their attributes all
+      interleaved. In this case, you want to change that call to `set_vertices` instead, which now
+      expects owned data (i.e. `Vec<V>`) and `V: TessVertexData<Interleaved, Data = Vec<V>>` must
+      be satisfied — if `V: Vertex`, then it’s always okay.
+    - You made _several_ calls to it: it meant you wanted _deinterleaved memory_; every call to
+      `add_vertices` adds a new set representing a new vertex attribute set. The way you migrate
+      that code is actually easy: you need to replace all `add_vertices` calls with `set_attributes`.
+      It expects the same owned data as input — `Vec<A>` — but the constraint is `V: Deinterleave<A>`.
+      If you used [luminance-derive] on your vertex type, `Deinterleave<A>` is implemented for all
+      the attributes (`A`) types you might want to use. Simply call `set_attributes` with all your
+      attributes array / vectors / whatever and the type system will do the rest for you.
+  - If you were using [add_instances](https://docs.rs/luminance/0.39.0/luminance/tess/struct.TessBuilder.html#method.add_instances),
+    it works the same way as described above, but with the `W` type and the `set_instances` method.
+  - The [set_indices](https://docs.rs/luminance/0.39.0/luminance/tess/struct.TessBuilder.html#method.set_indices)
+    doesn’t change much, besides requiring owned data as well.
+- Migrating to the new `BindTexture` and `BindBuffer` is easy: you still bind the resources the same
+  way, but now you need to call the `binding()` method to get an object that is able to be passed down
+  to shaders.
+- The uniform interfaces work differently. Instead of getting your uniform interface and upload values
+  to it directly, you know get both the uniform interface _and_ a `ProgramInterface`, which allows you
+  to set the uniforms from the uniform interface. That might feel like a weirder API, but it’s actually
+  pretty simple if think of a `Uniform<T>` as a key into a `ProgramInterface`. The
+  `ProgramInterface::set` method feels pretty natural to use once you know that. Also, it enables
+  backends to take smart decision regarding uniform setting.
+- If you were using blending, the triple to give the equation to use, source and destinatio factors
+  has been removed and replaced by `Blending`. You now have to explicitly state the field of the
+  blending. You will want to replace this kind of example:
+  ```rust
+  render_state.set_blending((Equation::Additive, Factor::SrcAlpha, Factor::Zero));
+  ```
+  with:
+  ```rust
+  render_state.set_blending(
+    Blending {
+      equation: Equation::Additive,
+      src: Factor::SrcAlpha,
+      dst: Factor::Zero
+    }
+  );
+  ```
+  This change makes it much easier to understand what is what and even though it’s a bit more
+  verbose, it’s easier to read and less dark magic.
+- The new way to create GPU scarce resources, such as buffers, textures, framebuffers and shaders
+  is to use methods of the `GraphicsContext` trait. You will often typically need to import it
+  first — or the platform crate must implement the functions for you, which is also a good habit.
+  If it’s not the case, simply add this at the top of your file:
+  ```rust
+  use luminance::context::GraphicsContext as _; // it’s unlikely you’ll need to refer to GraphicsContext
+  ```
+  Then, using the platform object (typically called a _surface_ in the platform crate), you can simply
+  invoke the various methods from the trait. They usually start with `new_` and the name of the
+  resource. For instance:
+  ```rust
+  let buffer = glfw_surface.new_buffer(10)?;
+  ```
+- Most types of [luminance] got replaced with a generic version (for those not already having
+  type variables). The `B` type variable can now be found in types that belong to two scopes:
+  - The _API_ scope.
+  - The _backend_ scope.
+  The API scope is what you are used to: you use types via the front-facing API and you get all
+  the brain candies [luminance] has to offer — type states, refinement typing, etc. However,
+  the backend scope is a new layer in the architecture that splits the responsibilities of types:
+  the API part must encode all the type-level contracts, such as compile-time state tracking,
+  side-effects protection, refinement typing, etc. and the backend part must implement the actual
+  GPU work. That `B` type variable represents a type which is associated actual, real-world
+  GPU / device types and will most of the time be selected by what is called a _platform_ crate.
+  It’s up to you to decide whether you want to handle that complexity — it can be an option if you
+  want to have the power to dynamically pick a different backend at runtime — or if you want to
+  just get it done already. In that last case, people just writing small binaries, games or
+  simply testing stuff won’t care much about writing generic code that will work for all possible
+  platforms. In that case, [luminance-front] will be a great ally. The idea is that the crate
+  selects the right type for `B` and export type aliases to all [luminance]’s types so that the
+  `B` type variable doesn’t have to be provided. A type such as `Buffer<B, T>` becomes
+  `Buffer<T>` — like it used to be pre-0.40 — with [luminance-front]. By convenience, that crate
+  also exports non-polymorphic types so that you can simply `use luminance_front::` without
+  having to `use luminance::`. However, keep in mind that if you use the [luminance-derive] crate,
+  you will still have to have [luminance] in your `Cargo.toml`.
+- Add the [luminance-web-sys] crate as a platform crate for the Web and WebGL.
+- Add the [luminance-examples-web] crate that showcases some [luminance-examples] samples, but
+  rewritten for the Web.
+- If you were using the concept of _tessellation mapping_ (previously known as `TessSlice`), that
+  has been renamed `TessView` (i.e. viewing), because texture slicing is _also_ a feature that
+  allows to get a slice (`&[]` / `&mut []`) for subparts of a tessellation. You will want to update
+  your code and replace call to function such as `one_whole` into `whole`, `one_slice` into
+  `slice`, `one_sub` into `sub` etc. The `TessView` trait has now two renamed methods: `view` and
+  `inst_view`, which works the same way they used to (with range operators).
+- If you used the `Program` type directly by importing it from `luminance::shader::program`, you
+  now need to import all shader-related code from `luminance::shader` directly.
+- If you were reading the `RenderState`’s, because they are now private, you can access them via
+  the `blending()`, `depth_test()` and `face_culling()` methods.
+
 # 0.39
 
 > Sat Feb 20th 2020
@@ -163,7 +384,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 - Add displacement map example.
 - README.md update.
 - Internal optimization with GPU state tracking.
-- Examples were removed from the `luminance` crate and put into a `luminance-examples` crate.
+- Examples were removed from the `luminance` crate and put into a [luminance-examples] crate.
   This small changes has been required for a while to prevent a weird cyclic dependency apocalypse
   when updating to crates.io.
 - Support of `gl-0.14`.
@@ -939,8 +1160,16 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 [luminance]: https://crates.io/crates/luminance
 [luminance-derive]: https://crates.io/crates/luminance-derive
+[luminance-examples]: ./luminance-examples
+[luminance-examples-web]: ./luminance-examples-web
 [luminance-windowing]: https://crates.io/crates/luminance-windowing
+[luminance-gl]: https://crates.io/crates/luminance-gl
 [luminance-glfw]: https://crates.io/crates/luminance-glfw
 [luminance-glutin]: https://crates.io/crates/luminance-glutin
+[luminance-webgl]: https://crates.io/crates/luminance-webgl
+[luminance-web-sys]: https://crates.io/crates/luminance-web-sys
 [glutin]: https://crates.io/crates/glutin
 [#189]: https://github.com/phaazon/luminance-rs/issues/189
+[luminance logo]: ../docs/imgs/luminance.svg
+[dependabot]: https://dependabot.com
+[sdl2]: https://crates.io/crates/sdl2

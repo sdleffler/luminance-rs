@@ -11,6 +11,8 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.9](#09)
+  * [Migration guide](#migration-guide)
 * [0.8.1](#081)
 * [0.8](#08)
 * [0.7](#07)
@@ -33,6 +35,24 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1.0](#010)
 
 <!-- vim-markdown-toc -->
+
+# 0.9
+
+> ?
+
+- Most features got removed and the crate is now a simple convience crate to provide some very
+  common / naive types, such as `WindowDim` and `WindowOpt`. It is important that people realize
+  that windowing (a.k.a. platform) code is specific to each crates and that there is no easy way
+  (and it’s not even interesting) to abstract over them. The `Surface` trait for instance, is
+  too much opinionated for the extern boundary of luminance.
+- Support for `glfw-0.39`.
+- Implement `std::error::Error` for various types of the crate.
+
+## Migration guide
+
+- If you were using a type that was removed, odds are that you will find the same feature in the
+  `luminance-<platform-name>` crate. For instance, the `back_buffer` method is still available in
+  [luminance-glfw] for instance.
 
 # 0.8.1
 
@@ -152,3 +172,5 @@ compatible with as many crates as possible. In that case, you want `cargo update
 > Saturday, 30th of September, 2017
 
 - Initial revision.
+
+[luminance-glfw]: https://crates.io/crates/luminance-glfw

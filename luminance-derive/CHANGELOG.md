@@ -11,6 +11,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.6](#06)
 * [0.5.2](#052)
 * [0.5.1](#051)
 * [0.5](#05)
@@ -26,6 +27,14 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.6
+
+> ?
+
+- The `UniformInterface` proc-macro got patched to adapt to the new backend architecture.
+- Implement `std::error::Error` for various types of the crate.
+- Add helper methods to create error types requiring owned data via a better API.
 
 # 0.5.2
 

@@ -11,6 +11,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.10](#010)
 * [0.9](#09)
 * [0.8.2](#082)
 * [0.8.1](#081)
@@ -28,6 +29,14 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.10
+
+> ?
+
+- Support `glutin-0.24`.
+- Implement `std::error::Error` for various types of the crate.
+- Add helper methods to create error types requiring owned data via a better API.
 
 # 0.9
 

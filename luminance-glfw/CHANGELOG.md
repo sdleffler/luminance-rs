@@ -45,6 +45,17 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1.1](#011-1)
 * [0.1](#01)
 
+# 0.13
+
+> ?
+
+- Support of `luminance-0.40`.
+- Support of `glfw-0.39`.
+- Add helper methods to create error types requiring owned data via a better API.
+- Remove the `WindowDim` argument in `new_gl33`. You can pass that argument via the `WindowOpt`
+  dimension option.
+- Remove re-exports from `luminance-windowing` and `glfw`.
+
 # 0.12.2
 
 > Wed Apr 22nd 2020
