@@ -350,9 +350,9 @@ where
 
 unsafe impl<V, I, W, T> VertexSliceBackend<V, I, W, Deinterleaved, T> for WebGL2
 where
-  V: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>> + Deinterleave<T>,
+  V: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>> + Deinterleave<T>,
   I: TessIndex,
-  W: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>>,
+  W: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
 {
   type VertexSliceRepr = BufferSlice<T>;
   type VertexSliceMutRepr = BufferSliceMut<T>;
@@ -382,9 +382,9 @@ where
 
 unsafe impl<V, I, W> IndexSliceBackend<V, I, W, Deinterleaved> for WebGL2
 where
-  V: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>>,
+  V: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
   I: TessIndex,
-  W: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>>,
+  W: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
 {
   type IndexSliceRepr = BufferSlice<I>;
   type IndexSliceMutRepr = BufferSliceMut<I>;
@@ -408,9 +408,9 @@ where
 
 unsafe impl<V, I, W, T> InstanceSliceBackend<V, I, W, Deinterleaved, T> for WebGL2
 where
-  V: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>>,
+  V: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
   I: TessIndex,
-  W: TessVertexData<Interleaved, Data = Vec<DeinterleavedData>> + Deinterleave<T>,
+  W: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>> + Deinterleave<T>,
 {
   type InstanceSliceRepr = BufferSlice<T>;
   type InstanceSliceMutRepr = BufferSliceMut<T>;
