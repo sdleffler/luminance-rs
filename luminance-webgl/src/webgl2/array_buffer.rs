@@ -1,11 +1,17 @@
-/// Implemented for Encoding and RawEncoding primitives which can be cast into a js_sys ArrayBuffer.
+//! A collection of utilities used to perform conversion between immutable slices and JavaScript’s
+//! various array types.
+
+/// Unsafe coercion to a `js_sys::Object` for immutable slices.
 ///
-/// This is an unsafe operation, as <$buffer>::view() requires that the underlying memory not be moved until the Array Buffer is dropped.
-///
-/// Supported primitives: u8, i8, u16, i16, u32, i32, f32, f64
-///
-/// Supported tuples: T, (T, T), (T, T, T), and (T, T, T, T)
+/// This trait exports the [`into_array_buffer`], which is an unsafe operation, as
+/// the `view()` method, defined on the various arrays in the `js-sys` crate, requires that the
+/// underlying memory not be moved until the array is dropped.
 pub trait IntoArrayBuffer: Sized {
+  /// Convert the input slice into a JavaScript object.
+  ///
+  /// # Unsafety
+  ///
+  /// The returned `Object` must not outlive the input slice, which memory must not be moved either.
   unsafe fn into_array_buffer(texels: &[Self]) -> js_sys::Object;
 }
 

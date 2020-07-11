@@ -10,7 +10,7 @@ use std::rc::Rc;
 use std::slice;
 use web_sys::{WebGl2RenderingContext, WebGlTexture};
 
-use super::array_buffer::IntoArrayBuffer;
+use crate::webgl2::array_buffer::IntoArrayBuffer;
 use crate::webgl2::pixel::webgl_pixel_format;
 use crate::webgl2::state::WebGL2State;
 use crate::webgl2::WebGL2;
@@ -570,6 +570,8 @@ where
   let skip_bytes = (D::width(size) as usize * pf_size) % 8;
   set_unpack_alignment(state, skip_bytes);
 
+  // coerce the texels slice into a web-sys array buffer so that we can pass them to the super ugly
+  // method below
   let array_buffer;
   unsafe {
     array_buffer = T::into_array_buffer(texels);
@@ -578,9 +580,6 @@ where
   match webgl_pixel_format(pf) {
     Some((format, _, encoding)) => match D::dim() {
       Dim::Dim2 => {
-        // if pf.encoding == Type::Floating {
-        //   let texels = texels.iter().map(|e| e as f32)
-        // }
         state
           .ctx
           .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_array_buffer_view_and_src_offset(
