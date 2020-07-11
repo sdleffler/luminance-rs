@@ -18,6 +18,7 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use web_sys::WebGl2RenderingContext;
 
+use super::array_buffer::IntoArrayBuffer;
 use crate::webgl2::state::{BlendingState, DepthTest, FaceCullingState, WebGL2State};
 use crate::webgl2::WebGL2;
 
@@ -165,6 +166,8 @@ unsafe impl<D, P> PipelineTexture<D, P> for WebGL2
 where
   D: Dimensionable,
   P: Pixel,
+  P::Encoding: IntoArrayBuffer,
+  P::RawEncoding: IntoArrayBuffer,
 {
   type BoundTextureRepr = BoundTexture<D, P>;
 

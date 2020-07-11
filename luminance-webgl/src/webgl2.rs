@@ -1,5 +1,5 @@
 //! WebGL 2.0 backend support.
-
+mod array_buffer;
 pub mod buffer;
 pub mod framebuffer;
 pub mod pipeline;
@@ -9,6 +9,7 @@ pub(crate) mod state;
 pub mod tess;
 pub mod texture;
 
+pub use crate::webgl2::array_buffer::IntoArrayBuffer;
 pub use crate::webgl2::state::StateQueryError;
 use crate::webgl2::state::WebGL2State;
 use std::cell::RefCell;
