@@ -67,6 +67,10 @@ path = "src/texture.rs"
 name = "vertex-instancing"
 path = "src/vertex-instancing.rs"
 
+[[bin]]
+name = "interactive-triangle"
+path = "src/interactive-triangle.rs"
+
 [dependencies]
 image = "0.23"
 luminance = "0.40"
