@@ -1,9 +1,9 @@
 //! This program shows how to render two triangles that live in the same GPU tessellation. This is
-//! called “sliced tessellation” in luminance and can help you implement plenty of situations. One
+//! called “tessellation views” in luminance and can help you implement plenty of situations. One
 //! of the most interesting use case is for particles effect: you can allocate a big tessellation
-//! object on the GPU and slice it to render only the living particles.
+//! object on the GPU and view it to render only the living particles.
 //!
-//! Press <space> to change the slicing method.
+//! Press <space> to change the viewing method.
 //! Press <escape> to quit or close the window.
 //!
 //! https://docs.rs/luminance
@@ -57,20 +57,20 @@ pub const TRI_RED_BLUE_VERTICES: [Vertex; 6] = [
   },
 ];
 
-// Convenience type to select which slice to render.
+// Convenience type to select which view to render.
 #[derive(Copy, Clone, Debug)]
-enum SliceMethod {
+enum ViewMethod {
   Red,  // draw the red triangle
   Blue, // draw the blue triangle
   Both, // draw both the triangles
 }
 
-impl SliceMethod {
+impl ViewMethod {
   fn toggle(self) -> Self {
     match self {
-      SliceMethod::Red => SliceMethod::Blue,
-      SliceMethod::Blue => SliceMethod::Both,
-      SliceMethod::Both => SliceMethod::Red,
+      ViewMethod::Red => ViewMethod::Blue,
+      ViewMethod::Blue => ViewMethod::Both,
+      ViewMethod::Both => ViewMethod::Red,
     }
   }
 }
@@ -99,8 +99,8 @@ fn main() {
 
   let mut back_buffer = surface.back_buffer().unwrap();
 
-  let mut slice_method = SliceMethod::Red;
-  println!("now rendering slice {:?}", slice_method);
+  let mut view_method = ViewMethod::Red;
+  println!("now rendering view {:?}", view_method);
 
   let mut resize = false;
 
@@ -111,8 +111,8 @@ fn main() {
         WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
 
         WindowEvent::Key(Key::Space, _, Action::Release, _) => {
-          slice_method = slice_method.toggle();
-          println!("now rendering slice {:?}", slice_method);
+          view_method = view_method.toggle();
+          println!("now rendering view {:?}", view_method);
         }
 
         WindowEvent::FramebufferSize(..) => {
@@ -134,22 +134,22 @@ fn main() {
       |_, mut shd_gate| {
         shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
           rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-            let slice = match slice_method {
-              // the red triangle is at slice [..3]; you can also use the TessSlice::one_sub
+            let view = match view_method {
+              // the red triangle is at slice [..3]; you can also use the TessView::sub
               // combinator if the start element is 0; it’s also possible to use [..=2] for
               // inclusive ranges
-              SliceMethod::Red => triangles.view(..3), // TessSlice::one_slice(&triangles, 0, 3),
+              ViewMethod::Red => triangles.view(..3), // TessView::slice(&triangles, 0, 3),
               // the blue triangle is at slice [3..]
-              SliceMethod::Blue => triangles.view(3..), // TessSlice::one_slice(&triangles, 3, 6),
+              ViewMethod::Blue => triangles.view(3..), // TessView::slice(&triangles, 3, 6),
               // both triangles are at slice [0..6] or [..], but we’ll use the faster
-              // TessSlice::one_whole combinator; this combinator is also if you invoke the From or
+              // TessView::whole combinator; this combinator is also if you invoke the From or
               // Into method on (&triangles) (we did that in 02-render-state)
-              SliceMethod::Both => triangles.view(..), // TessSlice::one_whole(&triangles)
+              ViewMethod::Both => triangles.view(..), // TessView::whole(&triangles)
             }
             .unwrap();
 
-            // render the dynamically selected slice
-            tess_gate.render(slice);
+            // render the dynamically selected view
+            tess_gate.render(view);
           });
         });
       },

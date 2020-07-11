@@ -51,12 +51,15 @@
 //!
 //! Sometimes, you will want to edit tessellations in a dynamic way instead of re-creating new
 //! ones. That can be useful for streaming data of for using a small part of a big [`Tess`]. The
-//! [`Tess`] type has several methods to obtain [`TessSlice`] and [`TessSliceMut`] objects, which
-//! allow you to map values and iterate over them via standard Rust slices. See
-//! [`TessSlice::as_slice`] and [`TessSliceMut::as_slice_mut`].
+//! [`Tess`] type has several methods to obtain subparts, allow you to map values and iterate over
+//! them via standard Rust slices. See these for further details:
 //!
-//! > Note: because of their slice nature, both [`TessSlice`] and [`TessSliceMut`] won’t help you
-//! > if you want to resize [`Tess`]. This is not currently supported.
+//! - [`Tess::vertices`] [`Tess::vertices_mut`] to map tessellations’ vertices.
+//! - [`Tess::indices`] [`Tess::indices_mut`] to map tessellations’ indices.
+//! - [`Tess::instances`] [`Tess::instances_mut`] to map tessellations’ instances.
+//!
+//! > Note: because of their slice nature, mapping a tessellation (vertices, indices or instances)
+//! > will not help you with resizing a [`Tess`], as this is not currently supported.
 //!
 //! [`TessGate`]: crate::tess_gate::TessGate
 
