@@ -192,6 +192,7 @@ pub mod pipeline;
 pub mod pixel;
 pub mod render_gate;
 pub mod render_state;
+pub mod scissor_region;
 pub mod shader;
 pub mod shading_gate;
 pub mod tess;

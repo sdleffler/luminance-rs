@@ -6,6 +6,7 @@
 use crate::blending::{Blending, BlendingMode};
 use crate::depth_test::{DepthComparison, DepthWrite};
 use crate::face_culling::FaceCulling;
+use crate::scissor::ScissorRegion;
 
 /// GPU render state.
 ///
@@ -21,6 +22,8 @@ pub struct RenderState {
   depth_write: DepthWrite,
   /// Face culling configuration.
   face_culling: Option<FaceCulling>,
+  /// Scissor region configuration.
+  scissor_region: Option<ScissorRegion>,
 }
 
 impl RenderState {
@@ -93,6 +96,22 @@ impl RenderState {
   pub fn face_culling(&self) -> Option<FaceCulling> {
     self.face_culling
   }
+
+  /// Override the scissor region configuration.
+  pub fn set_scissor_region<SR>(self, scissor_region: SR) -> Self
+  where
+    SR: Into<Option<ScissorRegion>>,
+  {
+    RenderState {
+      scissor_region: scissor_region.into(),
+      ..self
+    }
+  }
+
+  /// Scissor region configuration.
+  pub fn scissor_region(self) -> Option<ScissorRegion> {
+    self.scissor_region
+  }
 }
 
 impl Default for RenderState {
@@ -102,12 +121,14 @@ impl Default for RenderState {
   ///   - `depth_test`: `Some(DepthComparison::Less)`
   ///   - `depth_write`: `DepthWrite::On`
   ///   - `face_culling`: `None`
+  ///   - 'scissor_region`: `None`
   fn default() -> Self {
     RenderState {
       blending: None,
       depth_test: Some(DepthComparison::Less),
       depth_write: DepthWrite::On,
       face_culling: None,
+      scissor_region: None,
     }
   }
 }
