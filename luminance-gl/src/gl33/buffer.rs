@@ -246,7 +246,7 @@ impl BufferSlice<u8> {
   /// one actually represented by the raw bytes.
   pub(crate) unsafe fn transmute<T>(self) -> BufferSlice<T> {
     let len = self.len / mem::size_of::<T>();
-    let ptr = self.len as _;
+    let ptr = self.ptr as _;
 
     BufferSlice {
       raw: self.raw,
@@ -277,7 +277,7 @@ impl BufferSliceMut<u8> {
   /// one actually represented by the raw bytes.
   pub(crate) unsafe fn transmute<T>(self) -> BufferSliceMut<T> {
     let len = self.len / mem::size_of::<T>();
-    let ptr = self.len as _;
+    let ptr = self.ptr as _;
 
     BufferSliceMut {
       raw: self.raw,
