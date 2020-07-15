@@ -9,7 +9,7 @@ use std::marker::PhantomData;
 use crate::gl33::depth_test::depth_comparison_to_glenum;
 use crate::gl33::vertex_restart::VertexRestart;
 use luminance::blending::{Equation, Factor};
-use luminance::depth_test::DepthComparison;
+use luminance::depth_test::{DepthComparison, DepthWrite};
 use luminance::face_culling::{FaceCullingMode, FaceCullingOrder};
 
 // TLS synchronization barrier for `GLState`.
@@ -116,6 +116,9 @@ pub struct GLState {
   depth_test: Cached<DepthTest>,
   depth_test_comparison: Cached<DepthComparison>,
 
+  // depth write
+  depth_write: Cached<DepthWrite>,
+
   // face culling
   face_culling_state: Cached<FaceCullingState>,
   face_culling_order: Cached<FaceCullingOrder>,
@@ -193,6 +196,7 @@ impl GLState {
       let blending_funcs = Cached::new(get_ctx_blending_factors()?);
       let depth_test = Cached::new(get_ctx_depth_test()?);
       let depth_test_comparison = Cached::new(DepthComparison::Less);
+      let depth_write = Cached::new(get_ctx_depth_write()?);
       let face_culling_state = Cached::new(get_ctx_face_culling_state()?);
       let face_culling_order = Cached::new(get_ctx_face_culling_order()?);
       let face_culling_mode = Cached::new(get_ctx_face_culling_mode()?);
@@ -219,6 +223,7 @@ impl GLState {
         blending_funcs,
         depth_test,
         depth_test_comparison,
+        depth_write,
         face_culling_state,
         face_culling_order,
         face_culling_mode,
@@ -315,6 +320,11 @@ impl GLState {
   /// Invalidate the currently in-use depth test comparison.
   pub fn invalidate_depth_test_comparison(&mut self) {
     self.depth_test_comparison.invalidate()
+  }
+
+  /// Invalidate the currently in-use depth write state.
+  pub fn invalidate_depth_write(&mut self) {
+    self.depth_write.invalidate()
   }
 
   /// Invalidate the currently in-use face culling state.
@@ -498,6 +508,19 @@ impl GLState {
     {
       gl::DepthFunc(depth_comparison_to_glenum(depth_test_comparison));
       self.depth_test_comparison.set(depth_test_comparison);
+    }
+  }
+
+  pub(crate) unsafe fn set_depth_write(&mut self, depth_write: DepthWrite) {
+    if self.depth_write.is_invalid(&depth_write) {
+      let enabled = match depth_write {
+        DepthWrite::On => gl::TRUE,
+        DepthWrite::Off => gl::FALSE,
+      };
+
+      gl::DepthMask(enabled);
+
+      self.depth_write.set(depth_write);
     }
   }
 
@@ -739,6 +762,8 @@ pub enum StateQueryError {
   UnknownBlendingDstFactor(GLenum),
   /// Corrupted depth test state.
   UnknownDepthTestState(GLboolean),
+  /// Corrupted depth write state.
+  UnknownDepthWriteState(GLboolean),
   /// Corrupted face culling state.
   UnknownFaceCullingState(GLboolean),
   /// Corrupted face culling order.
@@ -766,6 +791,9 @@ impl fmt::Display for StateQueryError {
         write!(f, "unknown blending destination factor: {}", k)
       }
       StateQueryError::UnknownDepthTestState(ref s) => write!(f, "unknown depth test state: {}", s),
+      StateQueryError::UnknownDepthWriteState(ref s) => {
+        write!(f, "unknown depth write state: {}", s)
+      }
       StateQueryError::UnknownFaceCullingState(ref s) => {
         write!(f, "unknown face culling state: {}", s)
       }
@@ -887,6 +915,16 @@ unsafe fn get_ctx_depth_test() -> Result<DepthTest, StateQueryError> {
     gl::TRUE => Ok(DepthTest::On),
     gl::FALSE => Ok(DepthTest::Off),
     _ => Err(StateQueryError::UnknownDepthTestState(state)),
+  }
+}
+
+unsafe fn get_ctx_depth_write() -> Result<DepthWrite, StateQueryError> {
+  let state = gl::IsEnabled(gl::DEPTH_WRITEMASK);
+
+  match state {
+    gl::TRUE => Ok(DepthWrite::On),
+    gl::FALSE => Ok(DepthWrite::Off),
+    _ => Err(StateQueryError::UnknownDepthWriteState(state)),
   }
 }
 
