@@ -242,6 +242,7 @@ unsafe impl RenderGate for WebGL2 {
   unsafe fn enter_render_state(&mut self, rdr_st: &RenderState) {
     let mut state = self.state.borrow_mut();
 
+    // blending state
     match rdr_st.blending() {
       Some(blending) => {
         state.set_blending_state(BlendingState::On);
@@ -261,6 +262,7 @@ unsafe impl RenderGate for WebGL2 {
       }
     }
 
+    // depth-related state
     if let Some(depth_comparison) = rdr_st.depth_test() {
       state.set_depth_test(DepthTest::On);
       state.set_depth_test_comparison(depth_comparison);
@@ -268,6 +270,9 @@ unsafe impl RenderGate for WebGL2 {
       state.set_depth_test(DepthTest::Off);
     }
 
+    state.set_depth_write(rdr_st.depth_write());
+
+    // face culling state
     match rdr_st.face_culling() {
       Some(face_culling) => {
         state.set_face_culling_state(FaceCullingState::On);
