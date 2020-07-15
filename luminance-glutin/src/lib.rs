@@ -6,19 +6,15 @@
 #![deny(missing_docs)]
 
 use gl;
-pub use glutin;
 use glutin::{
   event_loop::EventLoop, window::WindowBuilder, Api, ContextBuilder, ContextError, CreationError,
   GlProfile, GlRequest, NotCurrent, PossiblyCurrent, WindowedContext,
 };
-
 use luminance::context::GraphicsContext;
 use luminance::framebuffer::{Framebuffer, FramebufferError};
 use luminance::texture::Dim2;
 pub use luminance_gl::gl33::StateQueryError;
 use luminance_gl::GL33;
-pub use luminance_windowing::{CursorMode, WindowDim, WindowOpt};
-
 use std::error;
 use std::fmt;
 use std::os::raw::c_void;
@@ -103,19 +99,21 @@ impl GlutinSurface {
   ///
   /// `window_builder` is the default object when passed to your closure and `ctx_builder` is
   /// already initialized for the OpenGL context (you’re not supposed to change it!).
-  pub fn from_builders<WB, CB>(
+  pub fn new_gl33_from_builders<'a, WB, CB>(
     window_builder: WB,
     ctx_builder: CB,
   ) -> Result<(Self, EventLoop<()>), GlutinError>
   where
-    WB: FnOnce(WindowBuilder) -> WindowBuilder,
-    CB: FnOnce(ContextBuilder<NotCurrent>) -> ContextBuilder<NotCurrent>,
+    WB: FnOnce(&mut EventLoop<()>, WindowBuilder) -> WindowBuilder,
+    CB:
+      FnOnce(&mut EventLoop<()>, ContextBuilder<'a, NotCurrent>) -> ContextBuilder<'a, NotCurrent>,
   {
-    let event_loop = EventLoop::new();
+    let mut event_loop = EventLoop::new();
 
-    let window_builder = window_builder(WindowBuilder::new());
+    let window_builder = window_builder(&mut event_loop, WindowBuilder::new());
 
     let windowed_ctx = ctx_builder(
+      &mut event_loop,
       ContextBuilder::new()
         .with_gl(GlRequest::Specific(Api::OpenGl, (3, 3)))
         .with_gl_profile(GlProfile::Core),
@@ -136,7 +134,7 @@ impl GlutinSurface {
   }
 
   /// Create a new [`GlutinSurface`] from scratch.
-  pub fn new(
+  pub fn new_gl33(
     window_builder: WindowBuilder,
     samples: u16,
   ) -> Result<(Self, EventLoop<()>), GlutinError> {

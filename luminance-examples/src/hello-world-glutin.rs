@@ -143,13 +143,13 @@ fn main() {
   // First thing first: we create a new surface to render to and get events from.
   // We use the `GlutinSurface::from_builders` to build a custom window and context
   // to use.
-  let (mut surface, event_loop) = GlutinSurface::from_builders(
-    |win_builder| {
+  let (mut surface, event_loop) = GlutinSurface::new_gl33_from_builders(
+    |_, win_builder| {
       win_builder
         .with_title("Hello, world!")
         .with_inner_size(PhysicalSize::new(960, 540))
     },
-    |ctx_builder| ctx_builder.with_double_buffer(Some(true)),
+    |_, ctx_builder| ctx_builder.with_double_buffer(Some(true)),
   )
   .expect("Glutin surface creation");
 
