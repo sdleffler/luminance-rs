@@ -95,6 +95,9 @@
 - The shader code now lives in `luminance::shader`.
 - Make `RenderState`’s fields private so that adding new features to render states is not a
   breaking change (`#[non_exhaustive]` is not really wanted here).
+- Add the possibility to enable or disable _depth writes_. If you disable it, rendering to a
+  framebuffer which has a depth buffer attached will not update the depth of the rasterized
+  fragments.
 
 ## Migration from 0.39
 
@@ -219,39 +222,35 @@
 
 <!-- vim-markdown-toc GFM -->
 
-  * [Migration from 0.39](#migration-from-039)
-* [0.39](#039)
+* [0.38](#038)
   * [Major changes](#major-changes)
   * [Minor changes](#minor-changes)
-* [0.38](#038)
-  * [Major changes](#major-changes-1)
-  * [Minor changes](#minor-changes-1)
   * [Patch changes](#patch-changes)
 * [0.37.1](#0371)
 * [0.37](#037)
-  * [Major changes](#major-changes-2)
+  * [Major changes](#major-changes-1)
   * [Patch changes](#patch-changes-1)
 * [0.36.1](#0361)
 * [0.36](#036)
-  * [Major changes](#major-changes-3)
-  * [Minor changes](#minor-changes-2)
+  * [Major changes](#major-changes-2)
+  * [Minor changes](#minor-changes-1)
   * [Patch changes](#patch-changes-2)
 * [0.35](#035)
-  * [Major changes](#major-changes-4)
+  * [Major changes](#major-changes-3)
 * [0.34.1](#0341)
 * [0.34](#034)
   * [Bug fixes](#bug-fixes)
-  * [Major changes](#major-changes-5)
+  * [Major changes](#major-changes-4)
 * [0.33](#033)
 * [0.32](#032)
   * [Bug fixes](#bug-fixes-1)
-  * [Major changes](#major-changes-6)
-  * [Minor changes](#minor-changes-3)
+  * [Major changes](#major-changes-5)
+  * [Minor changes](#minor-changes-2)
 * [0.31.1](#0311)
 * [0.31](#031)
   * [Bug fixes](#bug-fixes-2)
-  * [Major changes](#major-changes-7)
-  * [Minor changes](#minor-changes-4)
+  * [Major changes](#major-changes-6)
+  * [Minor changes](#minor-changes-3)
   * [Patch & misc changes](#patch--misc-changes)
 * [0.30.1](#0301)
 * [0.30](#030)
@@ -279,20 +278,6 @@
 * [0.22.4](#0224)
 * [0.22.3](#0223)
 * [0.22.2](#0222)
-# 0.39
-
-> Sat Feb 20th 2020
-
-## Major changes
-
-- Remove the concept of _layering_ in textures. Textures’ layerings (i.e. either _flat_ or
-  _arrayed_) are now encoded directly in the dimension of the texture.
-
-## Minor changes
-
-- Add support for texture arrays. They can now be constructed and passed as uniforms to
-  shader programs.
-
 * [0.22.1](#0221)
 * [0.22](#022)
 * [0.21.3](#0213)
