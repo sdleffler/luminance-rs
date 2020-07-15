@@ -21,3 +21,12 @@ pub enum DepthComparison {
   /// Depth test succeeds if `a >= b`.
   GreaterOrEqual,
 }
+
+/// Whether or not depth writes should be performed when rendering.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub enum DepthWrite {
+  /// Write values to depth buffers.
+  On,
+  /// Do not write values to depth buffers.
+  Off,
+}
