@@ -343,7 +343,7 @@ impl GLState {
   }
 
   /// Invalidate the currently in-use sRGB framebuffer state.
-  pub fn reset_srgb_framebuffer_enabled(&mut self) {
+  pub fn invalidate_srgb_framebuffer_enabled(&mut self) {
     self.srgb_framebuffer_enabled.invalidate()
   }
 

@@ -11,7 +11,7 @@ mod tess;
 mod texture;
 mod vertex_restart;
 
-use self::state::GLState;
+pub use self::state::GLState;
 pub use self::state::StateQueryError;
 use std::cell::RefCell;
 use std::rc::Rc;
