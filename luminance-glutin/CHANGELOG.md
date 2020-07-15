@@ -32,7 +32,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.10
 
-> ?
+> Wed Jul 15th 2020
 
 - Support `glutin-0.24`.
 - Implement `std::error::Error` for various types of the crate.

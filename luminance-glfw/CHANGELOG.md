@@ -47,7 +47,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.13
 
-> ?
+> Wed Jul 15th 2020
 
 - Support of `luminance-0.40`.
 - Support of `glfw-0.39`.
