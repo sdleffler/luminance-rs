@@ -241,6 +241,7 @@ unsafe impl RenderGate for GL33 {
   unsafe fn enter_render_state(&mut self, rdr_st: &RenderState) {
     let mut gfx_state = self.state.borrow_mut();
 
+    // blending state
     match rdr_st.blending() {
       Some(blending) => {
         gfx_state.set_blending_state(BlendingState::On);
@@ -260,6 +261,7 @@ unsafe impl RenderGate for GL33 {
       }
     }
 
+    // depth-related state
     if let Some(depth_comparison) = rdr_st.depth_test() {
       gfx_state.set_depth_test(DepthTest::On);
       gfx_state.set_depth_test_comparison(depth_comparison);
@@ -267,6 +269,9 @@ unsafe impl RenderGate for GL33 {
       gfx_state.set_depth_test(DepthTest::Off);
     }
 
+    gfx_state.set_depth_write(rdr_st.depth_write());
+
+    // face-culling state
     match rdr_st.face_culling() {
       Some(face_culling) => {
         gfx_state.set_face_culling_state(FaceCullingState::On);

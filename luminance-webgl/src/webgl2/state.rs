@@ -2,7 +2,7 @@
 
 use js_sys::{Float32Array, Int32Array};
 use luminance::blending::{Equation, Factor};
-use luminance::depth_test::DepthComparison;
+use luminance::depth_test::{DepthComparison, DepthWrite};
 use luminance::face_culling::{FaceCullingMode, FaceCullingOrder};
 use std::cell::RefCell;
 use std::fmt;
@@ -65,6 +65,9 @@ pub struct WebGL2State {
   // depth test
   depth_test: DepthTest,
   depth_test_comparison: DepthComparison,
+
+  // depth write
+  depth_write: DepthWrite,
 
   // face culling
   face_culling_state: FaceCullingState,
@@ -139,6 +142,7 @@ impl WebGL2State {
     let blending_funcs = get_ctx_blending_factors(&mut ctx)?;
     let depth_test = get_ctx_depth_test(&mut ctx);
     let depth_test_comparison = DepthComparison::Less;
+    let depth_write = get_ctx_depth_write(&mut ctx);
     let face_culling_state = get_ctx_face_culling_state(&mut ctx);
     let face_culling_order = get_ctx_face_culling_order(&mut ctx)?;
     let face_culling_mode = get_ctx_face_culling_mode(&mut ctx)?;
@@ -166,6 +170,7 @@ impl WebGL2State {
       blending_funcs,
       depth_test,
       depth_test_comparison,
+      depth_write,
       face_culling_state,
       face_culling_order,
       face_culling_mode,
@@ -488,6 +493,19 @@ impl WebGL2State {
     }
   }
 
+  pub(crate) fn set_depth_write(&mut self, depth_write: DepthWrite) {
+    if self.depth_write != depth_write {
+      let enabled = match depth_write {
+        DepthWrite::On => true,
+        DepthWrite::Off => false,
+      };
+
+      self.ctx.depth_mask(enabled);
+
+      self.depth_write = depth_write;
+    }
+  }
+
   pub(crate) fn set_face_culling_state(&mut self, state: FaceCullingState) {
     if self.face_culling_state != state {
       match state {
@@ -772,6 +790,16 @@ fn get_ctx_depth_test(ctx: &mut WebGl2RenderingContext) -> DepthTest {
     DepthTest::On
   } else {
     DepthTest::Off
+  }
+}
+
+fn get_ctx_depth_write(ctx: &mut WebGl2RenderingContext) -> DepthWrite {
+  let enabled = ctx.is_enabled(WebGl2RenderingContext::DEPTH_WRITEMASK);
+
+  if enabled {
+    DepthWrite::On
+  } else {
+    DepthWrite::Off
   }
 }
 
