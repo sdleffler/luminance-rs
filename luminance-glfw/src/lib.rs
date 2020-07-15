@@ -5,19 +5,18 @@
 
 use gl;
 use glfw::{self, Context, CursorMode as GlfwCursorMode, SwapInterval, Window, WindowMode};
+use glfw::{InitError, WindowEvent};
 use luminance::context::GraphicsContext;
 use luminance::framebuffer::Framebuffer;
 use luminance::framebuffer::FramebufferError;
 use luminance::texture::Dim2;
 pub use luminance_gl::gl33::StateQueryError;
 use luminance_gl::GL33;
-pub use luminance_windowing::{CursorMode, WindowDim, WindowOpt};
+use luminance_windowing::{CursorMode, WindowDim, WindowOpt};
 use std::error;
 use std::fmt;
 use std::os::raw::c_void;
 use std::sync::mpsc::Receiver;
-
-pub use glfw::{Action, InitError, Key, MouseButton, WindowEvent};
 
 /// Error that can be risen while creating a surface.
 #[non_exhaustive]
