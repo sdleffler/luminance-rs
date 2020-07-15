@@ -14,11 +14,11 @@ use crate::face_culling::FaceCulling;
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct RenderState {
   /// Blending configuration.
-  pub blending: Option<BlendingMode>,
+  blending: Option<BlendingMode>,
   /// Depth test configuration.
-  pub depth_test: Option<DepthComparison>,
+  depth_test: Option<DepthComparison>,
   /// Face culling configuration.
-  pub face_culling: Option<FaceCulling>,
+  face_culling: Option<FaceCulling>,
 }
 
 impl RenderState {
@@ -45,7 +45,7 @@ impl RenderState {
   }
 
   /// Blending configuration.
-  pub fn blending(self) -> Option<BlendingMode> {
+  pub fn blending(&self) -> Option<BlendingMode> {
     self.blending
   }
 
@@ -59,7 +59,7 @@ impl RenderState {
   }
 
   /// Depth test configuration.
-  pub fn depth_test(self) -> Option<DepthComparison> {
+  pub fn depth_test(&self) -> Option<DepthComparison> {
     self.depth_test
   }
 
@@ -75,7 +75,7 @@ impl RenderState {
   }
 
   /// Face culling configuration.
-  pub fn face_culling(self) -> Option<FaceCulling> {
+  pub fn face_culling(&self) -> Option<FaceCulling> {
     self.face_culling
   }
 }
