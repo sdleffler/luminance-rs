@@ -11,6 +11,9 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.13](#013)
+* [0.12.2](#0122)
+* [0.12.1](#0121)
 * [0.12](#012)
 * [0.11](#011)
 * [0.10](#010)
@@ -40,10 +43,12 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.2](#02)
 * [0.1.5](#015)
 * [0.1.4](#014)
-* [0.1.3](#013)
+* [0.1.3](#013-1)
 * [0.1.2](#012-1)
 * [0.1.1](#011-1)
 * [0.1](#01)
+
+<!-- vim-markdown-toc -->
 
 # 0.13
 

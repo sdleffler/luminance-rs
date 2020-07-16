@@ -1,4 +1,33 @@
 # Changelog
+
+This document is the changelog of [luminance-derive](https://crates.io/crates/luminance-derive).
+You should consult it when upgrading to a new version, as it contains precious information on
+breaking changes, minor additions and patch notes.
+
+**If you’re experiencing weird type errors when upgrading to a new version**, it might be due to
+how `cargo` resolve dependencies. `cargo update` is not enough, because all luminance crate use
+[SemVer ranges](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html) to stay
+compatible with as many crates as possible. In that case, you want `cargo update --aggressive`.
+
+<!-- vim-markdown-toc GFM -->
+
+* [0.6](#06)
+* [0.5.2](#052)
+* [0.5.1](#051)
+* [0.5](#05)
+* [0.4](#04)
+  * [Major changes](#major-changes)
+  * [Minor changes](#minor-changes)
+  * [Patch changes](#patch-changes)
+* [0.3](#03)
+* [0.2.2](#022)
+* [0.2.1](#021)
+* [0.2](#02)
+* [0.1.1](#011)
+* [0.1](#01)
+
+<!-- vim-markdown-toc -->
+
 # 0.6
 
 > Wed Jul 15th 2020
@@ -16,22 +45,6 @@
 - In the case of `Deref` and `DerefMut` not being enough, the underlying field can also be
   directly accessed (it’s now `pub`).
 
-<!-- vim-markdown-toc GFM -->
-
-* [0.5.1](#051)
-* [0.5](#05)
-* [0.4](#04)
-  * [Major changes](#major-changes)
-  * [Minor changes](#minor-changes)
-  * [Patch changes](#patch-changes)
-* [0.3](#03)
-* [0.2.2](#022)
-* [0.2.1](#021)
-* [0.2](#02)
-* [0.1.1](#011)
-* [0.1](#01)
-
-<!-- vim-markdown-toc -->
 # 0.5.1
 
 > Sat Jan 4th 2020

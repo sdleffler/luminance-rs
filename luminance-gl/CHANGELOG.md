@@ -1,4 +1,21 @@
 # Changelog
+
+This document is the changelog of [luminance-gl](https://crates.io/crates/luminance-gl).
+You should consult it when upgrading to a new version, as it contains precious information on
+breaking changes, minor additions and patch notes.
+
+**If you’re experiencing weird type errors when upgrading to a new version**, it might be due to
+how `cargo` resolve dependencies. `cargo update` is not enough, because all luminance crate use
+[SemVer ranges](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html) to stay
+compatible with as many crates as possible. In that case, you want `cargo update --aggressive`.
+
+<!-- vim-markdown-toc GFM -->
+
+* [0.14](#014)
+* [Pre 0.14](#pre-014)
+
+<!-- vim-markdown-toc -->
+
 # 0.14
 
 > Wed Jul 15th 2020
@@ -17,11 +34,6 @@
   texture unit.
 - Fix a potential double-free when a `Program` doesn’t link.
 
-<!-- vim-markdown-toc GFM -->
-
-* [Pre 0.14](#pre-014)
-
-<!-- vim-markdown-toc -->
 # Pre 0.14
 
 - The crate was available on https://crates.io with a different scope. If you were using it, please update to

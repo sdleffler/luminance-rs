@@ -1,24 +1,17 @@
 # Changelog
-# 0.9
 
-> Wed Jul 15th 2020
+This document is the changelog of [luminance-windowing](https://crates.io/crates/luminance-windowing).
+You should consult it when upgrading to a new version, as it contains precious information on
+breaking changes, minor additions and patch notes.
 
-- Most features got removed and the crate is now a simple convience crate to provide some very
-  common / naive types, such as `WindowDim` and `WindowOpt`. It is important that people realize
-  that windowing (a.k.a. platform) code is specific to each crates and that there is no easy way
-  (and it’s not even interesting) to abstract over them. The `Surface` trait for instance, is
-  too much opinionated for the extern boundary of luminance.
-- Support for `glfw-0.39`.
-- Implement `std::error::Error` for various types of the crate.
-
-## Migration guide
-
-- If you were using a type that was removed, odds are that you will find the same feature in the
-  `luminance-<platform-name>` crate. For instance, the `back_buffer` method is still available in
-  [luminance-glfw] for instance.
+**If you’re experiencing weird type errors when upgrading to a new version**, it might be due to
+how `cargo` resolve dependencies. `cargo update` is not enough, because all luminance crate use
+[SemVer ranges](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html) to stay
+compatible with as many crates as possible. In that case, you want `cargo update --aggressive`.
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.9](#09)
   * [Migration guide](#migration-guide)
 * [0.8.1](#081)
 * [0.8](#08)
@@ -42,6 +35,25 @@
 * [0.1.0](#010)
 
 <!-- vim-markdown-toc -->
+
+# 0.9
+
+> Wed Jul 15th 2020
+
+- Most features got removed and the crate is now a simple convience crate to provide some very
+  common / naive types, such as `WindowDim` and `WindowOpt`. It is important that people realize
+  that windowing (a.k.a. platform) code is specific to each crates and that there is no easy way
+  (and it’s not even interesting) to abstract over them. The `Surface` trait for instance, is
+  too much opinionated for the extern boundary of luminance.
+- Support for `glfw-0.39`.
+- Implement `std::error::Error` for various types of the crate.
+
+## Migration guide
+
+- If you were using a type that was removed, odds are that you will find the same feature in the
+  `luminance-<platform-name>` crate. For instance, the `back_buffer` method is still available in
+  [luminance-glfw] for instance.
+
 # 0.8.1
 
 > Sat Jan 4th 2020
