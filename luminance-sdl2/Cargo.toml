@@ -7,7 +7,7 @@ authors = [
   "Joel Nordström <e.joel.nordstrom@gmail.com>"
 ]
 description = "SDL2 support for luminance"
-keywords = ["stateless", "type-safe", "graphics", "luminance", "sdl", "sdl2"]
+keywords = ["stateless", "type-safe", "graphics", "luminance", "sdl"]
 categories = ["rendering::graphics-api"]
 homepage = "https://github.com/phaazon/luminance-rs"
 repository = "https://github.com/phaazon/luminance-rs"
