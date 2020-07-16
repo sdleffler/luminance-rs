@@ -1,17 +1,23 @@
 # Changelog
+# 0.6
 
-This document is the changelog of [luminance-derive](https://crates.io/crates/luminance-derive).
-You should consult it when upgrading to a new version, as it contains precious information on
-breaking changes, minor additions and patch notes.
+> Wed Jul 15th 2020
 
-**If you’re experiencing weird type errors when upgrading to a new version**, it might be due to
-how `cargo` resolve dependencies. `cargo update` is not enough, because all luminance crate use
-[SemVer ranges](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html) to stay
-compatible with as many crates as possible. In that case, you want `cargo update --aggressive`.
+- The `UniformInterface` proc-macro got patched to adapt to the new backend architecture.
+- Implement `std::error::Error` for various types of the crate.
+- Add helper methods to create error types requiring owned data via a better API.
+
+# 0.5.2
+
+> Tue Jan 7th 2020
+
+- Add `Deref` and `DerefMut` implementors for semantics’ generated variant types. You can now
+  access the underlying (wrapped) repr type.
+- In the case of `Deref` and `DerefMut` not being enough, the underlying field can also be
+  directly accessed (it’s now `pub`).
 
 <!-- vim-markdown-toc GFM -->
 
-* [0.5.2](#052)
 * [0.5.1](#051)
 * [0.5](#05)
 * [0.4](#04)
@@ -26,16 +32,6 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
-
-# 0.5.2
-
-> Tue Jan 7th 2020
-
-- Add `Deref` and `DerefMut` implementors for semantics’ generated variant types. You can now
-  access the underlying (wrapped) repr type.
-- In the case of `Deref` and `DerefMut` not being enough, the underlying field can also be
-  directly accessed (it’s now `pub`).
-
 # 0.5.1
 
 > Sat Jan 4th 2020

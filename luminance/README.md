@@ -95,7 +95,7 @@ The current state of luminance comprises several crates:
   abstract, common and interface code.
 - A set of _backend implementation_ crates, implementing the [luminance] crate.
 - A set of _windowing_ crates, executing your code written with the core and backend crate.
-- A special crate, [luminance-agnostic], a special _backend_ crate that allows to combine
+- A special crate, [luminance-front], a special _backend_ crate that allows to combine
   several “official” crates to provide a cross-platform experience without having to pick
   several backend crates — the crate does it for you. This crate is mainly designed for end-user
   crates.
@@ -128,18 +128,18 @@ fn work<B>(b: &Buffer<B, u8>) where B: BufferBackend<u8> {
 ```
 
 This kind of code is intented for people writing libraries with luminance. For the special case
-of using the [luminance-agnostic] crate, you will end up writing something like:
+of using the [luminance-front] crate, you will end up writing something like:
 
 ```ignore
-use luminance_agnostic::buffer::Buffer;
+use luminance_front::buffer::Buffer;
 
 fn work(b: &Buffer<u8>) {
   todo()!;
 }
 ```
 
-> In [luminance-agnostic], the backend type is selected at compile and link time. This is often
-> what people want, but keep in mind that [luminance-agnostic] doesn’t allow to have several
+> In [luminance-front], the backend type is selected at compile and link time. This is often
+> what people want, but keep in mind that [luminance-front] doesn’t allow to have several
 > backend types at the same time, which might be something you would like to use, too.
 
 ## Backend implementations
@@ -178,7 +178,7 @@ implements the [luminance::backend] interface.
 
 [luminance]: https://crates.io/crates/luminance
 [luminance-gl]: https://crates.io/crates/luminance-gl
-[luminance-agnostic]: https://crates.io/crates/luminance-agnostic
+[luminance-front]: https://crates.io/crates/luminance-front
 [luminance::backend]: crate::backend
 
 <!-- cargo-sync-readme end -->
