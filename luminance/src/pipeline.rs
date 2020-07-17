@@ -603,6 +603,7 @@ where
 ///
 /// [`Uniform`]: crate::shader::Uniform
 /// [`SamplerType`]: crate::pixel::SamplerType
+#[derive(Debug)]
 pub struct TextureBinding<D, S> {
   binding: u32,
   _phantom: PhantomData<*const (D, S)>,
