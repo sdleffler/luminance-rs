@@ -11,6 +11,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.6.1](#061)
 * [0.6](#06)
 * [0.5.2](#052)
 * [0.5.1](#051)
@@ -28,9 +29,15 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc -->
 
+# 0.6.1
+
+> Jul 21st, 2020
+
+- Support of `luminance-0.41`.
+
 # 0.6
 
-> Wed Jul 15th 2020
+> Wed Jul, 15th 2020
 
 - The `UniformInterface` proc-macro got patched to adapt to the new backend architecture.
 - Implement `std::error::Error` for various types of the crate.
@@ -38,7 +45,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.5.2
 
-> Tue Jan 7th 2020
+> Tue Jan, 7th 2020
 
 - Add `Deref` and `DerefMut` implementors for semantics’ generated variant types. You can now
   access the underlying (wrapped) repr type.
@@ -47,19 +54,19 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.5.1
 
-> Sat Jan 4th 2020
+> Sat Jan, 4th 2020
 
 - Support of `luminance-0.38`.
 
 # 0.5
 
-> Sun Sep 29th 2019
+> Sun Sep, 29th 2019
 
 - Support of `luminance-0.37`.
 
 # 0.4
 
-> Fri Sep 20th 2019
+> Fri Sep, 20th 2019
 
 ## Major changes
 
@@ -76,36 +83,36 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.3
 
-> Thur Sep 12th 2019
+> Thur Sep, 12th 2019
 
 - Fix SemVer issues with ranges and duplicated dependencies.
 
 # 0.2.2
 
-> Thur Sep 12th 2019
+> Thur Sep, 12th 2019
 
 - Support of `luminance-0.35`.
 
 # 0.2.1
 
-> Wed Sep 11th 2019
+> Wed Sep, 11th 2019
 
 - Support of `luminance-0.34`.
 
 # 0.2
 
-> Fri Sep 6th 2019
+> Fri Sep, 6th 2019
 
 - Support of `luminance-0.33`.
 
 # 0.1.1
 
-> Tue Sep 3rd 2019
+> Tue Sep, 3rd 2019
 
 - Support of `luminance-0.32`.
 
 # 0.1
 
-> Fri Aug 23th 2019
+> Fri Aug, 23th 2019
 
 - Initial revision.

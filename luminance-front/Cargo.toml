@@ -21,7 +21,7 @@ gl33 = []
 webgl2 = []
 
 [dependencies]
-luminance = "0.40"
+luminance = "0.41"
 
 [target.'cfg(any(target_arch = "x86", target_arch = "x86_64"))'.dependencies]
 luminance-gl = "0.14"

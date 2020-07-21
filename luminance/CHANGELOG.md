@@ -11,7 +11,8 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
-* [0.40.1](#0401)
+* [0.41](#041)
+  * [Migration guide from 0.40](#migration-guide-from-040)
 * [0.40](#040)
   * [Migration from 0.39](#migration-from-039)
 * [0.39](#039)
@@ -118,9 +119,9 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc -->
 
-# 0.40.1
+# 0.41
 
-> Tue Jul 21st 2020
+> Tue Jul, 21st 2020
 
 - Fix a type design flaw in `PipelineGate`, `ShadingGate`, `RenderGate` and `TessellationGate`.
   Previously, those were using the `C: GraphicsContext` type variable, which, even though is okay
@@ -128,9 +129,16 @@ compatible with as many crates as possible. In that case, you want `cargo update
   Also, the rest of the types in [luminance] use `B` directly and universally quantify over
   `C: GraphicsContext<Backend = B>` when needed. #414
 
+## Migration guide from 0.40
+
+- The gates used the concept of `GraphicsContext` while all the other types used `B` with
+  `GraphicsContext<Backend = B>`. Even though it’s unlikely you were using those types directly,
+  you will have to use directly the backend type here. It should either make things simpler for
+  you, or fix compilation errors.
+
 # 0.40
 
-> Wed Jul 15th 2020
+> Wed Jul, 15th 2020
 
 - Remove features. Both `"std"` and `"gl"` were removed. See the [luminance-gl] crate if you want
   to use OpenGL. Right now, the demand for `no_std` being inexistent, its support got dropped
@@ -351,7 +359,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.39
 
-> Sat Feb 20th 2020
+> Sat Feb, 20th 2020
 
 ## Major changes
 
@@ -365,7 +373,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.38
 
-> Sat Jan 4th 2020
+> Sat Jan, 4th 2020
 
 ## Major changes
 
@@ -406,13 +414,13 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.37.1
 
-> Sun Sep 29th 2019
+> Sun Sep, 29th 2019
 
 - Release with `[dev-dependencies]` updated.
 
 # 0.37
 
-> Sun Sep 29th 2019
+> Sun Sep, 29th 2019
 
 ## Major changes
 
@@ -425,13 +433,13 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.36.1
 
-> Fri Sep 20th 2019
+> Fri Sep, 20th 2019
 
 - Release with `[dev-dependencies]` updated.
 
 # 0.36
 
-> Fri Sep 20th 2019
+> Fri Sep, 20th 2019
 
 ## Major changes
 
@@ -459,7 +467,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.35
 
-> Thur Sep 12th 2019
+> Thur Sep, 12th 2019
 
 ## Major changes
 
@@ -470,13 +478,13 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.34.1
 
-> Wed Sep 11th 2019
+> Wed Sep, 11th 2019
 
 - Re-release with `[dev-dependencies]` updated for other crates
 
 # 0.34
 
-> Wed Sep 11th 2019
+> Wed Sep, 11th 2019
 
 ## Bug fixes
 
@@ -500,7 +508,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.33
 
-> Fri Sep 6th 2019
+> Fri Sep, 6th 2019
 
 - Add support for specifying the number of instances to render with `TessSlice`. The methods to
   specify that parameter are the same as the regular, 1-instance version ones but with the prefix
@@ -508,7 +516,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.32
 
-> Tue Sep 3rd 2019
+> Tue Sep, 3rd 2019
 
 ## Bug fixes
 
@@ -529,14 +537,14 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.31.1
 
-> Fri Aug 23th 2019
+> Fri Aug, 23th 2019
 
 - Re-upload of `0.31.0` to fix the cyclic dependency interdiction from crates.io with
   [luminance-derive].
 
 # 0.31
 
-> Fri Aug 23th 2019
+> Fri Aug, 23th 2019
 
 ## Bug fixes
 
@@ -851,7 +859,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.23
 
-> September 10th 2017
+> September 10th, 2017
 
 - Added `Program::from_strings`.
 - Patch: internal function that used `Option` to express an error via `Some(err)` replaced by

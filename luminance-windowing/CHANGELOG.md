@@ -11,6 +11,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.9.1](#091)
 * [0.9](#09)
   * [Migration guide](#migration-guide)
 * [0.8.1](#081)
@@ -36,9 +37,15 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc -->
 
+# 0.9.1
+
+> Jul 21th, 2020
+
+- Support of `luminance-0.41`.
+
 # 0.9
 
-> Wed Jul 15th 2020
+> Wed Jul, 15th 2020
 
 - Most features got removed and the crate is now a simple convience crate to provide some very
   common / naive types, such as `WindowDim` and `WindowOpt`. It is important that people realize
@@ -56,37 +63,37 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.8.1
 
-> Sat Jan 4th 2020
+> Sat Jan, 4th 2020
 
 - Support of `luminance-0.38`.
 
 # 0.8
 
-> Sun Sep 29th 2019
+> Sun Sep, 29th 2019
 
 - Support of `luminance-0.37`.
 
 # 0.7
 
-> Fri Sep 20th 2019
+> Fri Sep, 20th 2019
 
 - `luminance-0.36` support.
 
 # 0.6
 
-> Thur Sep 12th 2019
+> Thur Sep, 12th 2019
 
 - Fix SemVer issues with ranges and duplicated dependencies.
 
 # 0.5.1
 
-> Thur Sep 12th 2019
+> Thur Sep, 12th 2019
 
 - Support of `luminance-0.35`.
 
 # 0.5
 
-> Wed Sep 11th 2019
+> Wed Sep, 11th 2019
 
 ## Major changes
 
@@ -96,19 +103,19 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.4
 
-> Fri Sep 6th 2019
+> Fri Sep, 6th 2019
 
 - Support of `luminance-0.33`.
 
 # 0.3.1
 
-> Tue Sep 3rd 2019
+> Tue Sep, 3rd 2019
 
 - Support of `luminance-0.32`.
 
 # 0.3
 
-> Fri Aug 23th 2019
+> Fri Aug, 23th 2019
 
 ## Major changes
 
