@@ -11,6 +11,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.40.1](#0401)
 * [0.40](#040)
   * [Migration from 0.39](#migration-from-039)
 * [0.39](#039)
@@ -116,6 +117,16 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.40.1
+
+> Tue Jul 21st 2020
+
+- Fix a type design flaw in `PipelineGate`, `ShadingGate`, `RenderGate` and `TessellationGate`.
+  Previously, those were using the `C: GraphicsContext` type variable, which, even though is okay
+  for the [luminance] crate, makes it impossible to re-export those symbols in [luminance-front].
+  Also, the rest of the types in [luminance] use `B` directly and universally quantify over
+  `C: GraphicsContext<Backend = B>` when needed. #414
 
 # 0.40
 

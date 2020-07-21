@@ -450,21 +450,26 @@ where
 ///
 /// # Parametricity
 ///
-/// - `C`, the graphics context type; must implement [`GraphicsContext`].
-pub struct PipelineGate<'a, C>
+/// - `B`, the backend type.
+pub struct PipelineGate<'a, B>
 where
-  C: ?Sized + GraphicsContext,
+  B: ?Sized,
 {
-  ctx: &'a mut C,
+  backend: &'a mut B,
 }
 
-impl<'a, C> PipelineGate<'a, C>
+impl<'a, B> PipelineGate<'a, B>
 where
-  C: ?Sized + GraphicsContext,
+  B: ?Sized,
 {
   /// Create a new [`PipelineGate`].
-  pub fn new(ctx: &'a mut C) -> Self {
-    PipelineGate { ctx }
+  pub fn new<C>(ctx: &'a mut C) -> Self
+  where
+    C: GraphicsContext<Backend = B>,
+  {
+    PipelineGate {
+      backend: ctx.backend(),
+    }
   }
 
   /// Enter a pipeline node.
@@ -475,31 +480,32 @@ where
   /// [`ShadingGate`] to enter shading nodes.
   pub fn pipeline<D, CS, DS, F>(
     &mut self,
-    framebuffer: &Framebuffer<C::Backend, D, CS, DS>,
+    framebuffer: &Framebuffer<B, D, CS, DS>,
     pipeline_state: &PipelineState,
     f: F,
   ) -> Result<(), PipelineError>
   where
-    C::Backend: FramebufferBackend<D> + PipelineBackend<D>,
+    B: FramebufferBackend<D> + PipelineBackend<D>,
     D: Dimensionable,
-    CS: ColorSlot<C::Backend, D>,
-    DS: DepthSlot<C::Backend, D>,
-    F: for<'b> FnOnce(Pipeline<'b, C::Backend>, ShadingGate<'b, C>),
+    CS: ColorSlot<B, D>,
+    DS: DepthSlot<B, D>,
+    F: for<'b> FnOnce(Pipeline<'b, B>, ShadingGate<'b, B>),
   {
     unsafe {
       self
-        .ctx
-        .backend()
+        .backend
         .start_pipeline(&framebuffer.repr, pipeline_state);
     }
 
     let pipeline = unsafe {
-      self.ctx.backend().new_pipeline().map(|repr| Pipeline {
+      self.backend.new_pipeline().map(|repr| Pipeline {
         repr,
         _phantom: PhantomData,
       })?
     };
-    let shading_gate = ShadingGate { ctx: self.ctx };
+    let shading_gate = ShadingGate {
+      backend: self.backend,
+    };
 
     f(pipeline, shading_gate);
     Ok(())
