@@ -222,6 +222,11 @@
 //! [`TessView`]: crate::tess::TessView
 //! [`SubTess`]: crate::tess::SubTess
 
+use std::error;
+use std::fmt;
+use std::marker::PhantomData;
+use std::ops::{Deref, DerefMut};
+
 use crate::backend::color_slot::ColorSlot;
 use crate::backend::depth_slot::DepthSlot;
 use crate::backend::framebuffer::Framebuffer as FramebufferBackend;
@@ -235,10 +240,6 @@ use crate::pixel::Pixel;
 use crate::shading_gate::ShadingGate;
 use crate::texture::Dimensionable;
 use crate::texture::Texture;
-
-use std::error;
-use std::fmt;
-use std::marker::PhantomData;
 
 /// Possible errors that might occur in a graphics [`Pipeline`].
 #[non_exhaustive]
@@ -490,7 +491,7 @@ where
     framebuffer: &Framebuffer<B, D, CS, DS>,
     pipeline_state: &PipelineState,
     f: F,
-  ) -> Result<(), E>
+  ) -> Render<E>
   where
     B: FramebufferBackend<D> + PipelineBackend<D>,
     D: Dimensionable,
@@ -499,23 +500,74 @@ where
     F: for<'b> FnOnce(Pipeline<'b, B>, ShadingGate<'b, B>) -> Result<(), E>,
     E: From<PipelineError>,
   {
-    unsafe {
-      self
-        .backend
-        .start_pipeline(&framebuffer.repr, pipeline_state);
-    }
+    let render = || {
+      unsafe {
+        self
+          .backend
+          .start_pipeline(&framebuffer.repr, pipeline_state);
+      }
 
-    let pipeline = unsafe {
-      self.backend.new_pipeline().map(|repr| Pipeline {
-        repr,
-        _phantom: PhantomData,
-      })?
-    };
-    let shading_gate = ShadingGate {
-      backend: self.backend,
+      let pipeline = unsafe {
+        self.backend.new_pipeline().map(|repr| Pipeline {
+          repr,
+          _phantom: PhantomData,
+        })?
+      };
+
+      let shading_gate = ShadingGate {
+        backend: self.backend,
+      };
+
+      f(pipeline, shading_gate)
     };
 
-    f(pipeline, shading_gate)
+    Render(render())
+  }
+}
+
+/// Output of a [`PipelineGate`].
+///
+/// This type is used as a proxy over `Result<(), E>`, which it defers to. It is needed so that
+/// you can seamlessly call the [`assume`] method
+pub struct Render<E>(Result<(), E>);
+
+impl<E> Render<E> {
+  /// Turn a [`Render`] into a [`Result`].
+  #[inline]
+  pub fn into_result(self) -> Result<(), E> {
+    self.0
+  }
+}
+
+impl Render<PipelineError> {
+  /// Assume the error type is [`PipelineError`].
+  ///
+  /// Most of the time, users will not provide their own error types for pipelines. Rust doesn’t
+  /// have default type parameters for methods, so this function is needed to inform the type
+  /// system to default the error type to [`PipelineError`].
+  #[inline]
+  pub fn assume(self) -> Self {
+    self
+  }
+}
+
+impl<E> From<Render<E>> for Result<(), E> {
+  fn from(render: Render<E>) -> Self {
+    render.0
+  }
+}
+
+impl<E> Deref for Render<E> {
+  type Target = Result<(), E>;
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl<E> DerefMut for Render<E> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
   }
 }
 
