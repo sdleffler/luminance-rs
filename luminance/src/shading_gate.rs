@@ -5,7 +5,6 @@
 //! [`Program`]: crate::shader::Program
 
 use crate::backend::shading_gate::ShadingGate as ShadingGateBackend;
-use crate::context::GraphicsContext;
 use crate::render_gate::RenderGate;
 use crate::shader::{Program, ProgramInterface, UniformInterface};
 use crate::vertex::Semantics;
@@ -16,21 +15,17 @@ use crate::vertex::Semantics;
 ///
 /// # Parametricity
 ///
-/// - `C` is the backend type.
-///
-/// [`PipelineGate`]: crate::pipeline::PipelineGate
-pub struct ShadingGate<'a, C>
+/// - `B` is the backend type.
+pub struct ShadingGate<'a, B>
 where
-  C: ?Sized + GraphicsContext,
-  C::Backend: ShadingGateBackend,
+  B: ?Sized,
 {
-  pub(crate) ctx: &'a mut C,
+  pub(crate) backend: &'a mut B,
 }
 
-impl<'a, C> ShadingGate<'a, C>
+impl<'a, B> ShadingGate<'a, B>
 where
-  C: ?Sized + GraphicsContext,
-  C::Backend: ShadingGateBackend,
+  B: ?Sized + ShadingGateBackend,
 {
   /// Enter a [`ShadingGate`] by using a shader [`Program`].
   ///
@@ -39,17 +34,19 @@ where
   /// - A [`ProgramInterface`], that allows to pass values (via [`ProgramInterface::set`]) to the
   ///   in-use shader [`Program`] and/or perform dynamic lookup of uniforms.
   /// - A [`RenderGate`], allowing to create deeper nodes in the graphics pipeline.
-  pub fn shade<Sem, Out, Uni, F>(&mut self, program: &mut Program<C::Backend, Sem, Out, Uni>, f: F)
+  pub fn shade<Sem, Out, Uni, F>(&mut self, program: &mut Program<B, Sem, Out, Uni>, f: F)
   where
     Sem: Semantics,
-    Uni: UniformInterface<C::Backend>,
-    F: for<'b> FnOnce(ProgramInterface<'b, C::Backend>, &'b Uni, RenderGate<'b, C>),
+    Uni: UniformInterface<B>,
+    F: for<'b> FnOnce(ProgramInterface<'b, B>, &'b Uni, RenderGate<'b, B>),
   {
     unsafe {
-      self.ctx.backend().apply_shader_program(&mut program.repr);
+      self.backend.apply_shader_program(&mut program.repr);
     }
 
-    let render_gate = RenderGate { ctx: self.ctx };
+    let render_gate = RenderGate {
+      backend: self.backend,
+    };
     let program_interface = ProgramInterface {
       program: &mut program.repr,
     };

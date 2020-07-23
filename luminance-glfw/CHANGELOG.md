@@ -11,6 +11,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.13.1](#0131)
 * [0.13](#013)
 * [0.12.2](#0122)
 * [0.12.1](#0121)
@@ -50,9 +51,15 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc -->
 
+# 0.13.1
+
+> Jul 21th, 2020
+
+- Support of `luminance-0.41`.
+
 # 0.13
 
-> Wed Jul 15th 2020
+> Wed Jul, 15th 2020
 
 - Support of `luminance-0.40`.
 - Support of `glfw-0.39`.
@@ -63,32 +70,32 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.12.2
 
-> Wed Apr 22nd 2020
+> Wed Apr, 22nd 2020
 
 - Make the `glfw` fields in `GlfwSurface` `pub` to allow people customizing them further.
 
 # 0.12.1
 
-> Sat Feb 29th 2020
+> Sat Feb, 29th 2020
 
 - Support of `luminance-0.39`.
 
 # 0.12
 
-> Sat Jan 4th 2020
+> Sat Jan, 4th 2020
 
 - Support of `luminance-0.38`.
 - Support of `glfw-0.34`.
 
 # 0.11
 
-> Sun Sep 29th 2019
+> Sun Sep, 29th 2019
 
 - Support of `luminance-0.37`.
 
 # 0.10
 
-> Fri Sep 20th 2019
+> Fri Sep, 20th 2019
 
 ## Minor changes
 
@@ -96,37 +103,37 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.9
 
-> Thur Sep 12th 2019
+> Thur Sep, 12th 2019
 
 - Fix SemVer issues with ranges and duplicated dependencies.
 
 # 0.8.1
 
-> Thur Sep 12th 2019
+> Thur Sep, 12th 2019
 
 - Support of `luminance-0.35`.
 
 # 0.8
 
-> Wed Sep 11th 2019
+> Wed Sep, 11th 2019
 
 - Support of `luminance-0.34`.
 
 # 0.7
 
-> Fri Sep 6th 2019
+> Fri Sep, 6th 2019
 
 - Support of `luminance-0.33`.
 
 # 0.6.1
 
-> Tue Sep 3rd 2019
+> Tue Sep, 3rd 2019
 
 - Support of `luminance-0.32`.
 
 # 0.6
 
-> Fri Aug 23th 2019
+> Fri Aug, 23th 2019
 
 ## Major changes
 

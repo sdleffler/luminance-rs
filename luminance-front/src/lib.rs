@@ -63,6 +63,7 @@ pub mod buffer;
 pub mod context;
 pub mod framebuffer;
 pub mod pipeline;
+pub mod render_gate;
 pub mod shader;
 pub mod shading_gate;
 pub mod tess;

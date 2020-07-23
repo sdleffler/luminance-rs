@@ -11,14 +11,21 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.14.1](#0141)
 * [0.14](#014)
 * [Pre 0.14](#pre-014)
 
 <!-- vim-markdown-toc -->
 
+# 0.14.1
+
+> Jul 21th, 2020
+
+- Support of `luminance-0.41`.
+
 # 0.14
 
-> Wed Jul 15th 2020
+> Wed Jul 15th, 2020
 
 - Replace mipmap creation’s square calls with bitwise left shifts to speed up computing the sizes
   of mipmaps.

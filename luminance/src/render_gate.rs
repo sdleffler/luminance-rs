@@ -6,7 +6,6 @@
 //! [`Tess`]: crate::tess::Tess
 
 use crate::backend::render_gate::RenderGate as RenderGateBackend;
-use crate::context::GraphicsContext;
 use crate::render_state::RenderState;
 use crate::tess_gate::TessGate;
 
@@ -14,32 +13,30 @@ use crate::tess_gate::TessGate;
 ///
 /// # Parametricity
 ///
-/// - `C` is the backend type. It must implement [`GraphicsContext`] and `C::Backend` must
-///   implement [`backend::RenderGate`].
-///
-/// [`backend::RenderGate`]: crate::backend::render_gate::RenderGate
-pub struct RenderGate<'a, C>
+/// - `B` is the backend type.
+pub struct RenderGate<'a, B>
 where
-  C: ?Sized,
+  B: ?Sized,
 {
-  pub(crate) ctx: &'a mut C,
+  pub(crate) backend: &'a mut B,
 }
 
-impl<'a, C> RenderGate<'a, C>
+impl<'a, B> RenderGate<'a, B>
 where
-  C: ?Sized + GraphicsContext,
-  C::Backend: RenderGateBackend,
+  B: ?Sized + RenderGateBackend,
 {
   /// Enter a [`RenderGate`] and go deeper in the pipeline.
   pub fn render<'b, F>(&'b mut self, rdr_st: &RenderState, f: F)
   where
-    F: FnOnce(TessGate<'b, C>),
+    F: FnOnce(TessGate<'b, B>),
   {
     unsafe {
-      self.ctx.backend().enter_render_state(rdr_st);
+      self.backend.enter_render_state(rdr_st);
     }
 
-    let tess_gate = TessGate { ctx: self.ctx };
+    let tess_gate = TessGate {
+      backend: self.backend,
+    };
     f(tess_gate);
   }
 }

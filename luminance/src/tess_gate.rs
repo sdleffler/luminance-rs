@@ -5,26 +5,25 @@
 //! [`Tess`]: crate::tess::Tess
 
 use crate::backend::tess_gate::TessGate as TessGateBackend;
-use crate::context::GraphicsContext;
 use crate::tess::{TessIndex, TessVertexData, TessView};
 
-/// Tessellation gates.
-pub struct TessGate<'a, C>
+/// Tessellation gate.
+pub struct TessGate<'a, B>
 where
-  C: ?Sized,
+  B: ?Sized,
 {
-  pub(crate) ctx: &'a mut C,
+  pub(crate) backend: &'a mut B,
 }
 
-impl<'a, C> TessGate<'a, C>
+impl<'a, B> TessGate<'a, B>
 where
-  C: ?Sized + GraphicsContext,
+  B: ?Sized,
 {
   /// Enter the [`TessGate`] by sharing a [`TessView`].
   pub fn render<'b, T, V, I, W, S>(&'b mut self, tess_view: T)
   where
-    C::Backend: TessGateBackend<V, I, W, S>,
-    T: Into<TessView<'b, C::Backend, V, I, W, S>>,
+    B: TessGateBackend<V, I, W, S>,
+    T: Into<TessView<'b, B, V, I, W, S>>,
     V: TessVertexData<S> + 'b,
     I: TessIndex + 'b,
     W: TessVertexData<S> + 'b,
@@ -33,7 +32,7 @@ where
     let tess_view = tess_view.into();
 
     unsafe {
-      self.ctx.backend().render(
+      self.backend.render(
         &tess_view.tess.repr,
         tess_view.start_index,
         tess_view.vert_nb,
