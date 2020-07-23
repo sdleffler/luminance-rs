@@ -250,30 +250,33 @@ fn main() {
       Event::RedrawRequested(_) => {
         // Create a new dynamic pipeline that will render to the back buffer and must clear it with
         // pitch black prior to do any render to it.
-        let render = surface.new_pipeline_gate().pipeline(
-          &back_buffer,
-          &PipelineState::default(),
-          |_, mut shd_gate| {
-            // Start shading with our program.
-            shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
-              // Start rendering things with the default render state provided by luminance.
-              rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-                // Pick the right tessellation to use depending on the mode chosen and render to
-                // the surface.
-                match demo {
-                  TessMethod::Direct => tess_gate.render(&direct_triangles),
-                  TessMethod::Indexed => tess_gate.render(&indexed_triangles),
-                  TessMethod::DirectDeinterleaved => {
-                    tess_gate.render(&direct_deinterleaved_triangles)
+        let render = surface
+          .new_pipeline_gate()
+          .pipeline(
+            &back_buffer,
+            &PipelineState::default(),
+            |_, mut shd_gate| {
+              // Start shading with our program.
+              shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
+                // Start rendering things with the default render state provided by luminance.
+                rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+                  // Pick the right tessellation to use depending on the mode chosen and render to
+                  // the surface.
+                  match demo {
+                    TessMethod::Direct => tess_gate.render(&direct_triangles),
+                    TessMethod::Indexed => tess_gate.render(&indexed_triangles),
+                    TessMethod::DirectDeinterleaved => {
+                      tess_gate.render(&direct_deinterleaved_triangles)
+                    }
+                    TessMethod::IndexedDeinterleaved => {
+                      tess_gate.render(&indexed_deinterleaved_triangles)
+                    }
                   }
-                  TessMethod::IndexedDeinterleaved => {
-                    tess_gate.render(&indexed_deinterleaved_triangles)
-                  }
-                }
-              });
-            });
-          },
-        );
+                })
+              })
+            },
+          )
+          .assume();
 
         // Finally, swap the backbuffer with the frontbuffer in order to render our triangles onto your
         // screen.

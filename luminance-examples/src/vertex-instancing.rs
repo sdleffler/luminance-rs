@@ -138,21 +138,24 @@ fn main() {
     let t64 = elapsed.as_secs() as f64 + (elapsed.subsec_millis() as f64 * 1e-3);
     let t = t64 as f32;
 
-    let render = surface.new_pipeline_gate().pipeline(
-      &back_buffer,
-      &PipelineState::default(),
-      |_, mut shd_gate| {
-        shd_gate.shade(&mut program, |mut iface, _, mut rdr_gate| {
-          if let Ok(ref time_u) = iface.query().unwrap().ask("t") {
-            iface.set(time_u, t);
-          }
+    let render = surface
+      .new_pipeline_gate()
+      .pipeline(
+        &back_buffer,
+        &PipelineState::default(),
+        |_, mut shd_gate| {
+          shd_gate.shade(&mut program, |mut iface, _, mut rdr_gate| {
+            if let Ok(ref time_u) = iface.query().unwrap().ask("t") {
+              iface.set(time_u, t);
+            }
 
-          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-            tess_gate.render(&triangle);
-          });
-        });
-      },
-    );
+            rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+              tess_gate.render(&triangle)
+            })
+          })
+        },
+      )
+      .assume();
 
     if render.is_ok() {
       surface.window.swap_buffers();

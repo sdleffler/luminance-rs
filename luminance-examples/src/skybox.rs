@@ -396,40 +396,40 @@ fn run() -> Result<(), AppError> {
     // the cube. A note here: it should be possible to change the way the skybox is rendered to
     // render it _after_ the cube. That will optimize some pixel shading when the cube is in the
     // viewport. For the sake of simplicity, we don’t do that here.
-    let render = pipeline_gate.pipeline(
-      &back_buffer,
-      &PipelineState::default(),
-      |pipeline, mut shd_gate| {
-        let environment_map = pipeline.bind_texture(&mut skybox).unwrap();
+    let render = pipeline_gate
+      .pipeline(
+        &back_buffer,
+        &PipelineState::default(),
+        |pipeline, mut shd_gate| {
+          let environment_map = pipeline.bind_texture(&mut skybox).unwrap();
 
-        // render the skybox
-        shd_gate.shade(&mut skybox_program, |mut iface, unis, mut rdr_gate| {
-          iface.set(&unis.view, Matrix4::from(skybox_orient).into());
-          iface.set(&unis.fovy, fovy);
-          iface.set(&unis.aspect_ratio, aspect_ratio);
-          iface.set(&unis.skybox, environment_map.binding());
-
-          rdr_gate.render(&rdr_st, |mut tess_gate| {
-            tess_gate.render(&fullscreen_quad);
-          });
-        });
-
-        // render the cube
-        shd_gate.shade(
-          &mut environment_mapping_program,
-          |mut iface, unis, mut rdr_gate| {
-            iface.set(&unis.projection, projection);
-            iface.set(&unis.view, view);
+          // render the skybox
+          shd_gate.shade(&mut skybox_program, |mut iface, unis, mut rdr_gate| {
+            iface.set(&unis.view, Matrix4::from(skybox_orient).into());
+            iface.set(&unis.fovy, fovy);
             iface.set(&unis.aspect_ratio, aspect_ratio);
-            iface.set(&unis.environment, environment_map.binding());
+            iface.set(&unis.skybox, environment_map.binding());
 
-            rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-              tess_gate.render(&cube);
-            });
-          },
-        );
-      },
-    );
+            rdr_gate.render(&rdr_st, |mut tess_gate| tess_gate.render(&fullscreen_quad))
+          })?;
+
+          // render the cube
+          shd_gate.shade(
+            &mut environment_mapping_program,
+            |mut iface, unis, mut rdr_gate| {
+              iface.set(&unis.projection, projection);
+              iface.set(&unis.view, view);
+              iface.set(&unis.aspect_ratio, aspect_ratio);
+              iface.set(&unis.environment, environment_map.binding());
+
+              rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+                tess_gate.render(&cube)
+              })
+            },
+          )
+        },
+      )
+      .assume();
 
     if render.is_ok() {
       surface.window.swap_buffers();

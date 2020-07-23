@@ -117,20 +117,20 @@ fn main() {
 
     // create a new dynamic pipeline that will render to the back buffer and must clear it with
     // pitch black prior to do any render to it
-    let render =
-      surface
-        .new_pipeline_gate()
-        .pipeline(&fb, &PipelineState::default(), |_, mut shd_gate| {
-          // start shading with our program
-          shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
-            // start rendering things with the default render state provided by luminance
-            rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-              // pick the right tessellation to use depending on the mode chosen
-              // render the tessellation to the surface
-              tess_gate.render(&tris);
-            });
-          });
-        });
+    let render = surface
+      .new_pipeline_gate()
+      .pipeline(&fb, &PipelineState::default(), |_, mut shd_gate| {
+        // start shading with our program
+        shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
+          // start rendering things with the default render state provided by luminance
+          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+            // pick the right tessellation to use depending on the mode chosen
+            // render the tessellation to the surface
+            tess_gate.render(&tris)
+          })
+        })
+      })
+      .assume();
 
     if !generated {
       // the backbuffer contains our texels

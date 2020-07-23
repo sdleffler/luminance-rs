@@ -138,48 +138,52 @@ fn main() {
     let mut builder = surface.new_pipeline_gate();
 
     // render the triangle in the offscreen framebuffer first
-    let render = builder.pipeline(
-      &offscreen_buffer,
-      &PipelineState::default(),
-      |_, mut shd_gate| {
-        shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
-          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-            // we render the triangle here by asking for the whole triangle
-            tess_gate.render(&triangle);
-          });
-        });
-      },
-    );
+    let render = builder
+      .pipeline(
+        &offscreen_buffer,
+        &PipelineState::default(),
+        |_, mut shd_gate| {
+          shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
+            rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+              // we render the triangle here by asking for the whole triangle
+              tess_gate.render(&triangle)
+            })
+          })
+        },
+      )
+      .assume();
 
     if render.is_err() {
       break 'app;
     }
 
     // read from the offscreen framebuffer and output it into the back buffer
-    let render = builder.pipeline(
-      &back_buffer,
-      &PipelineState::default(),
-      |pipeline, mut shd_gate| {
-        // we must bind the offscreen framebuffer color content so that we can pass it to a shader
-        let (color, white) = offscreen_buffer.color_slot();
+    let render = builder
+      .pipeline(
+        &back_buffer,
+        &PipelineState::default(),
+        |pipeline, mut shd_gate| {
+          // we must bind the offscreen framebuffer color content so that we can pass it to a shader
+          let (color, white) = offscreen_buffer.color_slot();
 
-        let bound_color = pipeline.bind_texture(color).unwrap();
+          let bound_color = pipeline.bind_texture(color)?;
 
-        let bound_white = pipeline.bind_texture(white).unwrap();
+          let bound_white = pipeline.bind_texture(white)?;
 
-        shd_gate.shade(&mut copy_program, |mut iface, uni, mut rdr_gate| {
-          // we update the texture with the bound texture
-          iface.set(&uni.texture_color, bound_color.binding());
-          iface.set(&uni.texture_white, bound_white.binding());
+          shd_gate.shade(&mut copy_program, |mut iface, uni, mut rdr_gate| {
+            // we update the texture with the bound texture
+            iface.set(&uni.texture_color, bound_color.binding());
+            iface.set(&uni.texture_white, bound_white.binding());
 
-          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-            // this will render the attributeless quad with both the offscreen framebuffer color
-            // slots bound for the shader to fetch from
-            tess_gate.render(&quad);
-          });
-        });
-      },
-    );
+            rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+              // this will render the attributeless quad with both the offscreen framebuffer color
+              // slots bound for the shader to fetch from
+              tess_gate.render(&quad)
+            })
+          })
+        },
+      )
+      .assume();
 
     // finally, swap the backbuffer with the frontbuffer in order to render our triangles onto your
     // screen

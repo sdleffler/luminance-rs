@@ -181,39 +181,42 @@ fn main() {
     let t64 = elapsed.as_secs() as f64 + (elapsed.subsec_millis() as f64 * 1e-3);
     let t = t64 as f32;
 
-    let render = surface.new_pipeline_gate().pipeline(
-      &back_buffer,
-      &PipelineState::default(),
-      |_, mut shd_gate| {
-        match program {
-          // if we use the first interface, we just need to pass the time and the triangle position
-          ProgramMode::First(ref mut program) => {
-            shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
-              iface.set(&uni.time, t);
-              iface.set(&uni.triangle_size, t.cos().powf(2.));
+    let render = surface
+      .new_pipeline_gate()
+      .pipeline(
+        &back_buffer,
+        &PipelineState::default(),
+        |_, mut shd_gate| {
+          match program {
+            // if we use the first interface, we just need to pass the time and the triangle position
+            ProgramMode::First(ref mut program) => {
+              shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
+                iface.set(&uni.time, t);
+                iface.set(&uni.triangle_size, t.cos().powf(2.));
 
-              rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-                tess_gate.render(&triangle);
-              });
-            });
+                rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+                  tess_gate.render(&triangle)
+                })
+              })
+            }
+
+            // if we use the second interface, we just need to pass the time and we will make the size
+            // grow by using the time
+            ProgramMode::Second(ref mut program) => {
+              shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
+                iface.set(&uni.time, t);
+                // iface.set(&uni.triangle_size, t.cos().powf(2.)); // uncomment this to see a nice error ;)
+                iface.set(&uni.triangle_pos, triangle_pos);
+
+                rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+                  tess_gate.render(&triangle)
+                })
+              })
+            }
           }
-
-          // if we use the second interface, we just need to pass the time and we will make the size
-          // grow by using the time
-          ProgramMode::Second(ref mut program) => {
-            shd_gate.shade(program, |mut iface, uni, mut rdr_gate| {
-              iface.set(&uni.time, t);
-              // iface.set(&uni.triangle_size, t.cos().powf(2.)); // uncomment this to see a nice error ;)
-              iface.set(&uni.triangle_pos, triangle_pos);
-
-              rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-                tess_gate.render(&triangle);
-              });
-            });
-          }
-        }
-      },
-    );
+        },
+      )
+      .assume();
 
     if render.is_ok() {
       surface.window.swap_buffers();

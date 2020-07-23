@@ -128,32 +128,35 @@ fn main() {
       resize = false;
     }
 
-    let render = surface.new_pipeline_gate().pipeline(
-      &back_buffer,
-      &PipelineState::default(),
-      |_, mut shd_gate| {
-        shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
-          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-            let view = match view_method {
-              // the red triangle is at slice [..3]; you can also use the TessView::sub
-              // combinator if the start element is 0; it’s also possible to use [..=2] for
-              // inclusive ranges
-              ViewMethod::Red => triangles.view(..3), // TessView::slice(&triangles, 0, 3),
-              // the blue triangle is at slice [3..]
-              ViewMethod::Blue => triangles.view(3..), // TessView::slice(&triangles, 3, 6),
-              // both triangles are at slice [0..6] or [..], but we’ll use the faster
-              // TessView::whole combinator; this combinator is also if you invoke the From or
-              // Into method on (&triangles) (we did that in 02-render-state)
-              ViewMethod::Both => triangles.view(..), // TessView::whole(&triangles)
-            }
-            .unwrap();
+    let render = surface
+      .new_pipeline_gate()
+      .pipeline(
+        &back_buffer,
+        &PipelineState::default(),
+        |_, mut shd_gate| {
+          shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
+            rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+              let view = match view_method {
+                // the red triangle is at slice [..3]; you can also use the TessView::sub
+                // combinator if the start element is 0; it’s also possible to use [..=2] for
+                // inclusive ranges
+                ViewMethod::Red => triangles.view(..3), // TessView::slice(&triangles, 0, 3),
+                // the blue triangle is at slice [3..]
+                ViewMethod::Blue => triangles.view(3..), // TessView::slice(&triangles, 3, 6),
+                // both triangles are at slice [0..6] or [..], but we’ll use the faster
+                // TessView::whole combinator; this combinator is also if you invoke the From or
+                // Into method on (&triangles) (we did that in 02-render-state)
+                ViewMethod::Both => triangles.view(..), // TessView::whole(&triangles)
+              }
+              .unwrap();
 
-            // render the dynamically selected view
-            tess_gate.render(view);
-          });
-        });
-      },
-    );
+              // render the dynamically selected view
+              tess_gate.render(view)
+            })
+          })
+        },
+      )
+      .assume();
 
     if render.is_ok() {
       surface.window.swap_buffers();

@@ -146,32 +146,35 @@ fn main() {
       resize = false;
     }
 
-    let render = surface.new_pipeline_gate().pipeline(
-      &back_buffer,
-      &PipelineState::default(),
-      |_, mut shd_gate| {
-        shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
-          let render_state = RenderState::default()
+    let render = surface
+      .new_pipeline_gate()
+      .pipeline(
+        &back_buffer,
+        &PipelineState::default(),
+        |_, mut shd_gate| {
+          shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
+            let render_state = RenderState::default()
             // let’s disable the depth test so that every fragment (i.e. pixels) will be rendered to every
             // time we have to draw a part of a triangle
             .set_depth_test(None)
             // set the blending we decided earlier
             .set_blending(blending);
 
-          rdr_gate.render(&render_state, |mut tess_gate| match depth_method {
-            DepthMethod::Under => {
-              tess_gate.render(&red_triangle);
-              tess_gate.render(&blue_triangle);
-            }
+            rdr_gate.render(&render_state, |mut tess_gate| match depth_method {
+              DepthMethod::Under => {
+                tess_gate.render(&red_triangle)?;
+                tess_gate.render(&blue_triangle)
+              }
 
-            DepthMethod::Atop => {
-              tess_gate.render(&blue_triangle);
-              tess_gate.render(&red_triangle);
-            }
-          });
-        });
-      },
-    );
+              DepthMethod::Atop => {
+                tess_gate.render(&blue_triangle)?;
+                tess_gate.render(&red_triangle)
+              }
+            })
+          })
+        },
+      )
+      .assume();
 
     if render.is_ok() {
       surface.window.swap_buffers();

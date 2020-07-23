@@ -102,26 +102,29 @@ fn run(texture_path: &Path) {
 
     // here, we need to bind the pipeline variable; it will enable us to bind the texture to the GPU
     // and use it in the shader
-    let render = surface.new_pipeline_gate().pipeline(
-      &back_buffer,
-      &PipelineState::default(),
-      |pipeline, mut shd_gate| {
-        // bind our fancy texture to the GPU: it gives us a bound texture we can use with the shader
-        let bound_tex = pipeline.bind_texture(&mut tex).unwrap();
+    let render = surface
+      .new_pipeline_gate()
+      .pipeline(
+        &back_buffer,
+        &PipelineState::default(),
+        |pipeline, mut shd_gate| {
+          // bind our fancy texture to the GPU: it gives us a bound texture we can use with the shader
+          let bound_tex = pipeline.bind_texture(&mut tex)?;
 
-        shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
-          // update the texture; strictly speaking, this update doesn’t do much: it just tells the GPU
-          // to use the texture passed as argument (no allocation or copy is performed)
-          iface.set(&uni.tex, bound_tex.binding());
+          shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
+            // update the texture; strictly speaking, this update doesn’t do much: it just tells the GPU
+            // to use the texture passed as argument (no allocation or copy is performed)
+            iface.set(&uni.tex, bound_tex.binding());
 
-          rdr_gate.render(render_st, |mut tess_gate| {
-            // render the tessellation to the surface the regular way and let the vertex shader’s
-            // magic do the rest!
-            tess_gate.render(&tess);
-          });
-        });
-      },
-    );
+            rdr_gate.render(render_st, |mut tess_gate| {
+              // render the tessellation to the surface the regular way and let the vertex shader’s
+              // magic do the rest!
+              tess_gate.render(&tess)
+            })
+          })
+        },
+      )
+      .assume();
 
     if render.is_ok() {
       surface.window.swap_buffers();
