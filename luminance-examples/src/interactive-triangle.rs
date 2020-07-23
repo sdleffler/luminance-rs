@@ -153,17 +153,20 @@ fn main() {
       resize = false;
     }
 
-    let render = surface.new_pipeline_gate().pipeline(
-      &back_buffer,
-      &PipelineState::default(),
-      |_, mut shd_gate| {
-        shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
-          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-            tess_gate.render(&triangle);
+    let render = surface
+      .new_pipeline_gate()
+      .pipeline(
+        &back_buffer,
+        &PipelineState::default(),
+        |_, mut shd_gate| {
+          shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
+            rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+              tess_gate.render(&triangle)
+            })
           })
-        });
-      },
-    );
+        },
+      )
+      .assume();
 
     // Finally, swap the backbuffer with the frontbuffer in order to render our triangles onto your
     // screen.

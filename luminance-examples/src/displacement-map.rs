@@ -143,32 +143,33 @@ fn main() {
     let elapsed = start_time.elapsed();
     let time = elapsed.as_secs() as f64 + (f64::from(elapsed.subsec_millis()) * 1e-3);
 
-    let render = surface.new_pipeline_gate().pipeline(
-      &back_buffer,
-      &PipelineState::default(),
-      |pipeline, mut shading_gate| {
-        let bound_texture = pipeline.bind_texture(&mut tex).unwrap();
-        let bound_displacement_1 = pipeline.bind_texture(&mut displacement_tex_1).unwrap();
-        let bound_displacement_2 = pipeline.bind_texture(&mut displacement_tex_2).unwrap();
+    let render = surface
+      .new_pipeline_gate()
+      .pipeline(
+        &back_buffer,
+        &PipelineState::default(),
+        |pipeline, mut shading_gate| {
+          let bound_texture = pipeline.bind_texture(&mut tex).unwrap();
+          let bound_displacement_1 = pipeline.bind_texture(&mut displacement_tex_1)?;
+          let bound_displacement_2 = pipeline.bind_texture(&mut displacement_tex_2)?;
 
-        shading_gate.shade(&mut program, |mut interface, uni, mut render_gate| {
-          let back_buffer_size = back_buffer.size();
-          interface.set(&uni.image, bound_texture.binding());
-          interface.set(&uni.displacement_map_1, bound_displacement_1.binding());
-          interface.set(&uni.displacement_map_2, bound_displacement_2.binding());
-          interface.set(&uni.displacement_scale, displacement_scale);
-          interface.set(&uni.time, time as f32);
-          interface.set(
-            &uni.window_dimensions,
-            [back_buffer_size[0] as f32, back_buffer_size[1] as f32],
-          );
+          shading_gate.shade(&mut program, |mut interface, uni, mut render_gate| {
+            let back_buffer_size = back_buffer.size();
+            interface.set(&uni.image, bound_texture.binding());
+            interface.set(&uni.displacement_map_1, bound_displacement_1.binding());
+            interface.set(&uni.displacement_map_2, bound_displacement_2.binding());
+            interface.set(&uni.displacement_scale, displacement_scale);
+            interface.set(&uni.time, time as f32);
+            interface.set(
+              &uni.window_dimensions,
+              [back_buffer_size[0] as f32, back_buffer_size[1] as f32],
+            );
 
-          render_gate.render(&render_state, |mut tess_gate| {
-            tess_gate.render(&tess);
+            render_gate.render(&render_state, |mut tess_gate| tess_gate.render(&tess))
           })
-        });
-      },
-    );
+        },
+      )
+      .assume();
 
     if render.is_ok() {
       surface.window.swap_buffers();

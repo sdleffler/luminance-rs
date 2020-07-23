@@ -134,23 +134,26 @@ fn main() {
     let t64 = elapsed.as_secs() as f64 + (elapsed.subsec_millis() as f64 * 1e-3);
     let t = t64 as f32;
 
-    let render = surface.new_pipeline_gate().pipeline(
-      &back_buffer,
-      &PipelineState::default(),
-      |_, mut shd_gate| {
-        // notice the iface free variable, which type is &ShaderInterface
-        shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
-          // update the time and triangle position on the GPU shader program
-          iface.set(&uni.time, t);
-          iface.set(&uni.triangle_pos, triangle_pos);
+    let render = surface
+      .new_pipeline_gate()
+      .pipeline(
+        &back_buffer,
+        &PipelineState::default(),
+        |_, mut shd_gate| {
+          // notice the iface free variable, which type is &ShaderInterface
+          shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
+            // update the time and triangle position on the GPU shader program
+            iface.set(&uni.time, t);
+            iface.set(&uni.triangle_pos, triangle_pos);
 
-          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-            // render the dynamically selected slice
-            tess_gate.render(&triangle);
-          });
-        });
-      },
-    );
+            rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+              // render the dynamically selected slice
+              tess_gate.render(&triangle)
+            })
+          })
+        },
+      )
+      .assume();
 
     if render.is_ok() {
       surface.window.swap_buffers();

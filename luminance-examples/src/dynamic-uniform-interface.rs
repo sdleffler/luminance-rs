@@ -120,38 +120,41 @@ fn main() {
     let t64 = elapsed.as_secs() as f64 + (elapsed.subsec_millis() as f64 * 1e-3);
     let t = t64 as f32;
 
-    let render = surface.new_pipeline_gate().pipeline(
-      &back_buffer,
-      &PipelineState::default(),
-      |_, mut shd_gate| {
-        shd_gate.shade(&mut program, |mut iface, _, mut rdr_gate| {
-          let (time_u, triangle_pos_u) = {
-            let mut query = iface.query().unwrap();
-            let time_u = query.ask("t");
-            let triangle_pos_u = query.ask("triangle_pos");
-            (time_u, triangle_pos_u)
-          };
+    let render = surface
+      .new_pipeline_gate()
+      .pipeline(
+        &back_buffer,
+        &PipelineState::default(),
+        |_, mut shd_gate| {
+          shd_gate.shade(&mut program, |mut iface, _, mut rdr_gate| {
+            let (time_u, triangle_pos_u) = {
+              let mut query = iface.query().unwrap();
+              let time_u = query.ask("t");
+              let triangle_pos_u = query.ask("triangle_pos");
+              (time_u, triangle_pos_u)
+            };
 
-          if let Ok(ref time_u) = time_u {
-            iface.set(time_u, t);
-          }
+            if let Ok(ref time_u) = time_u {
+              iface.set(time_u, t);
+            }
 
-          if let Ok(ref triangle_pos_u) = triangle_pos_u {
-            iface.set(triangle_pos_u, triangle_pos);
-          }
+            if let Ok(ref triangle_pos_u) = triangle_pos_u {
+              iface.set(triangle_pos_u, triangle_pos);
+            }
 
-          // the `ask` function is type-safe: if you try to get a uniform which type is not
-          // correctly reified from the source, you get a TypeMismatch runtime error
-          //if let Err(e) = query.ask::<i32>("triangle_pos") {
-          //  eprintln!("{:?}", e);
-          //}
+            // the `ask` function is type-safe: if you try to get a uniform which type is not
+            // correctly reified from the source, you get a TypeMismatch runtime error
+            //if let Err(e) = query.ask::<i32>("triangle_pos") {
+            //  eprintln!("{:?}", e);
+            //}
 
-          rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-            tess_gate.render(&triangle);
-          });
-        });
-      },
-    );
+            rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+              tess_gate.render(&triangle)
+            })
+          })
+        },
+      )
+      .assume();
 
     if render.is_ok() {
       surface.window.swap_buffers();

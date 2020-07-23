@@ -34,11 +34,15 @@ where
   /// - A [`ProgramInterface`], that allows to pass values (via [`ProgramInterface::set`]) to the
   ///   in-use shader [`Program`] and/or perform dynamic lookup of uniforms.
   /// - A [`RenderGate`], allowing to create deeper nodes in the graphics pipeline.
-  pub fn shade<Sem, Out, Uni, F>(&mut self, program: &mut Program<B, Sem, Out, Uni>, f: F)
+  pub fn shade<E, Sem, Out, Uni, F>(
+    &mut self,
+    program: &mut Program<B, Sem, Out, Uni>,
+    f: F,
+  ) -> Result<(), E>
   where
     Sem: Semantics,
     Uni: UniformInterface<B>,
-    F: for<'b> FnOnce(ProgramInterface<'b, B>, &'b Uni, RenderGate<'b, B>),
+    F: for<'b> FnOnce(ProgramInterface<'b, B>, &'b Uni, RenderGate<'b, B>) -> Result<(), E>,
   {
     unsafe {
       self.backend.apply_shader_program(&mut program.repr);
@@ -51,6 +55,6 @@ where
       program: &mut program.repr,
     };
 
-    f(program_interface, &program.uni, render_gate);
+    f(program_interface, &program.uni, render_gate)
   }
 }

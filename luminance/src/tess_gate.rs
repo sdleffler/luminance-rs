@@ -20,7 +20,7 @@ where
   B: ?Sized,
 {
   /// Enter the [`TessGate`] by sharing a [`TessView`].
-  pub fn render<'b, T, V, I, W, S>(&'b mut self, tess_view: T)
+  pub fn render<'b, E, T, V, I, W, S>(&'b mut self, tess_view: T) -> Result<(), E>
   where
     B: TessGateBackend<V, I, W, S>,
     T: Into<TessView<'b, B, V, I, W, S>>,
@@ -37,7 +37,9 @@ where
         tess_view.start_index,
         tess_view.vert_nb,
         tess_view.inst_nb,
-      )
+      );
+
+      Ok(())
     }
   }
 }
