@@ -263,9 +263,11 @@ pub fn render_scene(scene: &mut Scene) {
               TessMethod::DirectDeinterleaved => tess_gate.render(direct_deinterleaved_triangles),
               TessMethod::IndexedDeinterleaved => tess_gate.render(indexed_deinterleaved_triangles),
             }
-          });
-        });
+          })
+        })
       },
     )
+    .assume()
+    .into_result()
     .unwrap()
 }
