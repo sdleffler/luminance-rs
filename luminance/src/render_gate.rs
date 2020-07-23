@@ -26,9 +26,9 @@ where
   B: ?Sized + RenderGateBackend,
 {
   /// Enter a [`RenderGate`] and go deeper in the pipeline.
-  pub fn render<'b, F>(&'b mut self, rdr_st: &RenderState, f: F)
+  pub fn render<'b, E, F>(&'b mut self, rdr_st: &RenderState, f: F) -> Result<(), E>
   where
-    F: FnOnce(TessGate<'b, B>),
+    F: FnOnce(TessGate<'b, B>) -> Result<(), E>,
   {
     unsafe {
       self.backend.enter_render_state(rdr_st);
@@ -37,6 +37,7 @@ where
     let tess_gate = TessGate {
       backend: self.backend,
     };
-    f(tess_gate);
+
+    f(tess_gate)
   }
 }

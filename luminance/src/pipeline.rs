@@ -478,18 +478,26 @@ where
   /// [`PipelineState`] and a closure that allows to go deeper in the pipeline (i.e. resource
   /// graph). The closure is passed a [`Pipeline`] for you to dynamically alter the pipeline and a
   /// [`ShadingGate`] to enter shading nodes.
-  pub fn pipeline<D, CS, DS, F>(
+  ///
+  /// # Errors
+  ///
+  /// [`PipelineError`] might be thrown for various reasons, depending on the backend you use.
+  /// However, this method doesn’t return [`PipelineError`] directly: instead, it returns
+  /// `E: From<PipelineError>`. This allows you to inject your own error type in the argument
+  /// closure, allowing for a grainer control of errors inside the pipeline.
+  pub fn pipeline<E, D, CS, DS, F>(
     &mut self,
     framebuffer: &Framebuffer<B, D, CS, DS>,
     pipeline_state: &PipelineState,
     f: F,
-  ) -> Result<(), PipelineError>
+  ) -> Result<(), E>
   where
     B: FramebufferBackend<D> + PipelineBackend<D>,
     D: Dimensionable,
     CS: ColorSlot<B, D>,
     DS: DepthSlot<B, D>,
-    F: for<'b> FnOnce(Pipeline<'b, B>, ShadingGate<'b, B>),
+    F: for<'b> FnOnce(Pipeline<'b, B>, ShadingGate<'b, B>) -> Result<(), E>,
+    E: From<PipelineError>,
   {
     unsafe {
       self
@@ -507,8 +515,7 @@ where
       backend: self.backend,
     };
 
-    f(pipeline, shading_gate);
-    Ok(())
+    f(pipeline, shading_gate)
   }
 }
 
