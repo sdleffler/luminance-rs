@@ -3,9 +3,11 @@
 
 /// Unsafe coercion to a `js_sys::Object` for immutable slices.
 ///
-/// This trait exports the [`into_array_buffer`], which is an unsafe operation, as
+/// This trait provides the [`into_array_buffer`] method, which is an unsafe operation, as
 /// the `view()` method, defined on the various arrays in the `js-sys` crate, requires that the
 /// underlying memory not be moved until the array is dropped.
+///
+/// [`into_array_buffer`]: crate::webgl2::array_buffer::IntoArrayBuffer::into_array_buffer
 pub trait IntoArrayBuffer: Sized {
   /// Convert the input slice into a JavaScript object.
   ///
