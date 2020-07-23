@@ -111,7 +111,11 @@ use syn::{self, parse_macro_input, Data, DeriveInput};
 /// This attribute allows you to specify whether the fields are to be instanced or not. For more
 /// about that, have a look at [`VertexInstancing`].
 ///
+/// [`HasSemantics`]: https://docs.rs/luminance/latest/luminance/vertex/trait.HasSemantics.html
+/// [`Tess`]: https://docs.rs/luminance/latest/luminance/tess/struct.Tess.html
 /// [`Vertex`]: https://docs.rs/luminance/latest/luminance/vertex/trait.Vertex.html
+/// [`VertexAttrib`]: https://docs.rs/luminance/latest/luminance/vertex/trait.VertexAttrib.html
+/// [`VertexInstancing`]: https://docs.rs/luminance/latest/luminance/vertex/enum.VertexInstancing.html
 #[proc_macro_derive(Vertex, attributes(vertex))]
 pub fn derive_vertex(input: TokenStream) -> TokenStream {
   let di: DeriveInput = parse_macro_input!(input);
