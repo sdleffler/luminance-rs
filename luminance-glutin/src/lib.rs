@@ -94,11 +94,13 @@ unsafe impl GraphicsContext for GlutinSurface {
 impl GlutinSurface {
   /// Create a new [`GlutinSurface`] by consuming a [`WindowBuilder`].
   ///
-  /// This is an alternative method to [`new`] that is more flexible as you have access to the
+  /// This is an alternative method to [`new_gl33`] that is more flexible as you have access to the
   /// whole `glutin` types.
   ///
   /// `window_builder` is the default object when passed to your closure and `ctx_builder` is
   /// already initialized for the OpenGL context (you’re not supposed to change it!).
+  ///
+  /// [`new_gl33`]: crate::GlutinSurface::new_gl33
   pub fn new_gl33_from_builders<'a, WB, CB>(
     window_builder: WB,
     ctx_builder: CB,
