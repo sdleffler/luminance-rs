@@ -206,7 +206,7 @@
 //!
 //! [`TessGate`]s don’t immediately use [`Tess`] as inputs. They use [`TessView`]. That type is
 //! a simple GPU view into a GPU tessellation ([`Tess`]). It can be obtained from a [`Tess`] via
-//! the [`SubTess`] trait or built explicitly.
+//! the [`View`] trait or built explicitly.
 //!
 //! [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 //! [`Tess`]: crate::tess::Tess
@@ -220,7 +220,7 @@
 //! [`ProgramInterface::query`]: crate::shader::ProgramInterface::query
 //! [`TessGate`]: crate::tess_gate::TessGate
 //! [`TessView`]: crate::tess::TessView
-//! [`SubTess`]: crate::tess::SubTess
+//! [`View`]: crate::tess::View
 
 use std::error;
 use std::fmt;
@@ -529,6 +529,8 @@ where
 ///
 /// This type is used as a proxy over `Result<(), E>`, which it defers to. It is needed so that
 /// you can seamlessly call the [`assume`] method
+///
+/// [`assume`]: crate::pipeline::Render::assume
 pub struct Render<E>(Result<(), E>);
 
 impl<E> Render<E> {
