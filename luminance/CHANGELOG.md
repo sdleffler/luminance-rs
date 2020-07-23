@@ -121,13 +121,20 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.41
 
-> Tue Jul, 21st 2020
+> ?
 
 - Fix a type design flaw in `PipelineGate`, `ShadingGate`, `RenderGate` and `TessellationGate`.
   Previously, those were using the `C: GraphicsContext` type variable, which, even though is okay
   for the [luminance] crate, makes it impossible to re-export those symbols in [luminance-front].
   Also, the rest of the types in [luminance] use `B` directly and universally quantify over
   `C: GraphicsContext<Backend = B>` when needed. #414
+- Change the how errors are handled in pipeline gates. Closures passed to gates now must return
+  error types — i.e. `Result<(), E>`, with the  constraint that `E: From<PipelineError>`. This
+  allows more flexible error handling and allow pipeline errors to _flow up_ in the pipeline gate,
+  either via `PipelineError` or via whatever error type the user wants them to flow up with.
+- `PipelineGate::pipeline()` doesn’t return `Result<(), PipelineError`> anymore, but `Render<E>`, a
+  brand new type wrapping over `Result<(), E>`. That type provides `Deref` / `DerefMut` over
+  `Result<(), E>`, so your code using `is_err()` / `is_ok()` will still work.
 
 ## Migration guide from 0.40
 
@@ -135,6 +142,20 @@ compatible with as many crates as possible. In that case, you want `cargo update
   `GraphicsContext<Backend = B>`. Even though it’s unlikely you were using those types directly,
   you will have to use directly the backend type here. It should either make things simpler for
   you, or fix compilation errors.
+- The new design of error flow in the pipeline closures is a great enhancement over type safety and
+  error handling. However, it will make your code break — because your code, in `luminance-0.40`,
+  return `()`, which is not `Result<(), E>`. You have two easy changes to do:
+  - Inside the closures, you need to remove most of the `;` you put everywhere and replace them
+    with either nothing (last instruction in the closure), or with `?;`, so that eventual errors
+    flow up the pipeline.
+  - Outside of the `PipelineGate::pipeline()` method call, you want to chain the `Render::assume()`
+    method call. That method is a simple identity function (forward no-op, `self -> self`) that is
+    required to force the type system to assume the error type to be `PipelineError`. You don’t
+    have to use that function and can, instead, use type ascriptions, such as
+    `Render<PipelineError>`, but that requires two imports, while `Render::assume()` doesn’t even
+    require you to import `Render`. Of course you can use your own error types now, so
+    `Render::assume()` is only useful if you don’t care to inject your own pipeline error types
+    and simply want to use `PipelineError`.
 
 # 0.40
 
