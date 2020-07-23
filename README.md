@@ -28,31 +28,30 @@
 **luminance** is an effort to make graphics rendering simple and elegant. It was originally imagined,
 designed and implemented by [@phaazon](https://github.com/phaazon) in Haskell ([here](https://hackage.haskell.org/package/luminance))
 and eventually ported to Rust in 2016. The core concepts remained the same and the crate has been
-slowly evolving ever since. At first, used only by @phaazon for his Rust demoscene productions (
-example [here](https://github.com/phaazon/celeri-remoulade) and
+slowly evolving ever since. At first, used only by @phaazon for his Rust demoscene productions 
+(example [here](https://github.com/phaazon/celeri-remoulade) and
 [here](https://github.com/phaazon/outline-2017-invitro), using
 [spectra](https://crates.io/crates/spectra)) and a bunch of curious peeps, it now has more visibility
 among the graphics ecosystem of Rust.
 
-Currently, such an ecosystem is spread into several crates, ideas and people. It is highly
+Currently, that ecosystem is spread into several crates, ideas and people. It is highly
 recommended to read the great article about the ecosystem by @Icefoxen, [here](https://wiki.alopex.li/AGuideToRustGraphicsLibraries2019).
 
 However, **luminance** is a bit different from what it was initially imagined for. People are
 looking for an easy-to-use crate, with good abstractions and safe-guards against all the _bad_ and
 _dangerous_ graphics API caveats. **luminance** has always been about providing a safe, type-safe
-and elegant API (being Haskell-based makes it heavily use the type system, for instance) but it has
-now a more accurate place in the ecosystem. Where [gfx-hal] provides you with an experience focused
+and elegant API (being Haskell-based makes it heavily use the type system, for instance) but it now
+has a more unique niche in the ecosystem. Where [gfx-hal] provides an experience focused
 on down-to-metal performance and an API very similar to [Vulkan]’s, **luminance** provides an API
-that is, for sure, a bit less low-level — and hence, yes, it’s likely you will not have the same
-performances as with [gfx-hal] (even though no benchmarks have been done so far), and the API is not
-[Vulkan]-based — but easier to start with, especially if you don’t already have a background
-experience with [OpenGL] or [Vulkan].
+that is, for sure, a bit higher-level, and not [Vulkan]-based — and hence, yes, it likely won't give
+you the same performances as with [gfx-hal] (though no benchmarks have been done so far) — but 
+easier to start with, especially if you don’t already have a background experience with [OpenGL] or [Vulkan].
 
 The strengths of **luminance** are:
 
 - Easy to learn: the concepts, based on [OpenGL], are applied to _graphics_, not _general-purpose
   programming on GPU_. Using **luminance** will help you wrap your fingers around what graphics
-  programming is about and it will help you to, perhaps, jump to lower abstractions like
+  programming is about and it will help you, perhaps, to jump to lower abstractions like
   [gfx-hal], if you ever need to.
 - Performant: by using Rust and being designed around the concept of good performances,
   **luminance** should allow you to build nice and fast simulations, animations and video games.
@@ -67,15 +66,15 @@ The strengths of **luminance** are:
   mutation (unless its Haskell version) but the Rust type system and borrow checker allows for
   safe mutations.
 - Modern: the whole **luminance** ecosystem tries its best to stay up-to-date with Rust evolutions
-  and features. On the same level, the underneath technologies are kept up-to-date and might even
-  change if a more modern and more adapted one emerges ([Vulkan] might eventually get adopted but
-  this is just an idea for now).
-- _Enough opinionated_: a big bet with **luminance** was to make it opinionated, but not too much.
-  It needs to be opinionated to allow some design constructs to be possible and optimize
-  performance and allow for extra safety. However, it must not be too much to prevent it to become
+  and features. On the same level, the underlying technologies are kept up-to-date and might even
+  be replaced if modern, better-suited alternatives emerge (similarly, [Vulkan] support might 
+  eventually get added, though there are no immediate plans to do so).
+- _Opinionated enough_: a big bet with **luminance** was to make it opinionated, but not too much.
+  It needs to be opinionated to allow for some design constructs to be possible, optimize
+  performance and allow for extra safety. However, it must not be _too_ opinionated, lest it become
   a _framework_. **luminance** is a _library_, not a _framework_, meaning that it will adapt to
-  how **you** think you should design your software, not the other way around. That is limited to
-  the design of **luminance** but you shouldn’t feel too hands-tied.
+  how **you** think you should design your software, not the other way around (within the limits of
+  safe design). **luminance** won't tie your hands.
 
 # The luminance ecosystem
 
