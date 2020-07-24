@@ -33,7 +33,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.10.1
 
-> Jul 21th, 2020
+> Jul 24th, 2020
 
 - Support of `luminance-0.41`.
 

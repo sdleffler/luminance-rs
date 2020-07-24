@@ -82,7 +82,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.21](#021)
 * [0.20](#020)
 * [0.19](#019)
-* [ 0.18.2](#0182)
+* [0.18.2](#0182)
 * [0.18.1](#0181)
 * [0.18](#018)
 * [0.17.2](#0172)
@@ -121,8 +121,10 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.41
 
-> ?
+> Jul 24th, 2020
 
+- Add `Debug` implementor for `TextureBinding`.
+- Add the _skybox_ example.
 - Fix a type design flaw in `PipelineGate`, `ShadingGate`, `RenderGate` and `TessellationGate`.
   Previously, those were using the `C: GraphicsContext` type variable, which, even though is okay
   for the [luminance] crate, makes it impossible to re-export those symbols in [luminance-front].
@@ -135,6 +137,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 - `PipelineGate::pipeline()` doesn’t return `Result<(), PipelineError`> anymore, but `Render<E>`, a
   brand new type wrapping over `Result<(), E>`. That type provides `Deref` / `DerefMut` over
   `Result<(), E>`, so your code using `is_err()` / `is_ok()` will still work.
+- Fix various documentation warnings (dead links).
 
 ## Migration guide from 0.40
 
@@ -958,7 +961,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 - `Into<Option<_>>` elegancy additions.
 - Changed the whole pipeline system. It’s now a traversal-like system.
 
-# 0.18.2
+# 0.18.2
 
 - Fixed some internal code about pipelines.
 - Fixed some internal code about texture set binding.
