@@ -18,7 +18,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.2
 
-> Tue Jul, 21st 2020
+> Jul 24th, 2020
 
 - Re-export missing symbols, such as `RenderGate`.
 - Fix the `Tessgate` -> `TessGate` symbol.
