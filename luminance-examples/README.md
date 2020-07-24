@@ -31,6 +31,7 @@ have a look at [the book] first.
 * [11 – Query texture texels](#11--query-texture-texels)
 * [12 – Displacement Map](#12--displacement-map)
 * [13 – Interactive triangle](#13--interactive-triangle)
+* [14 – Skybox and environment mapping](#14--skybox-and-environment-mapping)
 
 <!-- vim-markdown-toc -->
 
@@ -118,6 +119,10 @@ Use a grayscale texture to implement a _displacement map_ effect on a color map.
 ## [13 – Interactive triangle](./src/interactive-triangle.rs)
 
 Learn how to move the triangle from the hello world with your mouse or cursor!
+
+## [14 – Skybox and environment mapping](./src/skybox.rs)
+
+Load a skybox from a file, display it and render a cube reflecting the sky!
 
 [luminance]: https://crates.io/crates/luminance
 [glutin]: https://crates.io/crates/glutin
