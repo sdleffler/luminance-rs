@@ -123,6 +123,8 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 > ?
 
+- Add `Debug` implementor for `TextureBinding`.
+- Add the _skybox_ example.
 - Fix a type design flaw in `PipelineGate`, `ShadingGate`, `RenderGate` and `TessellationGate`.
   Previously, those were using the `C: GraphicsContext` type variable, which, even though is okay
   for the [luminance] crate, makes it impossible to re-export those symbols in [luminance-front].
@@ -135,6 +137,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 - `PipelineGate::pipeline()` doesn’t return `Result<(), PipelineError`> anymore, but `Render<E>`, a
   brand new type wrapping over `Result<(), E>`. That type provides `Deref` / `DerefMut` over
   `Result<(), E>`, so your code using `is_err()` / `is_ok()` will still work.
+- Fix various documentation warnings (dead links).
 
 ## Migration guide from 0.40
 
