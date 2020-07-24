@@ -2,6 +2,7 @@
 //! single CLI argument the path to a texture that encodes a skybox. The supported scheme is
 //! the following:
 //!
+//! ```text
 //!           |<--- width --->|
 //!         – ┌───┬───┬───────┐
 //!         ^ │   │ U │       │
@@ -10,6 +11,7 @@
 //!         | ├───┼───┼───┴───┤
 //!         v │   │ D │       │
 //!         – └───┴───┴───────┘
+//! ```
 //!
 //! Where F = front, L = left, R = right, B = behind, U = up and D = down.
 //!
@@ -469,6 +471,8 @@ fn load_img(path: impl AsRef<Path>) -> Result<image::DynamicImage, AppError> {
 /// We need to extract the six faces of the cubemap from the loaded image. To do so, we divide the
 /// image in 4×3 cells, and focus on the 6 cells on the following schemas:
 ///
+///
+/// ```text
 ///           |<--- width --->|
 ///         – ┌───┬───┬───────┐
 ///         ^ │   │ U │       │
@@ -477,6 +481,7 @@ fn load_img(path: impl AsRef<Path>) -> Result<image::DynamicImage, AppError> {
 ///         | ├───┼───┼───┴───┤
 ///         v │   │ D │       │
 ///         – └───┴───┴───────┘
+/// ```
 ///
 /// Each cell has a resolution of width / 4 × width / 4, and width / 4 == height / 3(if not, then it’s not a cubemap).
 fn upload_cubemap(

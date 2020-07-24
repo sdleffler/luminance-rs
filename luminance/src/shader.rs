@@ -888,7 +888,7 @@ where
   ///
   /// # Notes
   ///
-  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_stages_env`] for
+  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program`] for
   /// a simpler interface.
   pub fn from_stages_env<'b, T, G, E>(
     &mut self,
@@ -952,7 +952,7 @@ where
   ///
   /// # Notes
   ///
-  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_stages`] for
+  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program`] for
   /// a simpler interface.
   pub fn from_stages<'b, T, G>(
     &mut self,
@@ -980,7 +980,7 @@ where
   ///
   /// # Notes
   ///
-  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_strings_env`] for
+  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program`] for
   /// a simpler interface.
   ///
   /// [`&str`]: str
@@ -1049,7 +1049,7 @@ where
   ///
   /// # Notes
   ///
-  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program_from_strings`] for
+  /// Feel free to look at the documentation of [`GraphicsContext::new_shader_program`] for
   /// a simpler interface.
   ///
   /// [`&str`]: str

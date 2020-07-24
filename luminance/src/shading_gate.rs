@@ -16,6 +16,8 @@ use crate::vertex::Semantics;
 /// # Parametricity
 ///
 /// - `B` is the backend type.
+///
+/// [`PipelineGate`]: crate::pipeline::PipelineGate
 pub struct ShadingGate<'a, B>
 where
   B: ?Sized,

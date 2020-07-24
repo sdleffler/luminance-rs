@@ -44,7 +44,7 @@
 //! - By using the [`View`] trait.
 //!
 //! The [`View`] trait is a convenient way to create [`TessView`]. It provides the
-//! [`View::slice`] and [`View::inst_slice`] methods, which accept Rust’s range operators
+//! [`View::view`] and [`View::inst_view`] methods, which accept Rust’s range operators
 //! to create the [`TessView`]s in a more comfortable way.
 //!
 //! # Tessellation mapping
@@ -502,7 +502,7 @@ impl DeinterleavedData {
 /// - Vectors: you can pass vectors as input data for both vertices and indices. Those will be
 ///   interpreted differently based on the vertex storage you chose for vertices, and the normal
 ///   way for indices.
-/// - Buffers: you can pass [`Buffer`] objects, too. Those are more flexible than vectors ase you can
+/// - Buffers: you can pass [`Buffer`] objects, too. Those are more flexible than vectors as you can
 ///   use all of the [`Buffer`] API before sending them to the builder.
 /// - Disabled: disabling means that no data will be passed to the GPU. You can disable independently
 ///   vertex data and/or index data.
@@ -512,6 +512,8 @@ impl DeinterleavedData {
 /// - `B` is the backend type
 /// - `V` is the vertex type.
 /// - `S` is the storage type.
+///
+/// [`Buffer`]: crate::buffer::Buffer
 pub struct TessBuilder<'a, B, V, I = (), W = (), S = Interleaved>
 where
   B: ?Sized,
@@ -583,9 +585,9 @@ where
   ///
   /// # Notes
   ///
-  /// Feel free to use the [`GraphicsContext::new_tess_builder`] method for a simpler method.
+  /// Feel free to use the [`GraphicsContext::new_tess`] method for a simpler method.
   ///
-  /// [`TessBuilder::new_tess_builder`]: crate::backend::tess::TessBuilder::new_tess_builder
+  /// [`GraphicsContext::new_tess`]: crate::context::GraphicsContext::new_tess
   pub fn new<C>(ctx: &'a mut C) -> Self
   where
     C: GraphicsContext<Backend = B>,
@@ -783,8 +785,8 @@ where
   ///
   /// - Set a [`Mode`].
   /// - Give vertex data and optionally indices, or give none of them (attributeless objects).
-  /// - If you provide vertex data by submitting several sets with [`TessBuilder::add_vertices`]
-  ///   and/or [`TessBuilder::add_instances`], do not forget that you must submit sets with the
+  /// - If you provide vertex data by submitting several sets with [`TessBuilder::set_attributes`]
+  ///   and/or [`TessBuilder::set_instances`], do not forget that you must submit sets with the
   ///   same size. Otherwise, the GPU will not know what values use for missing attributes in
   ///   vertices.
   pub fn build(self) -> Result<Tess<B, V, I, W, S>, TessError> {

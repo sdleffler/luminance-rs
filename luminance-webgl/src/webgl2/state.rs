@@ -125,7 +125,7 @@ impl WebGL2State {
           Self::get_from_context(ctx)
         }
 
-        None => Err(StateQueryError::UnavailableGLState),
+        None => Err(StateQueryError::UnavailableWebGL2State),
       }
     })
   }
@@ -554,11 +554,13 @@ impl Drop for WebGL2State {
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum StateQueryError {
-  /// The [`GLState`] object is unavailable.
+  /// The [`WebGL2State`] object is unavailable.
   ///
   /// That might occur if the current thread doesn’t support allocating a new graphics state. It
   /// might happen if you try to have more than one state on the same thread, for instance.
-  UnavailableGLState,
+  ///
+  /// [`WebGL2State`]: crate::webgl2::state::WebGL2State
+  UnavailableWebGL2State,
   /// Unknown array buffer initial state.
   UnknownArrayBufferInitialState,
   /// Unknown viewport initial state.
@@ -598,7 +600,7 @@ pub enum StateQueryError {
 impl fmt::Display for StateQueryError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
-      StateQueryError::UnavailableGLState => write!(f, "unavailable graphics state"),
+      StateQueryError::UnavailableWebGL2State => write!(f, "unavailable graphics state"),
 
       StateQueryError::UnknownArrayBufferInitialState => {
         write!(f, "unknown array buffer initial state")
