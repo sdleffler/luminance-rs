@@ -11,10 +11,18 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.2.1](#021)
 * [0.2](#02)
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.2.1
+
+> Jul 27th, 2020
+
+- Fix the default types of `Tess` and `TessBuilder` according to `luminance-0.41`. Those were
+  missing while they shouldn’t.
 
 # 0.2
 
