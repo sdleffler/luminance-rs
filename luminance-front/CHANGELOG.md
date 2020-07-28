@@ -11,11 +11,18 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.2.2](#022)
 * [0.2.1](#021)
 * [0.2](#02)
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.2.2
+
+> Jul 28th, 2020
+
+- Add the missing re-export `UniformInterface`.
 
 # 0.2.1
 
