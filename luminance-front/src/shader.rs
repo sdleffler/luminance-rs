@@ -1,8 +1,8 @@
 use crate::Backend;
 
 pub use luminance::shader::{
-  ProgramError, ProgramWarning, StageError, StageType, TessellationStages, Uniform, UniformType,
-  UniformWarning, VertexAttribWarning,
+  ProgramError, ProgramWarning, StageError, StageType, TessellationStages, Uniform,
+  UniformInterface, UniformType, UniformWarning, VertexAttribWarning,
 };
 
 pub type Stage = luminance::shader::Stage<Backend>;
