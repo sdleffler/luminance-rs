@@ -44,7 +44,7 @@ pub enum Semantics {
 // Our vertex type.
 //
 // We derive the Vertex trait automatically and we associate to each field the semantics that must
-// be used on the GPU. The proc-macro derive Vertex will make sur for us every field we use have a
+// be used on the GPU. The proc-macro derive Vertex will make sure for us every field we use has a
 // mapping to the type you specified as semantics.
 //
 // Currently, we need to use #[repr(C))] to ensure Rust is not going to move struct’s fields around.
