@@ -240,6 +240,11 @@ fn opengl_shader_type(t: StageType) -> GLenum {
   }
 }
 
+#[cfg(feature = "GL_ARB_gpu_shader_fp64")]
+const GLSL_PRAGMA: &str = "#version 330 core\n\
+                           #extension GL_ARB_separate_shader_objects : require\n
+                           #extension GL_ARB_gpu_shader_fp64 : require\n";
+#[cfg(not(feature = "GL_ARB_gpu_shader_fp64"))]
 const GLSL_PRAGMA: &str = "#version 330 core\n\
                            #extension GL_ARB_separate_shader_objects : require\n";
 
