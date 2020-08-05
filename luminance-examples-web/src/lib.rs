@@ -234,13 +234,16 @@ pub fn toggle_tess_method(scene: &mut Scene) {
 
 #[wasm_bindgen]
 pub fn render_scene(scene: &mut Scene) {
-  let back_buffer = scene.surface.back_buffer().unwrap();
-  let tess_method = scene.tess_method;
-  let program = &mut scene.program;
-  let direct_triangles = &scene.direct_triangles;
-  let indexed_triangles = &scene.indexed_triangles;
-  let direct_deinterleaved_triangles = &scene.direct_deinterleaved_triangles;
-  let indexed_deinterleaved_triangles = &scene.indexed_deinterleaved_triangles;
+  let Scene {
+    surface,
+    tess_method,
+    ref mut program,
+    ref direct_triangles,
+    ref indexed_triangles,
+    ref direct_deinterleaved_triangles,
+    ref indexed_deinterleaved_triangles,
+  } = scene;
+  let back_buffer = surface.back_buffer().unwrap();
 
   // Create a new dynamic pipeline that will render to the back buffer and must clear it with
   // pitch black prior to do any render to it.
