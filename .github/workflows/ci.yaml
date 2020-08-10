@@ -12,26 +12,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build
         run: |
-          cd $GITHUB_WORKSPACE/luminance && cargo build
-          cd $GITHUB_WORKSPACE/luminance-derive && cargo build
-          cd $GITHUB_WORKSPACE/luminance-examples && cargo build
-          cd $GITHUB_WORKSPACE/luminance-front && cargo build
-          cd $GITHUB_WORKSPACE/luminance-gl && cargo build
-          cd $GITHUB_WORKSPACE/luminance-glfw && cargo build
-          cd $GITHUB_WORKSPACE/luminance-glutin && cargo build
-          cd $GITHUB_WORKSPACE/luminance-sdl2 && cargo build
-          cd $GITHUB_WORKSPACE/luminance-windowing && cargo build
-      - name: Test
-        run: |
-          cd $GITHUB_WORKSPACE/luminance && cargo test
-          cd $GITHUB_WORKSPACE/luminance-derive && cargo test
-          cd $GITHUB_WORKSPACE/luminance-examples && cargo test
-          cd $GITHUB_WORKSPACE/luminance-front && cargo test
-          cd $GITHUB_WORKSPACE/luminance-gl && cargo test
-          cd $GITHUB_WORKSPACE/luminance-glfw && cargo test
-          cd $GITHUB_WORKSPACE/luminance-glutin && cargo test
-          cd $GITHUB_WORKSPACE/luminance-sdl2 && cargo test
-          cd $GITHUB_WORKSPACE/luminance-windowing && cargo test
+          cargo build
+          cargo test
 
   build-windows:
     runs-on: windows-latest
@@ -39,26 +21,8 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build
         run: |
-          cd luminance && cargo build && cd ..
-          cd luminance-derive && cargo build && cd ..
-          cd luminance-examples && cargo build && cd ..
-          cd luminance-front && cargo build && cd ..
-          cd luminance-gl && cargo build && cd ..
-          cd luminance-glfw && cargo build && cd ..
-          cd luminance-glutin && cargo build && cd ..
-          cd luminance-sdl2 && cargo build && cd ..
-          cd luminance-windowing && cargo build && cd ..
-      - name: Test
-        run: |
-          cd luminance && cargo test && cd ..
-          cd luminance-derive && cargo test && cd ..
-          cd luminance-examples && cargo test && cd ..
-          cd luminance-front && cargo test && cd ..
-          cd luminance-gl && cargo test && cd ..
-          cd luminance-glfw && cargo test && cd ..
-          cd luminance-glutin && cargo test && cd ..
-          cd luminance-sdl2 && cargo test && cd ..
-          cd luminance-windowing && cargo test && cd ..
+          cargo build
+          cargo test
 
   build-macosx:
     runs-on: macOS-latest
@@ -71,27 +35,8 @@ jobs:
       - name: Build
         run: |
           . ~/.cargo/env
-          cd $GITHUB_WORKSPACE/luminance && cargo build
-          cd $GITHUB_WORKSPACE/luminance-derive && cargo build
-          cd $GITHUB_WORKSPACE/luminance-examples && cargo build
-          cd $GITHUB_WORKSPACE/luminance-front && cargo build
-          cd $GITHUB_WORKSPACE/luminance-gl && cargo build
-          cd $GITHUB_WORKSPACE/luminance-glfw && cargo build
-          cd $GITHUB_WORKSPACE/luminance-glutin && cargo build
-          cd $GITHUB_WORKSPACE/luminance-sdl2 && cargo build
-          cd $GITHUB_WORKSPACE/luminance-windowing && cargo build
-      - name: Test
-        run: |
-          . ~/.cargo/env
-          cd $GITHUB_WORKSPACE/luminance && cargo test
-          cd $GITHUB_WORKSPACE/luminance-derive && cargo test
-          cd $GITHUB_WORKSPACE/luminance-examples && cargo test
-          cd $GITHUB_WORKSPACE/luminance-front && cargo test
-          cd $GITHUB_WORKSPACE/luminance-gl && cargo test
-          cd $GITHUB_WORKSPACE/luminance-glfw && cargo test
-          cd $GITHUB_WORKSPACE/luminance-glutin && cargo test
-          cd $GITHUB_WORKSPACE/luminance-sdl2 && cargo test
-          cd $GITHUB_WORKSPACE/luminance-windowing && cargo test
+          cargo build
+          cargo test
 
   build-wasm:
     runs-on: ubuntu-latest
@@ -101,13 +46,14 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build
         run: |
+          cd $GITHUB_WORKSPACE/luminance-webgl
+          cargo build
+          cd $GITHUB_WORKSPACE/luminance-web-sys
+          cargo build
           cd $GITHUB_WORKSPACE/luminance-examples-web
+          cargo build
           yarn install
           yarn build
-
-          cd $GITHUB_WORKSPACE/luminance-front && cargo build --target wasm32-unknown-unknown
-          cd $GITHUB_WORKSPACE/luminance-web-sys && cargo build --target wasm32-unknown-unknown
-          cd $GITHUB_WORKSPACE/luminance-webgl && cargo build --target wasm32-unknown-unknown
 
   quality:
     runs-on: ubuntu-latest

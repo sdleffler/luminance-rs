@@ -16,6 +16,19 @@ members = [
   "luminance-windowing",
 ]
 
+default-members = [
+  "integration-tests/desktop/gl33-f64-uniform",
+  "luminance",
+  "luminance-derive",
+  "luminance-examples",
+  "luminance-front",
+  "luminance-gl",
+  "luminance-glfw",
+  "luminance-glutin",
+  "luminance-sdl2",
+  "luminance-windowing",
+]
+
 [patch.crates-io]
 luminance = { path = "./luminance" }
 luminance-derive = { path = "./luminance-derive" }
