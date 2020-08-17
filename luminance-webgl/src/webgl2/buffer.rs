@@ -124,18 +124,6 @@ impl<T> Buffer<T> {
   pub(crate) fn handle(&self) -> &WebGlBuffer {
     &self.gl_buf.handle
   }
-
-  pub(crate) fn into_raw(self) -> Buffer<u8> {
-    let boxed = self.buf.into_boxed_slice();
-    let len = boxed.len();
-    let ptr = Box::into_raw(boxed) as _;
-    let buf = unsafe { Vec::from_raw_parts(ptr, len, len) };
-
-    Buffer {
-      buf,
-      gl_buf: self.gl_buf,
-    }
-  }
 }
 
 unsafe impl<T> BufferBackend<T> for WebGL2
