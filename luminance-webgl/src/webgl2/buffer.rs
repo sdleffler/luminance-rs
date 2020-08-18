@@ -124,18 +124,6 @@ impl<T> Buffer<T> {
   pub(crate) fn handle(&self) -> &WebGlBuffer {
     &self.gl_buf.handle
   }
-
-  pub(crate) fn into_raw(self) -> Buffer<u8> {
-    let boxed = self.buf.into_boxed_slice();
-    let len = boxed.len();
-    let ptr = Box::into_raw(boxed) as _;
-    let buf = unsafe { Vec::from_raw_parts(ptr, len, len) };
-
-    Buffer {
-      buf,
-      gl_buf: self.gl_buf,
-    }
-  }
 }
 
 unsafe impl<T> BufferBackend<T> for WebGL2
@@ -330,7 +318,7 @@ impl<T> Deref for BufferSliceMut<T> {
     unsafe {
       slice::from_raw_parts(
         self.raw.ptr as *const T,
-        self.raw.bytes * mem::size_of::<T>(),
+        self.raw.bytes / mem::size_of::<T>(),
       )
     }
   }
@@ -339,7 +327,7 @@ impl<T> Deref for BufferSliceMut<T> {
 impl<T> DerefMut for BufferSliceMut<T> {
   fn deref_mut(&mut self) -> &mut Self::Target {
     unsafe {
-      slice::from_raw_parts_mut(self.raw.ptr as *mut T, self.raw.bytes * mem::size_of::<T>())
+      slice::from_raw_parts_mut(self.raw.ptr as *mut T, self.raw.bytes / mem::size_of::<T>())
     }
   }
 }
@@ -369,7 +357,7 @@ where
     let raw = BufferSliceMutWrapper {
       handle: buffer.gl_buf.handle.clone(),
       ptr: buffer.buf.as_mut_ptr() as *mut u8,
-      bytes: buffer.buf.len() / mem::size_of::<T>(),
+      bytes: buffer.buf.len() * mem::size_of::<T>(),
       state: buffer.gl_buf.state.clone(),
     };
     let slice = BufferSliceMut {
@@ -387,7 +375,7 @@ where
   unsafe fn obtain_slice_mut(slice: &mut Self::SliceMutRepr) -> Result<&mut [T], BufferError> {
     Ok(slice::from_raw_parts_mut(
       slice.raw.ptr as *mut T,
-      slice.raw.bytes * mem::size_of::<T>(),
+      slice.raw.bytes / mem::size_of::<T>(),
     ))
   }
 }

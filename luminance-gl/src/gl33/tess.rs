@@ -522,7 +522,7 @@ where
             set_vertex_pointers(&[fmt]);
           }
 
-          Ok(vb.into_raw())
+          Ok(vb)
         })
         .collect::<Result<Vec<_>, _>>()
     }

@@ -497,7 +497,7 @@ where
             .bind_array_buffer(Some(vb.handle()), Bind::Forced);
           set_vertex_pointers(&mut webgl2.state.borrow_mut().ctx, &[fmt]);
 
-          Ok(vb.into_raw())
+          Ok(vb)
         })
         .collect::<Result<Vec<_>, _>>()
     }
