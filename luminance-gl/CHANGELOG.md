@@ -24,6 +24,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 - Add the `GL_ARB_gpu_shader_fp64` feature gate, allowing to use `f64`-like shader uniforms.
   Textures are not currently supported.
+- Remove unnecessary type-erasure that was basically doing a no-op.
 
 # 0.14.1
 
