@@ -353,8 +353,17 @@ fn check_types_match(name: &str, ty: UniformType, glty: u32) -> Result<(), Unifo
   macro_rules! milkcheck {
     ($ty:expr, $( ( $v:tt, $t:tt ) ),*) => {
       match $ty {
-        $( UniformType::$v if glty != WebGl2RenderingContext::$t => Err(UniformWarning::type_mismatch(name, ty)), )*
-        _ => Ok(())
+        $(
+          UniformType::$v => {
+            if glty == WebGl2RenderingContext::$t {
+              Ok(())
+            } else {
+              Err(UniformWarning::type_mismatch(name, ty))
+            }
+          }
+        )*
+
+        _ => Err(UniformWarning::unsupported_type(name, ty))
       }
     }
   }
