@@ -15,10 +15,10 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
-luminance = "0.41"
-luminance-front = "0.2"
+luminance = "0.42"
+luminance-front = "0.3"
 luminance-derive = "0.6"
-luminance-web-sys = "0.1"
+luminance-web-sys = "0.2"
 luminance-windowing = "0.9"
 wasm-bindgen = "0.2.63"
-web-sys = { version = "*", features = ["console"] }
+web-sys = { version = "0.3.44", features = ["console"] }

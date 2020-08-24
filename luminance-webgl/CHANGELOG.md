@@ -11,11 +11,20 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.2](#02)
 * [0.1.2](#012)
 * [0.1.1](#011)
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.2
+
+> Aug 30th, 2020
+
+- Support of `luminance-0.42`.
+- Add support for `UniformWarning::UnsupportedType`, which is raised when a uniform type is used by the client
+  code while not supported by the backend implementation.
 
 # 0.1.2
 

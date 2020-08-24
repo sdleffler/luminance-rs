@@ -11,20 +11,22 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
-* [0.14.1+1](#01411)
+* [0.15](#015)
 * [0.14.1](#0141)
 * [0.14](#014)
 * [Pre 0.14](#pre-014)
 
 <!-- vim-markdown-toc -->
 
-# 0.14.1+1
+# 0.15
 
-> ?
+> Aug 30th, 2020
 
 - Add the `GL_ARB_gpu_shader_fp64` feature gate, allowing to use `f64`-like shader uniforms.
   Textures are not currently supported.
 - Remove unnecessary type-erasure that was basically doing a no-op.
+- Add support for `UniformWarning::UnsupportedType`, which is raised when a uniform type is used by the client
+  code while not supported by the backend implementation.
 
 # 0.14.1
 
