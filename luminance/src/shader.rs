@@ -340,10 +340,15 @@ pub enum UniformWarning {
   /// Type mismatch between the static requested type (i.e. the `T` in [`Uniform<T>`] for instance)
   /// and the type that got reflected from the backend in the shaders.
   ///
-  /// The first [`String`] is the name of the uniform; the second one gives the type mismatch.
+  /// The [`String`] is the name of the uniform; the second one gives the type mismatch.
   ///
   /// [`Uniform<T>`]: crate::shader::Uniform
   TypeMismatch(String, UniformType),
+  /// The requested type is unsupported by the backend.
+  ///
+  /// The [`String`] is the name of the uniform. The [`UniformType`] is the type that is not
+  /// supported by the backend.
+  UnsupportedType(String, UniformType),
 }
 
 impl UniformWarning {
@@ -362,6 +367,14 @@ impl UniformWarning {
   {
     UniformWarning::TypeMismatch(name.into(), ty)
   }
+
+  /// Create an unsupported type error.
+  pub fn unsupported_type<N>(name: N, ty: UniformType) -> Self
+  where
+    N: Into<String>,
+  {
+    UniformWarning::UnsupportedType(name.into(), ty)
+  }
 }
 
 impl fmt::Display for UniformWarning {
@@ -371,6 +384,10 @@ impl fmt::Display for UniformWarning {
 
       UniformWarning::TypeMismatch(ref n, ref t) => {
         write!(f, "type mismatch for uniform {}: {}", n, t)
+      }
+
+      UniformWarning::UnsupportedType(ref name, ref ty) => {
+        write!(f, "unsupported type {} for uniform {}", ty, name)
       }
     }
   }
