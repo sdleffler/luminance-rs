@@ -301,8 +301,17 @@ fn check_types_match(name: &str, ty: UniformType, glty: GLuint) -> Result<(), Un
   macro_rules! milkcheck {
     ($ty:expr, $( ( $v:tt, $t:tt ) ),*) => {
       match $ty {
-        $( UniformType::$v if glty != gl::$t => Err(UniformWarning::type_mismatch(name, ty)), )*
-        _ => Ok(())
+        $(
+          UniformType::$v => {
+            if glty == gl::$t {
+              Ok(())
+            } else {
+              Err(UniformWarning::type_mismatch(name, ty))
+            }
+          }
+        )*
+
+        _ => Err(UniformWarning::unsupported_type(name, ty))
       }
     }
   }
