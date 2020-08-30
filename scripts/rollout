@@ -1,0 +1,63 @@
+#!/bin/sh
+#
+# This script is a great helper when having to perform roll out to crates.io. When the CI is all
+# green and that you need to release a crate, you can use this tool to publish crates to crates.io.
+#
+# You will need crates.io credentials to call this script; use `cargo login <token>` to get your
+# credentials.
+#
+# This script should be called from the root directory.
+
+set -e
+
+# List of crates to roll out. Order matters.
+crates=(
+  luminance
+  luminance-derive
+  luminance-front
+  luminance-windowing
+  luminance-gl
+  luminance-glfw
+  luminance-glutin
+  luminance-sdl2
+  luminance-webgl
+  luminance-web-sys
+)
+
+function publish_crate() {
+  (cd $1 && cargo package && cargo publish)
+}
+
+function get_crate_version() {
+  cargo read-manifest --manifest-path $1/Cargo.toml | jq -r ".version" | sed s/\.0$//
+}
+
+function create_git_tag() {
+  git tag $1-$2
+  echo -e "  created git tag $1-\e[034;3m$2\e[0;0m"
+}
+
+function push_git_tags() {
+  git push origin --tags
+  echo -e "  push git tag $1-\e[034;3m$2\e[0;0m"
+}
+
+case "$*" in
+  "all")
+    # Perform a full roll out of all the crates, respecting the order in which they should be published.
+    for crate in ${crates[@]}; do
+      version=$(get_crate_version $crate)
+      echo -e "\e[032;1mRolling out \e[039;0m$crate-\e[034;3m$version\e[0;0m"
+
+      publish_crate $crate
+      create_git_tag $crate $version
+    done
+
+    push_git_tags
+    ;;
+
+  *)
+    echo "unknown argument"
+    exit 1
+    ;;
+esac
