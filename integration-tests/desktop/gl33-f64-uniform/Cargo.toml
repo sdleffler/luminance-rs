@@ -10,7 +10,7 @@ name = "integ-gl33-f64-uniform"
 path = "src/main.rs"
 
 [dependencies]
-glfw = "0.39.1"
+glfw = "0.40.0"
 luminance = "0.42"
 luminance-derive = "0.6.2"
 luminance-front = "0.3"
