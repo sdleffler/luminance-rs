@@ -11,6 +11,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [# 0.42.1](#-0421)
 * [0.42](#042)
 * [0.41](#041)
   * [Migration guide from 0.40](#migration-guide-from-040)
@@ -119,6 +120,12 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# # 0.42.1
+
+> Sep 14th, 2020
+
+- Add implementors for some `luminance` type for `Eq` and `PartialEq`.
 
 # 0.42
 
