@@ -39,7 +39,7 @@ use crate::depth_test::DepthComparison;
 use crate::pixel::{Pixel, PixelFormat};
 
 /// How to wrap texture coordinates while sampling textures?
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Wrap {
   /// If textures coordinates lay outside of *[0;1]*, they will be clamped to either *0* or *1* for
   /// every components.
@@ -56,7 +56,7 @@ pub enum Wrap {
 }
 
 /// Minification filter.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MinFilter {
   /// Nearest interpolation.
   Nearest,
@@ -77,7 +77,7 @@ pub enum MinFilter {
 }
 
 /// Magnification filter.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum MagFilter {
   /// Nearest interpolation.
   Nearest,
@@ -133,7 +133,7 @@ pub trait Dimensionable {
 }
 
 /// Dimension of a texture.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Dim {
   /// 1D.
   Dim1,
@@ -319,7 +319,7 @@ impl Dimensionable for Cubemap {
 }
 
 /// Faces of a cubemap.
-#[derive(Clone, Copy, Debug)]
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CubeFace {
   /// The +X face of the cube.
   PositiveX,

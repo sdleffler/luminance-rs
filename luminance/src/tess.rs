@@ -95,7 +95,7 @@ use crate::vertex::{Deinterleave, Vertex, VertexDesc};
 /// restart index_ with [`TessBuilder::set_primitive_restart_index`]. Whenever a vertex index is set
 /// to the same value as the _primitive restart index_, the value is not interpreted as a vertex
 /// index but just a marker / hint to start a new primitive.
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub enum Mode {
   /// A single point.
   ///
@@ -249,7 +249,7 @@ impl error::Error for TessMapError {
 
 /// Possible errors that might occur when dealing with [`Tess`].
 #[non_exhaustive]
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum TessError {
   /// Cannot create a tessellation.
   CannotCreate(String),
@@ -1254,7 +1254,7 @@ where
 
 /// Possible error that might occur while dealing with [`TessView`] objects.
 #[non_exhaustive]
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum TessViewError {
   /// The view has incorrect size.
   ///

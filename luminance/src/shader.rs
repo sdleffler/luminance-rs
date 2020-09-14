@@ -178,7 +178,7 @@ impl fmt::Display for StageType {
 
 /// Errors that shader stages can emit.
 #[non_exhaustive]
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum StageError {
   /// Occurs when a shader fails to compile.
   CompilationFailed(StageType, String),
@@ -240,7 +240,7 @@ where
 
 /// Errors that a [`Program`] can generate.
 #[non_exhaustive]
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ProgramError {
   /// Creating the program failed.
   CreationFailed(String),
@@ -298,7 +298,7 @@ impl error::Error for ProgramError {
 }
 
 /// Program warnings, not necessarily considered blocking errors.
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum ProgramWarning {
   /// Some uniform configuration is ill-formed. It can be a problem of inactive uniform, mismatch
   /// type, etc. Check the [`UniformWarning`] type for more information.
@@ -333,7 +333,7 @@ impl From<ProgramWarning> for ProgramError {
 
 /// Warnings related to uniform issues.
 #[non_exhaustive]
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum UniformWarning {
   /// Inactive uniform (not in use / no participation to the final output in shaders).
   Inactive(String),
@@ -403,7 +403,7 @@ impl error::Error for UniformWarning {}
 
 /// Warnings related to vertex attributes issues.
 #[non_exhaustive]
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum VertexAttribWarning {
   /// Inactive vertex attribute (not read).
   Inactive(String),

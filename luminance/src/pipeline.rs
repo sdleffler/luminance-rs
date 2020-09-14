@@ -243,7 +243,7 @@ use crate::texture::Texture;
 
 /// Possible errors that might occur in a graphics [`Pipeline`].
 #[non_exhaustive]
-#[derive(Debug)]
+#[derive(Debug, Eq, PartialEq)]
 pub enum PipelineError {}
 
 impl fmt::Display for PipelineError {
