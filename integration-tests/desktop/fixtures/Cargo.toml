@@ -1,15 +1,16 @@
 [package]
-name = "gl33-f64-uniform"
+name = "fixtures"
 version = "0.1.0"
 license = "BSD-3-Clause"
 authors = ["Dimitri Sabadie <dimitri.sabadie@gmail.com>"]
 edition = "2018"
 
 [[bin]]
-name = "integ-gl33-f64-uniform"
+name = "fixtures"
 path = "src/main.rs"
 
 [dependencies]
+colored = "2"
 glfw = "0.40.0"
 luminance = "0.42"
 luminance-derive = "0.6.2"

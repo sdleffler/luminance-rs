@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-  "integration-tests/desktop/gl33-f64-uniform",
+  "integration-tests/desktop/fixtures",
   "luminance",
   "luminance-derive",
   "luminance-examples",
@@ -17,7 +17,7 @@ members = [
 ]
 
 default-members = [
-  "integration-tests/desktop/gl33-f64-uniform",
+  "integration-tests/desktop/fixtures",
   "luminance",
   "luminance-derive",
   "luminance-examples",

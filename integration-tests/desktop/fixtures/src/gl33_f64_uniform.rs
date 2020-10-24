@@ -34,7 +34,7 @@ struct ShaderInterface {
   color: Uniform<[f64; 3]>,
 }
 
-fn main() {
+pub fn fixture() -> bool {
   let mut surface =
     GlfwSurface::new_gl33("GL_ARB_gpu_shader_fp64 test", WindowOpt::default()).unwrap();
 
@@ -89,4 +89,6 @@ fn main() {
       break 'app;
     }
   }
+
+  true
 }
