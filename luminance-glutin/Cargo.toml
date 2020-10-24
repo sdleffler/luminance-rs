@@ -23,4 +23,7 @@ luminance-gl = "0.15"
 luminance-windowing = "0.9"
 
 [features]
+default = ["x11", "wayland"]
 serde = ["glutin/serde"]
+x11 = ["glutin/x11"]
+wayland = ["glutin/wayland"]
