@@ -77,7 +77,7 @@ path = "src/skybox.rs"
 
 [dependencies]
 cgmath = "0.17"
-env_logger = "0.7.1"
+env_logger = "0.8.1"
 image = "0.23"
 log = "0.4.11"
 luminance = "0.42"
