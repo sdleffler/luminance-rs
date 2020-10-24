@@ -11,7 +11,8 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
-* [# 0.42.1](#-0421)
+* [0.42.2](#0422)
+* [0.42.1](#0421)
 * [0.42](#042)
 * [0.41](#041)
   * [Migration guide from 0.40](#migration-guide-from-040)
@@ -121,7 +122,15 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc -->
 
-# # 0.42.1
+# 0.42.2
+
+> Oct 25th, 2020
+
+- Building an empty (no data) `Tess` now raises an error. The intent was always that behavior, so this is not released
+  as breaking change; if you were doing this, you might want to switch to `Option<Tess>` to represent potentially empty
+  tessellations.
+
+# 0.42.1
 
 > Sep 14th, 2020
 
