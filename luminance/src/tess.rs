@@ -261,6 +261,8 @@ pub enum TessError {
   InternalBufferError(BufferError),
   /// Forbidden primitive mode by hardware.
   ForbiddenPrimitiveMode(Mode),
+  /// No data provided and empty tessellation.
+  NoData,
 }
 
 impl TessError {
@@ -288,6 +290,11 @@ impl TessError {
   pub fn forbidden_primitive_mode(mode: Mode) -> Self {
     TessError::ForbiddenPrimitiveMode(mode)
   }
+
+  /// No data or empty tessellation.
+  pub fn no_data() -> Self {
+    TessError::NoData
+  }
 }
 
 impl fmt::Display for TessError {
@@ -300,6 +307,7 @@ impl fmt::Display for TessError {
       }
       TessError::InternalBufferError(ref e) => write!(f, "internal buffer error: {}", e),
       TessError::ForbiddenPrimitiveMode(ref e) => write!(f, "forbidden primitive mode: {}", e),
+      TessError::NoData => f.write_str("no data or empty tessellation"),
     }
   }
 }
@@ -784,7 +792,8 @@ where
   /// needed is backend-dependent but most of the time, you will want to:
   ///
   /// - Set a [`Mode`].
-  /// - Give vertex data and optionally indices, or give none of them (attributeless objects).
+  /// - Give vertex data and optionally indices, or give none of them but only a number of vertices
+  ///   (attributeless objects).
   /// - If you provide vertex data by submitting several sets with [`TessBuilder::set_attributes`]
   ///   and/or [`TessBuilder::set_instances`], do not forget that you must submit sets with the
   ///   same size. Otherwise, the GPU will not know what values use for missing attributes in
@@ -822,7 +831,7 @@ where
       if self.index_data.is_empty() {
         match self.vertex_data {
           Some(ref data) => V::coherent_len(data),
-          None => Ok(0),
+          None => Err(TessError::NoData),
         }
       } else {
         Ok(self.index_data.len())
