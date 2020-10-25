@@ -1,4 +1,5 @@
 mod gl33_f64_uniform;
+mod scissor;
 mod tess_no_data;
 
 use colored::Colorize as _;
@@ -18,9 +19,10 @@ macro_rules! fixture {
   };
 }
 fn main() {
-  fixture!("Tess with no data should generate an error", tess_no_data);
-  fixture!(
-    "Double-precision floating point uniforms support",
-    gl33_f64_uniform
-  );
+  // fixture!("Tess with no data should generate an error", tess_no_data);
+  // fixture!(
+  //   "Double-precision floating point uniforms support",
+  //   gl33_f64_uniform
+  // );
+  fixture!("Scissor test", scissor);
 }

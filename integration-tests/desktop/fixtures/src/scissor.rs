@@ -1,12 +1,11 @@
 use glfw::{Action, Context as _, Key, WindowEvent};
-use luminance::{pipeline::PipelineState, render_state::RenderState};
-use luminance_derive::UniformInterface;
-use luminance_front::context::GraphicsContext as _;
-use luminance_front::shader::Uniform;
-use luminance_front::tess::Mode;
+use luminance::scissor::ScissorRegion;
+use luminance_front::{
+  context::GraphicsContext as _, pipeline::PipelineState, render_state::RenderState, tess::Mode,
+  tess::TessError,
+};
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::WindowOpt;
-use std::time::Instant;
 
 const VS: &str = "
 const vec2[4] POSITIONS = vec2[](
@@ -23,22 +22,15 @@ void main() {
 const FS: &str = "
 out vec3 frag;
 
-uniform dvec3 color;
-
 void main() {
-  frag = vec3(color);
+  frag = vec3(1., .5, .5);
 }";
 
-#[derive(Debug, UniformInterface)]
-struct ShaderInterface {
-  color: Uniform<[f64; 3]>,
-}
-
 pub fn fixture() -> bool {
-  let mut surface = GlfwSurface::new_gl33("GL_ARB_gpu_shader_fp64", WindowOpt::default()).unwrap();
+  let mut surface = GlfwSurface::new_gl33("Scissor test", WindowOpt::default()).unwrap();
 
   let mut program = surface
-    .new_shader_program::<(), (), ShaderInterface>()
+    .new_shader_program::<(), (), ()>()
     .from_strings(VS, None, None, FS)
     .unwrap()
     .ignore_warnings();
@@ -50,8 +42,6 @@ pub fn fixture() -> bool {
     .build()
     .unwrap();
 
-  let timer = Instant::now();
-
   'app: loop {
     surface.window.glfw.poll_events();
     for (_, event) in surface.events_rx.try_iter() {
@@ -62,8 +52,14 @@ pub fn fixture() -> bool {
     }
 
     let back_buffer = surface.back_buffer().unwrap();
-    let t = timer.elapsed().as_secs_f64();
-    let color = [t.cos(), 0.3, t.sin()];
+    let (width, height) = surface.window.get_framebuffer_size();
+    let (w2, h2) = (width as u32 / 2, height as u32 / 2);
+    let rdr_st = RenderState::default().set_scissor(ScissorRegion {
+      x: w2 - w2 / 2,
+      y: h2 - h2 / 2,
+      width: w2,
+      height: h2,
+    });
 
     let render = surface
       .new_pipeline_gate()
@@ -71,12 +67,8 @@ pub fn fixture() -> bool {
         &back_buffer,
         &PipelineState::default(),
         |_, mut shd_gate| {
-          shd_gate.shade(&mut program, |mut iface, uni, mut rdr_gate| {
-            iface.set(&uni.color, color);
-
-            rdr_gate.render(&RenderState::default(), |mut tess_gate| {
-              tess_gate.render(&tess)
-            })
+          shd_gate.shade(&mut program, |_, _, mut rdr_gate| {
+            rdr_gate.render(&rdr_st, |mut tess_gate| tess_gate.render(&tess))
           })
         },
       )
