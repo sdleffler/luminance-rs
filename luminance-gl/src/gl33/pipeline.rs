@@ -11,7 +11,6 @@ use luminance::blending::BlendingMode;
 use luminance::pipeline::{PipelineError, PipelineState, Viewport};
 use luminance::pixel::Pixel;
 use luminance::render_state::RenderState;
-use luminance::scissor_region::ScissorRegion;
 use luminance::tess::{Deinterleaved, DeinterleavedData, Interleaved, TessIndex, TessVertexData};
 use luminance::texture::Dimensionable;
 use std::cell::RefCell;
@@ -125,16 +124,17 @@ where
       } else {
         0
       };
-      state.set_scissor_state(ScissorState::Off);
+
+      match pipeline_state.scissor().as_ref() {
+        Some(region) => {
+          state.set_scissor_state(ScissorState::On);
+          state.set_scissor_region(region);
+        }
+
+        None => state.set_scissor_state(ScissorState::Off),
+      }
 
       gl::Clear(color_bit | depth_bit);
-
-      state.set_scissor_state(ScissorState::On(ScissorRegion {
-        x: 0,
-        y: 0,
-        width: D::width(size),
-        height: D::height(size),
-      }));
     }
 
     state.enable_srgb_framebuffer(pipeline_state.srgb_enabled);
@@ -293,9 +293,16 @@ unsafe impl RenderGate for GL33 {
       }
     }
 
-    match rdr_st.scissor_region {
-      Some(scissor_region) => gfx_state.set_scissor_state(ScissorState::On(scissor_region)),
-      None => gfx_state.set_scissor_state(ScissorState::Off),
+    // scissor related state
+    match rdr_st.scissor().as_ref() {
+      Some(region) => {
+        gfx_state.set_scissor_state(ScissorState::On);
+        gfx_state.set_scissor_region(region);
+      }
+
+      None => {
+        gfx_state.set_scissor_state(ScissorState::Off);
+      }
     }
   }
 }

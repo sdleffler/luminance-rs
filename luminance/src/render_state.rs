@@ -23,7 +23,7 @@ pub struct RenderState {
   /// Face culling configuration.
   face_culling: Option<FaceCulling>,
   /// Scissor region configuration.
-  scissor_region: Option<ScissorRegion>,
+  scissor: Option<ScissorRegion>,
 }
 
 impl RenderState {
@@ -97,20 +97,20 @@ impl RenderState {
     self.face_culling
   }
 
-  /// Override the scissor region configuration.
-  pub fn set_scissor_region<SR>(self, scissor_region: SR) -> Self
+  /// Override the scissor configuration.
+  pub fn set_scissor<SR>(self, scissor: SR) -> Self
   where
     SR: Into<Option<ScissorRegion>>,
   {
     RenderState {
-      scissor_region: scissor_region.into(),
+      scissor: scissor.into(),
       ..self
     }
   }
 
-  /// Scissor region configuration.
-  pub fn scissor_region(self) -> Option<ScissorRegion> {
-    self.scissor_region
+  /// Get the scissor configuration.
+  pub fn scissor(&self) -> &Option<ScissorRegion> {
+    &self.scissor
   }
 }
 
@@ -128,7 +128,7 @@ impl Default for RenderState {
       depth_test: Some(DepthComparison::Less),
       depth_write: DepthWrite::On,
       face_culling: None,
-      scissor_region: None,
+      scissor: None,
     }
   }
 }
