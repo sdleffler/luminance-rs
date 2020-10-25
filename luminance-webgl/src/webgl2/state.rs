@@ -1,12 +1,13 @@
 //! Graphics state.
 
-use js_sys::{Float32Array, Int32Array};
-use luminance::blending::{Equation, Factor};
-use luminance::depth_test::{DepthComparison, DepthWrite};
-use luminance::face_culling::{FaceCullingMode, FaceCullingOrder};
-use std::cell::RefCell;
-use std::fmt;
-use std::marker::PhantomData;
+use js_sys::{Float32Array, Int32Array, Uint32Array};
+use luminance::{
+  blending::{Equation, Factor},
+  depth_test::{DepthComparison, DepthWrite},
+  face_culling::{FaceCullingMode, FaceCullingOrder},
+  scissor::ScissorRegion,
+};
+use std::{cell::RefCell, fmt, marker::PhantomData};
 use web_sys::{
   WebGl2RenderingContext, WebGlBuffer, WebGlFramebuffer, WebGlProgram, WebGlTexture,
   WebGlVertexArrayObject,
@@ -73,6 +74,10 @@ pub struct WebGL2State {
   face_culling_state: FaceCullingState,
   face_culling_order: FaceCullingOrder,
   face_culling_mode: FaceCullingMode,
+
+  // scissor
+  scissor_state: ScissorState,
+  scissor_region: ScissorRegion,
 
   // texture
   current_texture_unit: u32,
@@ -146,6 +151,8 @@ impl WebGL2State {
     let face_culling_state = get_ctx_face_culling_state(&mut ctx);
     let face_culling_order = get_ctx_face_culling_order(&mut ctx)?;
     let face_culling_mode = get_ctx_face_culling_mode(&mut ctx)?;
+    let scissor_state = get_ctx_scissor_state(&mut ctx)?;
+    let scissor_region = get_ctx_scissor_region(&mut ctx)?;
 
     let current_texture_unit = 0;
     let bound_textures = vec![(WebGl2RenderingContext::TEXTURE0, None); 48]; // 48 is the platform minimal requirement
@@ -174,6 +181,8 @@ impl WebGL2State {
       face_culling_state,
       face_culling_order,
       face_culling_mode,
+      scissor_state,
+      scissor_region,
       current_texture_unit,
       bound_textures,
       texture_swimming_pool,
@@ -539,6 +548,33 @@ impl WebGL2State {
       self.face_culling_mode = mode;
     }
   }
+
+  pub(crate) fn set_scissor_state(&mut self, state: ScissorState) {
+    if self.scissor_state != state {
+      match state {
+        ScissorState::On => self.ctx.enable(WebGl2RenderingContext::SCISSOR_TEST),
+        ScissorState::Off => self.ctx.disable(WebGl2RenderingContext::SCISSOR_TEST),
+      }
+
+      self.scissor_state = state;
+    }
+  }
+
+  pub(crate) fn set_scissor_region(&mut self, region: &ScissorRegion) {
+    if self.scissor_region != *region {
+      let ScissorRegion {
+        x,
+        y,
+        width,
+        height,
+      } = *region;
+
+      self
+        .ctx
+        .scissor(x as i32, y as i32, width as i32, height as i32);
+      self.scissor_region = *region;
+    }
+  }
 }
 
 impl Drop for WebGL2State {
@@ -595,6 +631,8 @@ pub enum StateQueryError {
   UnknownFaceCullingOrder,
   /// Corrupted face culling mode.
   UnknownFaceCullingMode,
+  /// Unknown scissor region initial state.
+  UnknownScissorRegionInitialState,
 }
 
 impl fmt::Display for StateQueryError {
@@ -665,6 +703,10 @@ impl fmt::Display for StateQueryError {
       StateQueryError::UnknownFaceCullingOrder => f.write_str("unknown face culling order"),
 
       StateQueryError::UnknownFaceCullingMode => f.write_str("unknown face culling mode"),
+
+      StateQueryError::UnknownScissorRegionInitialState => {
+        write!(f, "unknown scissor region initial state")
+      }
     }
   }
 }
@@ -842,6 +884,41 @@ fn get_ctx_face_culling_mode(
   }
 }
 
+fn get_ctx_scissor_state(
+  ctx: &mut WebGl2RenderingContext,
+) -> Result<ScissorState, StateQueryError> {
+  let state = if ctx.is_enabled(WebGl2RenderingContext::SCISSOR_TEST) {
+    ScissorState::On
+  } else {
+    ScissorState::Off
+  };
+
+  Ok(state)
+}
+
+fn get_ctx_scissor_region(
+  ctx: &mut WebGl2RenderingContext,
+) -> Result<ScissorRegion, StateQueryError> {
+  let parameter = ctx
+    .get_parameter(WebGl2RenderingContext::SCISSOR_BOX)
+    .map_err(|_| StateQueryError::UnknownViewportInitialState)?;
+  let array: Uint32Array = parameter.into();
+
+  if array.length() != 4 {
+    return Err(StateQueryError::UnknownScissorRegionInitialState);
+  }
+
+  let mut region = [0; 4];
+  array.copy_to(&mut region); // safe thanks to the test above on array.length() above
+
+  Ok(ScissorRegion {
+    x: region[0],
+    y: region[1],
+    width: region[2],
+    height: region[3],
+  })
+}
+
 fn load_webgl2_extensions(ctx: &mut WebGl2RenderingContext) -> Result<(), StateQueryError> {
   let required_extensions = ["OES_texture_float_linear", "EXT_color_buffer_float"];
 
@@ -963,4 +1040,13 @@ fn get_webgl_param(ctx: &mut WebGl2RenderingContext, param: u32) -> Option<u32> 
     .ok()
     .and_then(|x| x.as_f64())
     .map(|x| x as u32)
+}
+
+/// Scissor state.
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) enum ScissorState {
+  /// Enabled.
+  On,
+  /// Disabled
+  Off,
 }

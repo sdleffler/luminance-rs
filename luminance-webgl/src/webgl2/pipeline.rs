@@ -18,9 +18,11 @@ use std::marker::PhantomData;
 use std::rc::Rc;
 use web_sys::WebGl2RenderingContext;
 
-use super::array_buffer::IntoArrayBuffer;
-use crate::webgl2::state::{BlendingState, DepthTest, FaceCullingState, WebGL2State};
-use crate::webgl2::WebGL2;
+use crate::webgl2::{
+  array_buffer::IntoArrayBuffer,
+  state::{BlendingState, DepthTest, FaceCullingState, ScissorState, WebGL2State},
+  WebGL2,
+};
 
 pub struct Pipeline {
   state: Rc<RefCell<WebGL2State>>,
@@ -123,6 +125,18 @@ where
       } else {
         0
       };
+
+      // scissor test
+      match pipeline_state.scissor() {
+        Some(region) => {
+          state.set_scissor_state(ScissorState::On);
+          state.set_scissor_region(region);
+        }
+
+        None => {
+          state.set_scissor_state(ScissorState::Off);
+        }
+      }
 
       state.ctx.clear(color_bit | depth_bit);
     }
@@ -257,6 +271,7 @@ unsafe impl RenderGate for WebGL2 {
           }
         }
       }
+
       None => {
         state.set_blending_state(BlendingState::Off);
       }
@@ -281,6 +296,18 @@ unsafe impl RenderGate for WebGL2 {
       }
       None => {
         state.set_face_culling_state(FaceCullingState::Off);
+      }
+    }
+
+    // scissor test
+    match rdr_st.scissor() {
+      Some(region) => {
+        state.set_scissor_state(ScissorState::On);
+        state.set_scissor_region(region);
+      }
+
+      None => {
+        state.set_scissor_state(ScissorState::Off);
       }
     }
   }
