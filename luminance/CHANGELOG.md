@@ -11,6 +11,8 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.43](#043)
+  * [Breaking changes](#breaking-changes)
 * [0.42.3](#0423)
 * [0.42.2](#0422)
 * [0.42.1](#0421)
@@ -122,6 +124,17 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.43
+
+> Oct 26th, 2020
+
+## Breaking changes
+
+- Remove the `obtain_slice` and `obtain_slice_mut` methods. If you were using them, please feel free to use the `Deref`
+  and `DerefMut` interface instead. It prevents one extra layer of useless validation via `Result`, since backends will
+  simply always return `Ok(slice)`. The validation process is done when accessing the slice, e.g. `Buffer::slice` and
+  `Buffer::slice_mut`.
 
 # 0.42.3
 
