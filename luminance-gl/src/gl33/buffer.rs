@@ -340,12 +340,4 @@ where
       Ok(BufferSliceMut { raw, len, ptr })
     }
   }
-
-  unsafe fn obtain_slice(slice: &Self::SliceRepr) -> Result<&[T], BufferError> {
-    Ok(slice::from_raw_parts(slice.ptr, slice.len))
-  }
-
-  unsafe fn obtain_slice_mut(slice: &mut Self::SliceMutRepr) -> Result<&mut [T], BufferError> {
-    Ok(slice::from_raw_parts_mut(slice.ptr, slice.len))
-  }
 }
