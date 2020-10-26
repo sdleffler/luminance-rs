@@ -1,4 +1,25 @@
 # Changelog
+
+<!-- vim-markdown-toc GFM -->
+
+* [0.3.1](#031)
+* [0.3](#03)
+* [0.2.3](#023)
+* [0.2.2](#022)
+* [0.2.1](#021)
+* [0.2](#02)
+* [0.1](#01)
+
+<!-- vim-markdown-toc -->
+
+# 0.3.1
+
+> Oct 26th, 2020
+
+- Support of `luminance-0.43`.
+- Support of `luminance-gl-0.16`.
+- Support of `luminance-webgl-0.3`.
+
 # 0.3
 
 > Aug 30th, 2020
@@ -11,14 +32,6 @@
 
 - Add the missing re-export `Render`.
 
-<!-- vim-markdown-toc GFM -->
-
-* [0.2.2](#022)
-* [0.2.1](#021)
-* [0.2](#02)
-* [0.1](#01)
-
-<!-- vim-markdown-toc -->
 # 0.2.2
 
 > Jul 28th, 2020

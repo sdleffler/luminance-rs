@@ -43,12 +43,16 @@
 //!
 //! [`backend::buffer::Buffer`]: crate::backend::buffer::Buffer
 
-use crate::backend::buffer::{Buffer as BufferBackend, BufferSlice as BufferSliceBackend};
-use crate::context::GraphicsContext;
+use crate::{
+  backend::buffer::{Buffer as BufferBackend, BufferSlice as BufferSliceBackend},
+  context::GraphicsContext,
+};
 
-use std::error;
-use std::fmt;
-use std::marker::PhantomData;
+use std::{
+  error, fmt,
+  marker::PhantomData,
+  ops::{Deref, DerefMut},
+};
 
 /// A GPU buffer.
 ///
@@ -374,19 +378,15 @@ where
   _a: PhantomData<&'a mut ()>,
 }
 
-impl<'a, B, T> BufferSlice<'a, B, T>
+impl<'a, B, T> Deref for BufferSlice<'a, B, T>
 where
   B: ?Sized + BufferSliceBackend<T>,
   T: Copy,
 {
-  /// Obtain a `&[T]`.
-  ///
-  /// # Errors
-  ///
-  /// It is possible that obtaining a slice is not possible. In that case,
-  /// [`BufferError::MapFailed`] is returned.
-  pub fn as_slice(&self) -> Result<&[T], BufferError> {
-    unsafe { B::obtain_slice(&self.slice) }
+  type Target = [T];
+
+  fn deref(&self) -> &Self::Target {
+    self.slice.deref()
   }
 }
 
@@ -401,13 +401,24 @@ where
   _a: PhantomData<&'a mut ()>,
 }
 
-impl<'a, B, T> BufferSliceMut<'a, B, T>
+impl<'a, B, T> Deref for BufferSliceMut<'a, B, T>
 where
   B: ?Sized + BufferSliceBackend<T>,
   T: Copy,
 {
-  /// Obtain a `&mut [T]`.
-  pub fn as_slice_mut(&mut self) -> Result<&mut [T], BufferError> {
-    unsafe { B::obtain_slice_mut(&mut self.slice) }
+  type Target = [T];
+
+  fn deref(&self) -> &Self::Target {
+    self.slice.deref()
+  }
+}
+
+impl<'a, B, T> DerefMut for BufferSliceMut<'a, B, T>
+where
+  B: ?Sized + BufferSliceBackend<T>,
+  T: Copy,
+{
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    self.slice.deref_mut()
   }
 }

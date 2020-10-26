@@ -367,17 +367,6 @@ where
 
     Ok(slice)
   }
-
-  unsafe fn obtain_slice(slice: &Self::SliceRepr) -> Result<&[T], BufferError> {
-    Ok(slice::from_raw_parts(slice.ptr, slice.len))
-  }
-
-  unsafe fn obtain_slice_mut(slice: &mut Self::SliceMutRepr) -> Result<&mut [T], BufferError> {
-    Ok(slice::from_raw_parts_mut(
-      slice.raw.ptr as *mut T,
-      slice.raw.bytes / mem::size_of::<T>(),
-    ))
-  }
 }
 
 /// Update a WebGL buffer by copying an input slice.

@@ -1,18 +1,10 @@
 # Changelog
-# 0.6.2
-
-> Aug 30th, 2020
-
-- Support of `luminance-0.42`.
-
-# 0.6.1
-
-> Jul 24th, 2020
-
-- Support of `luminance-0.41`.
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.6.3](#063)
+* [0.6.2](#062)
+* [0.6.1](#061)
 * [0.6](#06)
 * [0.5.2](#052)
 * [0.5.1](#051)
@@ -29,6 +21,25 @@
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.6.3
+
+> Oct 26th, 2020
+
+- Support of `luminance-0.43`.
+
+# 0.6.2
+
+> Aug 30th, 2020
+
+- Support of `luminance-0.42`.
+
+# 0.6.1
+
+> Jul 24th, 2020
+
+- Support of `luminance-0.41`.
+
 # 0.6
 
 > Wed Jul, 15th 2020

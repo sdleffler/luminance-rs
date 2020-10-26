@@ -2,6 +2,8 @@
 //!
 //! This interface defines the low-level API buffers must implement to be usable.
 
+use std::ops::{Deref, DerefMut};
+
 use crate::buffer::BufferError;
 
 pub unsafe trait Buffer<T>
@@ -37,19 +39,15 @@ pub unsafe trait BufferSlice<T>: Buffer<T>
 where
   T: Copy,
 {
-  type SliceRepr;
+  type SliceRepr: Deref<Target = [T]>;
 
-  type SliceMutRepr;
+  type SliceMutRepr: DerefMut<Target = [T]>;
 
   unsafe fn slice_buffer(buffer: &Self::BufferRepr) -> Result<Self::SliceRepr, BufferError>;
 
   unsafe fn slice_buffer_mut(
     buffer: &mut Self::BufferRepr,
   ) -> Result<Self::SliceMutRepr, BufferError>;
-
-  unsafe fn obtain_slice(slice: &Self::SliceRepr) -> Result<&[T], BufferError>;
-
-  unsafe fn obtain_slice_mut(slice: &mut Self::SliceMutRepr) -> Result<&mut [T], BufferError>;
 }
 
 pub unsafe trait UniformBlock {}
