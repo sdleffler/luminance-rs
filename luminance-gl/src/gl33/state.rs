@@ -11,6 +11,7 @@ use crate::gl33::vertex_restart::VertexRestart;
 use luminance::blending::{Equation, Factor};
 use luminance::depth_test::{DepthComparison, DepthWrite};
 use luminance::face_culling::{FaceCullingMode, FaceCullingOrder};
+use luminance::scissor::ScissorRegion;
 
 // TLS synchronization barrier for `GLState`.
 //
@@ -124,6 +125,10 @@ pub struct GLState {
   face_culling_order: Cached<FaceCullingOrder>,
   face_culling_mode: Cached<FaceCullingMode>,
 
+  // scissor
+  scissor_state: Cached<ScissorState>,
+  scissor_region: Cached<ScissorRegion>,
+
   // vertex restart
   vertex_restart: Cached<VertexRestart>,
 
@@ -212,6 +217,8 @@ impl GLState {
       let bound_vertex_array = get_ctx_bound_vertex_array()?;
       let current_program = get_ctx_current_program()?;
       let srgb_framebuffer_enabled = Cached::new(get_ctx_srgb_framebuffer_enabled()?);
+      let scissor_state = Cached::new(get_ctx_scissor_state()?);
+      let scissor_region = Cached::new(get_ctx_scissor_region()?);
 
       Ok(GLState {
         _a: PhantomData,
@@ -239,6 +246,8 @@ impl GLState {
         bound_vertex_array,
         current_program,
         srgb_framebuffer_enabled,
+        scissor_state,
+        scissor_region,
       })
     }
   }
@@ -412,6 +421,32 @@ impl GLState {
       }
 
       self.blending_state.set(state);
+    }
+  }
+
+  pub(crate) unsafe fn set_scissor_state(&mut self, state: ScissorState) {
+    if self.scissor_state.is_invalid(&state) {
+      match state {
+        ScissorState::On => gl::Enable(gl::SCISSOR_TEST),
+        ScissorState::Off => gl::Disable(gl::SCISSOR_TEST),
+      }
+
+      self.scissor_state.set(state);
+    }
+  }
+
+  pub(crate) unsafe fn set_scissor_region(&mut self, region: &ScissorRegion) {
+    if self.scissor_region.is_invalid(region) {
+      let ScissorRegion {
+        x,
+        y,
+        width,
+        height,
+      } = *region;
+
+      gl::Scissor(x as GLint, y as GLint, width as GLint, height as GLint);
+
+      self.scissor_region.set(*region);
     }
   }
 
@@ -774,6 +809,8 @@ pub enum StateQueryError {
   UnknownVertexRestartState(GLboolean),
   /// Corrupted sRGB framebuffer state.
   UnknownSRGBFramebufferState(GLboolean),
+  /// Corrupted scissor state.
+  UnknownScissorState(GLboolean),
 }
 
 impl fmt::Display for StateQueryError {
@@ -809,6 +846,7 @@ impl fmt::Display for StateQueryError {
       StateQueryError::UnknownSRGBFramebufferState(ref s) => {
         write!(f, "unknown sRGB framebuffer state: {}", s)
       }
+      StateQueryError::UnknownScissorState(ref s) => write!(f, "unknown scissor state: {}", s),
     }
   }
 }
@@ -835,6 +873,28 @@ unsafe fn get_ctx_blending_state() -> Result<BlendingState, StateQueryError> {
     gl::FALSE => Ok(BlendingState::Off),
     _ => Err(StateQueryError::UnknownBlendingState(state)),
   }
+}
+
+unsafe fn get_ctx_scissor_state() -> Result<ScissorState, StateQueryError> {
+  let state = gl::IsEnabled(gl::SCISSOR_TEST);
+
+  match state {
+    gl::TRUE => Ok(ScissorState::On),
+    gl::FALSE => Ok(ScissorState::Off),
+    _ => Err(StateQueryError::UnknownScissorState(state)),
+  }
+}
+
+unsafe fn get_ctx_scissor_region() -> Result<ScissorRegion, StateQueryError> {
+  let mut data = [0; 4];
+  gl::GetIntegerv(gl::SCISSOR_BOX, data.as_mut_ptr());
+
+  Ok(ScissorRegion {
+    x: data[0] as u32,
+    y: data[1] as u32,
+    width: data[2] as u32,
+    height: data[3] as u32,
+  })
 }
 
 unsafe fn get_ctx_blending_equations() -> Result<BlendingEquations, StateQueryError> {
@@ -1045,5 +1105,14 @@ pub(crate) enum FaceCullingState {
   /// Enable face culling.
   On,
   /// Disable face culling.
+  Off,
+}
+
+/// Whether or not enable scissor test.
+#[derive(Copy, Clone, Debug, Eq, PartialEq)]
+pub(crate) enum ScissorState {
+  /// Enable scissor.
+  On,
+  /// Disable scissor.
   Off,
 }

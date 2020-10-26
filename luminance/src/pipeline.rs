@@ -222,24 +222,27 @@
 //! [`TessView`]: crate::tess::TessView
 //! [`View`]: crate::tess::View
 
-use std::error;
-use std::fmt;
-use std::marker::PhantomData;
-use std::ops::{Deref, DerefMut};
-
-use crate::backend::color_slot::ColorSlot;
-use crate::backend::depth_slot::DepthSlot;
-use crate::backend::framebuffer::Framebuffer as FramebufferBackend;
-use crate::backend::pipeline::{
-  Pipeline as PipelineBackend, PipelineBase, PipelineBuffer, PipelineTexture,
+use std::{
+  error, fmt,
+  marker::PhantomData,
+  ops::{Deref, DerefMut},
 };
-use crate::buffer::Buffer;
-use crate::context::GraphicsContext;
-use crate::framebuffer::Framebuffer;
-use crate::pixel::Pixel;
-use crate::shading_gate::ShadingGate;
-use crate::texture::Dimensionable;
-use crate::texture::Texture;
+
+use crate::{
+  backend::{
+    color_slot::ColorSlot,
+    depth_slot::DepthSlot,
+    framebuffer::Framebuffer as FramebufferBackend,
+    pipeline::{Pipeline as PipelineBackend, PipelineBase, PipelineBuffer, PipelineTexture},
+  },
+  buffer::Buffer,
+  context::GraphicsContext,
+  framebuffer::Framebuffer,
+  pixel::Pixel,
+  scissor::ScissorRegion,
+  shading_gate::ShadingGate,
+  texture::{Dimensionable, Texture},
+};
 
 /// Possible errors that might occur in a graphics [`Pipeline`].
 #[non_exhaustive]
@@ -287,16 +290,19 @@ pub struct PipelineState {
   pub viewport: Viewport,
   /// Whether [sRGB](https://en.wikipedia.org/wiki/SRGB) should be enabled.
   pub srgb_enabled: bool,
+  /// Whether to use scissor test when clearing buffers.
+  pub clear_scissor: Option<ScissorRegion>,
 }
 
 impl Default for PipelineState {
   /// Default [`PipelineState`]:
   ///
-  /// - Clear color: `[0, 0, 0, 1]`.
+  /// - Clear color is `[0, 0, 0, 1]`.
   /// - Color is always cleared.
   /// - Depth is always cleared.
   /// - The viewport uses the whole framebuffer’s.
   /// - sRGB encoding is disabled.
+  /// - No scissor test is performed.
   fn default() -> Self {
     PipelineState {
       clear_color: [0., 0., 0., 1.],
@@ -304,6 +310,7 @@ impl Default for PipelineState {
       clear_depth_enabled: true,
       viewport: Viewport::Whole,
       srgb_enabled: false,
+      clear_scissor: None,
     }
   }
 }
@@ -374,6 +381,19 @@ impl PipelineState {
   pub fn enable_srgb(self, srgb_enabled: bool) -> Self {
     Self {
       srgb_enabled,
+      ..self
+    }
+  }
+
+  /// Get the scissor configuration, if any.
+  pub fn scissor(&self) -> &Option<ScissorRegion> {
+    &self.clear_scissor
+  }
+
+  /// Set the scissor configuration.
+  pub fn set_scissor(self, scissor: impl Into<Option<ScissorRegion>>) -> Self {
+    Self {
+      clear_scissor: scissor.into(),
       ..self
     }
   }

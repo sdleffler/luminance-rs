@@ -17,7 +17,7 @@ use std::cell::RefCell;
 use std::marker::PhantomData;
 use std::rc::Rc;
 
-use crate::gl33::state::{BlendingState, DepthTest, FaceCullingState, GLState};
+use crate::gl33::state::{BlendingState, DepthTest, FaceCullingState, GLState, ScissorState};
 use crate::gl33::GL33;
 
 pub struct Pipeline {
@@ -124,6 +124,16 @@ where
       } else {
         0
       };
+
+      match pipeline_state.scissor().as_ref() {
+        Some(region) => {
+          state.set_scissor_state(ScissorState::On);
+          state.set_scissor_region(region);
+        }
+
+        None => state.set_scissor_state(ScissorState::Off),
+      }
+
       gl::Clear(color_bit | depth_bit);
     }
 
@@ -280,6 +290,18 @@ unsafe impl RenderGate for GL33 {
       }
       None => {
         gfx_state.set_face_culling_state(FaceCullingState::Off);
+      }
+    }
+
+    // scissor related state
+    match rdr_st.scissor().as_ref() {
+      Some(region) => {
+        gfx_state.set_scissor_state(ScissorState::On);
+        gfx_state.set_scissor_region(region);
+      }
+
+      None => {
+        gfx_state.set_scissor_state(ScissorState::Off);
       }
     }
   }
