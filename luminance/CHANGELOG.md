@@ -11,6 +11,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.42.3](#0423)
 * [0.42.2](#0422)
 * [0.42.1](#0421)
 * [0.42](#042)
@@ -121,6 +122,13 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.42.3
+
+> Oct 26th, 2020
+
+- Add a bunch of `Debug` annotations on some types.
+- Add support for _scissor test_ in both `PipelineState` and `RenderState`.
 
 # 0.42.2
 
