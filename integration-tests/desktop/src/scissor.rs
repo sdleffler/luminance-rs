@@ -25,7 +25,7 @@ void main() {
   frag = vec3(1., .5, .5);
 }";
 
-pub fn fixture() -> bool {
+pub fn fixture() {
   let mut surface = GlfwSurface::new_gl33("Scissor test", WindowOpt::default()).unwrap();
 
   let mut program = surface
@@ -79,6 +79,4 @@ pub fn fixture() -> bool {
       break 'app;
     }
   }
-
-  true
 }
