@@ -11,12 +11,20 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.15.1](#0151)
 * [0.15](#015)
 * [0.14.1](#0141)
 * [0.14](#014)
 * [Pre 0.14](#pre-014)
 
 <!-- vim-markdown-toc -->
+
+# 0.15.1
+
+> Oct 26th, 2020
+
+- Add a bunch of `Debug` annotations.
+- Add support for _scissor test_ implementation.
 
 # 0.15
 
