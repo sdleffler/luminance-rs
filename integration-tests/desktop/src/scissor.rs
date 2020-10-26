@@ -2,7 +2,6 @@ use glfw::{Action, Context as _, Key, WindowEvent};
 use luminance::scissor::ScissorRegion;
 use luminance_front::{
   context::GraphicsContext as _, pipeline::PipelineState, render_state::RenderState, tess::Mode,
-  tess::TessError,
 };
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::WindowOpt;

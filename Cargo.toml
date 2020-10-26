@@ -1,7 +1,7 @@
 [workspace]
 
 members = [
-  "integration-tests/desktop/fixtures",
+  "integration-tests/desktop",
   "luminance",
   "luminance-derive",
   "luminance-examples",
@@ -17,7 +17,7 @@ members = [
 ]
 
 default-members = [
-  "integration-tests/desktop/fixtures",
+  "integration-tests/desktop",
   "luminance",
   "luminance-derive",
   "luminance-examples",
