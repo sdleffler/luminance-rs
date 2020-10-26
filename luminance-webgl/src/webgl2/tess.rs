@@ -22,6 +22,7 @@ use crate::webgl2::buffer::{Buffer, BufferSlice, BufferSliceMut};
 use crate::webgl2::state::{Bind, WebGL2State};
 use crate::webgl2::{WebGL2, WebGl2RenderingContext};
 
+#[derive(Debug)]
 struct TessRaw<I>
 where
   I: TessIndex,
@@ -104,6 +105,7 @@ where
   }
 }
 
+#[derive(Debug)]
 pub struct InterleavedTess<V, I, W>
 where
   V: Vertex,
@@ -264,6 +266,7 @@ where
   }
 }
 
+#[derive(Debug)]
 pub struct DeinterleavedTess<V, I, W>
 where
   V: Vertex,

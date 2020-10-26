@@ -25,6 +25,7 @@ use luminance::vertex::{
 };
 
 /// All the extra data required when doing indexed drawing.
+#[derive(Debug)]
 struct IndexedDrawState<I>
 where
   I: TessIndex,
@@ -33,6 +34,7 @@ where
   restart_index: Option<I>,
 }
 
+#[derive(Debug)]
 struct TessRaw<I>
 where
   I: TessIndex,
@@ -119,6 +121,7 @@ where
   }
 }
 
+#[derive(Debug)]
 pub struct InterleavedTess<V, I, W>
 where
   V: Vertex,
@@ -284,6 +287,7 @@ where
   }
 }
 
+#[derive(Debug)]
 pub struct DeinterleavedTess<V, I, W>
 where
   V: Vertex,

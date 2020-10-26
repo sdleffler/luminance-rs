@@ -18,6 +18,7 @@ use std::rc::Rc;
 use web_sys::WebGl2RenderingContext;
 
 /// The WebGL2 backend.
+#[derive(Debug)]
 pub struct WebGL2 {
   pub(crate) state: Rc<RefCell<WebGL2State>>,
 }

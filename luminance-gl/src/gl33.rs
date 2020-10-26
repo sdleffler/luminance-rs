@@ -17,6 +17,7 @@ use std::cell::RefCell;
 use std::rc::Rc;
 
 /// The OpenGL backend.
+#[derive(Debug)]
 pub struct GL33 {
   pub(crate) state: Rc<RefCell<GLState>>,
 }

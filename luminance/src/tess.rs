@@ -522,6 +522,7 @@ impl DeinterleavedData {
 /// - `S` is the storage type.
 ///
 /// [`Buffer`]: crate::buffer::Buffer
+#[derive(Debug)]
 pub struct TessBuilder<'a, B, V, I = (), W = (), S = Interleaved>
 where
   B: ?Sized,
