@@ -14,7 +14,6 @@ set -e
 crates=(
   luminance
   luminance-derive
-  luminance-front
   luminance-windowing
   luminance-gl
   luminance-glfw
@@ -22,6 +21,7 @@ crates=(
   luminance-sdl2
   luminance-webgl
   luminance-web-sys
+  luminance-front
 )
 
 function publish_crate() {
@@ -51,6 +51,8 @@ case "$*" in
 
       publish_crate $crate
       create_git_tag $crate $version
+
+      sleep 5
     done
 
     push_git_tags
