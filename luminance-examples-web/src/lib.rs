@@ -153,8 +153,7 @@ pub struct Scene {
 #[wasm_bindgen]
 pub fn get_scene(canvas_name: &str) -> Scene {
   // First thing first: we create a new surface to render to and get events from.
-  let mut surface =
-    WebSysWebGL2Surface::new(canvas_name, WindowOpt::default()).expect("web-sys surface");
+  let mut surface = WebSysWebGL2Surface::new(canvas_name).expect("web-sys surface");
 
   // We need a program to “shade” our triangles and to tell luminance which is the input vertex
   // type, and we’re not interested in the other two type variables for this sample.

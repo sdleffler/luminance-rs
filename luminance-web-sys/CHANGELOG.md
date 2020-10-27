@@ -12,6 +12,8 @@ compatible with as many crates as possible. In that case, you want `cargo update
 <!-- vim-markdown-toc GFM -->
 
 * [0.2.1](#021)
+  * [Patch](#patch)
+  * [Breaking changes](#breaking-changes)
 * [0.2](#02)
 * [0.1.1](#011)
 * [0.1](#01)
@@ -22,8 +24,16 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 > ?
 
+## Patch
+
 - Support of `luminance-0.43`.
 - Support of `luminance-webgl-0.3`.
+
+## Breaking changes
+
+- Remove the `WindowOpt` argument from `WebSysWebGL2Surface::new`. It was confusing people because most of its
+  properties are held by the JavaScript object passed through wasm (typically, the canvas directly). If you were passing
+  width and height via a `WindowOpt`, you can simply set those on the canvas JS-side directly.
 
 # 0.2
 
