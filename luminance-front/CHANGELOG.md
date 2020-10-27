@@ -14,7 +14,7 @@
 
 # 0.3.1
 
-> Oct 26th, 2020
+> ?
 
 - Support of `luminance-0.43`.
 - Support of `luminance-gl-0.16`.
