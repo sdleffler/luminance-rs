@@ -7,14 +7,11 @@ use luminance::{
   face_culling::{FaceCullingMode, FaceCullingOrder},
   scissor::ScissorRegion,
 };
-use std::{cell::RefCell, fmt, marker::PhantomData};
+use std::{fmt, marker::PhantomData};
 use web_sys::{
   WebGl2RenderingContext, WebGlBuffer, WebGlFramebuffer, WebGlProgram, WebGlTexture,
   WebGlVertexArrayObject,
 };
-
-// TLS synchronization barrier for `GLState`.
-thread_local!(static TLS_ACQUIRE_GFX_STATE: RefCell<Option<()>> = RefCell::new(Some(())));
 
 #[derive(Debug)]
 pub(crate) struct BindingStack {
@@ -121,18 +118,7 @@ impl WebGL2State {
   /// > standard library, this function will always return successfully. You have to take extra care
   /// > in this case.
   pub(crate) fn new(ctx: WebGl2RenderingContext) -> Result<Self, StateQueryError> {
-    TLS_ACQUIRE_GFX_STATE.with(|rc| {
-      let mut inner = rc.borrow_mut();
-
-      match *inner {
-        Some(_) => {
-          inner.take();
-          Self::get_from_context(ctx)
-        }
-
-        None => Err(StateQueryError::UnavailableWebGL2State),
-      }
-    })
+    Self::get_from_context(ctx)
   }
 
   /// Get a `GraphicsContext` from the current OpenGL context.
