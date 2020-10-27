@@ -24,7 +24,7 @@
 
 # 0.6.3
 
-> ?
+> Oct 28, 2020
 
 - Support of `luminance-0.43`.
 

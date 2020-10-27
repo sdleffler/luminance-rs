@@ -23,7 +23,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.16
 
-> ?
+> Oct 28, 2020
 
 ## Breaking changes
 
