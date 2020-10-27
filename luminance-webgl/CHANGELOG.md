@@ -12,6 +12,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 <!-- vim-markdown-toc GFM -->
 
 * [0.3](#03)
+  * [Patch](#patch)
   * [Breaking changes](#breaking-changes)
 * [0.2.1](#021)
 * [0.2](#02)
@@ -24,6 +25,11 @@ compatible with as many crates as possible. In that case, you want `cargo update
 # 0.3
 
 > ?
+
+## Patch
+
+- Remove the limitation about creating contexts in WebGL: it is now possible to create as many as users want. WebGL
+  doesn’t have the same requirements as OpenGL in terms of threading and contexts.
 
 ## Breaking changes
 
