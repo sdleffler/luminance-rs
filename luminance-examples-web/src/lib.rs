@@ -15,7 +15,6 @@ use luminance_front::render_state::RenderState;
 use luminance_front::shader::Program;
 use luminance_front::tess::{Deinterleaved, Interleaved, Mode, Tess};
 use luminance_web_sys::WebSysWebGL2Surface;
-use luminance_windowing::WindowOpt;
 use wasm_bindgen::prelude::*;
 
 // We get the shader at compile time from local files

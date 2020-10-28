@@ -2,7 +2,6 @@ use luminance::context::GraphicsContext;
 use luminance::framebuffer::{Framebuffer, FramebufferError};
 use luminance::texture::Dim2;
 use luminance_webgl::webgl2::{StateQueryError, WebGL2};
-use luminance_windowing::{WindowDim, WindowOpt};
 use std::fmt;
 use wasm_bindgen::JsCast as _;
 use web_sys::{Document, HtmlCanvasElement, Window};
