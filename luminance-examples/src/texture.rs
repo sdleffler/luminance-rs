@@ -21,7 +21,7 @@ use luminance::render_state::RenderState;
 use luminance::shader::Uniform;
 use luminance::tess::Mode;
 use luminance::texture::{Dim2, GenMipmaps, Sampler, Texture};
-use luminance_derive::UniformInterface;
+use luminance::UniformInterface;
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
 use std::env; // used to get the CLI arguments

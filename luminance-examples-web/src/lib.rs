@@ -8,7 +8,7 @@
 //!
 //! https://docs.rs/luminance
 
-use luminance_derive::{Semantics, Vertex};
+use luminance::{Semantics, Vertex};
 use luminance_front::context::GraphicsContext as _;
 use luminance_front::pipeline::PipelineState;
 use luminance_front::render_state::RenderState;

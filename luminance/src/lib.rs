@@ -181,6 +181,9 @@
 )]
 #![deny(missing_docs)]
 
+#[cfg(feature = "derive")]
+pub use luminance_derive::*;
+
 pub mod backend;
 pub mod blending;
 pub mod buffer;

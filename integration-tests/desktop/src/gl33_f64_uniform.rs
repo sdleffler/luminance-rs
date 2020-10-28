@@ -1,6 +1,6 @@
 use glfw::{Action, Context as _, Key, WindowEvent};
+use luminance::UniformInterface;
 use luminance::{pipeline::PipelineState, render_state::RenderState};
-use luminance_derive::UniformInterface;
 use luminance_front::context::GraphicsContext as _;
 use luminance_front::shader::Uniform;
 use luminance_front::tess::Mode;

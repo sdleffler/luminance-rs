@@ -30,7 +30,7 @@ use cgmath::{
 };
 use glfw::{Action, Context as _, Key, MouseButton, WindowEvent};
 use log::{error, info};
-use luminance_derive::UniformInterface;
+use luminance::UniformInterface;
 use luminance_front::context::GraphicsContext;
 use luminance_front::depth_test::DepthWrite;
 use luminance_front::pipeline::{PipelineState, TextureBinding};
