@@ -1,5 +1,5 @@
 use luminance::shader::Uniform;
-use luminance_derive::UniformInterface;
+use luminance::UniformInterface;
 
 #[test]
 fn derive_uniform_interface() {

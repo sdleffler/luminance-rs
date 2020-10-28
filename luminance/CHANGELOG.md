@@ -11,6 +11,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.43.1](#0431)
 * [0.43](#043)
   * [Breaking changes](#breaking-changes)
 * [0.42.3](#0423)
@@ -125,9 +126,18 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc -->
 
+# 0.43.1
+
+> Oct 28th, 2020
+
+- Add the `"derive"` feature, enabled by default. That feature will pull `luminance-derive` in and expose the derive
+  proc-macros via the `luminance` crate, so that you don’t need to depend directly on `luminance-derive`, removing weird
+  errors when your crate doesn’t depend on `luminance` — typical if you use `luminance-front` only: you should be using
+  both.
+
 # 0.43
 
-> Oct 28, 2020
+> Oct 28th, 2020
 
 ## Breaking changes
 

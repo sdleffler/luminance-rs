@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 
-use luminance_derive::{Semantics, Vertex};
+use luminance::{Semantics, Vertex};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Semantics)]
 pub enum Semantics {

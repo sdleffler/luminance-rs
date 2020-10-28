@@ -13,7 +13,7 @@ use luminance::context::GraphicsContext as _;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
 use luminance::tess::Mode;
-use luminance_derive::{Semantics, Vertex};
+use luminance::{Semantics, Vertex};
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
 

@@ -16,7 +16,7 @@ use luminance::pixel::NormRGBA8UI;
 use luminance::render_state::RenderState;
 use luminance::tess::Mode;
 use luminance::texture::{Dim2, Sampler};
-use luminance_derive::Vertex;
+use luminance::Vertex;
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
 

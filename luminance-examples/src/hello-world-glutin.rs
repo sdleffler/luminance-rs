@@ -17,7 +17,7 @@ use luminance::context::GraphicsContext;
 use luminance::pipeline::PipelineState;
 use luminance::render_state::RenderState;
 use luminance::tess::Mode;
-use luminance_derive::{Semantics, Vertex};
+use luminance::{Semantics, Vertex};
 use luminance_glutin::GlutinSurface;
 
 // We get the shader at compile time from local files

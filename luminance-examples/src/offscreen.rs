@@ -17,7 +17,7 @@ use luminance::render_state::RenderState;
 use luminance::shader::{BuiltProgram, Uniform};
 use luminance::tess::Mode;
 use luminance::texture::{Dim2, Sampler};
-use luminance_derive::UniformInterface;
+use luminance::UniformInterface;
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
 
