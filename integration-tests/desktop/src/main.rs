@@ -1,16 +1,16 @@
-mod gl33_f64_uniform;
-mod scissor;
-mod tess_no_data;
-
 use colored::Colorize as _;
 
 macro_rules! tests {
   ($($name:expr, $module:ident),*) => {
-    const TEST_NAMES: &[&str] = &[$(
-      $name
-      ),*
-    ];
+    // declare the modules for all tests
+    $(
+      mod $module;
+    )*
 
+    // list of all available integration tests
+    const TEST_NAMES: &[&str] = &[$( $name ),*];
+
+    // run a given test
     fn run_test(name: &str) {
       $(
         if name == $name {
@@ -33,7 +33,8 @@ macro_rules! tests {
 tests! {
   "gl33-f64-uniform", gl33_f64_uniform,
   "tess-no-data", tess_no_data,
-  "scissor-test", scissor
+  "scissor-test", scissor,
+  "360-manually-drop-framebuffer", manually_drop_framebuffer
 }
 
 fn main() {
