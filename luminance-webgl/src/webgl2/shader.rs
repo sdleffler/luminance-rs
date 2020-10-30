@@ -468,7 +468,7 @@ macro_rules! impl_Uniformable {
 
       unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
         let len = self.len();
-        let data = flatten_slice!(self: [$t; $dim]);
+        let data = flatten_slice!(self: $t, len = $dim * self.len());
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
@@ -530,18 +530,20 @@ macro_rules! impl_Uniformable {
 
   // matrix notation
   (mat & $t:ty ; $dim:expr, $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<WebGL2> for &'a &[[[$t; $dim]; $dim]] {
+    unsafe impl<'a> Uniformable<WebGL2> for &'a [[[$t; $dim]; $dim]] {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
       unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-        let data = flatten_slice!(self: [$t; $dim * $dim]);
+        let data = flatten_slice!(self: $t, len = $dim * $dim * self.len());
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
           false,
           data,
+          0,
+          self.len() as u32,
         );
       }
     }
@@ -554,7 +556,7 @@ macro_rules! impl_Uniformable {
       }
 
       unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-        let data = flatten_slice!(self: [$t; $dim * $dim]);
+        let data = flatten_slice!(self: $t, len = $dim * $dim);
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
@@ -632,13 +634,13 @@ impl_Uniformable!(
 
 // please don’t judge me
 impl_Uniformable!(mat f32; 2, M22, uniform_matrix2fv_with_f32_array);
-impl_Uniformable!(mat & f32; 2, M22, uniform_matrix2fv_with_f32_array);
+impl_Uniformable!(mat & f32; 2, M22, uniform_matrix2fv_with_f32_array_and_src_offset_and_src_length);
 
 impl_Uniformable!(mat f32; 3, M33, uniform_matrix3fv_with_f32_array);
-impl_Uniformable!(mat & f32; 3, M33, uniform_matrix3fv_with_f32_array);
+impl_Uniformable!(mat & f32; 3, M33, uniform_matrix3fv_with_f32_array_and_src_offset_and_src_length);
 
 impl_Uniformable!(mat f32; 4, M44, uniform_matrix4fv_with_f32_array);
-impl_Uniformable!(mat & f32; 4, M44, uniform_matrix4fv_with_f32_array);
+impl_Uniformable!(mat & f32; 4, M44, uniform_matrix4fv_with_f32_array_and_src_offset_and_src_length);
 
 // Special exception for booleans: because we cannot simply send the bool Rust type down to the
 // GPU, we have to convert them to 32-bit integer (unsigned), which is a total fuck up and waste of
@@ -735,7 +737,7 @@ unsafe impl<'a> Uniformable<WebGL2> for &'a [[bool; 2]] {
 
   unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
     let v: Vec<_> = self.iter().map(|x| [x[0] as u32, x[1] as u32]).collect();
-    let data = flatten_slice!(v: [u32; 2]);
+    let data = flatten_slice!(v: u32, len = 2 * v.len());
 
     program
       .state
@@ -755,7 +757,7 @@ unsafe impl<'a> Uniformable<WebGL2> for &'a [[bool; 3]] {
       .iter()
       .map(|x| [x[0] as u32, x[1] as u32, x[2] as u32])
       .collect();
-    let data = flatten_slice!(v: [u32; 3]);
+    let data = flatten_slice!(v: u32, len = 3 * v.len());
 
     program
       .state
@@ -775,7 +777,7 @@ unsafe impl<'a> Uniformable<WebGL2> for &'a [[bool; 4]] {
       .iter()
       .map(|x| [x[0] as u32, x[1] as u32, x[2] as u32, x[3] as u32])
       .collect();
-    let data = flatten_slice!(v: [u32; 4]);
+    let data = flatten_slice!(v: u32, len = 4 * v.len());
 
     program
       .state
