@@ -5,10 +5,7 @@
 ///
 /// Please do not abuse.
 macro_rules! flatten_slice {
-  ($e:ident : [ $t:ty ; $dim:expr ]) => {
-    std::slice::from_raw_parts(
-      $e.as_ptr() as *const $t,
-      std::mem::size_of::<[$t; $dim]>() * $e.len(),
-    )
-  }
+  ($e:ident : $t:ty , len = $len:expr) => {
+    std::slice::from_raw_parts($e.as_ptr() as *const $t, $len)
+  };
 }
