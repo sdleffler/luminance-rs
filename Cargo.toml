@@ -2,6 +2,7 @@
 
 members = [
   "integration-tests/desktop",
+  "integration-tests/web",
   "luminance",
   "luminance-derive",
   "luminance-examples",
