@@ -11,6 +11,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.16.1](#0161)
 * [0.16](#016)
   * [Breaking changes](#breaking-changes)
 * [0.15.1](#0151)
@@ -21,9 +22,16 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc -->
 
+# 0.16.1
+
+> Oct 31st, 2020
+
+- Fix a bug while getting the context’s initial value for the _depth write_ property (that one can change with
+  `RenderState::set_depth_write`).
+
 # 0.16
 
-> Oct 28, 2020
+> Oct 28th, 2020
 
 ## Breaking changes
 

@@ -133,7 +133,7 @@ impl WebGL2State {
     let blending_funcs = get_ctx_blending_factors(&mut ctx)?;
     let depth_test = get_ctx_depth_test(&mut ctx);
     let depth_test_comparison = DepthComparison::Less;
-    let depth_write = get_ctx_depth_write(&mut ctx);
+    let depth_write = get_ctx_depth_write(&mut ctx)?;
     let face_culling_state = get_ctx_face_culling_state(&mut ctx);
     let face_culling_order = get_ctx_face_culling_order(&mut ctx)?;
     let face_culling_mode = get_ctx_face_culling_mode(&mut ctx)?;
@@ -589,6 +589,8 @@ pub enum StateQueryError {
   UnknownViewportInitialState,
   /// Unknown clear color initial state.
   UnknownClearColorInitialState,
+  /// Unknown depth write mask initial state.
+  UnknownDepthWriteMaskState,
   /// Corrupted blending equation.
   UnknownBlendingEquation(u32),
   /// RGB blending equation couldn’t be retrieved when initializing the WebGL2 state.
@@ -635,6 +637,8 @@ impl fmt::Display for StateQueryError {
       StateQueryError::UnknownClearColorInitialState => {
         write!(f, "unknown clear color initial state")
       }
+
+      StateQueryError::UnknownDepthWriteMaskState => f.write_str("unkonwn depth write mask state"),
 
       StateQueryError::UnknownBlendingEquation(ref e) => {
         write!(f, "unknown blending equation: {}", e)
@@ -742,10 +746,12 @@ fn get_ctx_blending_state(ctx: &mut WebGl2RenderingContext) -> BlendingState {
 fn get_ctx_blending_equations(
   ctx: &mut WebGl2RenderingContext,
 ) -> Result<BlendingEquations, StateQueryError> {
-  let rgb = get_webgl_param(ctx, WebGl2RenderingContext::BLEND_EQUATION_RGB)
+  let rgb = ctx
+    .get_webgl_param(WebGl2RenderingContext::BLEND_EQUATION_RGB)
     .ok_or_else(|| StateQueryError::CannotRetrieveBlendingEquationRGB)
     .and_then(map_enum_to_blending_equation)?;
-  let alpha = get_webgl_param(ctx, WebGl2RenderingContext::BLEND_EQUATION_ALPHA)
+  let alpha = ctx
+    .get_webgl_param(WebGl2RenderingContext::BLEND_EQUATION_ALPHA)
     .ok_or_else(|| StateQueryError::CannotRetrieveBlendingEquationAlpha)
     .and_then(map_enum_to_blending_equation)?;
 
@@ -767,22 +773,26 @@ fn map_enum_to_blending_equation(data: u32) -> Result<Equation, StateQueryError>
 fn get_ctx_blending_factors(
   ctx: &mut WebGl2RenderingContext,
 ) -> Result<BlendingFactors, StateQueryError> {
-  let src_rgb = get_webgl_param(ctx, WebGl2RenderingContext::BLEND_SRC_RGB)
+  let src_rgb = ctx
+    .get_webgl_param(WebGl2RenderingContext::BLEND_SRC_RGB)
     .ok_or_else(|| StateQueryError::CannotRetrieveBlendingSrcFactorRGB)?;
   let src_rgb =
     from_gl_blending_factor(src_rgb).map_err(StateQueryError::UnknownBlendingSrcFactorRGB)?;
 
-  let src_alpha = get_webgl_param(ctx, WebGl2RenderingContext::BLEND_SRC_ALPHA)
+  let src_alpha = ctx
+    .get_webgl_param(WebGl2RenderingContext::BLEND_SRC_ALPHA)
     .ok_or_else(|| StateQueryError::CannotRetrieveBlendingSrcFactorAlpha)?;
   let src_alpha =
     from_gl_blending_factor(src_alpha).map_err(StateQueryError::UnknownBlendingSrcFactorAlpha)?;
 
-  let dst_rgb = get_webgl_param(ctx, WebGl2RenderingContext::BLEND_DST_RGB)
+  let dst_rgb = ctx
+    .get_webgl_param(WebGl2RenderingContext::BLEND_DST_RGB)
     .ok_or_else(|| StateQueryError::CannotRetrieveBlendingDstFactorRGB)?;
   let dst_rgb =
     from_gl_blending_factor(dst_rgb).map_err(StateQueryError::UnknownBlendingDstFactorRGB)?;
 
-  let dst_alpha = get_webgl_param(ctx, WebGl2RenderingContext::BLEND_DST_ALPHA)
+  let dst_alpha = ctx
+    .get_webgl_param(WebGl2RenderingContext::BLEND_DST_ALPHA)
     .ok_or_else(|| StateQueryError::CannotRetrieveBlendingDstFactorAlpha)?;
   let dst_alpha =
     from_gl_blending_factor(dst_alpha).map_err(StateQueryError::UnknownBlendingDstFactorAlpha)?;
@@ -823,13 +833,15 @@ fn get_ctx_depth_test(ctx: &mut WebGl2RenderingContext) -> DepthTest {
   }
 }
 
-fn get_ctx_depth_write(ctx: &mut WebGl2RenderingContext) -> DepthWrite {
-  let enabled = ctx.is_enabled(WebGl2RenderingContext::DEPTH_WRITEMASK);
+fn get_ctx_depth_write(ctx: &mut WebGl2RenderingContext) -> Result<DepthWrite, StateQueryError> {
+  let enabled = ctx
+    .get_webgl_param(WebGl2RenderingContext::DEPTH_WRITEMASK)
+    .ok_or_else(|| StateQueryError::UnknownDepthWriteMaskState)?;
 
   if enabled {
-    DepthWrite::On
+    Ok(DepthWrite::On)
   } else {
-    DepthWrite::Off
+    Ok(DepthWrite::Off)
   }
 }
 
@@ -846,7 +858,8 @@ fn get_ctx_face_culling_state(ctx: &mut WebGl2RenderingContext) -> FaceCullingSt
 fn get_ctx_face_culling_order(
   ctx: &mut WebGl2RenderingContext,
 ) -> Result<FaceCullingOrder, StateQueryError> {
-  let order = get_webgl_param(ctx, WebGl2RenderingContext::FRONT_FACE)
+  let order = ctx
+    .get_webgl_param(WebGl2RenderingContext::FRONT_FACE)
     .ok_or_else(|| StateQueryError::UnknownFaceCullingOrder)?;
 
   match order {
@@ -859,7 +872,8 @@ fn get_ctx_face_culling_order(
 fn get_ctx_face_culling_mode(
   ctx: &mut WebGl2RenderingContext,
 ) -> Result<FaceCullingMode, StateQueryError> {
-  let mode = get_webgl_param(ctx, WebGl2RenderingContext::CULL_FACE_MODE)
+  let mode = ctx
+    .get_webgl_param(WebGl2RenderingContext::CULL_FACE_MODE)
     .ok_or_else(|| StateQueryError::UnknownFaceCullingMode)?;
 
   match mode {
@@ -1019,13 +1033,25 @@ fn blending_factor_to_webgl(factor: Factor) -> u32 {
   }
 }
 
-/// Get a typed WebGL parameter.
-fn get_webgl_param(ctx: &mut WebGl2RenderingContext, param: u32) -> Option<u32> {
-  ctx
-    .get_parameter(param)
-    .ok()
-    .and_then(|x| x.as_f64())
-    .map(|x| x as u32)
+// Workaround around the lack of implementor for [`TryFrom`] on [`JsValue`].
+trait GetWebGLParam<T> {
+  fn get_webgl_param(&mut self, param: u32) -> Option<T>;
+}
+
+impl GetWebGLParam<u32> for WebGl2RenderingContext {
+  fn get_webgl_param(&mut self, param: u32) -> Option<u32> {
+    self
+      .get_parameter(param)
+      .ok()
+      .and_then(|x| x.as_f64())
+      .map(|x| x as u32)
+  }
+}
+
+impl GetWebGLParam<bool> for WebGl2RenderingContext {
+  fn get_webgl_param(&mut self, param: u32) -> Option<bool> {
+    self.get_parameter(param).ok().and_then(|x| x.as_bool())
+  }
 }
 
 /// Scissor state.

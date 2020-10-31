@@ -979,7 +979,9 @@ unsafe fn get_ctx_depth_test() -> Result<DepthTest, StateQueryError> {
 }
 
 unsafe fn get_ctx_depth_write() -> Result<DepthWrite, StateQueryError> {
-  let state = gl::IsEnabled(gl::DEPTH_WRITEMASK);
+  let mut state = gl::FALSE;
+
+  gl::GetBooleanv(gl::DEPTH_WRITEMASK, &mut state);
 
   match state {
     gl::TRUE => Ok(DepthWrite::On),
