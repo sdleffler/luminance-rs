@@ -67,6 +67,7 @@ impl error::Error for GlfwSurfaceError {
 ///
 /// This type implements `GraphicsContext` so that you can use it to perform render with
 /// **luminance**.
+#[derive(Debug)]
 pub struct GlfwSurface {
   /// Wrapped GLFW window.
   pub window: Window,

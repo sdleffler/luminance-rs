@@ -11,6 +11,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.14.4](#0144)
 * [0.14.3](#0143)
 * [0.14.2](#0142)
 * [0.14.1](#0141)
@@ -54,6 +55,12 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.14.4
+
+> Nov 12th, 2020
+
+- Add `Debug` derive for `GlfwSurface`.
 
 # 0.14.3
 
