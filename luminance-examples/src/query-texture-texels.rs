@@ -106,7 +106,7 @@ fn main() {
   'app: loop {
     // for all the events on the surface
     surface.window.glfw.poll_events();
-    for (_, event) in surface.events_rx.try_iter() {
+    for (_, event) in glfw::flush_messages(&surface.events_rx) {
       match event {
         // if we close the window or press escape, quit the main loop (i.e. quit the application)
         WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
