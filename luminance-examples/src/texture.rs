@@ -83,7 +83,7 @@ fn run(texture_path: &Path) {
 
   'app: loop {
     surface.window.glfw.poll_events();
-    for (_, event) in surface.events_rx.try_iter() {
+    for (_, event) in glfw::flush_messages(&surface.events_rx) {
       match event {
         WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
 

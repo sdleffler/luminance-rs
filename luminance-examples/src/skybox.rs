@@ -238,7 +238,7 @@ fn run() -> Result<(), AppError> {
 
   'app: loop {
     surface.window.glfw.poll_events();
-    for (_, event) in surface.events_rx.try_iter() {
+    for (_, event) in glfw::flush_messages(&surface.events_rx) {
       match event {
         WindowEvent::Key(Key::Escape, _, Action::Release, _) | WindowEvent::Close => break 'app,
 
