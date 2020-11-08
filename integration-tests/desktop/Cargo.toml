@@ -11,7 +11,7 @@ path = "src/main.rs"
 
 [dependencies]
 colored = "2"
-glfw = "0.40.0"
+glfw = "0.41.0"
 luminance = "0.43"
 luminance-front = "0.3"
 luminance-gl = { version = "0.16", features = ["GL_ARB_gpu_shader_fp64"] }
