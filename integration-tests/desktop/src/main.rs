@@ -34,7 +34,8 @@ tests! {
   "gl33-f64-uniform", gl33_f64_uniform,
   "tess-no-data", tess_no_data,
   "scissor-test", scissor,
-  "360-manually-drop-framebuffer", manually_drop_framebuffer
+  "360-manually-drop-framebuffer", manually_drop_framebuffer,
+  "segfault-drop-surface-surviving-gpu-resources", segfault_drop_surface_surviving_gpu_resources
 }
 
 fn main() {
