@@ -28,7 +28,7 @@
 **luminance** is an effort to make graphics rendering simple and elegant. It was originally imagined,
 designed and implemented by [@phaazon](https://github.com/phaazon) in Haskell ([here](https://hackage.haskell.org/package/luminance))
 and eventually ported to Rust in 2016. The core concepts remained the same and the crate has been
-slowly evolving ever since. At first, used only by @phaazon for his Rust demoscene productions 
+slowly evolving ever since. At first, used only by @phaazon for his Rust demoscene productions
 (example [here](https://github.com/phaazon/celeri-remoulade) and
 [here](https://github.com/phaazon/outline-2017-invitro), using
 [spectra](https://crates.io/crates/spectra)) and a bunch of curious peeps, it now has more visibility
@@ -44,7 +44,7 @@ and elegant API (being Haskell-based makes it heavily use the type system, for i
 has a more unique niche in the ecosystem. Where [gfx-hal] provides an experience focused
 on down-to-metal performance and an API very similar to [Vulkan]’s, **luminance** provides an API
 that is, for sure, a bit higher-level, and not [Vulkan]-based — and hence, yes, it likely won't give
-you the same performances as with [gfx-hal] (though no benchmarks have been done so far) — but 
+you the same performances as with [gfx-hal] (though no benchmarks have been done so far) — but
 easier to start with, especially if you don’t already have a background experience with [OpenGL] or [Vulkan].
 
 The strengths of **luminance** are:
@@ -67,7 +67,7 @@ The strengths of **luminance** are:
   safe mutations.
 - Modern: the whole **luminance** ecosystem tries its best to stay up-to-date with Rust evolutions
   and features. On the same level, the underlying technologies are kept up-to-date and might even
-  be replaced if modern, better-suited alternatives emerge (similarly, [Vulkan] support might 
+  be replaced if modern, better-suited alternatives emerge (similarly, [Vulkan] support might
   eventually get added, though there are no immediate plans to do so).
 - _Opinionated enough_: a big bet with **luminance** was to make it opinionated, but not too much.
   It needs to be opinionated to allow for some design constructs to be possible, optimize
@@ -148,6 +148,9 @@ Those projects use luminance:
 - [luminance-glyph](https://github.com/JohnDoneth/luminance-glyph)
   - A fast text renderer for luminance by [@JohnDoneth](https://github.com/JohnDoneth), powered by
     [glyph_brush](https://crates.io/crates/glyph_brush).
+- [EverFight](https://github.com/SnoozeTime/spacegame)
+  - A game made by [@SnoozeTime](https://github.com/SnoozeTime) for a game jam; rendering done with luminance (sprites,
+    text and UI).
 
 # Licenses
 
