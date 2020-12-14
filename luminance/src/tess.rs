@@ -551,7 +551,7 @@ where
 {
   /// Set the [`Mode`] to connect vertices.
   ///
-  /// Calling that function twice replace the previously set value.
+  /// Calling that function twice replaces the previously set value.
   pub fn set_mode(mut self, mode: Mode) -> Self {
     self.mode = mode;
     self
@@ -559,7 +559,7 @@ where
 
   /// Set the default number of vertices to render.
   ///
-  /// Calling that function twice replace the previously set value.
+  /// Calling that function twice replaces the previously set value.
   pub fn set_vertex_nb(mut self, vert_nb: usize) -> Self {
     self.vert_nb = vert_nb;
     self
@@ -567,7 +567,7 @@ where
 
   /// Set the default number of instances to render.
   ///
-  /// Calling that function twice replace the previously set value.
+  /// Calling that function twice replaces the previously set value.
   pub fn set_instance_nb(mut self, inst_nb: usize) -> Self {
     self.inst_nb = inst_nb;
     self
@@ -575,7 +575,7 @@ where
 
   /// Set the primitive restart index.
   ///
-  /// Calling that function twice replace the previously set value.
+  /// Calling that function twice replaces the previously set value.
   pub fn set_primitive_restart_index(mut self, restart_index: I) -> Self {
     self.restart_index = Some(restart_index);
     self
@@ -925,7 +925,7 @@ where
     unsafe { B::tess_vertices_nb(&self.repr) }
   }
 
-  /// Get the number of indices.
+  /// Get the number of instances.
   pub fn inst_nb(&self) -> usize {
     unsafe { B::tess_instances_nb(&self.repr) }
   }
