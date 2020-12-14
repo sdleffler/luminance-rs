@@ -63,20 +63,20 @@
 //!
 //! [`TessGate`]: crate::tess_gate::TessGate
 
-use std::error;
-use std::fmt;
-use std::marker::PhantomData;
-use std::ops::{
-  Deref, DerefMut, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive,
+use crate::{
+  backend::tess::{
+    IndexSlice as IndexSliceBackend, InstanceSlice as InstanceSliceBackend, Tess as TessBackend,
+    VertexSlice as VertexSliceBackend,
+  },
+  buffer::BufferError,
+  context::GraphicsContext,
+  vertex::{Deinterleave, Vertex, VertexDesc},
 };
-
-use crate::backend::tess::{
-  IndexSlice as IndexSliceBackend, InstanceSlice as InstanceSliceBackend, Tess as TessBackend,
-  VertexSlice as VertexSliceBackend,
+use std::{
+  error, fmt,
+  marker::PhantomData,
+  ops::{Deref, DerefMut, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
 };
-use crate::buffer::BufferError;
-use crate::context::GraphicsContext;
-use crate::vertex::{Deinterleave, Vertex, VertexDesc};
 
 /// Vertices can be connected via several modes.
 ///
@@ -1282,7 +1282,11 @@ pub enum TessViewError {
 impl fmt::Display for TessViewError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match self {
-      TessViewError::IncorrectViewWindow{ capacity, start, nb } => {
+      TessViewError::IncorrectViewWindow {
+        capacity,
+        start,
+        nb,
+      } => {
         write!(f, "TessView incorrect window error: requested slice size {} starting at {}, but capacity is only {}",
           nb, start, capacity)
       }
