@@ -11,6 +11,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.43.2](#0432)
 * [0.43.1](#0431)
 * [0.43](#043)
   * [Breaking changes](#breaking-changes)
@@ -125,6 +126,12 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.43.2
+
+> Dec 14th, 2020
+
+- Fix some inconsistencies and typos in the documentation.
 
 # 0.43.1
 
