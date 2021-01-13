@@ -1,27 +1,24 @@
 # Contributing
 
-This document is the official contribution guide to luminance contributors must follow. It will be **greatly
-appreciated** if you read it first before contributing. It will also prevent you from losing your time if you
-open an issue / make a PR that doesn’t comply to this document.
+This document is the official contribution guide contributors must follow. It will be **greatly appreciated** if you
+read it first before contributing. It will also prevent you from losing your time if you open an issue / make a PR that
+doesn’t comply to this document.
 
 <!-- vim-markdown-toc GFM -->
 
 * [Disclaimer and why this document](#disclaimer-and-why-this-document)
-* [Important resources](#important-resources)
-  * [Repositories](#repositories)
-  * [Documentation and help](#documentation-and-help)
 * [How to make a change](#how-to-make-a-change)
   * [Process](#process)
-* [Release process](#release-process)
-  * [Overall process](#overall-process)
-  * [Changelogs update](#changelogs-update)
-  * [Git tag](#git-tag)
 * [Conventions](#conventions)
   * [Coding](#coding)
   * [Git](#git)
     * [Git message](#git-message)
     * [Commit atomicity](#commit-atomicity)
     * [Hygiene](#hygiene)
+* [Release process](#release-process)
+  * [Overall process](#overall-process)
+  * [Changelogs update](#changelogs-update)
+  * [Git tag](#git-tag)
 * [Support and donation](#support-and-donation)
 
 <!-- vim-markdown-toc -->
@@ -32,21 +29,15 @@ People contributing is awesome. The more people contribute to Free & Open-Source
 world is to me. However, the more people contribute, the more work we have to do on our spare-time. Good
 contributions are highly appreciated, especially if they thoroughly follow the conventions and guidelines of
 each and every repository. However, bad contributions — that don’t follow this document, for instance — are
-going to require me more work than was involved into making the actual change. So please read this document;
-it’s not hard and the few rules here are easy to respect. Thank you!
+going to require me more work than was involved into making the actual change. It’s even worse when the contribution
+actually solves a bug or add a new feature.
 
-# Important resources
+So please read this document; it’s not hard and the few rules here are easy to respect. You might already do
+everything in this list anyway, but reading it won’t hurt you. For more junior / less-experienced developers, it’s
+very likely you will learn a bit of process that is considered good practice, especially when working with VCS like
+Git.
 
-## Repositories
-
-- [luminance and its various crates](https://github.com/phaazon/luminance-rs).
-- [The book](https://github.com/rust-tutorials/learn-luminance).
-
-## Documentation and help
-
-- [The online documentation](https://crates.io/crates/luminance).
-- [The book](https://rust-tutorials.github.io/learn-luminance).
-- [My blog](https://phaazon.net/blog), which contains various articles on luminance.
+> Thank you!
 
 # How to make a change
 
@@ -60,58 +51,27 @@ The process is:
 
 1. (optional) Open an issue and discuss what you want to do. This is optional but highly recommended. If you
   don’t open an issue first and work on something that is not in the scope of the project, or already being
-  made by someone else, you’ll be working for nothing.
+  made by someone else, you’ll be working for nothing. Also, keep in mind that if your change doesn’t refer to an
+  existing issue, I will be wondering what is the context of your change. So prepare to be asked about the motivation
+  and need behind your changes — it’s greatly appreciated if the commit messages, code and PR’s content already
+  contains this information so that people don’t have to ask.
 2. Fork the project.
-3. Create a branch starting from `master`. Name it according to the _Git Flow_ naming conventions:
+3. Create a branch starting from `master` – or the branch you need to work on. Even though this is not really enforced,
+  you’re advised to name your branch according to the _Git Flow_ naming convention:
   - `fix/your-bug-here`: if you’re fixing a bug, name your branch.
   - `feature/new-feature-here`: if you’re adding some work.
-  - `doc/whatever`: if you’re updating documentation, comments, etc.
   - Free for anything else.
   - The special `release/*` branch is used to either back-port changes from newer versions to previous
-    versions, or to release new versions by updating `Cargo.toml` files, changelogs, etc.
+    versions, or to release new versions by updating `Cargo.toml` files, changelogs, etc. Normally, contributors should
+    never have to worry about this kind of brach as their creations is often triggered when wanting to make a release.
 4. Make some commits!
-5. Once you’re ready, open a Pull Request (PR) to merge your work on `master`. For instance, open a PR for
-  `master <-- feature/something-new`.
-6. (optional) Ask someone to review your code. This is optional as it will eventually be reviewed.
+5. Once you’re ready, open a Pull Request (PR) to merge your work on the target branch. For instance, open a PR for
+  `master <- feature/something-new`.
+6. (optional) Ask someone to review your code in the UI. Normally, I’m pretty reactive to notifications but it never
+  hurts to ask for a review.
 7. Discussion and peer-review.
 8. Once the CI is all green, someone (likely me [@phaazon]) will merge your code and close your PR.
 9. Feel free to delete your branch.
-
-# Release process
-
-## Overall process
-
-Releases occur at arbitrary rates. If something is judged urgent, it is most of the time released immediately
-after being merged and tested. Sometimes, several issues are being fixed at the same time (spanning on a few
-days at max). Those will be gathered inside a single update.
-
-Feature requests might be delayed a bit to be packed together as well but eventually get released, even if
-they’re small.
-
-## Changelogs update
-
-`CHANGELOG.md` files must be updated **before any release**. Especially, they must contain:
-
-- The version of the release.
-- The date of the release.
-- How to migrate from a minor to the next major.
-- Everything that a release has introduced, such as major, minor and patch changes.
-
-## Git tag
-
-Once a new release occur, a Git tag is created. Git tags are formatted regarding the project they refer to:
-
-> <project-name>-X.Y.Z
-
-Where `X` is the _major version_, `Y` is the _minor version_ and `Z` is the _patch version_. For instance
-`luminance-0.37.1` is a valid Git tag, so is `luminance-derive-0.5.3`.
-
-> <project-name>-X.Y.Z-rc.W
-
-Where `W` is a number starting from `1` and incrementing. This format is for _release candidates_ and occur
-when a new version (most of the time a major one) is to be released but more feedback is required.
-
-Crates are pushed to [crates.io](https://crates.io) and tagged on Git.
 
 # Conventions
 
@@ -134,7 +94,7 @@ mergeable, format your code.
 
 Please format your git messages like so:
 
-> [project(s)] Starting with a uppercase letter, ending with a dot. #343
+> [project(s)] Starting with an uppercase letter, ending with a dot. #343
 >
 > The #343 after the dot is appreciated to link to issues. Feel free to add, like this message, more context
 > and/or precision to your git message. You don’t have to put it in the first line of the commit message,
@@ -142,7 +102,8 @@ Please format your git messages like so:
 > that it is easier to generate changelogs when reading the git log.
 
 The `[project(s)]` header is mandatory if your commit has changes in any of the crates handled by this repository.
-If you make a change that is cross-crate, feel free to separate them with commas, like `[crate_a, crate_b]`. If
+If the repository you contribute to has a single project in it, you can omit the `[project(s)]` part. If you make
+a change that is cross-crate, feel free to separate them with commas, like `[crate_a, crate_b]`. If
 you make a change that touches all the crates, you can use `[all]`. If you change something that is not related
 to a crate, like the front README, CONTRIBUTING file, CI setup, top-level `Cargo.toml`, etc., then you can omit
 this header.
@@ -153,11 +114,25 @@ to edit a commit message. :)**
 ### Commit atomicity
 
 Your commits should be as atomic as possible. That means that if you make a change that touches two different
-crates, most of the time, you want two commits – for instance one commit for the backend crate and one commit
-for the interface crate. There are exceptions, so this is not an absolute rule, but take some time thinking
-about whether you should split your commits or not.
+concepts / has different scopes, most of the time, you want two commits – for instance one commit for the backend crate
+and one commit for the interface crate. There are exceptions, so this is not an absolute rule, but take some time
+thinking about whether you should split your commits or not. Commits which add a feature / fix a bug _and_ add tests at
+the same time are fine.
 
-Commits which add a feature / fix a bug _and_ add tests at the same time are fine.
+However, here’s a non-comprehensive list of commits considered bad and that will be refused:
+
+- **Formatting, refactoring, cleaning, linting code in a PR that is not strictly about formatting**. If you open a PR to
+  fix a bug, implement a  feature, change configuration, add metadata to the CI, etc. — pretty much anything — but you
+  also format some old code that has nothing to do with your PR, apply a linter’s suggestions (such as `clippy`), remove
+  old code, etc., then I will refuse your commit(s) and ask you to edit your PR.
+- **Too atomic commits**. If two commits are logically connected to one another and are small, it’s likely that you want
+  to merge them as a single commit — unless they work on too different parts of your code. This is a bit subjective
+  topic, so I won’t be _too picky_ about it, but if I judge that you should split a commit into two or fixup two commits,
+  please don’t take it too personal. :)
+
+If you don’t know how to write your commits in an atomic maneer, think about how one would revert your commits if
+something bad happens with your changes — like a big breaking change we need to roll back from very quickly. If your
+commits are not atomic enough, rolling them back will also roll back code that has nothing to do with your changes.
 
 ### Hygiene
 
@@ -173,9 +148,49 @@ git fetch origin --prune
 git rebase origin/master
 ```
 
-On the same level, please squash / fixup your commits if you think they should be a single blob. This is a
-subjective topic, so I won’t be _too picky_ about it, but if I judge that you should split a commit into
-two or fixup two commits, please don’t take it too personal. :)
+# Release process
+
+## Overall process
+
+Releases occur at arbitrary rates. If something is considered urgent, it is most of the time released immediately
+after being merged and tested. Sometimes, several issues are being fixed at the same time (spanning on a few
+days at max). Those will be gathered inside a single update.
+
+Feature requests might be delayed a bit to be packed together as well but eventually get released, even if
+they’re small. Getting your PR merged means it will be released _soon_, but depending on the urgency of your changes,
+it might take a few minutes to a few days.
+
+## Changelogs update
+
+`CHANGELOG.md` files must be updated **before any release**. Especially, they must contain:
+
+- The version of the release.
+- The date of the release.
+- How to migrate from a minor to the next major.
+- Everything that a release has introduced, such as major, minor and patch changes.
+
+Because I don’t ask people to maintain changelogs, I have a high esteem of people knowing how to use Git and create
+correct commits. Be advised that I will refuse any commit that prevents me from writing the changelog correctly.
+
+## Git tag
+
+Once a new release occurs, a Git tag is created. Git tags are formatted regarding the project they refer to, if several
+projects are present in the repository. If only one project is present, tags will refer to this project by the same
+naming scheme anyway:
+
+> <project-name>-X.Y.Z
+
+Where `X` is the _major version_, `Y` is the _minor version_ and `Z` is the _patch version_. For instance
+`project-0.37.1` is a valid Git tag, so is `project-derive-0.5.3`.
+
+A special kind of tag is also possible:
+
+> <project-name>-X.Y.Z-rc.W
+
+Where `W` is a number starting from `1` and incrementing. This format is for _release candidates_ and occurs
+when a new version (most of the time a major one) is to be released but more feedback is required.
+
+Crates are pushed to [crates.io](https://crates.io) and tagged on Git manually (no CD involved).
 
 # Support and donation
 
