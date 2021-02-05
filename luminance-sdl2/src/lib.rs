@@ -133,9 +133,14 @@ impl GL33Surface {
     &self.sdl
   }
 
-  /// The underlying SDL2 window of this surface.
+  /// Borrow the underlying SDL2 window of this surface.
   pub fn window(&self) -> &sdl2::video::Window {
     &self.window
+  }
+
+  /// Mutably borrow the underlying SDL2 window of this surface.
+  pub fn window_mut(&mut self) -> &mut sdl2::video::Window {
+    &mut self.window
   }
 
   /// Get the back buffer.
