@@ -130,7 +130,7 @@ fn work<B>(b: &Buffer<B, u8>) where B: BufferBackend<u8> {
 This kind of code is intented for people writing libraries with luminance. For the special case
 of using the [luminance-front] crate, you will end up writing something like:
 
-```ignore
+```rust
 use luminance_front::buffer::Buffer;
 
 fn work(b: &Buffer<u8>) {
