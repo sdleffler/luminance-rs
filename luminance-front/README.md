@@ -28,7 +28,7 @@ the documentation on [luminance]. Documentation will not be duplicated here.
 For a starter experience, you have nothing specific to do: simply add `luminance-front` as a
 direct dependency and you should be good to go:
 
-```ignore
+```rust
 [dependencies]
 luminance-front = "…"
 ```
@@ -44,7 +44,7 @@ many machines as possible for all supported targets. If for some reason you want
 implementation (for instance an older version of WebGL, OpenGL or an experimental, more modern
 implementation), you will have to use specific platform features, such as `"gl33"`.
 
-```ignore
+```rust
 [dependencies]
 luminance-front = { version = "…", no-default-features = true, features = ["gl33", "webgl2"] }
 ```

@@ -63,26 +63,44 @@ jobs:
         run: |
           cargo install --force cargo-sync-readme
           rustup component add rustfmt
-      - name: cargo sync-readme
+      - name: cargo sync-readme luminance
         run: |
           cd $GITHUB_WORKSPACE/luminance
           cargo sync-readme -c
+      - name: cargo sync-readme luminance-derive
+        run: |
           cd $GITHUB_WORKSPACE/luminance-derive
           cargo sync-readme -c
+      - name: cargo sync-readme luminance-front
+        run: |
           cd $GITHUB_WORKSPACE/luminance-front
           cargo sync-readme -c
+      - name: cargo sync-readme luminance-gl
+        run: |
           cd $GITHUB_WORKSPACE/luminance-gl
           cargo sync-readme -c
+      - name: cargo sync-readme luminance-glfw
+        run: |
           cd $GITHUB_WORKSPACE/luminance-glfw
           cargo sync-readme -c
+      - name: cargo sync-readme luminance-glutin
+        run: |
           cd $GITHUB_WORKSPACE/luminance-glutin
           cargo sync-readme -c
+      - name: cargo sync-readme luminance-sdl2
+        run: |
           cd $GITHUB_WORKSPACE/luminance-sdl2
           cargo sync-readme -c
+      - name: cargo sync-readme luminance-web-sys
+        run: |
           cd $GITHUB_WORKSPACE/luminance-web-sys
           cargo sync-readme -c
+      - name: cargo sync-readme luminance-webgl
+        run: |
           cd $GITHUB_WORKSPACE/luminance-webgl
           cargo sync-readme -c
+      - name: cargo sync-readme luminance-windowing
+        run: |
           cd $GITHUB_WORKSPACE/luminance-windowing
           cargo sync-readme -c
       - name: rustfmt
