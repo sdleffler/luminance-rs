@@ -11,12 +11,19 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.2.2](#022)
 * [0.2.1](#021)
 * [0.2](#02)
 * [0.1.1](#011)
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.2.2
+
+> Feb 14, 2021
+
+- Add `GL33Surface::window_mut`.
 
 # 0.2.1
 
