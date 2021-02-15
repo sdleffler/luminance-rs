@@ -65,16 +65,14 @@ impl error::Error for GlfwSurfaceError {
 
 /// GLFW surface.
 ///
-/// This type implements `GraphicsContext` so that you can use it to perform render with
-/// **luminance**.
+/// This type is a helper that exposes two important concepts: the GLFW event receiver that you can use it with to
+/// poll events and the [`GL33Context`], which allows you to perform the rendering part.
 #[derive(Debug)]
 pub struct GlfwSurface {
-  /// Wrapped GLFW window.
-  pub window: Window,
   /// Wrapped GLFW events queue.
   pub events_rx: Receiver<(f64, WindowEvent)>,
-  /// OpenGL 3.3 state.
-  gl: GL33,
+  /// Wrapped luminance context.
+  pub context: GL33Context,
 }
 
 impl GlfwSurface {
@@ -147,15 +145,25 @@ impl GlfwSurface {
     gl::load_with(|s| window.get_proc_address(s) as *const c_void);
 
     let gl = GL33::new().map_err(GlfwSurfaceError::GraphicsStateError)?;
-    let surface = GlfwSurface {
-      window,
-      events_rx,
-      gl,
-    };
+    let context = GL33Context { window, gl };
+    let surface = GlfwSurface { events_rx, context };
 
     Ok(surface)
   }
+}
 
+/// Luminance OpenGL 3.3 context.
+///
+/// This type also re-exports the GLFW window, if you need access to it.
+#[derive(Debug)]
+pub struct GL33Context {
+  /// Wrapped GLFW window.
+  pub window: Window,
+  /// OpenGL 3.3 state.
+  gl: GL33,
+}
+
+impl GL33Context {
   /// Get the back buffer.
   pub fn back_buffer(&mut self) -> Result<Framebuffer<GL33, Dim2, (), ()>, FramebufferError> {
     let (w, h) = self.window.get_framebuffer_size();
@@ -163,7 +171,7 @@ impl GlfwSurface {
   }
 }
 
-unsafe impl GraphicsContext for GlfwSurface {
+unsafe impl GraphicsContext for GL33Context {
   type Backend = GL33;
 
   fn backend(&mut self) -> &mut Self::Backend {

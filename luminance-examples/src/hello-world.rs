@@ -142,16 +142,18 @@ fn main() {
     width: 960,
     height: 540,
   };
-  let mut surface = GlfwSurface::new_gl33(
+  let surface = GlfwSurface::new_gl33(
     "Hello, world; from OpenGL 3.3!",
     WindowOpt::default().set_dim(dim),
   )
   .expect("GLFW surface creation");
+  let mut context = surface.context;
+  let events = surface.events_rx;
 
   // We need a program to “shade” our triangles and to tell luminance which is the input vertex
   // type, and we’re not interested in the other two type variables for this sample.
 
-  let mut program = surface
+  let mut program = context
     .new_shader_program::<Semantics, (), ()>()
     .from_strings(VS, None, None, FS)
     .expect("program creation")
@@ -159,7 +161,7 @@ fn main() {
 
   // Create tessellation for direct geometry; that is, tessellation that will render vertices by
   // taking one after another in the provided slice.
-  let direct_triangles = surface
+  let direct_triangles = context
     .new_tess()
     .set_vertices(&TRI_VERTICES[..])
     .set_mode(Mode::Triangle)
@@ -169,7 +171,7 @@ fn main() {
   // Create indexed tessellation; that is, the vertices will be picked by using the indexes provided
   // by the second slice and this indexes will reference the first slice (useful not to duplicate
   // vertices on more complex objects than just two triangles).
-  let indexed_triangles = surface
+  let indexed_triangles = context
     .new_tess()
     .set_vertices(&TRI_VERTICES[..])
     .set_indices(&TRI_INDICES[..])
@@ -179,7 +181,7 @@ fn main() {
 
   // Create direct, deinterleaved tesselations; such tessellations allow to separate vertex
   // attributes in several contiguous regions of memory.
-  let direct_deinterleaved_triangles = surface
+  let direct_deinterleaved_triangles = context
     .new_deinterleaved_tess::<Vertex, ()>()
     .set_attributes(&TRI_DEINT_POS_VERTICES[..])
     .set_attributes(&TRI_DEINT_COLOR_VERTICES[..])
@@ -188,7 +190,7 @@ fn main() {
     .unwrap();
 
   // Create indexed, deinterleaved tessellations; have your cake and fucking eat it, now.
-  let indexed_deinterleaved_triangles = surface
+  let indexed_deinterleaved_triangles = context
     .new_deinterleaved_tess::<Vertex, ()>()
     .set_attributes(&TRI_DEINT_POS_VERTICES[..])
     .set_attributes(&TRI_DEINT_COLOR_VERTICES[..])
@@ -199,16 +201,15 @@ fn main() {
 
   //// The back buffer, which we will make our render into (we make it mutable so that we can change
   //// it whenever the window dimensions change).
-  let mut back_buffer = surface.back_buffer().unwrap();
+  let mut back_buffer = context.back_buffer().unwrap();
   let mut demo = TessMethod::Direct;
-  let mut resize = false;
 
   println!("now rendering {:?}", demo);
 
   'app: loop {
     // For all the events on the surface.
-    surface.window.glfw.poll_events();
-    for (_, event) in glfw::flush_messages(&surface.events_rx) {
+    context.window.glfw.poll_events();
+    for (_, event) in glfw::flush_messages(&events) {
       match event {
         // If we close the window or press escape, quit the main loop (i.e. quit the application).
         WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
@@ -221,22 +222,16 @@ fn main() {
 
         // Handle window resizing.
         WindowEvent::FramebufferSize(..) => {
-          resize = true;
+          back_buffer = context.back_buffer().unwrap();
         }
 
         _ => (),
       }
     }
 
-    if resize {
-      // Simply ask another backbuffer at the right dimension (no allocation / reallocation).
-      back_buffer = surface.back_buffer().unwrap();
-      resize = false;
-    }
-
     // Create a new dynamic pipeline that will render to the back buffer and must clear it with
     // pitch black prior to do any render to it.
-    let render = surface
+    let render = context
       .new_pipeline_gate()
       .pipeline(
         &back_buffer,
@@ -267,7 +262,7 @@ fn main() {
     // Finally, swap the backbuffer with the frontbuffer in order to render our triangles onto your
     // screen.
     if render.is_ok() {
-      surface.window.swap_buffers();
+      context.window.swap_buffers();
     } else {
       break 'app;
     }

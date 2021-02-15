@@ -11,6 +11,8 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.15](#015)
+  * [Breaking changes](#breaking-changes)
 * [0.14.4](#0144)
 * [0.14.3](#0143)
 * [0.14.2](#0142)
@@ -47,7 +49,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.3.1](#031)
 * [0.3](#03)
 * [0.2](#02)
-* [0.1.5](#015)
+* [0.1.5](#015-1)
 * [0.1.4](#014-1)
 * [0.1.3](#013-1)
 * [0.1.2](#012-1)
@@ -55,6 +57,21 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.15
+
+> Feb 15, 2021
+
+## Breaking changes
+
+- Change the meaning of `GlfwSurface`. It now contains two separate objects that you can dissociate and use
+  independently:
+  - The event receiver from glfw. Use this with the GLFW API to retrieve / poll events.
+  - A `GL33Context`, containing the GLFW window and the required internal luminance state, allowing you to perform
+      rendering operations.
+  This was needed to fix annoyances while iterating over events and wanting to make luminance calls — _deferring_ was
+  required. This is no longer an issue with this fix and you can now issue luminance calls while iterating over events,
+  yay, clap your hands if’re reading this!
 
 # 0.14.4
 
