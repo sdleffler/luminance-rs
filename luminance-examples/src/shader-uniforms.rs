@@ -60,35 +60,36 @@ fn main() {
     width: 960,
     height: 540,
   };
-  let mut surface = GlfwSurface::new_gl33("Hello, world!", WindowOpt::default().set_dim(dim))
+  let surface = GlfwSurface::new_gl33("Hello, world!", WindowOpt::default().set_dim(dim))
     .expect("GLFW surface creation");
+  let mut context = surface.context;
+  let events = surface.events_rx;
 
   // see the use of our uniform interface here as thirds type variable
-  let mut program = surface
+  let mut program = context
     .new_shader_program::<Semantics, (), ShaderInterface>()
     .from_strings(VS, None, None, FS)
     .expect("program creation")
     .ignore_warnings();
 
-  let triangle = surface
+  let triangle = context
     .new_tess()
     .set_vertices(&TRI_VERTICES[..])
     .set_mode(Mode::Triangle)
     .build()
     .unwrap();
 
-  let mut back_buffer = surface.back_buffer().unwrap();
+  let mut back_buffer = context.back_buffer().unwrap();
 
   // position of the triangle
   let mut triangle_pos = [0., 0.];
 
   // reference time
   let start_t = Instant::now();
-  let mut resize = false;
 
   'app: loop {
-    surface.window.glfw.poll_events();
-    for (_, event) in glfw::flush_messages(&surface.events_rx) {
+    context.window.glfw.poll_events();
+    for (_, event) in glfw::flush_messages(&events) {
       match event {
         WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
 
@@ -117,16 +118,11 @@ fn main() {
         }
 
         WindowEvent::FramebufferSize(..) => {
-          resize = true;
+          back_buffer = context.back_buffer().unwrap();
         }
 
         _ => (),
       }
-    }
-
-    if resize {
-      back_buffer = surface.back_buffer().unwrap();
-      resize = false;
     }
 
     // get the current monotonic time
@@ -134,7 +130,7 @@ fn main() {
     let t64 = elapsed.as_secs() as f64 + (elapsed.subsec_millis() as f64 * 1e-3);
     let t = t64 as f32;
 
-    let render = surface
+    let render = context
       .new_pipeline_gate()
       .pipeline(
         &back_buffer,
@@ -156,7 +152,7 @@ fn main() {
       .assume();
 
     if render.is_ok() {
-      surface.window.swap_buffers();
+      context.window.swap_buffers();
     } else {
       break 'app;
     }

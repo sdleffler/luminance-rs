@@ -49,13 +49,15 @@ fn run(texture_path: &Path) {
   let (width, height) = img.dimensions();
 
   let dim = WindowDim::Windowed { width, height };
-  let mut surface = GlfwSurface::new_gl33("Hello, world!", WindowOpt::default().set_dim(dim))
+  let surface = GlfwSurface::new_gl33("Hello, world!", WindowOpt::default().set_dim(dim))
     .expect("GLFW surface creation");
+  let mut context = surface.context;
+  let events = surface.events_rx;
 
-  let mut tex = load_from_disk(&mut surface, img);
+  let mut tex = load_from_disk(&mut context, img);
 
   // set the uniform interface to our type so that we can read textures from the shader
-  let mut program = surface
+  let mut program = context
     .new_shader_program::<(), (), ShaderInterface>()
     .from_strings(VS, None, None, FS)
     .expect("program creation")
@@ -64,45 +66,39 @@ fn run(texture_path: &Path) {
   // we’ll use an attributeless render here to display a quad on the screen (two triangles); there
   // are over ways to cover the whole screen but this is easier for you to understand; the
   // TriangleFan creates triangles by connecting the third (and next) vertex to the first one
-  let tess = surface
+  let tess = context
     .new_tess()
     .set_vertex_nb(4)
     .set_mode(Mode::TriangleFan)
     .build()
     .unwrap();
 
-  let mut back_buffer = surface.back_buffer().unwrap();
+  let mut back_buffer = context.back_buffer().unwrap();
   let render_st = &RenderState::default().set_blending(Blending {
     equation: Equation::Additive,
     src: Factor::SrcAlpha,
     dst: Factor::Zero,
   });
-  let mut resize = false;
 
   println!("rendering!");
 
   'app: loop {
-    surface.window.glfw.poll_events();
-    for (_, event) in glfw::flush_messages(&surface.events_rx) {
+    context.window.glfw.poll_events();
+    for (_, event) in glfw::flush_messages(&events) {
       match event {
         WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
 
         WindowEvent::FramebufferSize(..) => {
-          resize = true;
+          back_buffer = context.back_buffer().unwrap();
         }
 
         _ => (),
       }
     }
 
-    if resize {
-      back_buffer = surface.back_buffer().unwrap();
-      resize = false;
-    }
-
     // here, we need to bind the pipeline variable; it will enable us to bind the texture to the GPU
     // and use it in the shader
-    let render = surface
+    let render = context
       .new_pipeline_gate()
       .pipeline(
         &back_buffer,
@@ -127,7 +123,7 @@ fn run(texture_path: &Path) {
       .assume();
 
     if render.is_ok() {
-      surface.window.swap_buffers();
+      context.window.swap_buffers();
     } else {
       break 'app;
     }
@@ -139,7 +135,7 @@ fn read_image(path: &Path) -> Option<image::RgbImage> {
   image::open(path).map(|img| img.flipv().to_rgb()).ok()
 }
 
-fn load_from_disk<B>(surface: &mut B, img: image::RgbImage) -> Texture<B::Backend, Dim2, NormRGB8UI>
+fn load_from_disk<B>(context: &mut B, img: image::RgbImage) -> Texture<B::Backend, Dim2, NormRGB8UI>
 where
   B: GraphicsContext,
   B::Backend: TextureBackend<Dim2, NormRGB8UI>,
@@ -150,7 +146,7 @@ where
   // create the luminance texture; the third argument is the number of mipmaps we want (leave it
   // to 0 for now) and the latest is the sampler to use when sampling the texels in the
   // shader (we’ll just use the default one)
-  let mut tex = Texture::new(surface, [width, height], 0, Sampler::default())
+  let mut tex = Texture::new(context, [width, height], 0, Sampler::default())
     .expect("luminance texture creation");
 
   // the first argument disables mipmap generation (we don’t care so far)

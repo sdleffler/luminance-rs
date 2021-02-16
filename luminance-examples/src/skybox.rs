@@ -167,13 +167,15 @@ fn run() -> Result<(), AppError> {
     width: 540,
     height: 960,
   };
-  let mut surface = GlfwSurface::new_gl33("skybox example", WindowOpt::default().set_dim(dim))
+  let surface = GlfwSurface::new_gl33("skybox example", WindowOpt::default().set_dim(dim))
     .map_err(|e| AppError::CannotCreateSurface(Box::new(e)))?;
+  let mut context = surface.context;
+  let events = surface.events_rx;
 
   // Upload the loaded image into a luminance cubemap.
-  let mut skybox = upload_cubemap(&mut surface, &img)?;
+  let mut skybox = upload_cubemap(&mut context, &img)?;
 
-  let mut back_buffer = surface
+  let mut back_buffer = context
     .back_buffer()
     .map_err(|e| AppError::CannotGrabBackBuffer(Box::new(e)))?;
   let [width, height] = back_buffer.size();
@@ -189,13 +191,13 @@ fn run() -> Result<(), AppError> {
   let mut skybox_orient = Quaternion::from_angle_y(Rad(0.));
 
   // The shader program responsible in rendering the skybox.
-  let mut skybox_program = surface
+  let mut skybox_program = context
     .new_shader_program::<(), (), SkyboxShaderInterface>()
     .from_strings(SKYBOX_VS_SRC, None, None, SKYBOX_FS_SRC)
     .map_err(|e| AppError::ShaderCompilationFailed(Box::new(e)))?
     .ignore_warnings();
 
-  let mut environment_mapping_program = surface
+  let mut environment_mapping_program = context
     .new_shader_program::<common::Semantics, (), EnvironmentMappingShaderInterface>()
     .from_strings(ENV_MAP_VS_SRC, None, None, ENV_MAP_FS_SRC)
     .map_err(|e| AppError::ShaderCompilationFailed(Box::new(e)))?
@@ -203,7 +205,7 @@ fn run() -> Result<(), AppError> {
 
   // A fullscreen quad used to render the skybox. The vertex shader will have to spawn the vertices
   // on the fly for this to work.
-  let fullscreen_quad = surface
+  let fullscreen_quad = context
     .new_tess()
     .set_mode(Mode::TriangleStrip)
     .set_vertex_nb(4)
@@ -212,7 +214,7 @@ fn run() -> Result<(), AppError> {
 
   // The cube that will reflect the skybox.
   let (cube_vertices, cube_indices) = common::cube(0.5);
-  let cube = surface
+  let cube = context
     .new_tess()
     .set_vertices(&cube_vertices[..])
     .set_indices(&cube_indices[..])
@@ -223,7 +225,6 @@ fn run() -> Result<(), AppError> {
 
   // A bunch of renderloop-specific variables used to track what’s happening with your keyboard and
   // mouse / trackpad.
-  let mut resize = false;
   let mut last_cursor_pos = None;
   let mut rotate_viewport = false;
   let mut x_theta = 0.;
@@ -237,8 +238,8 @@ fn run() -> Result<(), AppError> {
   let rdr_st = RenderState::default().set_depth_write(DepthWrite::Off);
 
   'app: loop {
-    surface.window.glfw.poll_events();
-    for (_, event) in glfw::flush_messages(&surface.events_rx) {
+    context.window.glfw.poll_events();
+    for (_, event) in glfw::flush_messages(&events) {
       match event {
         WindowEvent::Key(Key::Escape, _, Action::Release, _) | WindowEvent::Close => break 'app,
 
@@ -313,7 +314,16 @@ fn run() -> Result<(), AppError> {
         }
 
         WindowEvent::FramebufferSize(..) => {
-          resize = true;
+          // When the viewport gets resized, we want to recompute the aspect ratio (and then recreate the
+          // projection matrix).
+          back_buffer = context
+            .back_buffer()
+            .map_err(|e| AppError::CannotGrabBackBuffer(Box::new(e)))?;
+          let [width, height] = back_buffer.size();
+
+          aspect_ratio = width as f32 / height as f32;
+
+          projection = perspective(Rad(fovy), aspect_ratio, Z_NEAR, Z_FAR);
         }
 
         // When the cursor move, we need to update the last cursor position we know and, if needed,
@@ -361,21 +371,6 @@ fn run() -> Result<(), AppError> {
       }
     }
 
-    // When the viewport gets resized, we want to recompute the aspect ratio (and then recreate the
-    // projection matrix).
-    if resize {
-      back_buffer = surface
-        .back_buffer()
-        .map_err(|e| AppError::CannotGrabBackBuffer(Box::new(e)))?;
-      let [width, height] = back_buffer.size();
-
-      aspect_ratio = width as f32 / height as f32;
-
-      projection = perspective(Rad(fovy), aspect_ratio, Z_NEAR, Z_FAR);
-
-      resize = false;
-    }
-
     // When the view is updated (i.e. the camera has moved or got re-oriented), we want to
     // recompute a bunch of quaternions (used to encode orientations) and matrices.
     if view_updated {
@@ -390,7 +385,7 @@ fn run() -> Result<(), AppError> {
       view_updated = false;
     }
 
-    let mut pipeline_gate = surface.new_pipeline_gate();
+    let mut pipeline_gate = context.new_pipeline_gate();
     let projection = projection.into();
     let view = Matrix4::from(cam_view).into();
 
@@ -434,7 +429,7 @@ fn run() -> Result<(), AppError> {
       .assume();
 
     if render.is_ok() {
-      surface.window.swap_buffers();
+      context.window.swap_buffers();
     } else {
       error!("dropped a frame");
       break 'app;
@@ -485,7 +480,7 @@ fn load_img(path: impl AsRef<Path>) -> Result<image::DynamicImage, AppError> {
 ///
 /// Each cell has a resolution of width / 4 × width / 4, and width / 4 == height / 3(if not, then it’s not a cubemap).
 fn upload_cubemap(
-  surface: &mut impl GraphicsContext<Backend = Backend>,
+  context: &mut impl GraphicsContext<Backend = Backend>,
   img: &image::DynamicImage,
 ) -> Result<Texture<Cubemap, NormRGB8UI>, AppError> {
   let img = img.to_rgb();
@@ -501,7 +496,7 @@ fn upload_cubemap(
   let pixels = img.into_raw();
 
   // Create the cubemap on the GPU; we ask for two mipmaps… because why not.
-  let mut texture = surface
+  let mut texture = context
     .new_texture(size, 2, Sampler::default())
     .map_err(|e| AppError::CannotCreateTexture(Box::new(e)))?;
 

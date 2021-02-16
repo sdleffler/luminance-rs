@@ -74,12 +74,14 @@ fn main() {
     width: 960,
     height: 540,
   };
-  let mut surface = GlfwSurface::new_gl33("Hello, world!", WindowOpt::default().set_dim(dim))
+  let surface = GlfwSurface::new_gl33("Hello, world!", WindowOpt::default().set_dim(dim))
     .expect("GLFW surface creation");
+  let mut context = surface.context;
+  let events = surface.events_rx;
 
   // we need a program to “shade” our triangles and to tell luminance which is the input vertex
   // type, and we’re not interested in the other two type variables for this sample
-  let mut program = surface
+  let mut program = context
     .new_shader_program::<Semantics, (), ()>()
     .from_strings(VS, None, None, FS)
     .expect("program creation")
@@ -87,7 +89,7 @@ fn main() {
 
   // create tessellation for direct geometry; that is, tessellation that will render vertices by
   // taking one after another in the provided slice
-  let tris = surface
+  let tris = context
     .new_tess()
     .set_vertices(&TRI_VERTICES[..])
     .set_mode(Mode::Triangle)
@@ -99,14 +101,14 @@ fn main() {
 
   // the back buffer, which we will make our render into (we make it mutable so that we can change
   // it whenever the window dimensions change)
-  let mut fb = surface
+  let mut fb = context
     .new_framebuffer::<Dim2, NormRGBA8UI, ()>([960, 540], 0, Sampler::default())
     .unwrap();
 
   'app: loop {
     // for all the events on the surface
-    surface.window.glfw.poll_events();
-    for (_, event) in glfw::flush_messages(&surface.events_rx) {
+    context.window.glfw.poll_events();
+    for (_, event) in glfw::flush_messages(&events) {
       match event {
         // if we close the window or press escape, quit the main loop (i.e. quit the application)
         WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
@@ -117,7 +119,7 @@ fn main() {
 
     // create a new dynamic pipeline that will render to the back buffer and must clear it with
     // pitch black prior to do any render to it
-    let render = surface
+    let render = context
       .new_pipeline_gate()
       .pipeline(&fb, &PipelineState::default(), |_, mut shd_gate| {
         // start shading with our program
@@ -144,7 +146,7 @@ fn main() {
     // finally, swap the backbuffer with the frontbuffer in order to render our triangles onto your
     // screen
     if render.is_ok() {
-      surface.window.swap_buffers();
+      context.window.swap_buffers();
     } else {
       break 'app;
     }
