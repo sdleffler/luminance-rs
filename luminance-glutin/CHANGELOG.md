@@ -11,6 +11,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.11.3](#0113)
 * [0.11.2](#0112)
 * [0.11.1](#0111)
 * [0.11](#011)
@@ -33,6 +34,12 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.11.3
+
+> Feb 16, 2021
+
+- Support of `glutin-0.26`.
 
 # 0.11.2
 
