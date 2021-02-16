@@ -62,22 +62,24 @@ fn main() {
     width: 960,
     height: 540,
   };
-  let mut surface = GlfwSurface::new_gl33("Hello, world!", WindowOpt::default().set_dim(dim))
+  let surface = GlfwSurface::new_gl33("Hello, world!", WindowOpt::default().set_dim(dim))
     .expect("GLFW surface creation");
+  let mut context = surface.context;
+  let events = surface.events_rx;
 
-  let mut program = surface
+  let mut program = context
     .new_shader_program::<Semantics, (), ()>()
     .from_strings(VS, None, None, FS)
     .unwrap()
     .ignore_warnings();
 
-  let mut copy_program = surface
+  let mut copy_program = context
     .new_shader_program::<(), (), ShaderInterface>()
     .from_strings(COPY_VS, None, None, COPY_FS)
     .unwrap()
     .ignore_warnings();
 
-  let triangle = surface
+  let triangle = context
     .new_tess()
     .set_vertices(&TRI_VERTICES[..])
     .set_mode(Mode::Triangle)
@@ -85,7 +87,7 @@ fn main() {
     .unwrap();
 
   // we’ll need an attributeless quad to fetch in full screen
-  let quad = surface
+  let quad = context
     .new_tess()
     .set_vertex_nb(4)
     .set_mode(Mode::TriangleFan)
@@ -93,49 +95,38 @@ fn main() {
     .unwrap();
 
   // “screen“ we want to render into our offscreen render
-  let mut back_buffer = surface.back_buffer().unwrap();
+  let mut back_buffer = context.back_buffer().unwrap();
 
   // offscreen buffer with two color slots that we will render in the first place
-  let (w, h) = surface.window.get_framebuffer_size();
-  let mut offscreen_buffer = surface
+  let (w, h) = context.window.get_framebuffer_size();
+  let mut offscreen_buffer = context
     .new_framebuffer::<Dim2, (RGB32F, R32F), ()>([w as u32, h as u32], 0, Sampler::default())
     .expect("framebuffer creation");
 
-  // hack to update the offscreen buffer if needed; this is needed because we cannot update the
-  // offscreen buffer from within the event loop
-  let mut resize = false;
-
   'app: loop {
     // for all the events on the surface
-    surface.window.glfw.poll_events();
-    for (_, event) in glfw::flush_messages(&surface.events_rx) {
+    context.window.glfw.poll_events();
+    for (_, event) in glfw::flush_messages(&events) {
       match event {
         WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
 
         WindowEvent::FramebufferSize(..) => {
-          resize = true;
+          // simply ask another backbuffer at the right dimension (no allocation / reallocation)
+          back_buffer = context.back_buffer().unwrap();
+
+          // ditto for the offscreen framebuffer
+          let (w, h) = context.window.get_framebuffer_size();
+          offscreen_buffer =
+            Framebuffer::new(&mut context, [w as u32, h as u32], 0, Sampler::default())
+              .expect("framebuffer recreation");
         }
 
         _ => (),
       }
     }
 
-    // if the window got resized
-    if resize {
-      // simply ask another backbuffer at the right dimension (no allocation / reallocation)
-      back_buffer = surface.back_buffer().unwrap();
-
-      // ditto for the offscreen framebuffer
-      let (w, h) = surface.window.get_framebuffer_size();
-      offscreen_buffer =
-        Framebuffer::new(&mut surface, [w as u32, h as u32], 0, Sampler::default())
-          .expect("framebuffer recreation");
-
-      resize = false;
-    }
-
     // we get an object to create pipelines (we’ll need two)
-    let mut builder = surface.new_pipeline_gate();
+    let mut builder = context.new_pipeline_gate();
 
     // render the triangle in the offscreen framebuffer first
     let render = builder
@@ -188,7 +179,7 @@ fn main() {
     // finally, swap the backbuffer with the frontbuffer in order to render our triangles onto your
     // screen
     if render.is_ok() {
-      surface.window.swap_buffers();
+      context.window.swap_buffers();
     } else {
       break 'app;
     }

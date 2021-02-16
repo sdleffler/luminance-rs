@@ -69,17 +69,19 @@ fn main() {
   .to_rgb();
 
   let dim = WindowDim::Windowed { width, height };
-  let mut surface = GlfwSurface::new_gl33("Displacement Map", WindowOpt::default().set_dim(dim))
+  let surface = GlfwSurface::new_gl33("Displacement Map", WindowOpt::default().set_dim(dim))
     .expect("Could not create GLFW surface");
+  let mut context = surface.context;
+  let events = surface.events_rx;
 
   let texels = texture_image.into_raw();
-  let mut tex = surface
+  let mut tex = context
     .new_texture::<Dim2, NormRGB8UI>([width, height], 0, Sampler::default())
     .expect("Could not create luminance texture");
   tex.upload_raw(GenMipmaps::No, &texels).unwrap();
 
   let texels = displacement_map_1.into_raw();
-  let mut displacement_tex_1 = surface
+  let mut displacement_tex_1 = context
     .new_texture::<Dim2, NormRGB8UI>([128, 128], 0, Sampler::default())
     .expect("Could not create luminance texture");
   displacement_tex_1
@@ -87,39 +89,38 @@ fn main() {
     .unwrap();
 
   let texels = displacement_map_2.into_raw();
-  let mut displacement_tex_2 = surface
+  let mut displacement_tex_2 = context
     .new_texture::<Dim2, NormRGB8UI>([101, 101], 0, Sampler::default())
     .expect("Could not create luminance texture");
   displacement_tex_2
     .upload_raw(GenMipmaps::No, &texels)
     .unwrap();
 
-  let mut program = surface
+  let mut program = context
     .new_shader_program::<(), (), ShaderInterface>()
     .from_strings(VS, None, None, FS)
     .expect("Could not create shader program")
     .ignore_warnings();
 
-  let tess = surface
+  let tess = context
     .new_tess()
     .set_vertex_nb(4)
     .set_mode(Mode::TriangleFan)
     .build()
     .unwrap();
 
-  let mut back_buffer = surface.back_buffer().unwrap();
+  let mut back_buffer = context.back_buffer().unwrap();
   let start_time = Instant::now();
   let render_state = RenderState::default().set_blending(Blending {
     equation: Equation::Additive,
     src: Factor::SrcAlpha,
     dst: Factor::Zero,
   });
-  let mut resize = false;
   let mut displacement_scale: f32 = 0.010;
 
   'app: loop {
-    surface.window.glfw.poll_events();
-    for (_, event) in surface.events_rx.try_iter() {
+    context.window.glfw.poll_events();
+    for (_, event) in glfw::flush_messages(&events) {
       match event {
         WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => break 'app,
         WindowEvent::Key(Key::W, _, Action::Press, _) => {
@@ -129,21 +130,16 @@ fn main() {
           displacement_scale = (displacement_scale - 0.005).max(0.0);
         }
         WindowEvent::FramebufferSize(..) => {
-          resize = true;
+          back_buffer = context.back_buffer().unwrap();
         }
         _ => (),
       }
     }
 
-    if resize {
-      back_buffer = surface.back_buffer().unwrap();
-      resize = false;
-    }
-
     let elapsed = start_time.elapsed();
     let time = elapsed.as_secs() as f64 + (f64::from(elapsed.subsec_millis()) * 1e-3);
 
-    let render = surface
+    let render = context
       .new_pipeline_gate()
       .pipeline(
         &back_buffer,
@@ -172,7 +168,7 @@ fn main() {
       .assume();
 
     if render.is_ok() {
-      surface.window.swap_buffers();
+      context.window.swap_buffers();
     } else {
       break 'app;
     }
