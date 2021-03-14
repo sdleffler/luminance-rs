@@ -483,7 +483,7 @@ fn upload_cubemap(
   context: &mut impl GraphicsContext<Backend = Backend>,
   img: &image::DynamicImage,
 ) -> Result<Texture<Cubemap, NormRGB8UI>, AppError> {
-  let img = img.to_rgb();
+  let img = img.to_rgb8();
 
   let width = img.width();
   let size = width / 4;
