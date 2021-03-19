@@ -95,6 +95,15 @@ impl WebSysWebGL2Surface {
       .dyn_into::<HtmlCanvasElement>()
       .map_err(|_| WebSysWebGL2SurfaceError::not_such_canvas_element(canvas_name))?;
 
+    Self::from_canvas(canvas)
+  }
+
+  pub fn from_canvas(canvas: HtmlCanvasElement) -> Result<Self, WebSysWebGL2SurfaceError> {
+    let window = web_sys::window().ok_or_else(|| WebSysWebGL2SurfaceError::cannot_grab_window())?;
+    let document = window
+      .document()
+      .ok_or_else(|| WebSysWebGL2SurfaceError::cannot_grab_document())?;
+
     let webgl2 = canvas
       .get_context("webgl2")
       .map_err(|_| WebSysWebGL2SurfaceError::cannot_grab_webgl2_context())?
