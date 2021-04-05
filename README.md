@@ -150,6 +150,8 @@ Those projects use luminance:
 - [EverFight](https://github.com/SnoozeTime/spacegame)
   - A game made by [@SnoozeTime](https://github.com/SnoozeTime) for a game jam; rendering done with luminance (sprites,
     text and UI).
+- [Bevy Retro](https://github.com/katharostech/bevy_retro)
+  - A Bevy plugin by [@katharostech](https://github.com/katharostech) for building 2D, pixel-perfect games that run seamlessly on desktop or in the browser.
 
 # Licenses
 
