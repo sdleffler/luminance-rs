@@ -146,11 +146,11 @@ where
         .state
         .borrow_mut()
         .bind_array_buffer(buffer.handle(), Bind::Cached);
-      let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::WRITE_ONLY) as *mut T;
-      *ptr.add(i) = x;
-      let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
 
-      Ok(())
+      mapping_buffer(gl::ARRAY_BUFFER, gl::WRITE_ONLY, |ptr: *mut T| {
+        *ptr.add(i) = x;
+        let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
+      })
     }
   }
 
@@ -174,13 +174,11 @@ where
       .borrow_mut()
       .bind_array_buffer(buffer.handle(), Bind::Cached);
 
-    let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::WRITE_ONLY);
-    ptr::copy_nonoverlapping(values.as_ptr(), ptr as *mut T, buffer_len);
-    let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
-
-    buffer.buf.copy_from_slice(values);
-
-    Ok(())
+    mapping_buffer(gl::ARRAY_BUFFER, gl::WRITE_ONLY, |ptr: *mut T| {
+      ptr::copy_nonoverlapping(values.as_ptr(), ptr, buffer_len);
+      let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
+      buffer.buf.copy_from_slice(values);
+    })
   }
 
   unsafe fn clear(buffer: &mut Self::BufferRepr, x: T) -> Result<(), BufferError> {
@@ -194,11 +192,10 @@ where
       .borrow_mut()
       .bind_array_buffer(buffer.handle(), Bind::Cached);
 
-    let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::WRITE_ONLY);
-    ptr::copy_nonoverlapping(buffer.buf.as_ptr(), ptr as *mut T, buffer.buf.len());
-    let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
-
-    Ok(())
+    mapping_buffer(gl::ARRAY_BUFFER, gl::WRITE_ONLY, |ptr: *mut T| {
+      ptr::copy_nonoverlapping(buffer.buf.as_ptr(), ptr as *mut T, buffer.buf.len());
+      let _ = gl::UnmapBuffer(gl::ARRAY_BUFFER);
+    })
   }
 }
 
@@ -304,18 +301,14 @@ where
       .borrow_mut()
       .bind_array_buffer(buffer.handle(), Bind::Cached);
 
-    let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_ONLY) as *const T;
-
-    if ptr.is_null() {
-      Err(BufferError::map_failed())
-    } else {
+    mapping_buffer(gl::ARRAY_BUFFER, gl::READ_ONLY, |ptr| {
       let handle = buffer.handle();
       let state = buffer.gl_buf.state.clone();
       let raw = BufferSliceWrapper { handle, state };
       let len = buffer.buf.len();
 
-      Ok(BufferSlice { raw, len, ptr })
-    }
+      BufferSlice { raw, len, ptr }
+    })
   }
 
   unsafe fn slice_buffer_mut(
@@ -327,17 +320,28 @@ where
       .borrow_mut()
       .bind_array_buffer(buffer.handle(), Bind::Cached);
 
-    let ptr = gl::MapBuffer(gl::ARRAY_BUFFER, gl::READ_WRITE) as *mut T;
-
-    if ptr.is_null() {
-      Err(BufferError::map_failed())
-    } else {
+    mapping_buffer(gl::ARRAY_BUFFER, gl::READ_WRITE, |ptr| {
       let handle = buffer.handle();
       let state = buffer.gl_buf.state.clone();
       let raw = BufferSliceWrapper { handle, state };
       let len = buffer.buf.len();
 
-      Ok(BufferSliceMut { raw, len, ptr })
-    }
+      BufferSliceMut { raw, len, ptr }
+    })
+  }
+}
+
+/// Map a buffer and execute an action if correctly mapped; otherwise, return an error.
+fn mapping_buffer<A, T>(
+  target: GLenum,
+  access: GLenum,
+  f: impl FnOnce(*mut T) -> A,
+) -> Result<A, BufferError> {
+  let ptr = unsafe { gl::MapBuffer(target, access) } as *mut T;
+
+  if ptr.is_null() {
+    Err(BufferError::map_failed())
+  } else {
+    Ok(f(ptr))
   }
 }
