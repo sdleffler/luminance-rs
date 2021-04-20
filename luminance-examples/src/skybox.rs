@@ -26,7 +26,8 @@ mod common;
 
 // This example is heavy on linear algebra. :)
 use cgmath::{
-  perspective, Deg, InnerSpace, Matrix4, Quaternion, Rad, Rotation, Rotation3, Transform, Vector3,
+  perspective, Deg, InnerSpace as _, Matrix4, One as _, Quaternion, Rad, Rotation, Rotation3,
+  Vector3,
 };
 use glfw::{Action, Context as _, Key, MouseButton, WindowEvent};
 use log::{error, info};
