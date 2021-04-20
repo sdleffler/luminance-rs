@@ -132,7 +132,7 @@ fn run(texture_path: &Path) {
 
 // read the texture into memory as a whole bloc (i.e. no streaming)
 fn read_image(path: &Path) -> Option<image::RgbImage> {
-  image::open(path).map(|img| img.flipv().to_rgb()).ok()
+  image::open(path).map(|img| img.flipv().to_rgb8()).ok()
 }
 
 fn load_from_disk<B>(context: &mut B, img: image::RgbImage) -> Texture<B::Backend, Dim2, NormRGB8UI>

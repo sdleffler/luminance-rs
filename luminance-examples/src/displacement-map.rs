@@ -51,7 +51,7 @@ fn main() {
   let texture_image = image::open(&texture_path)
     .expect("Could not load image from path")
     .flipv()
-    .to_rgb();
+    .to_rgb8();
   let (width, height) = texture_image.dimensions();
 
   let displacement_map_1 = image::load_from_memory_with_format(
@@ -59,14 +59,14 @@ fn main() {
     image::ImageFormat::Png,
   )
   .expect("Could not load displacement map")
-  .to_rgb();
+  .to_rgb8();
 
   let displacement_map_2 = image::load_from_memory_with_format(
     include_bytes!("./displacement-map-resources/displacement_2.png"),
     image::ImageFormat::Png,
   )
   .expect("Could not load displacement map")
-  .to_rgb();
+  .to_rgb8();
 
   let dim = WindowDim::Windowed { width, height };
   let surface = GlfwSurface::new_gl33("Displacement Map", WindowOpt::default().set_dim(dim))
