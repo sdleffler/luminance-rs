@@ -35,8 +35,11 @@
 //!
 //! Slots’ types depend entirely on the types you choose in [`Framebuffer`]. The rule is that any
 //! type that implements [`ColorSlot`] will be associated another type: that other type (in this
-//! case, [`ColorSlot::ColorTextures`] will be the type you can use to manipulate textures. The
+//! case, [`ColorSlot::ColorTextures`]) will be the type you can use to manipulate textures. The
 //! same applies to [`DepthSlot`] with [`DepthSlot::DepthTexture`].
+//!
+//! In the case you don’t want a given slot, you can mute it with the unit type: [`()`], which will
+//! effectively completely disable generating textures for that slot.
 //!
 //! You can access to the color slot via [`Framebuffer::color_slot`]. You can access to the depth
 //! slot via [`Framebuffer::depth_slot`]. Once you get textures from the color slots, you can use
