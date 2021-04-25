@@ -568,7 +568,7 @@ where
   D: Dimensionable,
   P: Pixel,
 {
-  /// Create a new [`Texture`].
+  /// Create a new [`Texture`] by reserving space for texels.
   ///
   /// `size` is the wished size of the [`Texture`].
   ///
@@ -580,9 +580,9 @@ where
   ///
   /// # Notes
   ///
-  /// Feel free to have a look at the documentation of [`GraphicsContext::new_texture`] for a
+  /// Feel free to have a look at the documentation of [`GraphicsContext::new_texture_no_texels`] for a
   /// simpler interface.
-  pub fn new<C>(
+  pub(crate) fn new_no_texels<C>(
     ctx: &mut C,
     size: D::Size,
     mipmaps: usize,
@@ -603,6 +603,92 @@ where
     }
   }
 
+  /// Create a new [`Texture`].
+  ///
+  /// `size` is the wished size of the [`Texture`].
+  ///
+  /// `mipmaps` is the number of extra mipmaps to allocate with the texture. `0` means that the
+  /// texture will only be made of a _base level_.
+  ///
+  /// `sampler` is a [`Sampler`] object that will be used when sampling the texture from inside a
+  /// shader, for instance.
+  ///
+  /// `gen_mipmaps` determines whether mipmaps should be generated automatically.
+  ///
+  /// `texels` is a slice of raw texels to put into the texture store.
+  ///
+  /// # Notes
+  ///
+  /// Feel free to have a look at the documentation of [`GraphicsContext::new_texture`] for a
+  /// simpler interface.
+  pub fn new<C>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize,
+    sampler: Sampler,
+    gen_mipmaps: GenMipmaps,
+    texels: &[P::Encoding],
+  ) -> Result<Self, TextureError>
+  where
+    C: GraphicsContext<Backend = B>,
+  {
+    let mut tex = unsafe {
+      ctx
+        .backend()
+        .new_texture(size, mipmaps, sampler)
+        .map(|repr| Texture {
+          repr,
+          size,
+          _phantom: PhantomData,
+        })?
+    };
+    tex.upload(gen_mipmaps, texels)?;
+    Ok(tex)
+  }
+
+  /// Create a new [`Texture`] with raw texels.
+  ///
+  /// `size` is the wished size of the [`Texture`].
+  ///
+  /// `mipmaps` is the number of extra mipmaps to allocate with the texture. `0` means that the
+  /// texture will only be made of a _base level_.
+  ///
+  /// `sampler` is a [`Sampler`] object that will be used when sampling the texture from inside a
+  /// shader, for instance.
+  ///
+  /// `gen_mipmaps` determines whether mipmaps should be generated automatically.
+  ///
+  /// `texels` is a slice of raw texels to put into the texture store.
+  ///
+  /// # Notes
+  ///
+  /// Feel free to have a look at the documentation of [`GraphicsContext::new_texture_raw`] for a
+  /// simpler interface.
+  pub fn new_raw<C>(
+    ctx: &mut C,
+    size: D::Size,
+    mipmaps: usize,
+    sampler: Sampler,
+    gen_mipmaps: GenMipmaps,
+    texels: &[P::RawEncoding],
+  ) -> Result<Self, TextureError>
+  where
+    C: GraphicsContext<Backend = B>,
+  {
+    let mut tex = unsafe {
+      ctx
+        .backend()
+        .new_texture(size, mipmaps, sampler)
+        .map(|repr| Texture {
+          repr,
+          size,
+          _phantom: PhantomData,
+        })?
+    };
+    tex.upload_raw(gen_mipmaps, texels)?;
+    Ok(tex)
+  }
+
   /// Return the number of mipmaps.
   pub fn mipmaps(&self) -> usize {
     unsafe { B::mipmaps(&self.repr) }
@@ -613,7 +699,10 @@ where
     self.size
   }
 
-  /// Update the size of the texture.
+  /// Resize the texture by providing a new size and texels by reusing its GPU resources.
+  ///
+  /// This function works similarly to [`Texture::new`] but instead of creating a brand new texture, reuses the texture
+  /// resources on the GPU.
   pub fn resize(
     &mut self,
     size: D::Size,
@@ -626,7 +715,10 @@ where
     self.upload(gen_mipmaps, texels)
   }
 
-  /// Update the size of the texture with raw texels.
+  /// Resize the texture by providing a new size and raw texels by reusing its GPU resources.
+  ///
+  /// This function works similarly to [`Texture::new_raw`] but instead of creating a brand new texture, reuses the texture
+  /// resources on the GPU.
   pub fn resize_raw(
     &mut self,
     size: D::Size,

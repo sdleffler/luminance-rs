@@ -76,25 +76,24 @@ fn main() {
 
   let texels = texture_image.into_raw();
   let mut tex = context
-    .new_texture::<Dim2, NormRGB8UI>([width, height], 0, Sampler::default())
+    .new_texture_raw::<Dim2, NormRGB8UI>(
+      [width, height],
+      0,
+      Sampler::default(),
+      GenMipmaps::No,
+      &texels,
+    )
     .expect("Could not create luminance texture");
-  tex.upload_raw(GenMipmaps::No, &texels).unwrap();
 
   let texels = displacement_map_1.into_raw();
   let mut displacement_tex_1 = context
-    .new_texture::<Dim2, NormRGB8UI>([128, 128], 0, Sampler::default())
+    .new_texture_raw::<Dim2, NormRGB8UI>([128, 128], 0, Sampler::default(), GenMipmaps::No, &texels)
     .expect("Could not create luminance texture");
-  displacement_tex_1
-    .upload_raw(GenMipmaps::No, &texels)
-    .unwrap();
 
   let texels = displacement_map_2.into_raw();
   let mut displacement_tex_2 = context
-    .new_texture::<Dim2, NormRGB8UI>([101, 101], 0, Sampler::default())
+    .new_texture_raw::<Dim2, NormRGB8UI>([101, 101], 0, Sampler::default(), GenMipmaps::No, &texels)
     .expect("Could not create luminance texture");
-  displacement_tex_2
-    .upload_raw(GenMipmaps::No, &texels)
-    .unwrap();
 
   let mut program = context
     .new_shader_program::<(), (), ShaderInterface>()
