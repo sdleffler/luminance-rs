@@ -613,6 +613,32 @@ where
     self.size
   }
 
+  /// Update the size of the texture.
+  pub fn resize(
+    &mut self,
+    size: D::Size,
+    mipmaps: usize,
+    gen_mipmaps: GenMipmaps,
+    texels: &[P::Encoding],
+  ) -> Result<(), TextureError> {
+    self.size = size;
+    unsafe { B::resize(&mut self.repr, size, mipmaps) }?;
+    self.upload(gen_mipmaps, texels)
+  }
+
+  /// Update the size of the texture with raw texels.
+  pub fn resize_raw(
+    &mut self,
+    size: D::Size,
+    mipmaps: usize,
+    gen_mipmaps: GenMipmaps,
+    texels: &[P::RawEncoding],
+  ) -> Result<(), TextureError> {
+    self.size = size;
+    unsafe { B::resize(&mut self.repr, size, mipmaps) }?;
+    self.upload_raw(gen_mipmaps, texels)
+  }
+
   /// Clear the texture with a single pixel value.
   ///
   /// This function will assign the input pixel value to all the pixels in the rectangle described

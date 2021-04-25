@@ -64,6 +64,10 @@ name = "texture"
 path = "src/texture.rs"
 
 [[bin]]
+name = "texture-resize"
+path = "src/texture_resize.rs"
+
+[[bin]]
 name = "vertex-instancing"
 path = "src/vertex-instancing.rs"
 
