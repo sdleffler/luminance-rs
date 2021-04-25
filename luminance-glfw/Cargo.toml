@@ -1,6 +1,6 @@
 [package]
 name = "luminance-glfw"
-version = "0.15.0"
+version = "0.16.0"
 license = "BSD-3-Clause"
 authors = ["Dimitri Sabadie <dimitri.sabadie@gmail.com>"]
 description = "GLFW support for luminance"
@@ -17,10 +17,10 @@ maintenance = { status = "actively-developed" }
 
 [dependencies]
 gl = "0.14"
-glfw = { version = ">=0.39, <0.42", default-features = false }
-luminance = ">=0.42, <0.44"
-luminance-gl = ">=0.15, <0.17"
-luminance-windowing = "0.9"
+glfw = { version = "0.41", default-features = false }
+luminance = "0.44"
+luminance-gl = "0.17"
+luminance-windowing = "0.10"
 
 [features]
 default = ["glfw-sys"]

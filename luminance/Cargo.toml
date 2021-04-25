@@ -1,6 +1,6 @@
 [package]
 name = "luminance"
-version = "0.43.2"
+version = "0.44.0"
 license = "BSD-3-Clause"
 authors = ["Dimitri Sabadie <dimitri.sabadie@gmail.com>"]
 description = "Stateless and type-safe graphics framework"
@@ -20,5 +20,5 @@ default = ["derive"]
 derive = ["luminance-derive"]
 
 [dependencies.luminance-derive]
-version = "0.6.3"
+version = "0.7.0"
 optional = true

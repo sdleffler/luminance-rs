@@ -43,7 +43,6 @@
 //! let buffer = context.new_buffer_from_slice(slice).unwrap();
 //! ```
 
-use crate::backend::buffer::Buffer as BufferBackend;
 use crate::backend::color_slot::ColorSlot;
 use crate::backend::depth_slot::DepthSlot;
 use crate::backend::framebuffer::Framebuffer as FramebufferBackend;
@@ -58,6 +57,7 @@ use crate::shader::{ProgramBuilder, Stage, StageError, StageType};
 use crate::tess::{Deinterleaved, Interleaved, TessBuilder, TessVertexData};
 use crate::texture::{Dimensionable, Sampler, Texture, TextureError};
 use crate::vertex::Semantics;
+use crate::{backend::buffer::Buffer as BufferBackend, texture::GenMipmaps};
 
 /// Class of graphics context.
 ///
@@ -180,10 +180,10 @@ pub unsafe trait GraphicsContext: Sized {
     TessBuilder::new(self)
   }
 
-  /// Create a new texture.
+  /// Create a new texture by reserving space for texels.
   ///
-  /// Feel free to have a look at the documentation of [`Texture::new`] for further details.
-  fn new_texture<D, P>(
+  /// Feel free to have a look at the documentation of [`Texture::new_no_texels`] for further details.
+  fn new_texture_no_texels<D, P>(
     &mut self,
     size: D::Size,
     mipmaps: usize,
@@ -194,6 +194,44 @@ pub unsafe trait GraphicsContext: Sized {
     D: Dimensionable,
     P: Pixel,
   {
-    Texture::new(self, size, mipmaps, sampler)
+    Texture::new_no_texels(self, size, mipmaps, sampler)
+  }
+
+  /// Create a new texture from texels.
+  ///
+  /// Feel free to have a look at the documentation of [`Texture::new`] for further details.
+  fn new_texture<D, P>(
+    &mut self,
+    size: D::Size,
+    mipmaps: usize,
+    sampler: Sampler,
+    gen_mipmaps: GenMipmaps,
+    texels: &[P::Encoding],
+  ) -> Result<Texture<Self::Backend, D, P>, TextureError>
+  where
+    Self::Backend: TextureBackend<D, P>,
+    D: Dimensionable,
+    P: Pixel,
+  {
+    Texture::new(self, size, mipmaps, sampler, gen_mipmaps, texels)
+  }
+
+  /// Create a new texture from raw texels.
+  ///
+  /// Feel free to have a look at the documentation of [`Texture::new_raw`] for further details.
+  fn new_texture_raw<D, P>(
+    &mut self,
+    size: D::Size,
+    mipmaps: usize,
+    sampler: Sampler,
+    gen_mipmaps: GenMipmaps,
+    texels: &[P::RawEncoding],
+  ) -> Result<Texture<Self::Backend, D, P>, TextureError>
+  where
+    Self::Backend: TextureBackend<D, P>,
+    D: Dimensionable,
+    P: Pixel,
+  {
+    Texture::new_raw(self, size, mipmaps, sampler, gen_mipmaps, texels)
   }
 }

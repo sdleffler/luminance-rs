@@ -1,6 +1,6 @@
 [package]
 name = "luminance-front"
-version = "0.3.1"
+version = "0.4.0"
 license = "BSD-3-Clause"
 authors = ["Dimitri Sabadie <dimitri.sabadie@gmail.com>"]
 description = "luminance re-exported with a backend picked at compile-time"
@@ -21,10 +21,10 @@ gl33 = []
 webgl2 = []
 
 [dependencies]
-luminance = ">=0.42, <0.44"
+luminance = "0.44"
 
 [target.'cfg(any(target_arch = "x86", target_arch = "x86_64"))'.dependencies]
-luminance-gl = ">=0.15, <0.17"
+luminance-gl = "0.17"
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-luminance-webgl = ">=0.2, <0.4"
+luminance-webgl = "0.4"

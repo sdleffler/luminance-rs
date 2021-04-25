@@ -1,6 +1,6 @@
 [package]
 name = "luminance-glutin"
-version = "0.11.3"
+version = "0.12.0"
 license = "BSD-3-Clause"
 authors = ["Dimitri Sabadie <dimitri.sabadie@gmail.com>"]
 description = "Glutin support for luminance"
@@ -17,10 +17,10 @@ maintenance = { status = "actively-developed" }
 
 [dependencies]
 gl = "0.14"
-glutin = { version = ">=0.25, <0.27", default-features = false }
-luminance = ">=0.42, <0.44"
-luminance-gl = ">=0.15, <0.17"
-luminance-windowing = "0.9"
+glutin = { version = "0.26", default-features = false }
+luminance = "0.44"
+luminance-gl = "0.17"
+luminance-windowing = "0.10"
 
 [features]
 default = ["x11", "wayland"]

@@ -146,11 +146,17 @@ where
   // create the luminance texture; the third argument is the number of mipmaps we want (leave it
   // to 0 for now) and the latest is the sampler to use when sampling the texels in the
   // shader (we’ll just use the default one)
-  let mut tex = Texture::new(context, [width, height], 0, Sampler::default())
+  //
+  // the GenMipmaps argument disables mipmap generation (we don’t care so far)
+  let tex = context
+    .new_texture_raw(
+      [width, height],
+      0,
+      Sampler::default(),
+      GenMipmaps::No,
+      &texels,
+    )
     .expect("luminance texture creation");
-
-  // the first argument disables mipmap generation (we don’t care so far)
-  tex.upload_raw(GenMipmaps::No, &texels).unwrap();
 
   tex
 }
