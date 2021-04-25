@@ -258,6 +258,16 @@ where
       )),
     }
   }
+
+  unsafe fn resize(
+    texture: &mut Self::TextureRepr,
+    size: D::Size,
+    mipmaps: usize,
+  ) -> Result<(), TextureError> {
+    let mipmaps = mipmaps + 1; // + 1 to prevent having 0 mipmaps
+    let mut state = texture.state.borrow_mut();
+    create_texture_storage::<D>(&mut state, size, mipmaps, P::pixel_format())
+  }
 }
 
 pub(crate) fn opengl_target(d: Dim) -> Option<u32> {

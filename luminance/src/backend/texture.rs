@@ -75,4 +75,10 @@ where
   ) -> Result<Vec<P::RawEncoding>, TextureError>
   where
     P::RawEncoding: Copy + Default;
+
+  unsafe fn resize(
+    texture: &mut Self::TextureRepr,
+    size: D::Size,
+    mipmaps: usize,
+  ) -> Result<(), TextureError>;
 }

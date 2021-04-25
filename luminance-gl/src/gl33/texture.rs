@@ -202,6 +202,17 @@ where
 
     Ok(texels)
   }
+
+  unsafe fn resize(
+    texture: &mut Self::TextureRepr,
+    size: D::Size,
+    mipmaps: usize,
+  ) -> Result<(), TextureError> {
+    let mipmaps = mipmaps + 1; // + 1 to prevent having 0 mipmaps
+    let mut state = texture.state.borrow_mut();
+    state.bind_texture(texture.target, texture.handle);
+    create_texture_storage::<D>(size, mipmaps, P::pixel_format())
+  }
 }
 
 pub(crate) fn opengl_target(d: Dim) -> GLenum {
