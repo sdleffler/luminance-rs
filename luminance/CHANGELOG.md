@@ -11,6 +11,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.44](#044)
 * [0.43.2](#0432)
 * [0.43.1](#0431)
 * [0.43](#043)
@@ -126,6 +127,18 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.44
+
+> Apr 25, 2021
+
+- Add texture resizing.
+- Cleanup texture creation. Methods such as `GraphicsContext::new_texture` and `GraphicsContext::new_texture_raw` now
+  expects to pass the texels and mipmaps generation arguments. If you still want to reserve a texture without passing
+  any texels, you can use `GraphicsContext::new_texture_no_texels`.
+- This release marks the end of using SemVer ranges in the luminance ecosystem. Even though SemVer ranges are very
+  powerful and should be used widely in the Rust ecosystem, `cargo` doesn’t do the right thing with them and lots of
+  people are not used to them / often surprised by the behavior. Sorry.
 
 # 0.43.2
 

@@ -1,6 +1,6 @@
 [package]
 name = "luminance-web-sys"
-version = "0.2.3"
+version = "0.3.0"
 license = "BSD-3-Clause"
 authors = ["Dimitri Sabadie <dimitri.sabadie@gmail.com>"]
 description = "web-sys luminance platform"
@@ -13,9 +13,9 @@ readme = "README.md"
 edition = "2018"
 
 [dependencies]
-luminance = ">=0.40, < 0.44"
-luminance-webgl = ">=0.2, <0.4"
-luminance-windowing = "0.9"
+luminance = "0.44"
+luminance-webgl = "0.4"
+luminance-windowing = "0.10"
 wasm-bindgen = "0.2.63"
 
 [dependencies.web-sys]

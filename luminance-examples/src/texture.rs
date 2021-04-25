@@ -148,7 +148,14 @@ where
   // shader (we’ll just use the default one)
   //
   // the GenMipmaps argument disables mipmap generation (we don’t care so far)
-  let tex = context.new_texture_raw([width, height], 0, Sampler::default(), GenMipmaps::No, &texels)
+  let tex = context
+    .new_texture_raw(
+      [width, height],
+      0,
+      Sampler::default(),
+      GenMipmaps::No,
+      &texels,
+    )
     .expect("luminance texture creation");
 
   tex
