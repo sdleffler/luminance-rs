@@ -184,11 +184,11 @@ where
     gl::GetTexLevelParameteriv(texture.target, 0, gl::TEXTURE_HEIGHT, &mut h);
 
     // set the packing alignment based on the number of bytes to skip
-    let skip_bytes = (pf.format.size() * w as usize) % 8;
+    let skip_bytes = (pf.format.bytes_len() * w as usize) % 8;
     set_pack_alignment(skip_bytes);
 
     // resize the vec to allocate enough space to host the returned texels
-    let mut texels = vec![Default::default(); (w * h) as usize * pf.canals_len()];
+    let mut texels = vec![Default::default(); (w * h) as usize * pf.channels_len()];
 
     gl::GetTexImage(
       texture.target,
@@ -568,7 +568,7 @@ where
   // number of bytes in the input texels argument
   let input_bytes = texels.len() * mem::size_of::<T>();
   let pf = P::pixel_format();
-  let pf_size = pf.format.size();
+  let pf_size = pf.format.bytes_len();
   let expected_bytes = D::count(size) * pf_size;
 
   if input_bytes < expected_bytes {
