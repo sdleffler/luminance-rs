@@ -42,9 +42,10 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.10
 
-> Apr 25, 2021
+> `HEAD`
 
 - Support of `luminance-0.44`.
+- Remove `CursorMode`. This is an implementation detail of each system crate.
 
 # 0.9.3
 

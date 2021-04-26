@@ -28,19 +28,6 @@ pub enum WindowDim {
   },
 }
 
-/// Cursor mode.
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub enum CursorMode {
-  /// The cursor is always visible. It is up to the backend to decide what the visual representing
-  /// the cursor is.
-  Visible,
-  /// The cursor exists yet is not shown. It is up to the programmer / user to decide what the
-  /// visual representing the cursor is.
-  Invisible,
-  /// The cursor is disabled. It is not shown and should be considered non-active.
-  Disabled,
-}
-
 /// Different window options.
 ///
 /// Feel free to look at the different methods available to tweak the options. You may want to start
@@ -49,8 +36,6 @@ pub enum CursorMode {
 pub struct WindowOpt {
   /// Dimension of the window.
   pub dim: WindowDim,
-  /// Cursor mode.
-  pub cursor_mode: CursorMode,
   /// Number of samples for multisampling.
   ///
   /// `None` means no multisampling.
@@ -61,7 +46,6 @@ impl Default for WindowOpt {
   /// Defaults:
   ///
   /// - `dim`: set to WindowDim::Windowed { width: 960, 540 }`.
-  /// - `cursor_mode` set to `CursorMode::Visible`.
   /// - `num_samples` set to `None`.
   fn default() -> Self {
     WindowOpt {
@@ -69,7 +53,6 @@ impl Default for WindowOpt {
         width: 960,
         height: 540,
       },
-      cursor_mode: CursorMode::Visible,
       num_samples: None,
     }
   }
@@ -86,21 +69,6 @@ impl WindowOpt {
   #[inline]
   pub fn dim(&self) -> &WindowDim {
     &self.dim
-  }
-
-  /// Hide, unhide or disable the cursor.
-  #[inline]
-  pub fn set_cursor_mode(self, cursor_mode: CursorMode) -> Self {
-    WindowOpt {
-      cursor_mode,
-      ..self
-    }
-  }
-
-  /// Get the cursor mode.
-  #[inline]
-  pub fn cursor_mode(&self) -> &CursorMode {
-    &self.cursor_mode
   }
 
   /// Set the number of samples to use for multisampling.
