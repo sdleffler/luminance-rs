@@ -61,9 +61,11 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.16
 
-> Apr 25, 2021
+> `HEAD`
 
 - Support of `luminance-0.44`.
+- Lose support for `CursorMode`, which is now deprecated. If you were using it, you already have access to the
+  underlying `glfw` objects in the `GlfwSurface`, so you can tweak them as you see fit.
 
 # 0.15
 
@@ -75,7 +77,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
   independently:
   - The event receiver from glfw. Use this with the GLFW API to retrieve / poll events.
   - A `GL33Context`, containing the GLFW window and the required internal luminance state, allowing you to perform
-      rendering operations.
+    rendering operations.
   This was needed to fix annoyances while iterating over events and wanting to make luminance calls — _deferring_ was
   required. This is no longer an issue with this fix and you can now issue luminance calls while iterating over events,
   yay, clap your hands if’re reading this!

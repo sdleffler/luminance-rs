@@ -4,7 +4,7 @@
 #![deny(missing_docs)]
 
 use gl;
-use glfw::{self, Context, CursorMode as GlfwCursorMode, SwapInterval, Window, WindowMode};
+use glfw::{self, Context, SwapInterval, Window, WindowMode};
 use glfw::{InitError, WindowEvent};
 use luminance::context::GraphicsContext;
 use luminance::framebuffer::Framebuffer;
@@ -12,7 +12,7 @@ use luminance::framebuffer::FramebufferError;
 use luminance::texture::Dim2;
 pub use luminance_gl::gl33::StateQueryError;
 use luminance_gl::GL33;
-use luminance_windowing::{CursorMode, WindowDim, WindowOpt};
+use luminance_windowing::{WindowDim, WindowOpt};
 use std::error;
 use std::fmt;
 use std::os::raw::c_void;
@@ -131,12 +131,6 @@ impl GlfwSurface {
     };
 
     window.make_current();
-
-    match win_opt.cursor_mode() {
-      CursorMode::Visible => window.set_cursor_mode(GlfwCursorMode::Normal),
-      CursorMode::Invisible => window.set_cursor_mode(GlfwCursorMode::Hidden),
-      CursorMode::Disabled => window.set_cursor_mode(GlfwCursorMode::Disabled),
-    }
 
     window.set_all_polling(true);
     glfw.set_swap_interval(SwapInterval::Sync(1));
