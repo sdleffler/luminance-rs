@@ -130,15 +130,17 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.44
 
-> Apr 25, 2021
+> `HEAD`
 
+- This release marks the end of using SemVer ranges in the luminance ecosystem. Even though SemVer ranges are very
+  powerful and should be used widely in the Rust ecosystem, `cargo` doesn’t do the right thing with them and lots of
+  people are not used to them / often surprised by the behavior. Sorry.
 - Add texture resizing.
 - Cleanup texture creation. Methods such as `GraphicsContext::new_texture` and `GraphicsContext::new_texture_raw` now
   expects to pass the texels and mipmaps generation arguments. If you still want to reserve a texture without passing
   any texels, you can use `GraphicsContext::new_texture_no_texels`.
-- This release marks the end of using SemVer ranges in the luminance ecosystem. Even though SemVer ranges are very
-  powerful and should be used widely in the Rust ecosystem, `cargo` doesn’t do the right thing with them and lots of
-  people are not used to them / often surprised by the behavior. Sorry.
+- Use arrays instead of tuples for pixel types `Encoding`. A previous type such as `(u8, u8, u8)` now becomes `[u8; 3]`,
+  which has a stable and well-defined memory layout.
 
 # 0.43.2
 
