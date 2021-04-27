@@ -98,6 +98,7 @@ impl WebSysWebGL2Surface {
     Self::from_canvas(canvas)
   }
 
+  /// Create a new [`WebSysWebGL2Surface`] based on a given [`HtmlCanvasElement`].
   pub fn from_canvas(canvas: HtmlCanvasElement) -> Result<Self, WebSysWebGL2SurfaceError> {
     let window = web_sys::window().ok_or_else(|| WebSysWebGL2SurfaceError::cannot_grab_window())?;
     let document = window
