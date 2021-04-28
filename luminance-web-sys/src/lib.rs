@@ -3,7 +3,7 @@ use luminance::framebuffer::{Framebuffer, FramebufferError};
 use luminance::texture::Dim2;
 use luminance_webgl::webgl2::{StateQueryError, WebGL2};
 use std::fmt;
-use wasm_bindgen::JsCast as _;
+use wasm_bindgen::{JsCast as _, JsValue};
 use web_sys::{Document, HtmlCanvasElement, Window};
 
 /// web-sys errors that might occur while initializing and using the platform.
@@ -81,6 +81,49 @@ impl WebSysWebGL2Surface {
   /// Create a new [`WebSysWebGL2Surface`] based on the name of the DOM canvas element named by
   /// `canvas_name`.
   pub fn new(canvas_name: impl AsRef<str>) -> Result<Self, WebSysWebGL2SurfaceError> {
+    let (window, document, canvas) = Self::get_canvas(canvas_name)?;
+    Self::from_canvas(window, document, canvas)
+  }
+
+  /// Create a new [`WebSysWebGL2Surface`] based on the name of the DOM canvas element named by `canvas_name` and pass
+  /// along a list of parameters when creating the WebGL context.
+  pub fn new_with_params(
+    canvas_name: impl AsRef<str>,
+    params: impl AsRef<JsValue>,
+  ) -> Result<Self, WebSysWebGL2SurfaceError> {
+    let (window, document, canvas) = Self::get_canvas(canvas_name)?;
+    Self::from_canvas_with_params(window, document, canvas, params)
+  }
+
+  /// Create a new [`WebSysWebGL2Surface`] based on a given [`HtmlCanvasElement`].
+  pub fn from_canvas(
+    window: Window,
+    document: Document,
+    canvas: HtmlCanvasElement,
+  ) -> Result<Self, WebSysWebGL2SurfaceError> {
+    let webgl2 = canvas
+      .get_context("webgl2")
+      .map_err(|_| WebSysWebGL2SurfaceError::cannot_grab_webgl2_context())?
+      .ok_or_else(|| WebSysWebGL2SurfaceError::no_available_webgl2_context())?;
+    let ctx = webgl2
+      .dyn_into()
+      .map_err(|_| WebSysWebGL2SurfaceError::no_available_webgl2_context())?;
+
+    // create the backend object and return the whole object
+    let backend = WebGL2::new(ctx)?;
+
+    Ok(Self {
+      window,
+      document,
+      canvas,
+      backend,
+    })
+  }
+
+  /// Obtain a canvas from its name, as well as the document it is attached in.
+  fn get_canvas(
+    canvas_name: impl AsRef<str>,
+  ) -> Result<(Window, Document, HtmlCanvasElement), WebSysWebGL2SurfaceError> {
     let window = web_sys::window().ok_or_else(|| WebSysWebGL2SurfaceError::cannot_grab_window())?;
 
     let document = window
@@ -91,21 +134,24 @@ impl WebSysWebGL2Surface {
     let canvas = document
       .get_element_by_id(canvas_name)
       .ok_or_else(|| WebSysWebGL2SurfaceError::not_such_canvas_element(canvas_name))?;
+
     let canvas = canvas
       .dyn_into::<HtmlCanvasElement>()
       .map_err(|_| WebSysWebGL2SurfaceError::not_such_canvas_element(canvas_name))?;
 
-    Self::from_canvas(canvas)
+    Ok((window, document, canvas))
   }
 
-  pub fn from_canvas(canvas: HtmlCanvasElement) -> Result<Self, WebSysWebGL2SurfaceError> {
-    let window = web_sys::window().ok_or_else(|| WebSysWebGL2SurfaceError::cannot_grab_window())?;
-    let document = window
-      .document()
-      .ok_or_else(|| WebSysWebGL2SurfaceError::cannot_grab_document())?;
-
+  /// Create a new [`WebSysWebGL2Surface`] based on a given [`HtmlCanvasElement`] and pass along a list of parameters
+  /// when creating the WebGL context.
+  pub fn from_canvas_with_params(
+    window: Window,
+    document: Document,
+    canvas: HtmlCanvasElement,
+    params: impl AsRef<JsValue>,
+  ) -> Result<Self, WebSysWebGL2SurfaceError> {
     let webgl2 = canvas
-      .get_context("webgl2")
+      .get_context_with_context_options("webgl2", params.as_ref())
       .map_err(|_| WebSysWebGL2SurfaceError::cannot_grab_webgl2_context())?
       .ok_or_else(|| WebSysWebGL2SurfaceError::no_available_webgl2_context())?;
     let ctx = webgl2
