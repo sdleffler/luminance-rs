@@ -28,6 +28,8 @@ where
 
   unsafe fn tess_vertices_nb(tess: &Self::TessRepr) -> usize;
 
+  unsafe fn tess_indices_nb(tess: &Self::TessRepr) -> usize;
+
   unsafe fn tess_instances_nb(tess: &Self::TessRepr) -> usize;
 
   unsafe fn render(

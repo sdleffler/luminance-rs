@@ -925,6 +925,11 @@ where
     unsafe { B::tess_vertices_nb(&self.repr) }
   }
 
+  /// Get the number of vertex indices.
+  pub fn idx_nb(&self) -> usize {
+    unsafe { B::tess_indices_nb(&self.repr) }
+  }
+
   /// Get the number of instances.
   pub fn inst_nb(&self) -> usize {
     unsafe { B::tess_instances_nb(&self.repr) }
