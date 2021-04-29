@@ -21,8 +21,6 @@ where
     index_data: Vec<I>,
     instance_data: Option<W::Data>,
     mode: Mode,
-    vert_nb: usize,
-    inst_nb: usize,
     restart_index: Option<I>,
   ) -> Result<Self::TessRepr, TessError>;
 

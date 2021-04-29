@@ -92,7 +92,7 @@ fn main() {
   // we’ll need an attributeless quad to fetch in full screen
   let quad = context
     .new_tess()
-    .set_vertex_nb(4)
+    .set_render_vertex_nb(4)
     .set_mode(Mode::TriangleFan)
     .build()
     .unwrap();

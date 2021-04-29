@@ -73,7 +73,7 @@ fn run(texture_path: &Path, texture_path2: &Path) {
   // TriangleFan creates triangles by connecting the third (and next) vertex to the first one
   let tess = context
     .new_tess()
-    .set_vertex_nb(4)
+    .set_render_vertex_nb(4)
     .set_mode(Mode::TriangleFan)
     .build()
     .unwrap();

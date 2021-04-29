@@ -209,7 +209,7 @@ fn run() -> Result<(), AppError> {
   let fullscreen_quad = context
     .new_tess()
     .set_mode(Mode::TriangleStrip)
-    .set_vertex_nb(4)
+    .set_render_vertex_nb(4)
     .build()
     .map_err(|e| AppError::CannotBuildFullscreenQuad(Box::new(e)))?;
 

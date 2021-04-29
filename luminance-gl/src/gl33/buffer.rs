@@ -79,6 +79,12 @@ impl<T> Buffer<T> {
   pub(crate) fn handle(&self) -> GLuint {
     self.gl_buf.handle
   }
+
+  /// Length of the buffer (number of elements).
+  #[inline]
+  pub fn len(&self) -> usize {
+    self.buf.len()
+  }
 }
 
 unsafe impl<T> BufferBackend<T> for GL33

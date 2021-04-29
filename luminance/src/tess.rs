@@ -535,8 +535,8 @@ where
   index_data: Vec<I>,
   instance_data: Option<W::Data>,
   mode: Mode,
-  vert_nb: usize,
-  inst_nb: usize,
+  render_vert_nb: usize,
+  render_inst_nb: usize,
   restart_index: Option<I>,
   _phantom: PhantomData<&'a mut ()>,
 }
@@ -559,17 +559,20 @@ where
 
   /// Set the default number of vertices to render.
   ///
-  /// Calling that function twice replaces the previously set value.
-  pub fn set_vertex_nb(mut self, vert_nb: usize) -> Self {
-    self.vert_nb = vert_nb;
+  /// Calling that function twice replaces the previously set value. This method changes the number of vertices to pick:
+  ///
+  /// - From the vertex set for regular geometries.
+  /// - From the index set, using the picked indices to reference the vertex set.
+  pub fn set_render_vertex_nb(mut self, vert_nb: usize) -> Self {
+    self.render_vert_nb = vert_nb;
     self
   }
 
   /// Set the default number of instances to render.
   ///
   /// Calling that function twice replaces the previously set value.
-  pub fn set_instance_nb(mut self, inst_nb: usize) -> Self {
-    self.inst_nb = inst_nb;
+  pub fn set_render_instance_nb(mut self, inst_nb: usize) -> Self {
+    self.render_inst_nb = inst_nb;
     self
   }
 
@@ -607,8 +610,8 @@ where
       index_data: Vec::new(),
       instance_data: None,
       mode: Mode::Point,
-      vert_nb: 0,
-      inst_nb: 0,
+      render_vert_nb: 0,
+      render_inst_nb: 0,
       restart_index: None,
       _phantom: PhantomData,
     }
@@ -637,8 +640,8 @@ where
       index_data: indices.into(),
       instance_data: self.instance_data,
       mode: self.mode,
-      vert_nb: self.vert_nb,
-      inst_nb: self.inst_nb,
+      render_vert_nb: self.render_vert_nb,
+      render_inst_nb: self.render_inst_nb,
       restart_index: None,
       _phantom: PhantomData,
     }
@@ -666,8 +669,8 @@ where
       index_data: self.index_data,
       instance_data: self.instance_data,
       mode: self.mode,
-      vert_nb: self.vert_nb,
-      inst_nb: self.inst_nb,
+      render_vert_nb: self.render_vert_nb,
+      render_inst_nb: self.render_inst_nb,
       restart_index: self.restart_index,
       _phantom: PhantomData,
     }
@@ -694,8 +697,8 @@ where
       index_data: self.index_data,
       instance_data: Some(instances.into()),
       mode: self.mode,
-      vert_nb: self.vert_nb,
-      inst_nb: self.inst_nb,
+      render_vert_nb: self.render_vert_nb,
+      render_inst_nb: self.render_inst_nb,
       restart_index: self.restart_index,
       _phantom: PhantomData,
     }
@@ -801,8 +804,8 @@ where
   ///   vertices.
   pub fn build(self) -> Result<Tess<B, V, I, W, S>, TessError> {
     // validate input data before giving it to the backend
-    let vert_nb = self.guess_vertex_len()?;
-    let inst_nb = self.guess_instance_len()?;
+    let render_vert_nb = self.guess_render_vertex_len()?;
+    let render_inst_nb = self.guess_render_instance_len()?;
 
     unsafe {
       self
@@ -812,21 +815,22 @@ where
           self.index_data,
           self.instance_data,
           self.mode,
-          vert_nb,
-          inst_nb,
           self.restart_index,
         )
         .map(|repr| Tess {
           repr,
+          render_vert_nb,
+          render_inst_nb,
           _phantom: PhantomData,
         })
     }
   }
 
-  fn guess_vertex_len(&self) -> Result<usize, TessError> {
+  /// Guess how many vertices we want to render by default.
+  fn guess_render_vertex_len(&self) -> Result<usize, TessError> {
     // if we don’t have an explicit number of vertex to render, we rely on the vertex data coherent
     // length
-    if self.vert_nb == 0 {
+    if self.render_vert_nb == 0 {
       // if we don’t have index data, get the length from the vertex data; otherwise, get it from
       // the index data
       if self.index_data.is_empty() {
@@ -844,28 +848,29 @@ where
           Some(ref data) => {
             let coherent_len = V::coherent_len(data)?;
 
-            if self.vert_nb <= coherent_len {
-              Ok(self.vert_nb)
+            if self.render_vert_nb <= coherent_len {
+              Ok(self.render_vert_nb)
             } else {
-              Err(TessError::length_incoherency(self.vert_nb))
+              Err(TessError::length_incoherency(self.render_vert_nb))
             }
           }
 
-          None => Ok(self.vert_nb),
+          // attributeless render, always accept
+          None => Ok(self.render_vert_nb),
         }
       } else {
-        if self.vert_nb <= self.index_data.len() {
-          Ok(self.vert_nb)
+        if self.render_vert_nb <= self.index_data.len() {
+          Ok(self.render_vert_nb)
         } else {
-          Err(TessError::length_incoherency(self.vert_nb))
+          Err(TessError::length_incoherency(self.render_vert_nb))
         }
       }
     }
   }
 
-  fn guess_instance_len(&self) -> Result<usize, TessError> {
+  fn guess_render_instance_len(&self) -> Result<usize, TessError> {
     // as with vertex length, we first check for an explicit number, and if none, we deduce it
-    if self.inst_nb == 0 {
+    if self.render_inst_nb == 0 {
       match self.instance_data {
         Some(ref data) => W::coherent_len(data),
         None => Ok(0),
@@ -877,10 +882,10 @@ where
         .ok_or_else(|| TessError::attributeless_error("missing number of instances"))
         .and_then(W::coherent_len)?;
 
-      if self.inst_nb <= coherent_len {
-        Ok(self.inst_nb)
+      if self.render_inst_nb <= coherent_len {
+        Ok(self.render_inst_nb)
       } else {
-        Err(TessError::length_incoherency(self.inst_nb))
+        Err(TessError::length_incoherency(self.render_inst_nb))
       }
     }
   }
@@ -908,7 +913,15 @@ where
   W: TessVertexData<S>,
   S: ?Sized,
 {
+  // backend representation of the tessellation
   pub(crate) repr: B::TessRepr,
+
+  // default number of vertices to render
+  render_vert_nb: usize,
+
+  // default number of instances to render
+  render_inst_nb: usize,
+
   _phantom: PhantomData<*const S>,
 }
 
@@ -933,6 +946,22 @@ where
   /// Get the number of instances.
   pub fn inst_nb(&self) -> usize {
     unsafe { B::tess_instances_nb(&self.repr) }
+  }
+
+  /// Default number of vertices to render.
+  ///
+  /// This number represents the number of vertices that will be rendered when not explicitly asked to render a given
+  /// amount of vertices.
+  pub fn render_vert_nb(&self) -> usize {
+    self.render_vert_nb
+  }
+
+  /// Default number of vertex instances to render.
+  ///
+  /// This number represents the number of vertex instances that will be rendered when not explicitly asked to render a
+  /// given amount of instances.
+  pub fn render_inst_nb(&self) -> usize {
+    self.render_inst_nb
   }
 
   /// Slice the [`Tess`] in order to read its content via usual slices.
@@ -1334,8 +1363,8 @@ where
     TessView {
       tess,
       start_index: 0,
-      vert_nb: tess.vert_nb(),
-      inst_nb: tess.inst_nb(),
+      vert_nb: tess.render_vert_nb(),
+      inst_nb: tess.render_inst_nb(),
     }
   }
 
@@ -1344,7 +1373,7 @@ where
     TessView {
       tess,
       start_index: 0,
-      vert_nb: tess.vert_nb(),
+      vert_nb: tess.render_vert_nb(),
       inst_nb,
     }
   }
@@ -1352,7 +1381,7 @@ where
   /// Create a view that is using only a subpart of the input [`Tess`], starting from the beginning
   /// of the vertices.
   pub fn sub(tess: &'a Tess<B, V, I, W, S>, vert_nb: usize) -> Result<Self, TessViewError> {
-    let capacity = tess.vert_nb();
+    let capacity = tess.render_vert_nb();
 
     if vert_nb > capacity {
       return Err(TessViewError::IncorrectViewWindow {
@@ -1366,7 +1395,7 @@ where
       tess,
       start_index: 0,
       vert_nb,
-      inst_nb: tess.inst_nb(),
+      inst_nb: tess.render_inst_nb(),
     })
   }
 
@@ -1377,7 +1406,7 @@ where
     vert_nb: usize,
     inst_nb: usize,
   ) -> Result<Self, TessViewError> {
-    let capacity = tess.vert_nb();
+    let capacity = tess.render_vert_nb();
 
     if vert_nb > capacity {
       return Err(TessViewError::IncorrectViewWindow {
@@ -1402,7 +1431,7 @@ where
     start: usize,
     nb: usize,
   ) -> Result<Self, TessViewError> {
-    let capacity = tess.vert_nb();
+    let capacity = tess.render_vert_nb();
 
     if start > capacity || nb + start > capacity {
       return Err(TessViewError::IncorrectViewWindow {
@@ -1416,7 +1445,7 @@ where
       tess,
       start_index: start,
       vert_nb: nb,
-      inst_nb: tess.inst_nb(),
+      inst_nb: tess.render_inst_nb(),
     })
   }
 
@@ -1428,7 +1457,7 @@ where
     nb: usize,
     inst_nb: usize,
   ) -> Result<Self, TessViewError> {
-    let capacity = tess.vert_nb();
+    let capacity = tess.render_vert_nb();
 
     if start > capacity || nb + start > capacity {
       return Err(TessViewError::IncorrectViewWindow {
@@ -1536,7 +1565,7 @@ where
   S: ?Sized,
 {
   fn view(&self, from: RangeFrom<usize>) -> Result<TessView<B, V, I, W, S>, TessViewError> {
-    TessView::slice(self, from.start, self.vert_nb() - from.start)
+    TessView::slice(self, from.start, self.render_vert_nb() - from.start)
   }
 
   fn inst_view(
@@ -1544,7 +1573,12 @@ where
     from: RangeFrom<usize>,
     inst_nb: usize,
   ) -> Result<TessView<B, V, I, W, S>, TessViewError> {
-    TessView::inst_slice(self, from.start, self.vert_nb() - from.start, inst_nb)
+    TessView::inst_slice(
+      self,
+      from.start,
+      self.render_vert_nb() - from.start,
+      inst_nb,
+    )
   }
 }
 
