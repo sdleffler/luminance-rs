@@ -59,7 +59,8 @@
 //! - [`Tess::instances`] [`Tess::instances_mut`] to map tessellations’ instances.
 //!
 //! > Note: because of their slice nature, mapping a tessellation (vertices, indices or instances)
-//! > will not help you with resizing a [`Tess`], as this is not currently supported.
+//! > will not help you with resizing a [`Tess`], as this is not currently supported. Creating a large
+//! > enough [`Tess`] is preferable for now.
 //!
 //! [`TessGate`]: crate::tess_gate::TessGate
 
@@ -485,7 +486,7 @@ impl DeinterleavedData {
 /// [`Tess`] builder object.
 ///
 /// This type allows to create [`Tess`] via a _builder pattern_. You have several flavors of
-/// possible _vertex storage_ situations, as well as _data encoding_, described below.
+/// possible _vertex storages_, as well as _data encoding_, described below.
 ///
 /// # Vertex storage
 ///
@@ -501,9 +502,9 @@ impl DeinterleavedData {
 /// a bit differently. Here, the encoding is `(Vec<Field0>, Vec<Field1>, …)`, where `Field0`,
 /// `Field1` etc. are all the ordered fieds in `T`.
 ///
-/// That representation allows field-based operation later on [`Tess`], while it would be
-/// impossible with the interleaved version (you would need to get all the fields at once, since
-/// you would work on`T` directly and each of its fields).
+/// That representation allows field-based operations on [`Tess`], while it would be impossible
+/// with the interleaved version (you would need to get all the fields at once, since
+/// you would work on `T` directly and each of its fields).
 ///
 /// # Data encoding
 ///
@@ -513,12 +514,30 @@ impl DeinterleavedData {
 /// - Buffers: you can pass [`Buffer`] objects, too. Those are more flexible than vectors as you can
 ///   use all of the [`Buffer`] API before sending them to the builder.
 /// - Disabled: disabling means that no data will be passed to the GPU. You can disable independently
-///   vertex data and/or index data.
+///   vertex data and/or index data by using the unit `()` type.
+///
+/// # Indexed vertex sets
+///
+/// It is possible to _index_ the geometry via the use of indices. Indices are stored in contiguous
+/// regions of memory (`Vec<T>`), where `T` satisfies [`TessIndex`]. When using an indexed tessellation,
+/// the meaning of its attributes slightly changes. First, the vertices are not used as input source for
+/// the vertex stream. In order to provide vertices that will go through the vertex stream, the indices
+/// reference the vertex set to provide the order in which they should appear in the stream. That has a
+/// consequence on the meaning of subsequent operations, such as [`Tess::vert_nb`] and how rendering
+/// works.
+///
+/// When rendering with a [`TessView`], the number of vertices to render must be provided or inferred
+/// based on the [`Tess`] the view was made from. That number will refer to either the vertex set or
+/// index set, depending on the kind of tessellation. Asking to render a [`Tess`] with 3 vertices will
+/// pick 3 vertices from the vertex set for direct tessellations and 3 indices to index the vertex set
+/// for indexed tessellations.
 ///
 /// # Parametricity
 ///
 /// - `B` is the backend type
 /// - `V` is the vertex type.
+/// - `I` is the index type.
+/// - `W` is the vertex instance type.
 /// - `S` is the storage type.
 ///
 /// [`Buffer`]: crate::buffer::Buffer
@@ -899,7 +918,7 @@ where
 /// completely free to use. They must, however, be compatible with the [`Semantics`] and [`Vertex`]
 /// traits.
 ///
-/// [`Tess`] are built out of [`TessBuilder`] and can be _sliced_ to edit their content in-line —
+/// [`Tess`] are built with a [`TessBuilder`] and can be _sliced_ to edit their content in-line —
 /// by mapping the GPU memory region and access data via slices.
 ///
 /// [`Semantics`]: crate::vertex::Semantics
