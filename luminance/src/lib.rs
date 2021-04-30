@@ -193,6 +193,7 @@ pub mod face_culling;
 pub mod framebuffer;
 pub mod pipeline;
 pub mod pixel;
+pub mod query;
 pub mod render_gate;
 pub mod render_state;
 pub mod scissor;

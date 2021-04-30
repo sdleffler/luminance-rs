@@ -107,8 +107,21 @@ pub struct WebGL2State {
 
   // vertex array
   bound_vertex_array: Option<WebGlVertexArrayObject>,
+
   // shader program
   current_program: Option<WebGlProgram>,
+
+  // vendor name; cached when asked the first time and then re-used
+  vendor_name: Option<String>,
+
+  // renderer name; cached when asked the first time and then re-used
+  renderer_name: Option<String>,
+
+  // WebGL version; cached when asked the first time and then re-used
+  webgl_version: Option<String>,
+
+  // GLSL version; cached when asked the first time and then re-used
+  glsl_version: Option<String>,
 }
 
 impl WebGL2State {
@@ -152,6 +165,11 @@ impl WebGL2State {
     let bound_vertex_array = None;
     let current_program = None;
 
+    let vendor_name = None;
+    let renderer_name = None;
+    let gl_version = None;
+    let glsl_version = None;
+
     Ok(WebGL2State {
       _phantom: PhantomData,
       ctx,
@@ -180,6 +198,10 @@ impl WebGL2State {
       readback_framebuffer,
       bound_vertex_array,
       current_program,
+      vendor_name,
+      renderer_name,
+      webgl_version: gl_version,
+      glsl_version,
     })
   }
 
@@ -560,6 +582,54 @@ impl WebGL2State {
         .scissor(x as i32, y as i32, width as i32, height as i32);
       self.scissor_region = *region;
     }
+  }
+
+  pub(crate) fn get_vendor_name(&mut self) -> Option<String> {
+    self.vendor_name.as_ref().cloned().or_else(|| {
+      let name = self
+        .ctx
+        .get_parameter(WebGl2RenderingContext::VENDOR)
+        .ok()
+        .and_then(|p| p.as_string())?;
+      self.vendor_name = Some(name);
+      self.vendor_name.clone()
+    })
+  }
+
+  pub(crate) fn get_renderer_name(&mut self) -> Option<String> {
+    self.renderer_name.as_ref().cloned().or_else(|| {
+      let name = self
+        .ctx
+        .get_parameter(WebGl2RenderingContext::RENDERER)
+        .ok()
+        .and_then(|p| p.as_string())?;
+      self.renderer_name = Some(name);
+      self.renderer_name.clone()
+    })
+  }
+
+  pub(crate) fn get_webgl_version(&mut self) -> Option<String> {
+    self.webgl_version.as_ref().cloned().or_else(|| {
+      let version = self
+        .ctx
+        .get_parameter(WebGl2RenderingContext::VERSION)
+        .ok()
+        .and_then(|p| p.as_string())?;
+      self.webgl_version = Some(version);
+      self.webgl_version.clone()
+    })
+  }
+
+  pub(crate) fn get_glsl_version(&mut self) -> Option<String> {
+    self.glsl_version.as_ref().cloned().or_else(|| {
+      let version = self
+        .ctx
+        .get_parameter(WebGl2RenderingContext::SHADING_LANGUAGE_VERSION)
+        .ok()
+        .and_then(|p| p.as_string())?;
+      self.glsl_version = Some(version);
+      self.glsl_version.clone()
+    })
   }
 }
 
