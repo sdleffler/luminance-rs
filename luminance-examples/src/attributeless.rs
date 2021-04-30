@@ -40,7 +40,7 @@ fn main() {
   // attributes / data); in our case, we’ll just render a triangle, which has three vertices
   let tess = context
     .new_tess()
-    .set_vertex_nb(3)
+    .set_render_vertex_nb(3)
     .set_mode(Mode::Triangle)
     .build()
     .unwrap();

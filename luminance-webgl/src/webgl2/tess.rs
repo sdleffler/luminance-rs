@@ -29,8 +29,6 @@ where
 {
   vao: WebGlVertexArrayObject,
   mode: u32,
-  vert_nb: usize,
-  inst_nb: usize,
   // A small note: WebGL2 doesn’t support custom primitive restart index; it assumes the maximum
   // value of I as being that restart index.
   index_buffer: Option<Buffer<I>>,
@@ -131,8 +129,6 @@ where
     index_data: Vec<I>,
     instance_data: Option<W::Data>,
     mode: Mode,
-    vert_nb: usize,
-    inst_nb: usize,
     _: Option<I>,
   ) -> Result<Self::TessRepr, TessError> {
     let vao = self
@@ -157,8 +153,6 @@ where
     let raw = TessRaw {
       vao,
       mode,
-      vert_nb,
-      inst_nb,
       index_buffer,
       state,
     };
@@ -171,11 +165,28 @@ where
   }
 
   unsafe fn tess_vertices_nb(tess: &Self::TessRepr) -> usize {
-    tess.raw.vert_nb
+    tess
+      .vertex_buffer
+      .as_ref()
+      .map(|vb| vb.buf.len())
+      .unwrap_or(0)
+  }
+
+  unsafe fn tess_indices_nb(tess: &Self::TessRepr) -> usize {
+    tess
+      .raw
+      .index_buffer
+      .as_ref()
+      .map(|ib| ib.buf.len())
+      .unwrap_or(0)
   }
 
   unsafe fn tess_instances_nb(tess: &Self::TessRepr) -> usize {
-    tess.raw.inst_nb
+    tess
+      .instance_buffer
+      .as_ref()
+      .map(|ib| ib.buf.len())
+      .unwrap_or(0)
   }
 
   unsafe fn render(
@@ -293,8 +304,6 @@ where
     index_data: Vec<I>,
     instance_data: Option<W::Data>,
     mode: Mode,
-    vert_nb: usize,
-    inst_nb: usize,
     _: Option<I>,
   ) -> Result<Self::TessRepr, TessError> {
     let vao = self
@@ -319,8 +328,6 @@ where
     let raw = TessRaw {
       vao,
       mode,
-      vert_nb,
-      inst_nb,
       index_buffer,
       state,
     };
@@ -334,11 +341,28 @@ where
   }
 
   unsafe fn tess_vertices_nb(tess: &Self::TessRepr) -> usize {
-    tess.raw.vert_nb
+    tess
+      .vertex_buffers
+      .first()
+      .map(|vb| vb.buf.len())
+      .unwrap_or(0)
+  }
+
+  unsafe fn tess_indices_nb(tess: &Self::TessRepr) -> usize {
+    tess
+      .raw
+      .index_buffer
+      .as_ref()
+      .map(|ib| ib.buf.len())
+      .unwrap_or(0)
   }
 
   unsafe fn tess_instances_nb(tess: &Self::TessRepr) -> usize {
-    tess.raw.inst_nb
+    tess
+      .instance_buffers
+      .first()
+      .map(|ib| ib.buf.len())
+      .unwrap_or(0)
   }
 
   unsafe fn render(
