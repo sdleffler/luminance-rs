@@ -1108,15 +1108,23 @@ trait GetWebGLParam<T> {
   fn get_webgl_param(&mut self, param: u32) -> Option<T>;
 }
 
-impl GetWebGLParam<u32> for WebGl2RenderingContext {
-  fn get_webgl_param(&mut self, param: u32) -> Option<u32> {
-    self
-      .get_parameter(param)
-      .ok()
-      .and_then(|x| x.as_f64())
-      .map(|x| x as u32)
+macro_rules! impl_GetWebGLParam_integer {
+  ($($int_ty:ty),*) => {
+    $(
+      impl GetWebGLParam<$int_ty> for WebGl2RenderingContext {
+        fn get_webgl_param(&mut self, param: u32) -> Option<$int_ty> {
+          self
+            .get_parameter(param)
+            .ok()
+            .and_then(|x| x.as_f64())
+            .map(|x| x as $int_ty)
+        }
+      }
+    )*
   }
 }
+
+impl_GetWebGLParam_integer!(u32, usize);
 
 impl GetWebGLParam<bool> for WebGl2RenderingContext {
   fn get_webgl_param(&mut self, param: u32) -> Option<bool> {
