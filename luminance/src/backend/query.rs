@@ -19,6 +19,9 @@ pub enum QueryError {
 
   /// No backend shading language version information available.
   NoBackendShadingLanguageVersion,
+
+  /// No maximum number of elements for texture arrays information available.
+  NoMaxTextureArrayElements,
 }
 
 impl fmt::Display for QueryError {
@@ -29,6 +32,9 @@ impl fmt::Display for QueryError {
       QueryError::NoBackendVersion => f.write_str("no backend version available"),
       QueryError::NoBackendShadingLanguageVersion => {
         f.write_str("no backend shading language version available")
+      }
+      QueryError::NoMaxTextureArrayElements => {
+        f.write_str("no maximum number of elements for texture arrays available")
       }
     }
   }
@@ -48,4 +54,7 @@ pub unsafe trait Query {
 
   /// The shading language version.
   fn backend_shading_lang_version(&self) -> Result<String, QueryError>;
+
+  /// The maximum number of elements a texture array can hold.
+  fn max_texture_array_elements(&self) -> Result<usize, QueryError>;
 }

@@ -122,6 +122,9 @@ pub struct WebGL2State {
 
   // GLSL version; cached when asked the first time and then re-used
   glsl_version: Option<String>,
+
+  /// Maximum number of elements a texture array can hold.
+  max_texture_array_elements: Option<usize>,
 }
 
 impl WebGL2State {
@@ -169,6 +172,7 @@ impl WebGL2State {
     let renderer_name = None;
     let gl_version = None;
     let glsl_version = None;
+    let max_texture_array_elements = None;
 
     Ok(WebGL2State {
       _phantom: PhantomData,
@@ -202,6 +206,7 @@ impl WebGL2State {
       renderer_name,
       webgl_version: gl_version,
       glsl_version,
+      max_texture_array_elements,
     })
   }
 
@@ -629,6 +634,19 @@ impl WebGL2State {
         .and_then(|p| p.as_string())?;
       self.glsl_version = Some(version);
       self.glsl_version.clone()
+    })
+  }
+
+  /// Get the number of maximum elements an array texture can hold.
+  ///
+  /// Cache the number on the first call and then re-use it for later calls.
+  pub fn get_max_texture_array_elements(&mut self) -> Option<usize> {
+    self.max_texture_array_elements.or_else(|| {
+      let max = self
+        .ctx
+        .get_webgl_param(WebGl2RenderingContext::MAX_ARRAY_TEXTURE_LAYERS);
+      self.max_texture_array_elements = max.clone();
+      max
     })
   }
 }

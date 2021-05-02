@@ -26,4 +26,8 @@ fn main() {
     "Backend shading language version: {:?}",
     q.backend_shading_lang_version()
   );
+  println!(
+    "Maximum number of elements in a texture array: {:?}",
+    q.max_texture_array_elements()
+  )
 }

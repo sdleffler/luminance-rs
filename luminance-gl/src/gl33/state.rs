@@ -1,17 +1,14 @@
 //! Graphics state.
 
+use crate::gl33::{depth_test::depth_comparison_to_glenum, vertex_restart::VertexRestart};
 use gl::types::*;
-use std::error;
-use std::fmt;
-use std::marker::PhantomData;
-use std::{cell::RefCell, ffi::CStr, os::raw::c_char};
-
-use crate::gl33::depth_test::depth_comparison_to_glenum;
-use crate::gl33::vertex_restart::VertexRestart;
-use luminance::blending::{Equation, Factor};
-use luminance::depth_test::{DepthComparison, DepthWrite};
-use luminance::face_culling::{FaceCullingMode, FaceCullingOrder};
-use luminance::scissor::ScissorRegion;
+use luminance::{
+  blending::{Equation, Factor},
+  depth_test::{DepthComparison, DepthWrite},
+  face_culling::{FaceCullingMode, FaceCullingOrder},
+  scissor::ScissorRegion,
+};
+use std::{cell::RefCell, error, ffi::CStr, fmt, marker::PhantomData, os::raw::c_char};
 
 // TLS synchronization barrier for `GLState`.
 //
@@ -179,6 +176,9 @@ pub struct GLState {
 
   // GLSL version; cached when asked the first time and then re-used
   glsl_version: Option<String>,
+
+  /// Maximum number of elements a texture array can hold.
+  max_texture_array_elements: Option<usize>,
 }
 
 impl GLState {
@@ -235,6 +235,7 @@ impl GLState {
       let renderer_name = None;
       let gl_version = None;
       let glsl_version = None;
+      let max_texture_array_elements = None;
 
       Ok(GLState {
         _a: PhantomData,
@@ -268,6 +269,7 @@ impl GLState {
         renderer_name,
         gl_version,
         glsl_version,
+        max_texture_array_elements,
       })
     }
   }
@@ -438,6 +440,19 @@ impl GLState {
       let version = Self::marshal_gl_string(gl::SHADING_LANGUAGE_VERSION);
       self.glsl_version = Some(version.clone());
       version
+    })
+  }
+
+  /// Get the number of maximum elements an array texture can hold.
+  ///
+  /// Cache the number on the first call and then re-use it for later calls.
+  pub fn get_max_texture_array_elements(&mut self) -> usize {
+    self.max_texture_array_elements.unwrap_or_else(|| {
+      let mut max = 0;
+      unsafe { gl::GetIntegerv(gl::MAX_ARRAY_TEXTURE_LAYERS, &mut max) };
+      let max = max as usize;
+      self.max_texture_array_elements = Some(max);
+      max
     })
   }
 

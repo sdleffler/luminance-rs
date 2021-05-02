@@ -48,4 +48,9 @@ where
   pub fn backend_shading_lang_version(&self) -> Result<String, QueryError> {
     self.backend.backend_shading_lang_version()
   }
+
+  /// Maximum number of elements a texture array can hold.
+  pub fn max_texture_array_elements(&self) -> Result<usize, QueryError> {
+    self.backend.max_texture_array_elements()
+  }
 }

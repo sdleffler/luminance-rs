@@ -23,4 +23,9 @@ unsafe impl QueryBackend for GL33 {
     let name = self.state.borrow_mut().get_glsl_version();
     Ok(name)
   }
+
+  fn max_texture_array_elements(&self) -> Result<usize, QueryError> {
+    let max = self.state.borrow_mut().get_max_texture_array_elements();
+    Ok(max)
+  }
 }

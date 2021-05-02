@@ -35,4 +35,12 @@ unsafe impl QueryBackend for WebGL2 {
       .get_glsl_version()
       .ok_or_else(|| QueryError::NoBackendShadingLanguageVersion)
   }
+
+  fn max_texture_array_elements(&self) -> Result<usize, QueryError> {
+    self
+      .state
+      .borrow_mut()
+      .get_max_texture_array_elements()
+      .ok_or_else(|| QueryError::NoMaxTextureArrayElements)
+  }
 }
