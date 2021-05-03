@@ -20,6 +20,11 @@ use luminance::buffer::BufferError;
 #[derive(Clone, Debug)]
 struct BufferWrapper {
   handle: WebGlBuffer,
+  /// Target the buffer was created with; WebGL2 doesn’t play well with rebinding a buffer to a different target (unlike
+  /// OpenGL, in which that optimization is handy).
+  ///
+  /// See https://developer.mozilla.org/en-US/docs/Web/API/WebGLRenderingContext/bindBuffer#exceptions for further details
+  target: u32,
   state: Rc<RefCell<WebGL2State>>,
 }
 
@@ -70,6 +75,7 @@ impl<T> Buffer<T> {
 
     let gl_buf = BufferWrapper {
       handle,
+      target,
       state: webgl2.state.clone(),
     };
 
@@ -98,6 +104,7 @@ impl<T> Buffer<T> {
 
     let gl_buf = BufferWrapper {
       handle,
+      target,
       state: webgl2.state.clone(),
     };
 
@@ -177,6 +184,7 @@ where
       let mut state = buffer.gl_buf.state.borrow_mut();
       let bytes = mem::size_of::<T>() * buffer_len;
       update_webgl_buffer(
+        buffer.gl_buf.target,
         &mut state,
         &buffer.gl_buf.handle,
         buffer.buf.as_ptr() as *const u8,
@@ -210,6 +218,7 @@ where
     let mut state = buffer.gl_buf.state.borrow_mut();
     let bytes = mem::size_of::<T>() * buffer_len;
     update_webgl_buffer(
+      buffer.gl_buf.target,
       &mut state,
       &buffer.gl_buf.handle,
       buffer.buf.as_ptr() as *const u8,
@@ -229,6 +238,7 @@ where
     let mut state = buffer.gl_buf.state.borrow_mut();
     let bytes = buffer.buf.len() * mem::size_of::<T>();
     update_webgl_buffer(
+      buffer.gl_buf.target,
       &mut state,
       &buffer.gl_buf.handle,
       buffer.buf.as_ptr() as *const u8,
@@ -280,6 +290,7 @@ impl<T> Deref for BufferSlice<T> {
 /// When a buffer is mapped, we are the only owner of it. We can then read or write from/to the
 /// mapped buffer, and then update the GPU buffer on the [`Drop`] implementation.
 pub struct BufferSliceMutWrapper {
+  target: u32,
   handle: WebGlBuffer,
   ptr: *mut u8,
   bytes: usize,
@@ -289,7 +300,14 @@ pub struct BufferSliceMutWrapper {
 impl Drop for BufferSliceMutWrapper {
   fn drop(&mut self) {
     let mut state = self.state.borrow_mut();
-    update_webgl_buffer(&mut state, &self.handle, self.ptr, self.bytes, 0);
+    update_webgl_buffer(
+      self.target,
+      &mut state,
+      &self.handle,
+      self.ptr,
+      self.bytes,
+      0,
+    );
   }
 }
 
@@ -355,6 +373,7 @@ where
     buffer: &mut Self::BufferRepr,
   ) -> Result<Self::SliceMutRepr, BufferError> {
     let raw = BufferSliceMutWrapper {
+      target: buffer.gl_buf.target,
       handle: buffer.gl_buf.handle.clone(),
       ptr: buffer.buf.as_mut_ptr() as *mut u8,
       bytes: buffer.buf.len() * mem::size_of::<T>(),
@@ -371,6 +390,7 @@ where
 
 /// Update a WebGL buffer by copying an input slice.
 fn update_webgl_buffer(
+  target: u32,
   state: &mut WebGL2State,
   gl_buf: &WebGlBuffer,
   data: *const u8,
@@ -382,10 +402,5 @@ fn update_webgl_buffer(
   let data = unsafe { slice::from_raw_parts(data as _, bytes) };
   state
     .ctx
-    .buffer_sub_data_with_i32_and_u8_array_and_src_offset(
-      WebGl2RenderingContext::ARRAY_BUFFER,
-      offset as _,
-      data,
-      0,
-    );
+    .buffer_sub_data_with_i32_and_u8_array_and_src_offset(target, offset as _, data, 0);
 }
