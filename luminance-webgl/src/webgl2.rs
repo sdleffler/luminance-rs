@@ -5,6 +5,7 @@ pub mod buffer;
 pub mod framebuffer;
 pub mod pipeline;
 pub mod pixel;
+pub mod query;
 pub mod shader;
 pub mod state;
 pub mod tess;

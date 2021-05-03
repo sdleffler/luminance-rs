@@ -107,8 +107,24 @@ pub struct WebGL2State {
 
   // vertex array
   bound_vertex_array: Option<WebGlVertexArrayObject>,
+
   // shader program
   current_program: Option<WebGlProgram>,
+
+  // vendor name; cached when asked the first time and then re-used
+  vendor_name: Option<String>,
+
+  // renderer name; cached when asked the first time and then re-used
+  renderer_name: Option<String>,
+
+  // WebGL version; cached when asked the first time and then re-used
+  webgl_version: Option<String>,
+
+  // GLSL version; cached when asked the first time and then re-used
+  glsl_version: Option<String>,
+
+  /// Maximum number of elements a texture array can hold.
+  max_texture_array_elements: Option<usize>,
 }
 
 impl WebGL2State {
@@ -152,6 +168,12 @@ impl WebGL2State {
     let bound_vertex_array = None;
     let current_program = None;
 
+    let vendor_name = None;
+    let renderer_name = None;
+    let gl_version = None;
+    let glsl_version = None;
+    let max_texture_array_elements = None;
+
     Ok(WebGL2State {
       _phantom: PhantomData,
       ctx,
@@ -180,6 +202,11 @@ impl WebGL2State {
       readback_framebuffer,
       bound_vertex_array,
       current_program,
+      vendor_name,
+      renderer_name,
+      webgl_version: gl_version,
+      glsl_version,
+      max_texture_array_elements,
     })
   }
 
@@ -561,6 +588,53 @@ impl WebGL2State {
       self.scissor_region = *region;
     }
   }
+
+  pub(crate) fn get_vendor_name(&mut self) -> Option<String> {
+    self.vendor_name.as_ref().cloned().or_else(|| {
+      let name = self.ctx.get_webgl_param(WebGl2RenderingContext::VENDOR)?;
+      self.vendor_name = Some(name);
+      self.vendor_name.clone()
+    })
+  }
+
+  pub(crate) fn get_renderer_name(&mut self) -> Option<String> {
+    self.renderer_name.as_ref().cloned().or_else(|| {
+      let name = self.ctx.get_webgl_param(WebGl2RenderingContext::RENDERER)?;
+      self.renderer_name = Some(name);
+      self.renderer_name.clone()
+    })
+  }
+
+  pub(crate) fn get_webgl_version(&mut self) -> Option<String> {
+    self.webgl_version.as_ref().cloned().or_else(|| {
+      let version = self.ctx.get_webgl_param(WebGl2RenderingContext::VERSION)?;
+      self.webgl_version = Some(version);
+      self.webgl_version.clone()
+    })
+  }
+
+  pub(crate) fn get_glsl_version(&mut self) -> Option<String> {
+    self.glsl_version.as_ref().cloned().or_else(|| {
+      let version = self
+        .ctx
+        .get_webgl_param(WebGl2RenderingContext::SHADING_LANGUAGE_VERSION)?;
+      self.glsl_version = Some(version);
+      self.glsl_version.clone()
+    })
+  }
+
+  /// Get the number of maximum elements an array texture can hold.
+  ///
+  /// Cache the number on the first call and then re-use it for later calls.
+  pub fn get_max_texture_array_elements(&mut self) -> Option<usize> {
+    self.max_texture_array_elements.or_else(|| {
+      let max = self
+        .ctx
+        .get_webgl_param(WebGl2RenderingContext::MAX_ARRAY_TEXTURE_LAYERS);
+      self.max_texture_array_elements = max.clone();
+      max
+    })
+  }
 }
 
 impl Drop for WebGL2State {
@@ -704,10 +778,9 @@ impl fmt::Display for StateQueryError {
 impl std::error::Error for StateQueryError {}
 
 fn get_ctx_viewport(ctx: &mut WebGl2RenderingContext) -> Result<[i32; 4], StateQueryError> {
-  let parameter = ctx
-    .get_parameter(WebGl2RenderingContext::VIEWPORT)
-    .map_err(|_| StateQueryError::UnknownViewportInitialState)?;
-  let array: Int32Array = parameter.into();
+  let array: Int32Array = ctx
+    .get_webgl_param(WebGl2RenderingContext::VIEWPORT)
+    .ok_or_else(|| StateQueryError::UnknownViewportInitialState)?;
 
   if array.length() != 4 {
     return Err(StateQueryError::UnknownViewportInitialState);
@@ -720,10 +793,9 @@ fn get_ctx_viewport(ctx: &mut WebGl2RenderingContext) -> Result<[i32; 4], StateQ
 }
 
 fn get_ctx_clear_color(ctx: &mut WebGl2RenderingContext) -> Result<[f32; 4], StateQueryError> {
-  let parameter = ctx
-    .get_parameter(WebGl2RenderingContext::COLOR_CLEAR_VALUE)
-    .map_err(|_| StateQueryError::UnknownClearColorInitialState)?;
-  let array: Float32Array = parameter.into();
+  let array: Float32Array = ctx
+    .get_webgl_param(WebGl2RenderingContext::COLOR_CLEAR_VALUE)
+    .ok_or_else(|| StateQueryError::UnknownClearColorInitialState)?;
 
   if array.length() != 4 {
     return Err(StateQueryError::UnknownClearColorInitialState);
@@ -899,10 +971,9 @@ fn get_ctx_scissor_state(
 fn get_ctx_scissor_region(
   ctx: &mut WebGl2RenderingContext,
 ) -> Result<ScissorRegion, StateQueryError> {
-  let parameter = ctx
-    .get_parameter(WebGl2RenderingContext::SCISSOR_BOX)
-    .map_err(|_| StateQueryError::UnknownViewportInitialState)?;
-  let array: Uint32Array = parameter.into();
+  let array: Uint32Array = ctx
+    .get_webgl_param(WebGl2RenderingContext::SCISSOR_BOX)
+    .ok_or_else(|| StateQueryError::UnknownViewportInitialState)?;
 
   if array.length() != 4 {
     return Err(StateQueryError::UnknownScissorRegionInitialState);
@@ -1038,19 +1109,50 @@ trait GetWebGLParam<T> {
   fn get_webgl_param(&mut self, param: u32) -> Option<T>;
 }
 
-impl GetWebGLParam<u32> for WebGl2RenderingContext {
-  fn get_webgl_param(&mut self, param: u32) -> Option<u32> {
-    self
-      .get_parameter(param)
-      .ok()
-      .and_then(|x| x.as_f64())
-      .map(|x| x as u32)
+macro_rules! impl_GetWebGLParam_integer {
+  ($($int_ty:ty),*) => {
+    $(
+      impl GetWebGLParam<$int_ty> for WebGl2RenderingContext {
+        fn get_webgl_param(&mut self, param: u32) -> Option<$int_ty> {
+          self
+            .get_parameter(param)
+            .ok()
+            .and_then(|x| x.as_f64())
+            .map(|x| x as $int_ty)
+        }
+      }
+    )*
   }
 }
+
+impl_GetWebGLParam_integer!(u32, usize);
+
+macro_rules! impl_GetWebGLParam_array {
+  ($($arr_ty:ty),*) => {
+    $(
+      impl GetWebGLParam<$arr_ty> for WebGl2RenderingContext {
+        fn get_webgl_param(&mut self, param: u32) -> Option<$arr_ty> {
+          self
+            .get_parameter(param)
+            .ok()
+            .map(|a| a.into())
+        }
+      }
+    )*
+  }
+}
+
+impl_GetWebGLParam_array!(Int32Array, Uint32Array, Float32Array);
 
 impl GetWebGLParam<bool> for WebGl2RenderingContext {
   fn get_webgl_param(&mut self, param: u32) -> Option<bool> {
     self.get_parameter(param).ok().and_then(|x| x.as_bool())
+  }
+}
+
+impl GetWebGLParam<String> for WebGl2RenderingContext {
+  fn get_webgl_param(&mut self, param: u32) -> Option<String> {
+    self.get_parameter(param).ok().and_then(|x| x.as_string())
   }
 }
 

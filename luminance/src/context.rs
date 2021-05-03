@@ -43,21 +43,20 @@
 //! let buffer = context.new_buffer_from_slice(slice).unwrap();
 //! ```
 
-use crate::backend::color_slot::ColorSlot;
-use crate::backend::depth_slot::DepthSlot;
-use crate::backend::framebuffer::Framebuffer as FramebufferBackend;
-use crate::backend::shader::Shader;
-use crate::backend::tess::Tess as TessBackend;
-use crate::backend::texture::Texture as TextureBackend;
+use crate::backend::{
+  buffer::Buffer as BufferBackend, color_slot::ColorSlot, depth_slot::DepthSlot,
+  framebuffer::Framebuffer as FramebufferBackend, query::Query as QueryBackend, shader::Shader,
+  tess::Tess as TessBackend, texture::Texture as TextureBackend,
+};
 use crate::buffer::{Buffer, BufferError};
 use crate::framebuffer::{Framebuffer, FramebufferError};
 use crate::pipeline::PipelineGate;
 use crate::pixel::Pixel;
+use crate::query::Query;
 use crate::shader::{ProgramBuilder, Stage, StageError, StageType};
 use crate::tess::{Deinterleaved, Interleaved, TessBuilder, TessVertexData};
-use crate::texture::{Dimensionable, Sampler, Texture, TextureError};
+use crate::texture::{Dimensionable, GenMipmaps, Sampler, Texture, TextureError};
 use crate::vertex::Semantics;
-use crate::{backend::buffer::Buffer as BufferBackend, texture::GenMipmaps};
 
 /// Class of graphics context.
 ///
@@ -70,6 +69,14 @@ pub unsafe trait GraphicsContext: Sized {
 
   /// Access the underlying backend.
   fn backend(&mut self) -> &mut Self::Backend;
+
+  /// Access the query API.
+  fn query(&mut self) -> Query<Self::Backend>
+  where
+    Self::Backend: QueryBackend,
+  {
+    Query::new(self)
+  }
 
   /// Create a new pipeline gate
   fn new_pipeline_gate(&mut self) -> PipelineGate<Self::Backend> {

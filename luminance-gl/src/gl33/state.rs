@@ -1,17 +1,14 @@
 //! Graphics state.
 
+use crate::gl33::{depth_test::depth_comparison_to_glenum, vertex_restart::VertexRestart};
 use gl::types::*;
-use std::cell::RefCell;
-use std::error;
-use std::fmt;
-use std::marker::PhantomData;
-
-use crate::gl33::depth_test::depth_comparison_to_glenum;
-use crate::gl33::vertex_restart::VertexRestart;
-use luminance::blending::{Equation, Factor};
-use luminance::depth_test::{DepthComparison, DepthWrite};
-use luminance::face_culling::{FaceCullingMode, FaceCullingOrder};
-use luminance::scissor::ScissorRegion;
+use luminance::{
+  blending::{Equation, Factor},
+  depth_test::{DepthComparison, DepthWrite},
+  face_culling::{FaceCullingMode, FaceCullingOrder},
+  scissor::ScissorRegion,
+};
+use std::{cell::RefCell, error, ffi::CStr, fmt, marker::PhantomData, os::raw::c_char};
 
 // TLS synchronization barrier for `GLState`.
 //
@@ -167,6 +164,21 @@ pub struct GLState {
 
   // framebuffer sRGB
   srgb_framebuffer_enabled: Cached<bool>,
+
+  // vendor name; cached when asked the first time and then re-used
+  vendor_name: Option<String>,
+
+  // renderer name; cached when asked the first time and then re-used
+  renderer_name: Option<String>,
+
+  // OpenGL version; cached when asked the first time and then re-used
+  gl_version: Option<String>,
+
+  // GLSL version; cached when asked the first time and then re-used
+  glsl_version: Option<String>,
+
+  /// Maximum number of elements a texture array can hold.
+  max_texture_array_elements: Option<usize>,
 }
 
 impl GLState {
@@ -219,6 +231,11 @@ impl GLState {
       let srgb_framebuffer_enabled = Cached::new(get_ctx_srgb_framebuffer_enabled()?);
       let scissor_state = Cached::new(get_ctx_scissor_state()?);
       let scissor_region = Cached::new(get_ctx_scissor_region()?);
+      let vendor_name = None;
+      let renderer_name = None;
+      let gl_version = None;
+      let glsl_version = None;
+      let max_texture_array_elements = None;
 
       Ok(GLState {
         _a: PhantomData,
@@ -248,6 +265,11 @@ impl GLState {
         srgb_framebuffer_enabled,
         scissor_state,
         scissor_region,
+        vendor_name,
+        renderer_name,
+        gl_version,
+        glsl_version,
+        max_texture_array_elements,
       })
     }
   }
@@ -364,6 +386,74 @@ impl GLState {
   /// Invalidate the currently in-use sRGB framebuffer state.
   pub fn invalidate_srgb_framebuffer_enabled(&mut self) {
     self.srgb_framebuffer_enabled.invalidate()
+  }
+
+  /// Marshal a string represented as `*const c_uchar`, represented by the input argument, into a `&str`.
+  ///
+  /// The string is returned in a lossy way, which means that non-unicode characters go wheeeeeeeeeeee.
+  fn marshal_gl_string(repr: GLenum) -> String {
+    unsafe {
+      let name_ptr = gl::GetString(repr);
+      let name = CStr::from_ptr(name_ptr as *const c_char);
+      name.to_string_lossy().into_owned()
+    }
+  }
+
+  /// Get the OpenGL vendor name.
+  ///
+  /// Cache the name on the first call and then re-use it for later calls.
+  pub fn get_vendor_name(&mut self) -> String {
+    self.vendor_name.as_ref().cloned().unwrap_or_else(|| {
+      let name = Self::marshal_gl_string(gl::VENDOR);
+      self.vendor_name = Some(name.clone());
+      name
+    })
+  }
+
+  /// Get the OpenGL renderer name.
+  ///
+  /// Cache the name on the first call and then re-use it for later calls.
+  pub fn get_renderer_name(&mut self) -> String {
+    self.renderer_name.as_ref().cloned().unwrap_or_else(|| {
+      let name = Self::marshal_gl_string(gl::RENDERER);
+      self.renderer_name = Some(name.clone());
+      name
+    })
+  }
+
+  /// Get the OpenGL version.
+  ///
+  /// Cache the version on the first call and then re-use it for later calls.
+  pub fn get_gl_version(&mut self) -> String {
+    self.gl_version.as_ref().cloned().unwrap_or_else(|| {
+      let version = Self::marshal_gl_string(gl::VERSION);
+      self.gl_version = Some(version.clone());
+      version
+    })
+  }
+
+  /// Get the GLSL version.
+  ///
+  /// Cache the version on the first call and then re-use it for later calls.
+  pub fn get_glsl_version(&mut self) -> String {
+    self.glsl_version.as_ref().cloned().unwrap_or_else(|| {
+      let version = Self::marshal_gl_string(gl::SHADING_LANGUAGE_VERSION);
+      self.glsl_version = Some(version.clone());
+      version
+    })
+  }
+
+  /// Get the number of maximum elements an array texture can hold.
+  ///
+  /// Cache the number on the first call and then re-use it for later calls.
+  pub fn get_max_texture_array_elements(&mut self) -> usize {
+    self.max_texture_array_elements.unwrap_or_else(|| {
+      let mut max = 0;
+      unsafe { gl::GetIntegerv(gl::MAX_ARRAY_TEXTURE_LAYERS, &mut max) };
+      let max = max as usize;
+      self.max_texture_array_elements = Some(max);
+      max
+    })
   }
 
   pub(crate) fn binding_stack_mut(&mut self) -> &mut BindingStack {

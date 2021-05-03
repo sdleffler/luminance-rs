@@ -5,6 +5,7 @@ mod depth_test;
 mod framebuffer;
 mod pipeline;
 mod pixel;
+mod query;
 mod shader;
 mod state;
 mod tess;
