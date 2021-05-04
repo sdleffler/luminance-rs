@@ -28,6 +28,8 @@ macro_rules! impl_IntoArrayBuffer {
     impl_tuple_IntoArrayBuffer!($t, ($t, $t), 2, $buffer);
     impl_tuple_IntoArrayBuffer!($t, ($t, $t, $t), 3, $buffer);
     impl_tuple_IntoArrayBuffer!($t, ($t, $t, $t, $t), 4, $buffer);
+
+    impl_array_IntoArrayBuffer!($t, $buffer);
   };
 }
 
@@ -43,6 +45,19 @@ macro_rules! impl_tuple_IntoArrayBuffer {
       unsafe fn into_array_buffer(texels: &[Self]) -> js_sys::Object {
         let slice: &[$t] =
           std::slice::from_raw_parts(texels.as_ptr() as *const $t, texels.len() * $n);
+
+        <$buffer>::view(slice).into()
+      }
+    }
+  };
+}
+
+macro_rules! impl_array_IntoArrayBuffer {
+  ($t:ty, $buffer:ty) => {
+    impl<const N: usize> IntoArrayBuffer for [$t; N] {
+      unsafe fn into_array_buffer(texels: &[Self]) -> js_sys::Object {
+        let slice: &[$t] =
+          std::slice::from_raw_parts(texels.as_ptr() as *const $t, texels.len() * N);
 
         <$buffer>::view(slice).into()
       }
