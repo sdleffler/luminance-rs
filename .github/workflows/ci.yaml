@@ -55,6 +55,30 @@ jobs:
           yarn install
           yarn build
 
+  integration-tests-desktop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxrandr-dev xorg-dev libsdl2-dev
+      - uses: actions/checkout@v2
+      - name: Integration testing
+        run: |
+          cd integration-tests/desktop
+          cargo check
+
+  integration-tests-web:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install rustup WASM toolchain
+        run: rustup target install wasm32-unknown-unknown
+      - uses: actions/checkout@v2
+      - name: Integration testing
+        run: |
+          cd integration-tests/web
+          cargo check
+
   quality:
     runs-on: ubuntu-latest
     steps:
