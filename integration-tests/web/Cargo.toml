@@ -11,8 +11,8 @@ crate-type = ["cdylib"]
 [dependencies]
 cgmath = "0.18"
 colored = "2"
-luminance = "0.43"
-luminance-front = "0.3"
-luminance-web-sys = "0.2.2"
+luminance = "0.44"
+luminance-front = "0.4"
+luminance-web-sys = "0.3"
 web-sys = { version = "0.3.45", features = ["console"] }
 wasm-bindgen = { version = "0.2.63", features = ["serde-serialize"] }

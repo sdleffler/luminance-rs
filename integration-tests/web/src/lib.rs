@@ -36,5 +36,6 @@ macro_rules! tests {
 }
 
 tests! {
-  "flatten-slice", flatten_slice
+  "flatten-slice", flatten_slice,
+  "pixel-array-encoding", pixel_array_encoding
 }

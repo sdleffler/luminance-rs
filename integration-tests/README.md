@@ -1,8 +1,8 @@
 # Integration tests
 
 This directory holds all the integration tests. Currently, they are not automatized — i.e. they’re
-not directly used in the CI. They serve as application we can run to check everything is fine. They
-serve a similar purpose as [luminance-examples], yet are more technical integration tests.
+not directly used in the CI, even though they are compiled there. They serve as application we can run to check
+everything is fine. They serve a similar purpose as [luminance-examples], yet are more technical integration tests.
 
 ## How to add an integration test
 
