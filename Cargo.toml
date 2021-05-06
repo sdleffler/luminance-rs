@@ -1,12 +1,12 @@
 [workspace]
 
 members = [
+  "examples/common",
+  "examples/desktop",
   "integration-tests/desktop",
   "integration-tests/web",
   "luminance",
   "luminance-derive",
-  "luminance-examples",
-  "luminance-examples-web",
   "luminance-front",
   "luminance-gl",
   "luminance-glfw",
@@ -21,7 +21,6 @@ default-members = [
   "integration-tests/desktop",
   "luminance",
   "luminance-derive",
-  "luminance-examples",
   "luminance-front",
   "luminance-gl",
   "luminance-glfw",
@@ -33,8 +32,6 @@ default-members = [
 [patch.crates-io]
 luminance = { path = "./luminance" }
 luminance-derive = { path = "./luminance-derive" }
-luminance-examples = { path = "./luminance-examples" }
-luminance-examples-web = { path = "./luminance-examples-web" }
 luminance-front = { path = "./luminance-front" }
 luminance-gl = { path = "./luminance-gl" }
 luminance-glfw = { path = "./luminance-glfw" }
