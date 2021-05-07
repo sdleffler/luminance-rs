@@ -1,0 +1,26 @@
+[package]
+name = "luminance-examples-desktop"
+version = "0.1.0"
+authors = ["Dimitri Sabadie <dimitri.sabadie@gmail.com>"]
+description = "Stateless and type-safe graphics framework"
+keywords = ["stateless", "type-safe", "graphics", "luminance"]
+categories = ["rendering::graphics-api"]
+homepage = "https://github.com/phaazon/luminance-rs"
+repository = "https://github.com/phaazon/luminance-rs"
+documentation = "https://docs.rs/luminance"
+readme = "README.md"
+edition = "2018"
+
+[[bin]]
+name = "luminance-examples-desktop"
+path = "src/main.rs"
+
+[dependencies]
+env_logger = "0.8.1"
+log = "0.4.11"
+luminance = "0.44"
+luminance-examples = { version = "0.1", path = "../common" }
+luminance-front = "0.4"
+luminance-glfw = "0.16"
+luminance-windowing = "0.10"
+glfw = "0.41"
