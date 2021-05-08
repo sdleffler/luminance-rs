@@ -222,7 +222,7 @@ impl Example for LocalExample {
 
         InputAction::MainToggle => {
           self.tess_method = self.tess_method.toggle();
-          println!("now rendering {:?}", self.tess_method);
+          log::info!("now rendering {:?}", self.tess_method);
         }
 
         _ => (),

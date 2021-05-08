@@ -3,6 +3,7 @@
 members = [
   "examples/common",
   "examples/desktop",
+  "examples/web",
   "integration-tests/desktop",
   "integration-tests/web",
   "luminance",

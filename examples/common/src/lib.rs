@@ -41,7 +41,7 @@ pub trait Example {
 }
 
 /// A type used to pass “inputs” to examples.
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum InputAction {
   /// Quit the application.
   Quit,
