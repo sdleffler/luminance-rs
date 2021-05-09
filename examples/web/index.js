@@ -38,8 +38,8 @@ rust
 
     // transform events into input actions
     window.onkeyup = (event) => {
-      switch (event.keyCode) {
-        case 32:
+      switch (event.code) {
+        case 'Space':
           if (event.shiftKey) {
             showcase.enqueue_auxiliary_toggle_action();
           } else {
@@ -47,7 +47,7 @@ rust
           }
           break;
 
-        case 27:
+        case 'Escape':
           showcase.enqueue_quit_action();
           break;
 
