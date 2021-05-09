@@ -105,7 +105,8 @@ macro_rules! examples {
 
 examples! {
   "hello-world", hello_world,
-  "render-state", render_state
+  "render-state", render_state,
+  "sliced-tess", sliced_tess
 }
 
 #[wasm_bindgen]

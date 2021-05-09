@@ -87,7 +87,8 @@ fn adapt_events(event: WindowEvent) -> Option<InputAction> {
 
 examples! {
   "hello-world", hello_world,
-  "render-state", render_state
+  "render-state", render_state,
+  "sliced-tess", sliced_tess
 }
 
 fn main() {

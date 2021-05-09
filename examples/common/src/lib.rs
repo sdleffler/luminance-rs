@@ -27,6 +27,7 @@ use luminance_front::{framebuffer::Framebuffer, texture::Dim2, Backend};
 pub mod hello_world;
 pub mod render_state;
 mod shared;
+pub mod sliced_tess;
 
 /// Example interface.
 pub trait Example {
