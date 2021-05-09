@@ -1,6 +1,6 @@
 use std::env::args;
 
-use glfw::{Action, Context as _, Key, WindowEvent};
+use glfw::{Action, Context as _, Key, Modifiers, WindowEvent};
 use luminance_examples::{Example, InputAction, LoopFeedback};
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
@@ -68,7 +68,15 @@ fn adapt_events(event: WindowEvent) -> Option<InputAction> {
     WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => {
       Some(InputAction::Quit)
     }
-    WindowEvent::Key(Key::Space, _, Action::Release, _) => Some(InputAction::MainToggle),
+    WindowEvent::Key(Key::Space, _, Action::Release, mods) => {
+      if mods.is_empty() {
+        Some(InputAction::MainToggle)
+      } else if mods == Modifiers::Shift {
+        Some(InputAction::AuxiliaryToggle)
+      } else {
+        None
+      }
+    }
     WindowEvent::FramebufferSize(width, height) => Some(InputAction::Resized {
       width: width as _,
       height: height as _,
@@ -78,7 +86,8 @@ fn adapt_events(event: WindowEvent) -> Option<InputAction> {
 }
 
 examples! {
-  "hello-world", hello_world
+  "hello-world", hello_world,
+  "render-state", render_state
 }
 
 fn main() {

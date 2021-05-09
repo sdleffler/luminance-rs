@@ -25,6 +25,8 @@ use luminance::context::GraphicsContext;
 use luminance_front::{framebuffer::Framebuffer, texture::Dim2, Backend};
 
 pub mod hello_world;
+pub mod render_state;
+mod shared;
 
 /// Example interface.
 pub trait Example {
@@ -48,6 +50,9 @@ pub enum InputAction {
 
   /// Main action. Typically used to switch an effect on and off or to cycle through it.
   MainToggle,
+
+  /// Auxiliary action. Often used to showcase / toggle smaller parts of a bigger effect.
+  AuxiliaryToggle,
 
   /// Framebuffer size changed.
   Resized { width: u32, height: u32 },

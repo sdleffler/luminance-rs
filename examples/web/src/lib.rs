@@ -49,6 +49,11 @@ macro_rules! examples {
         self.actions.push(InputAction::MainToggle);
       }
 
+      pub fn enqueue_auxiliary_toggle_action(&mut self) {
+        log::debug!("pushing input action: auxiliary toggle");
+        self.actions.push(InputAction::AuxiliaryToggle);
+      }
+
       pub fn enqueue_resized_action(&mut self, width: u32, height: u32) {
         log::debug!("pushing input action: resized {}×{}", width, height);
         self.actions.push(InputAction::Resized { width, height });
@@ -87,9 +92,9 @@ macro_rules! examples {
                 return false;
               }
             }
-
-            _ => ()
           )*
+
+          _ => ()
         }
 
         true
@@ -99,7 +104,8 @@ macro_rules! examples {
 }
 
 examples! {
-  "hello-world", hello_world
+  "hello-world", hello_world,
+  "render-state", render_state
 }
 
 #[wasm_bindgen]

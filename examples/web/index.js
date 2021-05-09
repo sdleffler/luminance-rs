@@ -1,7 +1,7 @@
 const rust = import('./pkg');
 
 // TODO: replace with a <select>
-var example_select = document.createElement('select');
+let example_select = document.createElement('select');
 example_select.add(document.createElement('option'));
 console.log(example_select);
 
@@ -11,7 +11,7 @@ example_select.style.top = 0;
 example_select.style.left = 0;
 document.body.appendChild(example_select);
 
-var canvas = document.createElement('canvas');
+let canvas = document.createElement('canvas');
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 canvas.id = 'luminance-canvas';
@@ -26,7 +26,7 @@ rust
     // build the <select> shit madness
     const example_names = wasm.examples_names();
     example_names.forEach(name => {
-      var option = document.createElement('option');
+      let option = document.createElement('option');
       option.text = name;
       example_select.add(option);
     });
@@ -38,13 +38,16 @@ rust
 
     // transform events into input actions
     window.onkeyup = (event) => {
-      switch (event.key) {
-        case ' ':
-          showcase.enqueue_main_toggle_action();
+      switch (event.keyCode) {
+        case 32:
+          if (event.shiftKey) {
+            showcase.enqueue_auxiliary_toggle_action();
+          } else {
+            showcase.enqueue_main_toggle_action();
+          }
           break;
 
-        case 'Escape':
-          console.error("FUCK ESCAPE");
+        case 27:
           showcase.enqueue_quit_action();
           break;
 
@@ -64,6 +67,8 @@ rust
 
         if (!feedback) {
           example_select.value = '';
+          showcase.reset();
+          canvas.hidden = true;
         }
       }
     }, 10);
