@@ -129,7 +129,8 @@ examples! {
   "hello-world", hello_world,
   "render-state", render_state,
   "sliced-tess", sliced_tess,
-  "shader-uniforms", shader_uniforms
+  "shader-uniforms", shader_uniforms,
+  "attributeless", attributeless
 }
 
 #[wasm_bindgen]
