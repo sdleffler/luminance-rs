@@ -1,6 +1,5 @@
 const rust = import('./pkg');
 
-// TODO: replace with a <select>
 let example_select = document.createElement('select');
 example_select.add(document.createElement('option'));
 console.log(example_select);
@@ -49,6 +48,22 @@ rust
 
         case 'Escape':
           showcase.enqueue_quit_action();
+          break;
+
+        case 'KeyA':
+          showcase.enqueue_left_action();
+          break;
+
+        case 'KeyD':
+          showcase.enqueue_right_action();
+          break;
+
+        case 'KeyW':
+          showcase.enqueue_up_action();
+          break;
+
+        case 'KeyS':
+          showcase.enqueue_down_action();
           break;
 
         default:

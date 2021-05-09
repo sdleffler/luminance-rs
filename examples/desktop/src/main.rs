@@ -68,6 +68,7 @@ fn adapt_events(event: WindowEvent) -> Option<InputAction> {
     WindowEvent::Close | WindowEvent::Key(Key::Escape, _, Action::Release, _) => {
       Some(InputAction::Quit)
     }
+
     WindowEvent::Key(Key::Space, _, Action::Release, mods) => {
       if mods.is_empty() {
         Some(InputAction::MainToggle)
@@ -77,6 +78,17 @@ fn adapt_events(event: WindowEvent) -> Option<InputAction> {
         None
       }
     }
+
+    WindowEvent::Key(key, _, Action::Press, _) | WindowEvent::Key(key, _, Action::Repeat, _) => {
+      match key {
+        Key::A => Some(InputAction::Left),
+        Key::D => Some(InputAction::Right),
+        Key::W => Some(InputAction::Up),
+        Key::S => Some(InputAction::Down),
+        _ => None,
+      }
+    }
+
     WindowEvent::FramebufferSize(width, height) => Some(InputAction::Resized {
       width: width as _,
       height: height as _,
@@ -88,7 +100,8 @@ fn adapt_events(event: WindowEvent) -> Option<InputAction> {
 examples! {
   "hello-world", hello_world,
   "render-state", render_state,
-  "sliced-tess", sliced_tess
+  "sliced-tess", sliced_tess,
+  "shader-uniforms", shader_uniforms
 }
 
 fn main() {

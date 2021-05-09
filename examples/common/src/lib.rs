@@ -26,6 +26,7 @@ use luminance_front::{framebuffer::Framebuffer, texture::Dim2, Backend};
 
 pub mod hello_world;
 pub mod render_state;
+pub mod shader_uniforms;
 mod shared;
 pub mod sliced_tess;
 
@@ -54,6 +55,18 @@ pub enum InputAction {
 
   /// Auxiliary action. Often used to showcase / toggle smaller parts of a bigger effect.
   AuxiliaryToggle,
+
+  /// Up direction. Typically used to move something up, move up, etc.
+  Up,
+
+  /// Down direction. Typically used to move something down, move down, etc.
+  Down,
+
+  /// Left direction. Typically used to move something left, move left, etc.
+  Left,
+
+  /// Right direction. Typically used to move something right, move right, etc.
+  Right,
 
   /// Framebuffer size changed.
   Resized { width: u32, height: u32 },

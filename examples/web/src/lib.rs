@@ -59,6 +59,26 @@ macro_rules! examples {
         self.actions.push(InputAction::Resized { width, height });
       }
 
+      pub fn enqueue_left_action(&mut self) {
+        log::debug!("pushing input action: left");
+        self.actions.push(InputAction::Left);
+      }
+
+      pub fn enqueue_right_action(&mut self) {
+        log::debug!("pushing input action: right");
+        self.actions.push(InputAction::Right);
+      }
+
+      pub fn enqueue_up_action(&mut self) {
+        log::debug!("pushing input action: up");
+        self.actions.push(InputAction::Up);
+      }
+
+      pub fn enqueue_down_action(&mut self) {
+        log::debug!("pushing input action: down");
+        self.actions.push(InputAction::Down);
+      }
+
       /// Cleanup all examples.
       pub fn reset(&mut self) {
         $(
@@ -74,14 +94,15 @@ macro_rules! examples {
             $test_name => {
               // check if the example is already bootstrapped; if not, bootstrap it and then render
               let surface = &mut self.surface;
-              let example = self.$test_ident.get_or_insert_with(||
+              let example = self.$test_ident.get_or_insert_with(|| {
+                log::debug!("bootstrapping {}", $test_name);
                 luminance_examples::$test_ident::LocalExample::bootstrap(surface)
-              );
+              });
 
               let loop_feedback = example.render_frame(
                 surface.back_buffer().expect("WebGL backbuffer"),
                 self.actions.iter().cloned(),
-                &mut self.surface,
+                surface,
               );
 
               self.actions.clear();
@@ -106,7 +127,8 @@ macro_rules! examples {
 examples! {
   "hello-world", hello_world,
   "render-state", render_state,
-  "sliced-tess", sliced_tess
+  "sliced-tess", sliced_tess,
+  "shader-uniforms", shader_uniforms
 }
 
 #[wasm_bindgen]
