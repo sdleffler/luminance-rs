@@ -15,6 +15,7 @@ edition = "2018"
 crate-type = ["cdylib"]
 
 [dependencies]
+console_error_panic_hook = "0.1.6"
 env_logger = "0.8.1"
 log = "0.4.11"
 luminance = "0.44"

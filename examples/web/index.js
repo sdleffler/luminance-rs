@@ -71,12 +71,14 @@ rust
     };
 
     window.onresize = () => {
-      canvas.width = window.innerWidth;
-      canvas.height = window.innerHeight;
-      showcase.enqueue_resized_action(window.width, window.height);
+      if (window.innerWidth !== undefined && window.innerHeight !== undefined) {
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+        showcase.enqueue_resized_action(window.width, window.height);
+      }
     };
 
-    setInterval(() => {
+    const renderFrame = () => {
       if (example_select.value !== '') {
         const feedback = showcase.render_example(example_select.value);
 
@@ -86,6 +88,10 @@ rust
           canvas.hidden = true;
         }
       }
-    }, 10);
+
+      window.requestAnimationFrame(renderFrame);
+    };
+
+    window.requestAnimationFrame(renderFrame);
   })
   .catch(console.error);

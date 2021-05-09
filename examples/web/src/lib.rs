@@ -134,6 +134,8 @@ examples! {
 #[wasm_bindgen]
 pub fn get_showcase(canvas_name: &str) -> Showcase {
   wasm_logger::init(wasm_logger::Config::default());
+  console_error_panic_hook::set_once();
+
   log::info!("creating the WebGL2 context…");
   let surface = WebSysWebGL2Surface::new(canvas_name).expect("WebGL2 canvas");
   Showcase::new(surface)
