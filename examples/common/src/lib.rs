@@ -38,6 +38,7 @@ pub trait Example {
   /// Render a frame of the example.
   fn render_frame(
     &mut self,
+    time: f32,
     back_buffer: Framebuffer<Dim2, (), ()>,
     actions: impl Iterator<Item = InputAction>,
     context: &mut impl GraphicsContext<Backend = Backend>,

@@ -1,4 +1,4 @@
-use std::env::args;
+use std::{env::args, time::Instant};
 
 use glfw::{Action, Context as _, Key, Modifiers, WindowEvent};
 use luminance_examples::{Example, InputAction, LoopFeedback};
@@ -47,13 +47,21 @@ where
   let events = surface.events_rx;
 
   let mut example = E::bootstrap(&mut context);
+  let start_t = Instant::now();
 
   'app: loop {
     // handle events
     context.window.glfw.poll_events();
     let actions = glfw::flush_messages(&events).flat_map(|(_, event)| adapt_events(event));
 
-    let feedback = example.render_frame(context.back_buffer().unwrap(), actions, &mut context);
+    let elapsed = start_t.elapsed();
+    let t = elapsed.as_secs() as f64 + (elapsed.subsec_millis() as f64 * 1e-3);
+    let feedback = example.render_frame(
+      t as _,
+      context.back_buffer().unwrap(),
+      actions,
+      &mut context,
+    );
 
     if feedback == LoopFeedback::Continue {
       context.window.swap_buffers();

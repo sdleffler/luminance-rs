@@ -87,7 +87,7 @@ macro_rules! examples {
         )*
       }
 
-      pub fn render_example(&mut self, name: &str) -> bool {
+      pub fn render_example(&mut self, name: &str, time: f32) -> bool {
         // first, check whether the example exists
         match name {
           $(
@@ -100,6 +100,7 @@ macro_rules! examples {
               });
 
               let loop_feedback = example.render_frame(
+                time,
                 surface.back_buffer().expect("WebGL backbuffer"),
                 self.actions.iter().cloned(),
                 surface,

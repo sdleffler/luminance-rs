@@ -128,6 +128,7 @@ impl Example for LocalExample {
 
   fn render_frame(
     &mut self,
+    _time: f32,
     back_buffer: Framebuffer<Dim2, (), ()>,
     actions: impl Iterator<Item = InputAction>,
     context: &mut impl GraphicsContext<Backend = Backend>,

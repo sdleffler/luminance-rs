@@ -61,7 +61,6 @@ pub struct LocalExample {
   program: Program<Semantics, (), ShaderInterface>,
   triangle: Tess<Vertex>,
   triangle_pos: [f32; 2],
-  start_t: Instant,
 }
 
 impl Example for LocalExample {
@@ -78,18 +77,17 @@ impl Example for LocalExample {
       .build()
       .unwrap();
     let triangle_pos = [0., 0.];
-    let start_t = Instant::now();
 
     Self {
       program,
       triangle,
       triangle_pos,
-      start_t,
     }
   }
 
   fn render_frame(
     &mut self,
+    t: f32,
     back_buffer: Framebuffer<Dim2, (), ()>,
     actions: impl Iterator<Item = InputAction>,
     context: &mut impl GraphicsContext<Backend = Backend>,
@@ -105,10 +103,6 @@ impl Example for LocalExample {
       }
     }
 
-    // get the current monotonic time
-    let elapsed = self.start_t.elapsed();
-    let t64 = elapsed.as_secs() as f64 + (elapsed.subsec_millis() as f64 * 1e-3);
-    let t = t64 as f32;
     let program = &mut self.program;
     let triangle = &self.triangle;
     let triangle_pos = self.triangle_pos;

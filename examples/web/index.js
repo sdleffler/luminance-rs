@@ -78,9 +78,9 @@ rust
       }
     };
 
-    const renderFrame = () => {
+    const renderFrame = (now) => {
       if (example_select.value !== '') {
-        const feedback = showcase.render_example(example_select.value);
+        const feedback = showcase.render_example(example_select.value, now * 1e-3);
 
         if (!feedback) {
           example_select.value = '';
