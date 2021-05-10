@@ -1,9 +1,12 @@
+mod platform;
+
 use std::{env::args, time::Instant};
 
 use glfw::{Action, Context as _, Key, Modifiers, WindowEvent};
 use luminance_examples::{Example, InputAction, LoopFeedback};
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
+use platform::DesktopPlatformServices;
 
 /// Macro to declaratively add examples.
 macro_rules! examples {
@@ -46,7 +49,9 @@ where
   let mut context = surface.context;
   let events = surface.events_rx;
 
-  let mut example = E::bootstrap(&mut context);
+  let mut services = DesktopPlatformServices::new();
+
+  let mut example = E::bootstrap(&mut services, &mut context);
   let start_t = Instant::now();
 
   'app: loop {
@@ -110,7 +115,8 @@ examples! {
   "render-state", render_state,
   "sliced-tess", sliced_tess,
   "shader-uniforms", shader_uniforms,
-  "attributeless", attributeless
+  "attributeless", attributeless,
+  "texture", texture
 }
 
 fn main() {

@@ -8,7 +8,7 @@
 //!
 //! https://docs.rs/luminance
 
-use crate::{Example, InputAction, LoopFeedback};
+use crate::{Example, InputAction, LoopFeedback, PlatformServices};
 use luminance_front::{
   context::GraphicsContext,
   pipeline::PipelineState,
@@ -26,7 +26,10 @@ pub struct LocalExample {
 }
 
 impl Example for LocalExample {
-  fn bootstrap(context: &mut impl GraphicsContext<Backend = luminance_front::Backend>) -> Self {
+  fn bootstrap(
+    _platform: &mut impl PlatformServices,
+    context: &mut impl GraphicsContext<Backend = luminance_front::Backend>,
+  ) -> Self {
     // we don’t use a Vertex type anymore (i.e. attributeless, so we use the unit () type)
     let program = context
       .new_shader_program::<(), (), ()>()

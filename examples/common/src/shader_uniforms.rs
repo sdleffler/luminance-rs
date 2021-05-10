@@ -13,7 +13,7 @@
 
 use crate::{
   shared::{Semantics, Vertex, VertexColor, VertexPosition},
-  Example, InputAction, LoopFeedback,
+  Example, InputAction, LoopFeedback, PlatformServices,
 };
 use luminance::UniformInterface;
 use luminance_front::{
@@ -64,7 +64,10 @@ pub struct LocalExample {
 }
 
 impl Example for LocalExample {
-  fn bootstrap(context: &mut impl GraphicsContext<Backend = Backend>) -> Self {
+  fn bootstrap(
+    _platform: &mut impl PlatformServices,
+    context: &mut impl GraphicsContext<Backend = Backend>,
+  ) -> Self {
     let program = context
       .new_shader_program()
       .from_strings(VS, None, None, FS)

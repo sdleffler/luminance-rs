@@ -7,7 +7,7 @@
 //!
 //! https://docs.rs/luminance
 
-use crate::{Example, InputAction, LoopFeedback};
+use crate::{Example, InputAction, LoopFeedback, PlatformServices};
 use luminance::{tess::Deinterleaved, Semantics, Vertex};
 use luminance_front::{
   context::GraphicsContext,
@@ -149,7 +149,10 @@ pub struct LocalExample {
 }
 
 impl Example for LocalExample {
-  fn bootstrap(context: &mut impl GraphicsContext<Backend = Backend>) -> Self {
+  fn bootstrap(
+    _platform: &mut impl PlatformServices,
+    context: &mut impl GraphicsContext<Backend = Backend>,
+  ) -> Self {
     // We need a program to “shade” our triangles and to tell luminance which is the input vertex
     // type, and we’re not interested in the other two type variables for this sample.
     let program = context

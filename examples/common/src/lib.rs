@@ -21,6 +21,8 @@
 //! - If you want to write solid and smart Rust code, you want to handle errors, not rely on panics.
 //! - This is example code, so don’t blindly copy it, try to understand it first.
 
+use std::error::Error;
+
 use luminance::context::GraphicsContext;
 use luminance_front::{framebuffer::Framebuffer, texture::Dim2, Backend};
 
@@ -30,11 +32,15 @@ pub mod render_state;
 pub mod shader_uniforms;
 mod shared;
 pub mod sliced_tess;
+pub mod texture;
 
 /// Example interface.
 pub trait Example {
   /// Bootstrap the example.
-  fn bootstrap(context: &mut impl GraphicsContext<Backend = Backend>) -> Self;
+  fn bootstrap(
+    platform: &mut impl PlatformServices,
+    context: &mut impl GraphicsContext<Backend = Backend>,
+  ) -> Self;
 
   /// Render a frame of the example.
   fn render_frame(
@@ -78,4 +84,18 @@ pub enum InputAction {
 pub enum LoopFeedback {
   Continue,
   Exit,
+}
+
+/// Various services provided by the platform.
+pub trait PlatformServices {
+  type FetchError: Error;
+
+  /// Get user input arguments.
+  ///
+  /// User inputs are string arguments that still require parsing. Return an empty [`Vec<String>`] if no user input was
+  /// passed.
+  fn fetch_user_input_args(&mut self) -> Vec<String>;
+
+  /// Fetch a texture given its name.
+  fn fetch_texture(&mut self, name: impl AsRef<str>) -> Result<image::RgbImage, Self::FetchError>;
 }

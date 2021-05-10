@@ -17,6 +17,7 @@ path = "src/main.rs"
 
 [dependencies]
 env_logger = "0.8.1"
+image = "0.23"
 log = "0.4.11"
 luminance = "0.44"
 luminance-examples = { version = "0.1", path = "../common" }

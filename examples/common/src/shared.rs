@@ -1,4 +1,12 @@
 use luminance::{Semantics, Vertex};
+use luminance_front::{
+  context::GraphicsContext,
+  pixel::NormRGB8UI,
+  texture::{Dim2, GenMipmaps, Sampler, Texture},
+  Backend,
+};
+
+use crate::PlatformServices;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Semantics)]
 pub enum Semantics {
@@ -102,4 +110,33 @@ pub fn cube(size: f32) -> ([CubeVertex; 24], [VertexIndex; 30]) {
   ];
 
   (vertices, indices)
+}
+
+pub fn load_texture(
+  context: &mut impl GraphicsContext<Backend = Backend>,
+  platform: &mut impl PlatformServices,
+  name: impl AsRef<str>,
+) -> Option<Texture<Dim2, NormRGB8UI>> {
+  let img = platform
+    .fetch_texture(name)
+    .map_err(|e| log::error!("error while loading image: {}", e))
+    .ok()?;
+  let (width, height) = img.dimensions();
+  let texels = img.into_raw();
+
+  // create the luminance texture; the third argument is the number of mipmaps we want (leave it
+  // to 0 for now) and the latest is the sampler to use when sampling the texels in the
+  // shader (we’ll just use the default one)
+  //
+  // the GenMipmaps argument disables mipmap generation (we don’t care so far)
+  context
+    .new_texture_raw(
+      [width, height],
+      0,
+      Sampler::default(),
+      GenMipmaps::No,
+      &texels,
+    )
+    .map_err(|e| log::error!("error while creating texture: {}", e))
+    .ok()
 }
