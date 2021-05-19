@@ -1,5 +1,8 @@
 //! Web platform for the examples.
 
+mod platform;
+
+use crate::platform::WebPlatformServices;
 use luminance_examples::{Example as _, InputAction, LoopFeedback};
 use luminance_web_sys::WebSysWebGL2Surface;
 use wasm_bindgen::prelude::*;
@@ -19,6 +22,7 @@ macro_rules! examples {
     /// code.
     #[wasm_bindgen]
     pub struct Showcase {
+      platform: WebPlatformServices,
       surface: WebSysWebGL2Surface,
       actions: Vec<InputAction>,
       $( $test_ident: Option<luminance_examples::$test_ident::LocalExample> ),*
@@ -27,12 +31,14 @@ macro_rules! examples {
     #[wasm_bindgen]
     impl Showcase {
       fn new(surface: WebSysWebGL2Surface) -> Self {
+        let platform = WebPlatformServices::new();
         let actions = Vec::new();
         $(
           let $test_ident = None;
         )*
 
         Showcase {
+          platform,
           surface,
           actions,
           $( $test_ident ),*
@@ -93,10 +99,11 @@ macro_rules! examples {
           $(
             $test_name => {
               // check if the example is already bootstrapped; if not, bootstrap it and then render
+              let platform = &mut self.platform;
               let surface = &mut self.surface;
               let example = self.$test_ident.get_or_insert_with(|| {
                 log::debug!("bootstrapping {}", $test_name);
-                luminance_examples::$test_ident::LocalExample::bootstrap(surface)
+                luminance_examples::$test_ident::LocalExample::bootstrap(platform, surface)
               });
 
               let loop_feedback = example.render_frame(
@@ -130,7 +137,8 @@ examples! {
   "render-state", render_state,
   "sliced-tess", sliced_tess,
   "shader-uniforms", shader_uniforms,
-  "attributeless", attributeless
+  "attributeless", attributeless,
+  "texture", texture
 }
 
 #[wasm_bindgen]

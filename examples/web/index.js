@@ -1,16 +1,23 @@
 const rust = import('./pkg');
 
+// list of examples to run
 let example_select = document.createElement('select');
 example_select.add(document.createElement('option'));
-console.log(example_select);
-
-example_select.classList.add('example-selector');
 example_select.style.position = 'absolute';
 example_select.style.top = 0;
 example_select.style.left = 0;
 document.body.appendChild(example_select);
 
+// user input, if needed
+let user_input_args = document.createElement('input');
+user_input_args.style.position = 'absolute';
+user_input_args.style.top = 0;
+user_input_args.style.right = 0;
+user_input_args.hidden = true;
+document.body.appendChild(user_input_args);
+
 let canvas = document.createElement('canvas');
+canvas.tabIndex = 0;
 canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 canvas.id = 'luminance-canvas';
@@ -35,8 +42,12 @@ rust
       canvas.hidden = change.target.value === '';
     };
 
+    // handle user input
+    user_input_args.onchange = change => {
+    };
+
     // transform events into input actions
-    window.onkeyup = (event) => {
+    canvas.addEventListener('keyup', (event) => {
       switch (event.code) {
         case 'Space':
           if (event.shiftKey) {
@@ -68,7 +79,7 @@ rust
 
         default:
       }
-    };
+    });
 
     window.onresize = () => {
       if (window.innerWidth !== undefined && window.innerHeight !== undefined) {
