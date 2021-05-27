@@ -1,12 +1,21 @@
 mod platform;
 
-use std::{env::args, time::Instant};
-
 use glfw::{Action, Context as _, Key, Modifiers, WindowEvent};
 use luminance_examples::{Example, InputAction, LoopFeedback};
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
 use platform::DesktopPlatformServices;
+use std::{path::PathBuf, time::Instant};
+use structopt::StructOpt;
+
+#[derive(Debug, StructOpt)]
+pub struct CLIOpts {
+  #[structopt(help = "Directory where to pick textures from", short, long)]
+  textures: Option<PathBuf>,
+
+  #[structopt(help = "Example to run", required = true)]
+  example: String,
+}
 
 /// Macro to declaratively add examples.
 macro_rules! examples {
@@ -17,11 +26,12 @@ macro_rules! examples {
     }
 
     // create a function that will run an example based on its name
-    fn pick_and_run_example(example_name: &str) {
+    fn pick_and_run_example(cli_opts: CLIOpts) {
+      let example_name = cli_opts.example.as_str();
       match example_name {
         $(
           $name => {
-            run_example::<luminance_examples::$test_ident::LocalExample>($name)
+            run_example::<luminance_examples::$test_ident::LocalExample>(cli_opts, $name)
           }
         ),*
 
@@ -35,10 +45,13 @@ macro_rules! examples {
 }
 
 // Run an example.
-fn run_example<E>(name: &str)
+fn run_example<E>(cli_opts: CLIOpts, name: &str)
 where
   E: Example,
 {
+  // Check the features so that we know what we need to load.
+  let mut services = DesktopPlatformServices::new(cli_opts, E::features());
+
   // First thing first: we create a new surface to render to and get events from.
   let dim = WindowDim::Windowed {
     width: 960,
@@ -48,8 +61,6 @@ where
     GlfwSurface::new_gl33(name, WindowOpt::default().set_dim(dim)).expect("GLFW surface creation");
   let mut context = surface.context;
   let events = surface.events_rx;
-
-  let mut services = DesktopPlatformServices::new();
 
   let mut example = E::bootstrap(&mut services, &mut context);
   let start_t = Instant::now();
@@ -121,12 +132,6 @@ examples! {
 
 fn main() {
   env_logger::init();
-  let arg = args().skip(1).next();
-
-  if let Some(example_name) = arg {
-    pick_and_run_example(&example_name);
-  } else {
-    log::error!("no example name provided");
-    show_available_examples();
-  }
+  let cli_opts = CLIOpts::from_args();
+  pick_and_run_example(cli_opts);
 }

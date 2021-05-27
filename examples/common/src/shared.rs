@@ -112,17 +112,20 @@ pub fn cube(size: f32) -> ([CubeVertex; 24], [VertexIndex; 30]) {
   (vertices, indices)
 }
 
+/// RGB texture.
+pub type RGBTexture = Texture<Dim2, NormRGB8UI>;
+
 pub fn load_texture(
   context: &mut impl GraphicsContext<Backend = Backend>,
   platform: &mut impl PlatformServices,
   name: impl AsRef<str>,
-) -> Option<Texture<Dim2, NormRGB8UI>> {
+) -> Option<RGBTexture> {
   let img = platform
     .fetch_texture(name)
     .map_err(|e| log::error!("error while loading image: {}", e))
     .ok()?;
   let (width, height) = img.dimensions();
-  let texels = img.into_raw();
+  let texels = img.as_raw();
 
   // create the luminance texture; the third argument is the number of mipmaps we want (leave it
   // to 0 for now) and the latest is the sampler to use when sampling the texels in the
@@ -135,7 +138,7 @@ pub fn load_texture(
       0,
       Sampler::default(),
       GenMipmaps::No,
-      &texels,
+      texels,
     )
     .map_err(|e| log::error!("error while creating texture: {}", e))
     .ok()

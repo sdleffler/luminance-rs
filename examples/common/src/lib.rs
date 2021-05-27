@@ -30,12 +30,17 @@ pub mod attributeless;
 pub mod hello_world;
 pub mod render_state;
 pub mod shader_uniforms;
-mod shared;
+pub mod shared;
 pub mod sliced_tess;
 pub mod texture;
 
 /// Example interface.
 pub trait Example {
+  /// List of features required by the example.
+  fn features() -> Features {
+    Features::default()
+  }
+
   /// Bootstrap the example.
   fn bootstrap(
     platform: &mut impl PlatformServices,
@@ -50,6 +55,41 @@ pub trait Example {
     actions: impl Iterator<Item = InputAction>,
     context: &mut impl GraphicsContext<Backend = Backend>,
   ) -> LoopFeedback;
+}
+
+/// Feature set.
+///
+/// Features allow to provide more interactivity in the examples.
+pub struct Features {
+  textures: Vec<String>,
+}
+
+impl Default for Features {
+  fn default() -> Self {
+    Features {
+      textures: Vec::new(),
+    }
+  }
+}
+
+impl Features {
+  /// Create an empty feature set.
+  pub fn none() -> Self {
+    Features::default()
+  }
+
+  /// Add a texture to be loaded.
+  pub fn texture(self, name: impl Into<String>) -> Self {
+    let mut textures = self.textures;
+    textures.push(name.into());
+
+    Features { textures, ..self }
+  }
+
+  /// List of textures to be loaded.
+  pub fn textures(&self) -> &[String] {
+    &self.textures
+  }
 }
 
 /// A type used to pass “inputs” to examples.
@@ -90,12 +130,6 @@ pub enum LoopFeedback {
 pub trait PlatformServices {
   type FetchError: Error;
 
-  /// Get user input arguments.
-  ///
-  /// User inputs are string arguments that still require parsing. Return an empty [`Vec<String>`] if no user input was
-  /// passed.
-  fn fetch_user_input_args(&mut self) -> Vec<String>;
-
   /// Fetch a texture given its name.
-  fn fetch_texture(&mut self, name: impl AsRef<str>) -> Result<image::RgbImage, Self::FetchError>;
+  fn fetch_texture(&mut self, name: impl AsRef<str>) -> Result<&image::RgbImage, Self::FetchError>;
 }
