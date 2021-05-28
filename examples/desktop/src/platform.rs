@@ -14,20 +14,27 @@ pub struct DesktopPlatformServices {
 
 impl DesktopPlatformServices {
   pub fn new(cli_opts: CLIOpts, features: Features) -> Self {
-    let texture_root = cli_opts.textures.as_ref().expect("no texture root");
-    let textures = features
-      .textures()
-      .iter()
-      .map(|name| {
-        let path = texture_root.join(name);
-        let texture = image::open(&path)
-          .map(|img| img.flipv().to_rgb8())
-          .expect(&format!("image {}", path.display()));
-        (name.clone(), texture)
-      })
-      .collect();
+    let textures = features.textures();
+    if textures.is_empty() {
+      Self {
+        cli_opts,
+        textures: HashMap::new(),
+      }
+    } else {
+      let texture_root = cli_opts.textures.as_ref().expect("no texture root");
+      let textures = textures
+        .iter()
+        .map(|name| {
+          let path = texture_root.join(name);
+          let texture = image::open(&path)
+            .map(|img| img.flipv().to_rgb8())
+            .expect(&format!("image {}", path.display()));
+          (name.clone(), texture)
+        })
+        .collect();
 
-    Self { cli_opts, textures }
+      Self { cli_opts, textures }
+    }
   }
 }
 

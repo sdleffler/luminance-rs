@@ -14,7 +14,12 @@ edition = "2018"
 [dependencies]
 cgmath = "0.18"
 env_logger = "0.8.1"
-image = "0.23"
 log = "0.4.11"
 luminance = "0.44"
 luminance-front = "0.4"
+
+
+[dependencies.image]
+version = "0.23"
+default-features = false
+features = ["gif", "jpeg", "ico", "png", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt", "dds", "farbfeld"]

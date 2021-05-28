@@ -17,7 +17,6 @@ crate-type = ["cdylib"]
 [dependencies]
 console_error_panic_hook = "0.1.6"
 env_logger = "0.8.1"
-image = "0.23"
 log = "0.4.11"
 luminance = "0.44"
 luminance-examples = { version = "0.1", path = "../common" }
@@ -26,6 +25,11 @@ luminance-web-sys = "0.3"
 luminance-windowing = "0.10"
 wasm-bindgen = "0.2.63"
 wasm-logger = "0.2"
+
+[dependencies.image]
+version = "0.23"
+default-features = false
+features = ["gif", "jpeg", "ico", "png", "pnm", "tga", "tiff", "webp", "bmp", "hdr", "dxt", "dds", "farbfeld"]
 
 [dependencies.web-sys]
 version = "0.3.44"
