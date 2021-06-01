@@ -168,7 +168,8 @@ examples! {
   "sliced-tess", sliced_tess,
   "shader-uniforms", shader_uniforms,
   "attributeless", attributeless,
-  "texture", texture
+  "texture", texture,
+  "offscreen", offscreen
 }
 
 #[wasm_bindgen]
