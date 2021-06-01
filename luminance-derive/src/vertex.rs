@@ -13,6 +13,7 @@ pub(crate) enum StructImplError {
   SemanticsError(AttrError),
   FieldError(AttrError),
   UnsupportedUnit,
+  SameTypes,
 }
 
 impl StructImplError {
@@ -27,6 +28,10 @@ impl StructImplError {
   pub(crate) fn unsupported_unit() -> Self {
     StructImplError::UnsupportedUnit
   }
+
+  pub(crate) fn same_types() -> Self {
+    StructImplError::SameTypes
+  }
 }
 
 impl fmt::Display for StructImplError {
@@ -35,6 +40,9 @@ impl fmt::Display for StructImplError {
       StructImplError::SemanticsError(ref e) => write!(f, "error with semantics type; {}", e),
       StructImplError::FieldError(ref e) => write!(f, "error with vertex attribute field; {}", e),
       StructImplError::UnsupportedUnit => f.write_str("unsupported unit struct"),
+      StructImplError::SameTypes => {
+        f.write_str("each field of this struct must have a different type")
+      }
     }
   }
 }
@@ -141,6 +149,12 @@ where
     .map_err(StructImplError::field_error)?;
 
   let field_ty = &field.ty;
+
+  // check if field type has already been used in this struct
+  if fields_types.iter().any(|ty| ty == field_ty) {
+    return Err(StructImplError::same_types());
+  }
+
   let vertex_attrib_desc = if normalized {
     quote! { (<#field_ty as luminance::vertex::VertexAttrib>::VERTEX_ATTRIB_DESC).normalize() }
   } else {
