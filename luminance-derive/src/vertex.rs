@@ -13,7 +13,7 @@ pub(crate) enum StructImplError {
   SemanticsError(AttrError),
   FieldError(AttrError),
   UnsupportedUnit,
-  SameTypes,
+  SameTypes(String, String),
 }
 
 impl StructImplError {
@@ -29,19 +29,19 @@ impl StructImplError {
     StructImplError::UnsupportedUnit
   }
 
-  pub(crate) fn same_types() -> Self {
-    StructImplError::SameTypes
+  pub(crate) fn same_types(ident: String, dup: String) -> Self {
+    StructImplError::SameTypes(ident, dup)
   }
 }
 
 impl fmt::Display for StructImplError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-    match *self {
+    match self {
       StructImplError::SemanticsError(ref e) => write!(f, "error with semantics type; {}", e),
       StructImplError::FieldError(ref e) => write!(f, "error with vertex attribute field; {}", e),
       StructImplError::UnsupportedUnit => f.write_str("unsupported unit struct"),
-      StructImplError::SameTypes => {
-        f.write_str("each field of this struct must have a different type")
+      StructImplError::SameTypes(field, dup) => {
+        write!(f, "field {} has the same type as field {}. Each field of this struct must have a different type", field, dup)
       }
     }
   }
@@ -149,10 +149,25 @@ where
     .map_err(StructImplError::field_error)?;
 
   let field_ty = &field.ty;
+  let names = fields_names.into();
 
   // check if field type has already been used in this struct
-  if fields_types.iter().any(|ty| ty == field_ty) {
-    return Err(StructImplError::same_types());
+  if let Some(i) = fields_types.iter().position(|ty| ty == field_ty) {
+    match names {
+      Some(idents) => {
+        // if fields are named, then the one we're processing must also be named
+        return Err(StructImplError::same_types(
+          field.ident.as_ref().unwrap().to_string(),
+          idents[i].to_string(),
+        ));
+      }
+      None => {
+        return Err(StructImplError::same_types(
+          fields_types.len().to_string(),
+          i.to_string(),
+        ));
+      }
+    }
   }
 
   let vertex_attrib_desc = if normalized {
@@ -172,7 +187,7 @@ where
   indexed_vertex_attrib_descs.push(indexed_vertex_attrib_desc_q);
   fields_types.push(field_ty.clone());
 
-  if let Some(fields_names) = fields_names.into() {
+  if let Some(fields_names) = names {
     fields_names.push(ident);
   }
 
