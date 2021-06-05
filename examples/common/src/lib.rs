@@ -30,13 +30,14 @@ pub mod attributeless;
 pub mod hello_world;
 pub mod offscreen;
 pub mod render_state;
+pub mod shader_uniform_adapt;
 pub mod shader_uniforms;
 pub mod shared;
 pub mod sliced_tess;
 pub mod texture;
 
 /// Example interface.
-pub trait Example {
+pub trait Example: Sized {
   /// List of features required by the example.
   fn features() -> Features {
     Features::default()
@@ -50,12 +51,12 @@ pub trait Example {
 
   /// Render a frame of the example.
   fn render_frame(
-    &mut self,
+    self,
     time: f32,
     back_buffer: Framebuffer<Dim2, (), ()>,
     actions: impl Iterator<Item = InputAction>,
     context: &mut impl GraphicsContext<Backend = Backend>,
-  ) -> LoopFeedback;
+  ) -> LoopFeedback<Self>;
 }
 
 /// Feature set.
@@ -122,8 +123,8 @@ pub enum InputAction {
 }
 
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]
-pub enum LoopFeedback {
-  Continue,
+pub enum LoopFeedback<T> {
+  Continue(T),
   Exit,
 }
 

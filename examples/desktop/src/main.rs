@@ -79,7 +79,8 @@ where
       &mut context,
     );
 
-    if feedback == LoopFeedback::Continue {
+    if let LoopFeedback::Continue(stepped) = feedback {
+      example = stepped;
       context.window.swap_buffers();
     } else {
       break 'app;

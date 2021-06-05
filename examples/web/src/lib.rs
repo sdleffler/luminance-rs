@@ -131,7 +131,8 @@ macro_rules! examples {
               // check if the example is already bootstrapped; if not, bootstrap it and then render
               let platform = &mut self.platform;
               let surface = &mut self.surface;
-              let example = self.$test_ident.get_or_insert_with(|| {
+              let example = self.$test_ident.take().unwrap_or_else(||
+              {
                 log::debug!("bootstrapping {}", $test_name);
                 luminance_examples::$test_ident::LocalExample::bootstrap(platform, surface)
               });
@@ -146,7 +147,9 @@ macro_rules! examples {
               self.actions.clear();
 
               // deallocate the example if we exit it
-              if loop_feedback == LoopFeedback::Exit {
+              if let LoopFeedback::Continue(stepped) = loop_feedback {
+                self.$test_ident = Some(stepped);
+              } else {
                 self.$test_ident = None;
                 return false;
               }

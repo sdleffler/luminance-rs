@@ -214,12 +214,12 @@ impl Example for LocalExample {
   }
 
   fn render_frame(
-    &mut self,
+    mut self,
     _time_ms: f32,
     back_buffer: Framebuffer<Dim2, (), ()>,
     actions: impl Iterator<Item = InputAction>,
     context: &mut impl GraphicsContext<Backend = Backend>,
-  ) -> LoopFeedback {
+  ) -> LoopFeedback<Self> {
     for action in actions {
       match action {
         InputAction::Quit => return LoopFeedback::Exit,
@@ -271,7 +271,7 @@ impl Example for LocalExample {
     // Finally, swap the backbuffer with the frontbuffer in order to render our triangles onto your
     // screen.
     if render.is_ok() {
-      LoopFeedback::Continue
+      LoopFeedback::Continue(self)
     } else {
       LoopFeedback::Exit
     }
