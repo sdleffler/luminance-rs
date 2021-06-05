@@ -172,7 +172,8 @@ examples! {
   "shader-uniforms", shader_uniforms,
   "attributeless", attributeless,
   "texture", texture,
-  "offscreen", offscreen
+  "offscreen", offscreen,
+  "shader-uniform-adapt", shader_uniform_adapt
 }
 
 #[wasm_bindgen]
