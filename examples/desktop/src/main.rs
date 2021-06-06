@@ -130,7 +130,8 @@ examples! {
   "attributeless", attributeless,
   "texture", texture,
   "offscreen", offscreen,
-  "shader-uniform-adapt", shader_uniform_adapt
+  "shader-uniform-adapt", shader_uniform_adapt,
+  "dynamic-uniform-interface", dynamic_uniform_interface
 }
 
 fn main() {

@@ -27,6 +27,7 @@ use luminance::context::GraphicsContext;
 use luminance_front::{framebuffer::Framebuffer, texture::Dim2, Backend};
 
 pub mod attributeless;
+pub mod dynamic_uniform_interface;
 pub mod hello_world;
 pub mod offscreen;
 pub mod render_state;
