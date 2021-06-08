@@ -174,7 +174,8 @@ examples! {
   "texture", texture,
   "offscreen", offscreen,
   "shader-uniform-adapt", shader_uniform_adapt,
-  "dynamic-uniform-interface", dynamic_uniform_interface
+  "dynamic-uniform-interface", dynamic_uniform_interface,
+  "vertex-instancing", vertex_instancing
 }
 
 #[wasm_bindgen]

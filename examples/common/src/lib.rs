@@ -36,6 +36,7 @@ pub mod shader_uniforms;
 pub mod shared;
 pub mod sliced_tess;
 pub mod texture;
+pub mod vertex_instancing;
 
 /// Example interface.
 pub trait Example: Sized {
