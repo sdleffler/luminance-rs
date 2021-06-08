@@ -132,7 +132,8 @@ examples! {
   "offscreen", offscreen,
   "shader-uniform-adapt", shader_uniform_adapt,
   "dynamic-uniform-interface", dynamic_uniform_interface,
-  "vertex-instancing", vertex_instancing
+  "vertex-instancing", vertex_instancing,
+  "query-texture-texels", query_texture_texels
 }
 
 fn main() {

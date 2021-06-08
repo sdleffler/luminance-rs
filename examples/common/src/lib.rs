@@ -30,6 +30,7 @@ pub mod attributeless;
 pub mod dynamic_uniform_interface;
 pub mod hello_world;
 pub mod offscreen;
+pub mod query_texture_texels;
 pub mod render_state;
 pub mod shader_uniform_adapt;
 pub mod shader_uniforms;
