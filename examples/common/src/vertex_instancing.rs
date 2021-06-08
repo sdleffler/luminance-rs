@@ -1,7 +1,5 @@
 //! This program shows you how to do *vertex instancing*, the easy way.
 //!
-//! Press <escape> to quit or close the window.
-//!
 //! https://docs.rs/luminance
 
 use crate::{

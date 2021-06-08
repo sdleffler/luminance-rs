@@ -8,8 +8,7 @@
 //! This example looks up the time and the triangle position on the fly, without using the uniform
 //! interface.
 //!
-//! Press the <a>, <s>, <d>, <z> or the arrow keys to move the triangle on the screen.
-//! Press <escape> to quit or close the window.
+//! Press the <left>, <right>, <up>, <down> actions to move the triangle on the screen.
 //!
 //! https://docs.rs/luminance
 
