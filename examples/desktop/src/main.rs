@@ -133,7 +133,8 @@ examples! {
   "shader-uniform-adapt", shader_uniform_adapt,
   "dynamic-uniform-interface", dynamic_uniform_interface,
   "vertex-instancing", vertex_instancing,
-  "query-texture-texels", query_texture_texels
+  "query-texture-texels", query_texture_texels,
+  "displacement-map", displacement_map
 }
 
 fn main() {
