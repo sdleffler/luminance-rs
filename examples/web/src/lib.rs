@@ -207,7 +207,8 @@ examples! {
   "shader-uniform-adapt", shader_uniform_adapt,
   "dynamic-uniform-interface", dynamic_uniform_interface,
   "vertex-instancing", vertex_instancing,
-  "displacement-map", displacement_map
+  "displacement-map", displacement_map,
+  "interactive-triangle", interactive_triangle
 }
 
 #[wasm_bindgen]
