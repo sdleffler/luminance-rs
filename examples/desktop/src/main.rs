@@ -10,33 +10,38 @@ use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 pub struct CLIOpts {
-  #[structopt(help = "Directory where to pick textures from", short, long)]
+  #[structopt(short, long)]
+  /// Directory where to pick textures from.
   textures: Option<PathBuf>,
 
-  #[structopt(help = "Example to run", required = true)]
-  example: String,
+  #[structopt(short, long)]
+  /// List available examples.
+  list_examples: bool,
+
+  /// Example to run.
+  example: Option<String>,
 }
 
 /// Macro to declaratively add examples.
 macro_rules! examples {
   ($($name:literal, $test_ident:ident),*) => {
     fn show_available_examples() {
-      log::error!("available examples:");
-      $( log::error!("  - {}", $name); )*
+      println!("available examples:");
+      $( println!("  - {}", $name); )*
     }
 
     // create a function that will run an example based on its name
     fn pick_and_run_example(cli_opts: CLIOpts) {
-      let example_name = cli_opts.example.as_str();
+      let example_name = cli_opts.example.as_ref().map(|n| n.as_str());
       match example_name {
         $(
-          $name => {
+          Some($name) => {
             run_example::<luminance_examples::$test_ident::LocalExample>(cli_opts, $name)
           }
         ),*
 
         _ => {
-          log::error!("no example '{}' found", example_name);
+          log::error!("no example found");
           show_available_examples();
         }
       }
@@ -169,5 +174,10 @@ examples! {
 fn main() {
   env_logger::init();
   let cli_opts = CLIOpts::from_args();
-  pick_and_run_example(cli_opts);
+
+  if cli_opts.list_examples {
+    show_available_examples();
+  } else {
+    pick_and_run_example(cli_opts);
+  }
 }
