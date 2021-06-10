@@ -152,6 +152,22 @@ rust
       }
     };
 
+    window.onmousemove = (value) => {
+      showcase.enqueue_cursor_moved_action(value.x, value.y);
+    };
+
+    window.onmouseup = (value) => {
+      if (value.button == 0) {
+        showcase.enqueue_primary_released_action();
+      }
+    };
+
+    window.onmousedown = (value) => {
+      if (value.button == 0) {
+        showcase.enqueue_primary_pressed_action();
+      }
+    };
+
     const renderFrame = (now) => {
       if (such_a_shame()) {
         const feedback = showcase.render_example(example_select.value, now * 1e-3);

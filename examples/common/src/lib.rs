@@ -104,6 +104,14 @@ pub enum InputAction {
   /// Quit the application.
   Quit,
 
+  /// Primary action. Typically used to fire a weapon, select an object, etc. Typically used along with a position on
+  /// screen.
+  PrimaryPressed,
+
+  /// Primary action. Typically used to fire a weapon, select an object, etc. Typically used along with a position on
+  /// screen.
+  PrimaryReleased,
+
   /// Main action. Typically used to switch an effect on and off or to cycle through it.
   MainToggle,
 
@@ -121,6 +129,10 @@ pub enum InputAction {
 
   /// Right direction. Typically used to move something right, move right, etc.
   Right,
+
+  /// Cursor moved. The cursor is a 2D-coordinate pointer on the screen that can be actioned by moving a stick, a mouse,
+  /// etc.
+  CursorMoved { x: f32, y: f32 },
 
   /// Framebuffer size changed.
   Resized { width: u32, height: u32 },

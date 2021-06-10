@@ -5,6 +5,7 @@ mod platform;
 use crate::platform::WebPlatformServices;
 use luminance_examples::{Example as _, Features, InputAction, LoopFeedback};
 use luminance_web_sys::WebSysWebGL2Surface;
+use std::iter;
 use wasm_bindgen::prelude::*;
 
 /// Web features.
@@ -67,6 +68,16 @@ macro_rules! examples {
         self.actions.push(InputAction::Quit)
       }
 
+      pub fn enqueue_primary_pressed_action(&mut self) {
+        log::debug!("pushing input action: primary pressed");
+        self.actions.push(InputAction::PrimaryPressed);
+      }
+
+      pub fn enqueue_primary_released_action(&mut self) {
+        log::debug!("pushing input action: primary released");
+        self.actions.push(InputAction::PrimaryReleased);
+      }
+
       pub fn enqueue_main_toggle_action(&mut self) {
         log::debug!("pushing input action: main toggle");
         self.actions.push(InputAction::MainToggle);
@@ -102,6 +113,11 @@ macro_rules! examples {
         self.actions.push(InputAction::Down);
       }
 
+      pub fn enqueue_cursor_moved_action(&mut self, x: f32, y: f32) {
+        log::debug!("pushing input action: cursor moved: x={}, y={}", x, y);
+        self.actions.push(InputAction::CursorMoved { x, y });
+      }
+
       /// Cleanup all examples.
       pub fn reset(&mut self) {
         $(
@@ -134,7 +150,22 @@ macro_rules! examples {
               let example = self.$test_ident.take().unwrap_or_else(||
               {
                 log::debug!("bootstrapping {}", $test_name);
-                luminance_examples::$test_ident::LocalExample::bootstrap(platform, surface)
+                let example = luminance_examples::$test_ident::LocalExample::bootstrap(platform, surface);
+
+                // send a first input action to forward the framebuffer size, as some examples use dummy initial values
+                let width = surface.window.inner_width().ok().and_then(|w| w.as_f64()).map(|w| w as u32).unwrap();
+                let height = surface.window.inner_height().ok().and_then(|h| h.as_f64()).map(|h| h as u32).unwrap();
+
+                let feedback = example.render_frame(0., surface.back_buffer().expect("WebGL backbuffer"),
+                iter::once(InputAction::Resized { width, height }),
+                surface);
+                match feedback {
+                  LoopFeedback::Exit => {
+                    panic!("oh no")
+                  }
+
+                  LoopFeedback::Continue(example) => example,
+                }
               });
 
               let loop_feedback = example.render_frame(

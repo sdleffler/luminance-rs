@@ -1,11 +1,11 @@
 mod platform;
 
-use glfw::{Action, Context as _, Key, Modifiers, WindowEvent};
+use glfw::{Action, Context as _, Key, Modifiers, MouseButton, WindowEvent};
 use luminance_examples::{Example, InputAction, LoopFeedback};
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
 use platform::DesktopPlatformServices;
-use std::{path::PathBuf, time::Instant};
+use std::{iter, path::PathBuf, time::Instant};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
@@ -62,8 +62,25 @@ where
   let mut context = surface.context;
   let events = surface.events_rx;
 
-  let mut example = E::bootstrap(&mut services, &mut context);
+  let example = E::bootstrap(&mut services, &mut context);
   let start_t = Instant::now();
+
+  // render a dummy frame to pass a single action containing the initial framebuffer size; some examples will use a
+  // default size that is not correct, and this will allow them to bootstrap correctly
+  let (fb_w, fb_h) = context.window.get_framebuffer_size();
+  let feedback = example.render_frame(
+    0.,
+    context.back_buffer().unwrap(),
+    iter::once(InputAction::Resized {
+      width: fb_w as _,
+      height: fb_h as _,
+    }),
+    &mut context,
+  );
+  let mut example = match feedback {
+    LoopFeedback::Exit => return,
+    LoopFeedback::Continue(example) => example,
+  };
 
   'app: loop {
     // handle events
@@ -113,6 +130,17 @@ fn adapt_events(event: WindowEvent) -> Option<InputAction> {
         _ => None,
       }
     }
+
+    WindowEvent::MouseButton(MouseButton::Button1, action, _) => match action {
+      Action::Press => Some(InputAction::PrimaryPressed),
+      Action::Release => Some(InputAction::PrimaryReleased),
+      _ => None,
+    },
+
+    WindowEvent::CursorPos(x, y) => Some(InputAction::CursorMoved {
+      x: x as _,
+      y: y as _,
+    }),
 
     WindowEvent::FramebufferSize(width, height) => Some(InputAction::Resized {
       width: width as _,
