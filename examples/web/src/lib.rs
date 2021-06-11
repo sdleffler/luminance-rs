@@ -5,7 +5,6 @@ mod platform;
 use crate::platform::WebPlatformServices;
 use luminance_examples::{Example as _, Features, InputAction, LoopFeedback};
 use luminance_web_sys::WebSysWebGL2Surface;
-use std::iter;
 use wasm_bindgen::prelude::*;
 
 /// Web features.
@@ -147,6 +146,7 @@ macro_rules! examples {
               // check if the example is already bootstrapped; if not, bootstrap it and then render
               let platform = &mut self.platform;
               let surface = &mut self.surface;
+              let actions = &mut self.actions;
               let example = self.$test_ident.take().unwrap_or_else(||
               {
                 log::debug!("bootstrapping {}", $test_name);
@@ -156,16 +156,8 @@ macro_rules! examples {
                 let width = surface.window.inner_width().ok().and_then(|w| w.as_f64()).map(|w| w as u32).unwrap();
                 let height = surface.window.inner_height().ok().and_then(|h| h.as_f64()).map(|h| h as u32).unwrap();
 
-                let feedback = example.render_frame(0., surface.back_buffer().expect("WebGL backbuffer"),
-                iter::once(InputAction::Resized { width, height }),
-                surface);
-                match feedback {
-                  LoopFeedback::Exit => {
-                    panic!("oh no")
-                  }
-
-                  LoopFeedback::Continue(example) => example,
-                }
+                actions.push(InputAction::Resized { width, height });
+                example
               });
 
               let loop_feedback = example.render_frame(
@@ -208,12 +200,13 @@ examples! {
   "dynamic-uniform-interface", dynamic_uniform_interface,
   "vertex-instancing", vertex_instancing,
   "displacement-map", displacement_map,
-  "interactive-triangle", interactive_triangle
+  "interactive-triangle", interactive_triangle,
+  "query-info", query_info
 }
 
 #[wasm_bindgen]
 pub fn get_showcase(canvas_name: &str) -> Showcase {
-  wasm_logger::init(wasm_logger::Config::default());
+  wasm_logger::init(wasm_logger::Config::new(log::Level::Info));
   console_error_panic_hook::set_once();
 
   log::info!("creating the WebGL2 context…");

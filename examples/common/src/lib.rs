@@ -32,6 +32,7 @@ pub mod dynamic_uniform_interface;
 pub mod hello_world;
 pub mod interactive_triangle;
 pub mod offscreen;
+pub mod query_info;
 pub mod query_texture_texels;
 pub mod render_state;
 pub mod shader_uniform_adapt;

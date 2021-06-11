@@ -10,8 +10,8 @@ This directory holds the desktop implementation of the examples.
 
 ## Quick start
 
-Nothing specific to do, just run `cargo run -l` in `examples/desktop` to build the examples and list all the available
-examples you can run. An example is run by giving its name to the built binary, like so:
+Nothing specific to do, just run `cargo run -- -l` in `examples/desktop` to build the examples and list all the
+available examples you can run. An example is run by giving its name to the built binary, like so:
 
 ```sh
 cargo run hello-world
