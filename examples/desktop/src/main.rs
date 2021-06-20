@@ -169,7 +169,8 @@ examples! {
   "query-texture-texels", query_texture_texels,
   "displacement-map", displacement_map,
   "interactive-triangle", interactive_triangle,
-  "query-info", query_info
+  "query-info", query_info,
+  "mrt", mrt
 }
 
 fn main() {

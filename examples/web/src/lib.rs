@@ -201,7 +201,8 @@ examples! {
   "vertex-instancing", vertex_instancing,
   "displacement-map", displacement_map,
   "interactive-triangle", interactive_triangle,
-  "query-info", query_info
+  "query-info", query_info,
+  "mrt", mrt
 }
 
 #[wasm_bindgen]
