@@ -67,6 +67,7 @@ use syn::{self, parse_macro_input, Data, DeriveInput};
 ///   - Its fields must have a type that implements [`HasSemantics`] as well. This trait is just a
 ///     type family that associates a single constant (i.e. the semantics) that the vertex attribute
 ///     uses.
+///   - Each field's type must be different.
 ///
 /// Once all those requirements are met, you can derive [`Vertex`] pretty easily.
 ///
