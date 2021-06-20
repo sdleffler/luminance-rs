@@ -499,26 +499,13 @@ fn create_cubemap_storage(
   s: u32,
   mipmaps: usize,
 ) -> Result<(), TextureError> {
-  for level in 0..mipmaps {
-    let s = s / (1 << level as u32);
-
-    for face in 0..6 {
-      state
-        .ctx
-        .tex_image_2d_with_i32_and_i32_and_i32_and_format_and_type_and_i32(
-          WebGl2RenderingContext::TEXTURE_CUBE_MAP_POSITIVE_X + face,
-          level as i32,
-          iformat as i32,
-          s as i32,
-          s as i32,
-          0,
-          format,
-          encoding,
-          0,
-        )
-        .map_err(|e| TextureError::TextureStorageCreationFailed(format!("{:?}", e)))?;
-    }
-  }
+  state.ctx.tex_storage_2d(
+    WebGl2RenderingContext::TEXTURE_CUBE_MAP,
+    mipmaps as i32,
+    iformat,
+    s as i32,
+    s as i32,
+  );
 
   Ok(())
 }
