@@ -102,6 +102,16 @@ macro_rules! examples {
         self.actions.push(InputAction::Right);
       }
 
+      pub fn enqueue_forward_action(&mut self) {
+        log::debug!("pushing input action: forward");
+        self.actions.push(InputAction::Forward);
+      }
+
+      pub fn enqueue_backward_action(&mut self) {
+        log::debug!("pushing input action: backward");
+        self.actions.push(InputAction::Backward);
+      }
+
       pub fn enqueue_up_action(&mut self) {
         log::debug!("pushing input action: up");
         self.actions.push(InputAction::Up);
@@ -115,6 +125,11 @@ macro_rules! examples {
       pub fn enqueue_cursor_moved_action(&mut self, x: f32, y: f32) {
         log::debug!("pushing input action: cursor moved: x={}, y={}", x, y);
         self.actions.push(InputAction::CursorMoved { x, y });
+      }
+
+      pub fn enqueue_vscroll_action(&mut self, amount: f32) {
+        log::debug!("pushing input action: vcsroll: amount={}", amount);
+        self.actions.push(InputAction::VScroll { amount });
       }
 
       /// Cleanup all examples.
@@ -202,7 +217,8 @@ examples! {
   "displacement-map", displacement_map,
   "interactive-triangle", interactive_triangle,
   "query-info", query_info,
-  "mrt", mrt
+  "mrt", mrt,
+  "skybox", skybox
 }
 
 #[wasm_bindgen]

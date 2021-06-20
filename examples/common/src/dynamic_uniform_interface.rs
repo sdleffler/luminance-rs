@@ -99,11 +99,11 @@ impl Example for LocalExample {
           self.triangle_pos[0] += 0.1;
         }
 
-        InputAction::Up => {
+        InputAction::Forward => {
           self.triangle_pos[1] += 0.1;
         }
 
-        InputAction::Down => {
+        InputAction::Backward => {
           self.triangle_pos[1] -= 0.1;
         }
 

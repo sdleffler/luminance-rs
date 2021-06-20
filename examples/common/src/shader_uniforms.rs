@@ -100,8 +100,8 @@ impl Example for LocalExample {
         InputAction::Quit => return LoopFeedback::Exit,
         InputAction::Left => self.triangle_pos[0] -= 0.1,
         InputAction::Right => self.triangle_pos[0] += 0.1,
-        InputAction::Up => self.triangle_pos[1] += 0.1,
-        InputAction::Down => self.triangle_pos[1] -= 0.1,
+        InputAction::Forward => self.triangle_pos[1] += 0.1,
+        InputAction::Backward => self.triangle_pos[1] -= 0.1,
         _ => (),
       }
     }

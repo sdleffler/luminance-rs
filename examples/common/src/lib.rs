@@ -39,6 +39,7 @@ pub mod render_state;
 pub mod shader_uniform_adapt;
 pub mod shader_uniforms;
 pub mod shared;
+pub mod skybox;
 pub mod sliced_tess;
 pub mod texture;
 pub mod vertex_instancing;
@@ -121,11 +122,11 @@ pub enum InputAction {
   /// Auxiliary action. Often used to showcase / toggle smaller parts of a bigger effect.
   AuxiliaryToggle,
 
-  /// Up direction. Typically used to move something up, move up, etc.
-  Up,
+  /// Forward direction. Typically used to move forward.
+  Forward,
 
-  /// Down direction. Typically used to move something down, move down, etc.
-  Down,
+  /// Forward direction. Typically used to move backward.
+  Backward,
 
   /// Left direction. Typically used to move something left, move left, etc.
   Left,
@@ -133,12 +134,21 @@ pub enum InputAction {
   /// Right direction. Typically used to move something right, move right, etc.
   Right,
 
+  /// Up direction. Typically used to move something up, go up, etc.
+  Up,
+
+  /// Down direction. Typically used to move something down, go down, etc.
+  Down,
+
   /// Cursor moved. The cursor is a 2D-coordinate pointer on the screen that can be actioned by moving a stick, a mouse,
   /// etc.
   CursorMoved { x: f32, y: f32 },
 
   /// Framebuffer size changed.
   Resized { width: u32, height: u32 },
+
+  /// Vertical scrolling.
+  VScroll { amount: f32 },
 }
 
 #[derive(Copy, Clone, Debug, Eq, Hash, PartialEq)]

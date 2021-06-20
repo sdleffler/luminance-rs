@@ -133,10 +133,18 @@ rust
           break;
 
         case 'KeyW':
-          showcase.enqueue_up_action();
+          showcase.enqueue_forward_action();
           break;
 
         case 'KeyS':
+          showcase.enqueue_backward_action();
+          break;
+
+        case 'KeyF':
+          showcase.enqueue_up_action();
+          break;
+
+        case 'KeyR':
           showcase.enqueue_down_action();
           break;
 

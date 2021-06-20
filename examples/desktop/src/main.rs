@@ -127,11 +127,14 @@ fn adapt_events(event: WindowEvent) -> Option<InputAction> {
     }
 
     WindowEvent::Key(key, _, Action::Press, _) | WindowEvent::Key(key, _, Action::Repeat, _) => {
+      log::debug!("key press: {:?}", key);
       match key {
         Key::A => Some(InputAction::Left),
         Key::D => Some(InputAction::Right),
-        Key::W => Some(InputAction::Up),
-        Key::S => Some(InputAction::Down),
+        Key::W => Some(InputAction::Forward),
+        Key::S => Some(InputAction::Backward),
+        Key::F => Some(InputAction::Up),
+        Key::R => Some(InputAction::Down),
         _ => None,
       }
     }
@@ -151,6 +154,11 @@ fn adapt_events(event: WindowEvent) -> Option<InputAction> {
       width: width as _,
       height: height as _,
     }),
+
+    WindowEvent::Scroll(_, amount) => Some(InputAction::VScroll {
+      amount: amount as f32,
+    }),
+
     _ => None,
   }
 }
@@ -170,7 +178,8 @@ examples! {
   "displacement-map", displacement_map,
   "interactive-triangle", interactive_triangle,
   "query-info", query_info,
-  "mrt", mrt
+  "mrt", mrt,
+  "skybox", skybox
 }
 
 fn main() {

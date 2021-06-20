@@ -109,8 +109,8 @@ impl Example for LocalExample {
     for action in actions {
       match action {
         InputAction::Quit => return LoopFeedback::Exit,
-        InputAction::Up => self.displacement_scale = (self.displacement_scale + 0.01).min(1.),
-        InputAction::Down => self.displacement_scale = (self.displacement_scale - 0.01).max(0.),
+        InputAction::Forward => self.displacement_scale = (self.displacement_scale + 0.01).min(1.),
+        InputAction::Backward => self.displacement_scale = (self.displacement_scale - 0.01).max(0.),
         _ => (),
       }
     }
