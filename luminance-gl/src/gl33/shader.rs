@@ -322,6 +322,7 @@ fn check_types_match(name: &str, ty: UniformType, glty: GLuint) -> Result<(), Un
     (Int, INT),
     (UInt, UNSIGNED_INT),
     (Float, FLOAT),
+    (Double, DOUBLE),
     (Bool, BOOL),
     // vectors
     (IVec2, INT_VEC2),
@@ -333,6 +334,9 @@ fn check_types_match(name: &str, ty: UniformType, glty: GLuint) -> Result<(), Un
     (Vec2, FLOAT_VEC2),
     (Vec3, FLOAT_VEC3),
     (Vec4, FLOAT_VEC4),
+    (DVec2, DOUBLE_VEC2),
+    (DVec3, DOUBLE_VEC3),
+    (DVec4, DOUBLE_VEC4),
     (BVec2, BOOL_VEC2),
     (BVec3, BOOL_VEC3),
     (BVec4, BOOL_VEC4),
@@ -340,6 +344,9 @@ fn check_types_match(name: &str, ty: UniformType, glty: GLuint) -> Result<(), Un
     (M22, FLOAT_MAT2),
     (M33, FLOAT_MAT3),
     (M44, FLOAT_MAT4),
+    (DM22, DOUBLE_MAT2),
+    (DM33, DOUBLE_MAT3),
+    (DM44, DOUBLE_MAT4),
     // textures
     (ISampler1D, INT_SAMPLER_1D),
     (ISampler2D, INT_SAMPLER_2D),
