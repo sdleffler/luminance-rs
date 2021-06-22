@@ -18,6 +18,7 @@ maintenance = { status = "actively-developed" }
 [features]
 default = ["gl33", "webgl2"]
 gl33 = []
+gl33-GL_ARB_gpu_shader_fp64 = ["luminance-gl/GL_ARB_gpu_shader_fp64"]
 webgl2 = []
 
 [dependencies]
