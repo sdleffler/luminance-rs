@@ -6,6 +6,9 @@ Each example comes in with a few explanations and how to use them at the top of 
 A [shared](./src/shared.rs) module is present so that the code can be shared and referenced from
 all examples. Don’t forget to go visit that file to understand more about how things work.
 
+This crate is also used to implement functional tests. By default, they are not compiled, you need
+to set the `"funtest"` feature.
+
 If you think a specific feature is missing, feel free to open a PR and add new examples! The more
 we have, the better! Also, keep in mind that this example repository is _not the proper way to
 learn [luminance] as a whole!_ If you would like to learn from scratch, it is highly recommended to

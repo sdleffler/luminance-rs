@@ -26,6 +26,7 @@ use std::error::Error;
 use luminance::context::GraphicsContext;
 use luminance_front::{framebuffer::Framebuffer, texture::Dim2, Backend};
 
+// examples
 pub mod attributeless;
 pub mod displacement_map;
 pub mod dynamic_uniform_interface;
@@ -43,6 +44,20 @@ pub mod skybox;
 pub mod sliced_tess;
 pub mod texture;
 pub mod vertex_instancing;
+
+// functional tests
+#[cfg(feature = "funtest")]
+pub mod funtest_360_manually_drop_framebuffer;
+#[cfg(feature = "funtest")]
+pub mod funtest_flatten_slice;
+#[cfg(all(feature = "funtest", feature = "funtest-gl33-f64-uniform"))]
+pub mod funtest_gl33_f64_uniform;
+#[cfg(feature = "funtest")]
+pub mod funtest_pixel_array_encoding;
+#[cfg(feature = "funtest")]
+pub mod funtest_scissor_test;
+#[cfg(feature = "funtest")]
+pub mod funtest_tess_no_data;
 
 /// Example interface.
 pub trait Example: Sized {

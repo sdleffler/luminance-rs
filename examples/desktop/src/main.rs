@@ -24,10 +24,23 @@ pub struct CLIOpts {
 
 /// Macro to declaratively add examples.
 macro_rules! examples {
-  ($($name:literal, $test_ident:ident),*) => {
+  (examples: $($ex_name:literal, $test_ident:ident),* , funtests: $($fun_name:literal $(if $fun_feature_gate:literal)?, $fun_ident:ident),* $(,)?) => {
     fn show_available_examples() {
       println!("available examples:");
-      $( println!("  - {}", $name); )*
+      $( println!("  - {}", $ex_name); )*
+
+      #[cfg(feature = "funtest")]
+      {
+        println!("\navailable functional tests:");
+        $(
+          print!("  - {}", $fun_name);
+          $(
+            #[cfg(feature = $fun_feature_gate)]
+            print!(" (feature: {})", $fun_feature_gate);
+          )?
+          println!("");
+        )*
+      }
     }
 
     // create a function that will run an example based on its name
@@ -35,8 +48,15 @@ macro_rules! examples {
       let example_name = cli_opts.example.as_ref().map(|n| n.as_str());
       match example_name {
         $(
-          Some($name) => {
-            run_example::<luminance_examples::$test_ident::LocalExample>(cli_opts, $name)
+          Some($ex_name) => {
+            run_example::<luminance_examples::$test_ident::LocalExample>(cli_opts, $ex_name)
+          }
+        ),*
+
+        $(
+          #[cfg(all(feature = "funtest"$(, feature = $fun_feature_gate)?))]
+          Some($fun_name) => {
+            run_example::<luminance_examples::$fun_ident::LocalExample>(cli_opts, $fun_name)
           }
         ),*
 
@@ -164,6 +184,7 @@ fn adapt_events(event: WindowEvent) -> Option<InputAction> {
 }
 
 examples! {
+  examples:
   "hello-world", hello_world,
   "render-state", render_state,
   "sliced-tess", sliced_tess,
@@ -179,7 +200,16 @@ examples! {
   "interactive-triangle", interactive_triangle,
   "query-info", query_info,
   "mrt", mrt,
-  "skybox", skybox
+  "skybox", skybox,
+
+  // functional tests
+  funtests:
+  "funtest-tess-no-data", funtest_tess_no_data,
+  "funtest-gl33-f64-uniform" if "funtest-gl33-f64-uniform", funtest_gl33_f64_uniform,
+  "funtest-scissor-test", funtest_scissor_test,
+  "funtest-360-manually-drop-framebuffer", funtest_360_manually_drop_framebuffer,
+  "funtest-flatten-slice", funtest_flatten_slice,
+  "funtest-pixel-array-encoding", funtest_pixel_array_encoding,
 }
 
 fn main() {
