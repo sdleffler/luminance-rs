@@ -50,8 +50,7 @@ jobs:
           cargo build
           cd $GITHUB_WORKSPACE/luminance-web-sys
           cargo build
-          cd $GITHUB_WORKSPACE/luminance-examples-web
-          cargo build
+          cd $GITHUB_WORKSPACE/examples/web
           yarn install
           yarn build
 

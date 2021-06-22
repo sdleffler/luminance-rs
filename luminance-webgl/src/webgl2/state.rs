@@ -712,7 +712,7 @@ impl fmt::Display for StateQueryError {
         write!(f, "unknown clear color initial state")
       }
 
-      StateQueryError::UnknownDepthWriteMaskState => f.write_str("unkonwn depth write mask state"),
+      StateQueryError::UnknownDepthWriteMaskState => f.write_str("unknown depth write mask state"),
 
       StateQueryError::UnknownBlendingEquation(ref e) => {
         write!(f, "unknown blending equation: {}", e)
