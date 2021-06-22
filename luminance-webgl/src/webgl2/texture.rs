@@ -397,7 +397,7 @@ where
 {
   match webgl_pixel_format(pf) {
     Some(glf) => {
-      let (format, iformat, encoding) = glf;
+      let (_, iformat, _) = glf;
 
       match D::dim() {
         // 2D texture
@@ -429,7 +429,7 @@ where
 
         // cubemap
         Dim::Cubemap => {
-          create_cubemap_storage(state, format, iformat, encoding, D::width(size), mipmaps)?;
+          create_cubemap_storage(state, iformat, D::width(size), mipmaps)?;
           Ok(())
         }
 
@@ -493,9 +493,7 @@ fn create_texture_3d_storage(
 
 fn create_cubemap_storage(
   state: &mut WebGL2State,
-  format: u32,
   iformat: u32,
-  encoding: u32,
   s: u32,
   mipmaps: usize,
 ) -> Result<(), TextureError> {
