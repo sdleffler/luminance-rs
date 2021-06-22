@@ -77,6 +77,7 @@ pub use luminance::depth_test;
 pub use luminance::face_culling;
 pub use luminance::pixel;
 pub use luminance::render_state;
+pub use luminance::scissor;
 pub use luminance::vertex;
 
 // select the backend type
