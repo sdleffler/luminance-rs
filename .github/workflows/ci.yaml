@@ -54,7 +54,7 @@ jobs:
           yarn install
           yarn build
 
-  integration-tests-desktop:
+  functional-tests-desktop:
     runs-on: ubuntu-latest
     steps:
       - name: Install dependencies
@@ -62,21 +62,21 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y libxrandr-dev xorg-dev libsdl2-dev
       - uses: actions/checkout@v2
-      - name: Integration testing
+      - name: Functional testing
         run: |
-          cd integration-tests/desktop
-          cargo check
+          cd examples/desktop
+          cargo check --features funtest,funtest-gl33-f64-uniform
 
-  integration-tests-web:
+  functional-tests-web:
     runs-on: ubuntu-latest
     steps:
       - name: Install rustup WASM toolchain
         run: rustup target install wasm32-unknown-unknown
       - uses: actions/checkout@v2
-      - name: Integration testing
+      - name: Functional testing
         run: |
-          cd integration-tests/web
-          cargo check
+          cd examples/web
+          cargo check --features funtest
 
   quality:
     runs-on: ubuntu-latest
