@@ -4,8 +4,6 @@ members = [
   "examples/common",
   "examples/desktop",
   "examples/web",
-  "integration-tests/desktop",
-  "integration-tests/web",
   "luminance",
   "luminance-derive",
   "luminance-front",
@@ -19,7 +17,8 @@ members = [
 ]
 
 default-members = [
-  "integration-tests/desktop",
+  "examples/common",
+  "examples/desktop",
   "luminance",
   "luminance-derive",
   "luminance-front",

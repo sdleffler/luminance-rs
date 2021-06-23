@@ -26,11 +26,23 @@ impl WebFeatures {
 
 /// Macro to declaratively add examples.
 macro_rules! examples {
-  ($($test_name:literal, $test_ident:ident),*) => {
+  (examples: $($test_name:literal, $test_ident:ident),* , funtests: $($fun_name:literal $(if $fun_feature_gate:literal)?, $fun_ident:ident),* $(,)?) => {
     /// List of available examples.
     #[wasm_bindgen]
     pub fn examples_names() -> Box<[JsValue]> {
-      vec![$( $test_name.into() ),*].into_boxed_slice()
+      let names = vec![$( $test_name.into() ),*];
+
+      #[cfg(feature = "funtest")]
+      let names = {
+        let mut names = names;
+        names.extend_from_slice(&[$(
+          $(#[cfg(feature = $fun_feature_gate)])?
+          $fun_name.into(),
+        )*]);
+        names
+      };
+
+      names.into_boxed_slice()
     }
 
     /// Main example object.
@@ -42,7 +54,8 @@ macro_rules! examples {
       platform: WebPlatformServices,
       surface: WebSysWebGL2Surface,
       actions: Vec<InputAction>,
-      $( $test_ident: Option<luminance_examples::$test_ident::LocalExample> ),*
+      $( $test_ident: Option<luminance_examples::$test_ident::LocalExample> ),*,
+      $( #[cfg(all(feature = "funtest", $(feature = $fun_feature_gate)?))] $fun_ident: Option<luminance_examples::$fun_ident::LocalExample> ),*,
     }
 
     #[wasm_bindgen]
@@ -53,90 +66,89 @@ macro_rules! examples {
         $(
           let $test_ident = None;
         )*
+        $(
+          #[cfg(all(feature = "funtest", $(feature = $fun_feature_gate)?))]
+          let $fun_ident = None;
+        )*
 
         Showcase {
           platform,
           surface,
           actions,
-          $( $test_ident ),*
+          $( $test_ident ),*,
+          $( #[cfg(all(feature = "funtest", $(feature = $fun_feature_gate)?))] $fun_ident ),*
         }
       }
 
       pub fn enqueue_quit_action(&mut self) {
-        log::debug!("pushing input action: quit");
         self.actions.push(InputAction::Quit)
       }
 
       pub fn enqueue_primary_pressed_action(&mut self) {
-        log::debug!("pushing input action: primary pressed");
         self.actions.push(InputAction::PrimaryPressed);
       }
 
       pub fn enqueue_primary_released_action(&mut self) {
-        log::debug!("pushing input action: primary released");
         self.actions.push(InputAction::PrimaryReleased);
       }
 
       pub fn enqueue_main_toggle_action(&mut self) {
-        log::debug!("pushing input action: main toggle");
         self.actions.push(InputAction::MainToggle);
       }
 
       pub fn enqueue_auxiliary_toggle_action(&mut self) {
-        log::debug!("pushing input action: auxiliary toggle");
         self.actions.push(InputAction::AuxiliaryToggle);
       }
 
       pub fn enqueue_resized_action(&mut self, width: u32, height: u32) {
-        log::debug!("pushing input action: resized {}×{}", width, height);
         self.actions.push(InputAction::Resized { width, height });
       }
 
       pub fn enqueue_left_action(&mut self) {
-        log::debug!("pushing input action: left");
         self.actions.push(InputAction::Left);
       }
 
       pub fn enqueue_right_action(&mut self) {
-        log::debug!("pushing input action: right");
         self.actions.push(InputAction::Right);
       }
 
       pub fn enqueue_forward_action(&mut self) {
-        log::debug!("pushing input action: forward");
         self.actions.push(InputAction::Forward);
       }
 
       pub fn enqueue_backward_action(&mut self) {
-        log::debug!("pushing input action: backward");
         self.actions.push(InputAction::Backward);
       }
 
       pub fn enqueue_up_action(&mut self) {
-        log::debug!("pushing input action: up");
         self.actions.push(InputAction::Up);
       }
 
       pub fn enqueue_down_action(&mut self) {
-        log::debug!("pushing input action: down");
         self.actions.push(InputAction::Down);
       }
 
       pub fn enqueue_cursor_moved_action(&mut self, x: f32, y: f32) {
-        log::debug!("pushing input action: cursor moved: x={}, y={}", x, y);
         self.actions.push(InputAction::CursorMoved { x, y });
       }
 
       pub fn enqueue_vscroll_action(&mut self, amount: f32) {
-        log::debug!("pushing input action: vcsroll: amount={}", amount);
         self.actions.push(InputAction::VScroll { amount });
       }
 
       /// Cleanup all examples.
       pub fn reset(&mut self) {
         $(
-          log::debug!("resetting {}", $test_name);
+          log::debug!("resetting example {}", $test_name);
           self.$test_ident = None;
+        )*
+
+        $(
+          #[cfg(all(feature = "funtest", $(feature = $fun_feature_gate)?))]
+          {
+            log::debug!("resetting functional test {}", $fun_name);
+            self.$fun_ident = None;
+          }
         )*
       }
 
@@ -144,6 +156,10 @@ macro_rules! examples {
         match name {
           $(
             $test_name => Some(WebFeatures(luminance_examples::$test_ident::LocalExample::features())),
+          )*
+          $(
+            #[cfg(all(feature = "funtest", $(feature = $fun_feature_gate)?))]
+            $fun_name => Some(WebFeatures(luminance_examples::$fun_ident::LocalExample::features())),
           )*
           _ => None
         }
@@ -164,7 +180,7 @@ macro_rules! examples {
               let actions = &mut self.actions;
               let example = self.$test_ident.take().unwrap_or_else(||
               {
-                log::debug!("bootstrapping {}", $test_name);
+                log::debug!("bootstrapping example {}", $test_name);
                 let example = luminance_examples::$test_ident::LocalExample::bootstrap(platform, surface);
 
                 // send a first input action to forward the framebuffer size, as some examples use dummy initial values
@@ -194,6 +210,45 @@ macro_rules! examples {
             }
           )*
 
+          $(
+            #[cfg(all(feature = "funtest", $(feature = $fun_feature_gate)?))]
+            $fun_name => {
+              // check if the functional test is already bootstrapped; if not, bootstrap it and then render
+              let platform = &mut self.platform;
+              let surface = &mut self.surface;
+              let actions = &mut self.actions;
+              let example = self.$fun_ident.take().unwrap_or_else(||
+              {
+                log::debug!("bootstrapping functional test {}", $fun_name);
+                let example = luminance_examples::$fun_ident::LocalExample::bootstrap(platform, surface);
+
+                // send a first input action to forward the framebuffer size, as some examples use dummy initial values
+                let width = surface.window.inner_width().ok().and_then(|w| w.as_f64()).map(|w| w as u32).unwrap();
+                let height = surface.window.inner_height().ok().and_then(|h| h.as_f64()).map(|h| h as u32).unwrap();
+
+                actions.push(InputAction::Resized { width, height });
+                example
+              });
+
+              let loop_feedback = example.render_frame(
+                time,
+                surface.back_buffer().expect("WebGL backbuffer"),
+                self.actions.iter().cloned(),
+                surface,
+              );
+
+              self.actions.clear();
+
+              // deallocate the example if we exit it
+              if let LoopFeedback::Continue(stepped) = loop_feedback {
+                self.$fun_ident = Some(stepped);
+              } else {
+                self.$fun_ident = None;
+                return false;
+              }
+            }
+          )*
+
           _ => ()
         }
 
@@ -204,6 +259,7 @@ macro_rules! examples {
 }
 
 examples! {
+  examples:
   "hello-world", hello_world,
   "render-state", render_state,
   "sliced-tess", sliced_tess,
@@ -218,12 +274,19 @@ examples! {
   "interactive-triangle", interactive_triangle,
   "query-info", query_info,
   "mrt", mrt,
-  "skybox", skybox
+  "skybox", skybox,
+
+  funtests:
+  "funtest-tess-no-data", funtest_tess_no_data,
+  "funtest-scissor-test", funtest_scissor_test,
+  "funtest-360-manually-drop-framebuffer", funtest_360_manually_drop_framebuffer,
+  "funtest-flatten-slice", funtest_flatten_slice,
+  "funtest-pixel-array-encoding", funtest_pixel_array_encoding,
 }
 
 #[wasm_bindgen]
 pub fn get_showcase(canvas_name: &str) -> Showcase {
-  wasm_logger::init(wasm_logger::Config::new(log::Level::Info));
+  wasm_logger::init(wasm_logger::Config::new(log::Level::Debug));
   console_error_panic_hook::set_once();
 
   log::info!("creating the WebGL2 context…");
