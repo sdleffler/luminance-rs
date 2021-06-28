@@ -1,6 +1,6 @@
 [package]
 name = "luminance-sdl2"
-version = "0.2.2"
+version = "0.3.0"
 license = "BSD-3-Clause"
 authors = [
   "Dimitri Sabadie <dimitri.sabadie@gmail.com>",
@@ -24,6 +24,6 @@ bundled = ["sdl2/bundled"]
 
 [dependencies]
 gl = "0.14"
-luminance = ">=0.42, <0.44"
-luminance-gl = ">=0.15, <0.17"
+luminance = "0.44"
+luminance-gl = "0.17"
 sdl2 = "0.34.3"

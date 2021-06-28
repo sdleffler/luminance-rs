@@ -25,9 +25,14 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.17
 
-> Apr 25, 2021
+> Jun 28, 2021
 
 - Support of `luminance-0.44` and its subsequent texture resizing and new texture creation interface.
+- Add null pointer check in the OpenGL 3.3 buffer code, transformed into runtime errors in case of issues mapping buffer
+  for instance.
+- Use arrays instead of tuples for pixel encoding wherever it was applicable.
+- Support for the Query API.
+- Fix support for doubles (`f64`) in shader code. This is gated by `GL_ARB_gpu_shader_fp64` and is not enabled by default.
 
 # 0.16.1
 

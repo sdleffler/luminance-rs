@@ -130,7 +130,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.44
 
-> `HEAD`
+> Jun 28, 2021
 
 - This release marks the end of using SemVer ranges in the luminance ecosystem. Even though SemVer ranges are very
   powerful and should be used widely in the Rust ecosystem, `cargo` doesn’t do the right thing with them and lots of
@@ -141,6 +141,26 @@ compatible with as many crates as possible. In that case, you want `cargo update
   any texels, you can use `GraphicsContext::new_texture_no_texels`.
 - Use arrays instead of tuples for pixel types `Encoding`. A previous type such as `(u8, u8, u8)` now becomes `[u8; 3]`,
   which has a stable and well-defined memory layout.
+- Enhanced the documentation about `ColorSlot` and `DepthSlot`.
+- Introduce `tess_indices_nb` (backend) and `Tess::idx_nb`. This is a new change that allows people to now query the
+  number of vertices and indices independently. Prior to this change, `Tess::vert_nb` was implemented in a way that
+  required to actually do something smart (whether the geometry was indexed, for instance). This new change now supports
+  vertex and index counts.
+- `Tess` documentation cleanup.
+- Add premise of the Query API. This new API, available on types implementing `GraphicsContext` and exposed via
+  `GraphicsContext::query()`, allows to query various bits of information about luminance and its running backend. The
+  current list of capabilities that can be inspected is:
+  - The backend “author” (vendor, company, etc.).
+  - The backend name.
+  - The backend version.
+  - The backend shading language version.
+  - The maximum number of texture array elements.
+  This list is subject to be augmented in the future whenever needed.
+- Migrate the examples to a new _backend-agnostic_ design, allowing to easily add new examples that will be runnable on
+  various executors and platforms (currently supported: desktop and web via WASM). This change also brings in the
+  possibility to migrate the functional tests as special examples. If you want to try the new examples, you can go in
+  `examples/desktop` for instance and run `cargo run -- -l` to list them all. For the web platform, go in `examples/web`
+  and then `yarn serve` and open `http://localhost:8080`.
 
 # 0.43.2
 

@@ -30,6 +30,10 @@ compatible with as many crates as possible. In that case, you want `cargo update
 > Apr 25, 2021
 
 - Support of `luminance-0.44` and its subsequent texture resizing and new texture creation interface.
+- Use arrays instead of tuples for pixel encoding wherever it was applicable.
+- Support for the Query API.
+- Fix WebGL `impl` for arrays to be able to use them as source of initial storage for `Buffer`.
+- Fix WebGL cubemap storage creation. The bug was making them completely unusable and highly distorted / corrupted.
 
 # 0.3.2
 

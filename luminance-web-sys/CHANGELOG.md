@@ -28,6 +28,8 @@ compatible with as many crates as possible. In that case, you want `cargo update
 > Apr 25, 2021
 
 - Support of `luminance-0.44`.
+- Document `WebSysWebGL2Surface::from_canvas`.
+- Support opnengi WebGL context with parameters.
 
 # 0.2.3
 
