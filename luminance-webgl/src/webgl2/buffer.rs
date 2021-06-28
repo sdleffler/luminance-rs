@@ -66,7 +66,7 @@ impl<T> Buffer<T> {
       .create_buffer()
       .ok_or_else(|| BufferError::cannot_create())?;
 
-    Self::bind(&mut state, &handle, target)?;
+    bind_buffer(&mut state, &handle, target, Bind::Forced)?;
 
     let bytes = mem::size_of::<T>() * len;
     state
@@ -94,7 +94,7 @@ impl<T> Buffer<T> {
       .create_buffer()
       .ok_or_else(|| BufferError::cannot_create())?;
 
-    Self::bind(&mut state, &handle, target)?;
+    bind_buffer(&mut state, &handle, target, Bind::Forced)?;
 
     let bytes = mem::size_of::<T>() * len;
     let data = unsafe { slice::from_raw_parts(vec.as_ptr() as *const _, bytes) };
@@ -109,23 +109,6 @@ impl<T> Buffer<T> {
     };
 
     Ok(Buffer { gl_buf, buf: vec })
-  }
-
-  /// Bind a buffer to a given state regarding the input target.
-  fn bind(state: &mut WebGL2State, handle: &WebGlBuffer, target: u32) -> Result<(), BufferError> {
-    // depending on the buffer target, we are not going to bind it the same way, as the first bind
-    // is actually meaningful in WebGL2
-    match target {
-      WebGl2RenderingContext::ARRAY_BUFFER => state.bind_array_buffer(Some(handle), Bind::Forced),
-      WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER => {
-        state.bind_element_array_buffer(Some(handle), Bind::Forced)
-      }
-
-      // a bit opaque but should never happen
-      _ => return Err(BufferError::CannotCreate),
-    }
-
-    Ok(())
   }
 
   pub(crate) fn handle(&self) -> &WebGlBuffer {
@@ -190,7 +173,7 @@ where
         buffer.buf.as_ptr() as *const u8,
         bytes,
         i,
-      );
+      )?;
 
       Ok(())
     }
@@ -224,7 +207,7 @@ where
       buffer.buf.as_ptr() as *const u8,
       bytes,
       0,
-    );
+    )?;
 
     Ok(())
   }
@@ -244,7 +227,7 @@ where
       buffer.buf.as_ptr() as *const u8,
       bytes,
       0,
-    );
+    )?;
 
     Ok(())
   }
@@ -300,7 +283,7 @@ pub struct BufferSliceMutWrapper {
 impl Drop for BufferSliceMutWrapper {
   fn drop(&mut self) {
     let mut state = self.state.borrow_mut();
-    update_webgl_buffer(
+    let _ = update_webgl_buffer(
       self.target,
       &mut state,
       &self.handle,
@@ -388,19 +371,43 @@ where
   }
 }
 
+/// Bind a buffer to a given state regarding the input target.
+fn bind_buffer(
+  state: &mut WebGL2State,
+  handle: &WebGlBuffer,
+  target: u32,
+  bind_mode: Bind,
+) -> Result<(), BufferError> {
+  // depending on the buffer target, we are not going to bind it the same way, as the first bind
+  // is actually meaningful in WebGL2
+  match target {
+    WebGl2RenderingContext::ARRAY_BUFFER => state.bind_array_buffer(Some(handle), bind_mode),
+    WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER => {
+      state.bind_element_array_buffer(Some(handle), bind_mode)
+    }
+
+    // a bit opaque but should never happen
+    _ => return Err(BufferError::CannotCreate),
+  }
+
+  Ok(())
+}
+
 /// Update a WebGL buffer by copying an input slice.
 fn update_webgl_buffer(
   target: u32,
   state: &mut WebGL2State,
-  gl_buf: &WebGlBuffer,
+  handle: &WebGlBuffer,
   data: *const u8,
   bytes: usize,
   offset: usize,
-) {
-  state.bind_array_buffer(Some(gl_buf), Bind::Cached);
+) -> Result<(), BufferError> {
+  bind_buffer(state, handle, target, Bind::Cached)?;
 
   let data = unsafe { slice::from_raw_parts(data as _, bytes) };
   state
     .ctx
     .buffer_sub_data_with_i32_and_u8_array_and_src_offset(target, offset as _, data, 0);
+
+  Ok(())
 }
