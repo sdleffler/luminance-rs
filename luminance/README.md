@@ -176,9 +176,155 @@ symbols (types, functions, etc.) from a windowing crate and the necessary code t
 compatible with luminance. That means providing a way to access a backend type, which
 implements the [luminance::backend] interface.
 
+## luminance-derive
+
+If you are compiling against the `"derive"` feature, you get access to [`luminance-derive`] automatically, which
+provides a set of _procedural macros_.
+
+### `Vertex`
+
+The [`Vertex`] derive proc-macro.
+
+That proc-macro allows you to create custom vertex types easily without having to care about
+implementing the required traits for your types to be usable with the rest of the crate.
+
+The [`Vertex`] trait must be implemented if you want to use a type as vertex (passed-in via
+slices to [`Tess`]). Either you can decide to implement it on your own, or you could just let
+this crate do the job for you.
+
+> Important: the [`Vertex`] trait is `unsafe`, which means that all of its implementors must be
+> as well. This is due to the fact that vertex formats include information about raw-level
+> GPU memory and a bad implementation can have undefined behaviors.
+
+You can derive the [`Vertex`] trait if your type follows these conditions:
+
+  - It must be a `struct` with named fields. This is just a temporary limitation that will get
+    dropped as soon as the crate is stable enough.
+  - Its fields must have a type that implements [`VertexAttrib`]. This is mandatory so that the
+    backend knows enough about the types used in the structure to correctly align memory, pick
+    the right types, etc.
+  - Its fields must have a type that implements [`HasSemantics`] as well. This trait is just a
+    type family that associates a single constant (i.e. the semantics) that the vertex attribute
+    uses.
+  - Each field's type must be different.
+
+Once all those requirements are met, you can derive [`Vertex`] pretty easily.
+
+> Note: feel free to look at the [`Semantics`] proc-macro as well, that provides a way
+> to generate semantics types in order to completely both implement [`Semantics`] for an
+> `enum` of your choice, but also generate *field* types you can use when defining your vertex
+> type.
+
+The syntax is the following:
+
+```rust
+
+// visit the Semantics proc-macro documentation for further details
+#[derive(Clone, Copy, Debug, PartialEq, Semantics)]
+pub enum Semantics {
+  #[sem(name = "position", repr = "[f32; 3]", wrapper = "VertexPosition")]
+  Position,
+  #[sem(name = "color", repr = "[f32; 4]", wrapper = "VertexColor")]
+  Color
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Vertex)] // just add Vertex to the list of derived traits
+#[vertex(sem = "Semantics")] // specify the semantics to use for this type
+struct MyVertex {
+  position: VertexPosition,
+  color: VertexColor
+}
+```
+
+> Note: the `Semantics` enum must be public because of the implementation of [`HasSemantics`]
+> trait.
+
+Besides the `Semantics`-related code, this will:
+
+  - Create a type called `MyVertex`, a struct that will hold a single vertex.
+  - Implement `Vertex for MyVertex`.
+
+The proc-macro also supports an optional `#[vertex(instanced = "<bool>")]` struct attribute.
+This attribute allows you to specify whether the fields are to be instanced or not. For more
+about that, have a look at [`VertexInstancing`].
+
+### `Semantics`
+
+The [`Semantics`] derive proc-macro.
+
+### `UniformInterface`
+
+The [`UniformInterface`] derive proc-macro.
+
+The procedural macro is very simple to use. You declare a struct as you would normally do:
+
+```rust
+
+#[derive(Debug, UniformInterface)]
+struct MyIface {
+  time: Uniform<f32>,
+  resolution: Uniform<[f32; 4]>
+}
+```
+
+The effect of this declaration is declaring the `MyIface` struct along with an effective
+implementation of `UniformInterface` that will try to get the `"time"` and `"resolution"`
+uniforms in the corresponding shader program. If any of the two uniforms fails to map (inactive
+uniform, for instance), the whole struct cannot be generated, and an error is arisen (see
+`UniformInterface::uniform_interface`’s documentation for further details).
+
+If you don’t use a parameter in your shader, you might not want the whole interface to fail
+building if that parameter cannot be mapped. You can do that via the `#[unbound]` field
+attribute:
+
+```rust
+
+#[derive(Debug, UniformInterface)]
+struct MyIface {
+  #[uniform(unbound)]
+  time: Uniform<f32>, // if this field cannot be mapped, it’ll be ignored
+  resolution: Uniform<[f32; 4]>
+}
+```
+
+You can also change the default mapping with the `#[uniform(name = "string_mapping")]`
+attribute. This changes the name that must be queried from the shader program for the mapping
+to be complete:
+
+```rust
+
+#[derive(Debug, UniformInterface)]
+struct MyIface {
+  time: Uniform<f32>,
+  #[uniform(name = "res")]
+  resolution: Uniform<[f32; 4]> // maps "res" from the shader program
+}
+```
+
+Finally, you can mix both attributes if you want to change the mapping and have an unbound
+uniform if it cannot be mapped:
+
+```rust
+
+#[derive(Debug, UniformInterface)]
+struct MyIface {
+  time: Uniform<f32>,
+  #[uniform(name = "res", unbound)]
+  resolution: Uniform<[f32; 4]> // must map "res" from the shader program and ignored otherwise
+}
+```
+
+
 [luminance]: https://crates.io/crates/luminance
 [luminance-gl]: https://crates.io/crates/luminance-gl
 [luminance-front]: https://crates.io/crates/luminance-front
 [luminance::backend]: crate::backend
+[`Semantics`]: https://docs.rs/luminance/latest/luminance/vertex/trait.Semantics.html
+[`HasSemantics`]: https://docs.rs/luminance/latest/luminance/vertex/trait.HasSemantics.html
+[`Tess`]: https://docs.rs/luminance/latest/luminance/tess/struct.Tess.html
+[`Vertex`]: https://docs.rs/luminance/latest/luminance/vertex/trait.Vertex.html
+[`VertexAttrib`]: https://docs.rs/luminance/latest/luminance/vertex/trait.VertexAttrib.html
+[`VertexInstancing`]: https://docs.rs/luminance/latest/luminance/vertex/enum.VertexInstancing.html
+[`UniformInterface`]: https://docs.rs/luminance/latest/luminance/shader/program/trait.UniformInterface.html
 
 <!-- cargo-sync-readme end -->

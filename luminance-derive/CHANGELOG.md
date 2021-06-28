@@ -38,6 +38,8 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 - Support of `luminance-0.44`.
 - Add a check when a `Vertex` type has fields of the same type and raise a compile-time error if that’s the case.
+- Remove the `dev-dependencies` entry on `luminance`. This is was needed for tests only, which were moved to `luminance`
+  directly, and the cycle dependency was preventing from releasing major bumps of crates.
 
 # 0.6.3
 
