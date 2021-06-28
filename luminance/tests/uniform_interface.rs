@@ -1,3 +1,5 @@
+#![cfg(feature = "derive")]
+
 use luminance::shader::Uniform;
 use luminance::UniformInterface;
 

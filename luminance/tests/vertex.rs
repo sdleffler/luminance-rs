@@ -1,3 +1,5 @@
+#![cfg(feature = "derive")]
+
 use luminance::vertex::{
   HasSemantics, Semantics, Vertex, VertexAttrib, VertexBufferDesc, VertexInstancing,
 };
