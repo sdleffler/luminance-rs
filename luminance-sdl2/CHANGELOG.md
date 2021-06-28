@@ -11,6 +11,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.3](#03)
 * [0.2.2](#022)
 * [0.2.1](#021)
 * [0.2](#02)
@@ -18,6 +19,13 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.3
+
+> Jun 28, 2021
+
+- Add support for `luminance-0.44`.
+- Add support for `luminance-gl-0.17`.
 
 # 0.2.2
 

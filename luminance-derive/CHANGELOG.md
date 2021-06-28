@@ -37,6 +37,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 > Apr 25, 2021
 
 - Support of `luminance-0.44`.
+- Add a check when a `Vertex` type has fields of the same type and raise a compile-time error if that’s the case.
 
 # 0.6.3
 

@@ -29,6 +29,7 @@ compatible with as many crates as possible. In that case, you want `cargo update
 - Support of `luminance-0.44`.
 - Support of `luminance-gl-0.17`.
 - Support of `luminance-webgl-0.4`.
+- Re-exported `luminance::scissor`.
 
 # 0.3.1
 

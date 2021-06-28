@@ -38,9 +38,10 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 # 0.12
 
-> Apr 25, 2021
+> Jun 28, 2021
 
 - Support of `luminance-0.44`.
+- Support of `glutin-0.27`.
 
 # 0.11.3
 
