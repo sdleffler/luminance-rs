@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/zsh
 #
 # This script is a great helper when having to perform roll out to crates.io. When the CI is all
 # green and that you need to release a crate, you can use this tool to publish crates to crates.io.
@@ -8,12 +8,10 @@
 #
 # This script should be called from the root directory.
 
-set -e
-
 # List of crates to roll out. Order matters.
 crates=(
-  luminance
   luminance-derive
+  luminance
   luminance-windowing
   luminance-gl
   luminance-glfw
@@ -25,7 +23,9 @@ crates=(
 )
 
 function publish_crate() {
-  (cd $1 && cargo package && cargo publish)
+  read "go?Publish $1 to crates.io? (Y/n) "
+  go=${go:-"Y"}
+  (test $go = "Y" && cd $1 && cargo package && cargo publish)
 }
 
 function get_crate_version() {
@@ -33,13 +33,17 @@ function get_crate_version() {
 }
 
 function create_git_tag() {
-  git tag $1-$2
-  echo -e "  created git tag $1-\e[034;3m$2\e[0;0m"
+  echo "Current tags for $1:"
+  git tag | rg ^$1-\\d
+  read "go?Create tag $1-$2? (Y/n) "
+  go=${go:-"Y"}
+  (test $go = "Y" && git tag $1-$2 && echo -e "  created git tag $1-\e[034;3m$2\e[0;0m")
 }
 
 function push_git_tags() {
-  git push origin --tags
-  echo -e "  push git tag $1-\e[034;3m$2\e[0;0m"
+  read "go?Push tags? (Y/n) "
+  go=${go:-"Y"}
+  (test $go = "Y" && git push origin --tags)
 }
 
 case "$*" in
@@ -51,8 +55,6 @@ case "$*" in
 
       publish_crate $crate
       create_git_tag $crate $version
-
-      sleep 5
     done
 
     push_git_tags
