@@ -2,12 +2,6 @@
 
 This directory holds the desktop implementation of the examples.
 
-<!-- vim-markdown-toc GFM -->
-
-* [Quick start](#quick-start)
-
-<!-- vim-markdown-toc -->
-
 ## Quick start
 
 Nothing specific to do, just run `cargo run -- -l` in `examples/desktop` to build the examples and list all the
