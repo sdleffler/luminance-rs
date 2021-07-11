@@ -2,14 +2,6 @@
 
 This directory holds the Web implementation of the examples.
 
-<!-- vim-markdown-toc GFM -->
-
-* [Quick start](#quick-start)
-* [Run an example](#run-an-example)
-  * [Featured examples: textures](#featured-examples-textures)
-
-<!-- vim-markdown-toc -->
-
 ## Quick start
 
 You must install all the `npm` dependencies before trying to run the examples. Run this in the `examples/web` directory

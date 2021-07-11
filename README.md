@@ -107,8 +107,7 @@ It is currently composed of several different crates:
 
 ## Other crates
 
-- [luminance-examples]: a combination of examples to show off some features / techniques.
-- [luminance-examples-web]: same as above, but for the Web.
+- [examples]: a combination of examples to show off some features / techniques.
 
 # Learning
 
@@ -118,10 +117,11 @@ It is currently composed of several different crates:
   including tutorials and onboarding newcomers. It will not provide you with the best description
   of a given feature as it focuses more on the overall comprehension and explaining than code
   directly. It also fits people who don’t know anything about rendering.
-- The [examples](luminance-examples/README.md). They are like unit tests: each introduces and
-  focuses on a very specific aspect or feature. You should read them if you are interested in
-  a specific feature. They’re not well suited to learn from scratch and they are weaker than a
-  structured tutorial but more concise.
+- The [examples]. They are like unit tests: each introduces and focuses on a very specific aspect
+  or feature. You should read them if you are interested in a specific feature. They’re not well
+  suited to learn from scratch and they are weaker than a structured tutorial but more concise.
+  They also provide _functional tests_ as the backend-agnostic architecture allow to very easily add
+  new tests.
 
 You should try both ways and see which one fits the best for you!
 
@@ -167,8 +167,7 @@ Those projects use luminance:
 [luminance-web-sys]: ./luminance-web-sys
 [luminance-windowing]: ./luminance-windowing
 [luminance-front]: ./luminance-front
-[luminance-examples]: ./luminance-examples
-[luminance-examples-web]: ./luminance-examples-web
+[examples]: ./examples
 [glutin]: https://crates.io/crates/glutin
 [gfx-hal]: https://crates.io/crates/gfx-hal
 [sdl2]: https://crates.io/crates/sdl2
