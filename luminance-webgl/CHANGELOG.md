@@ -11,6 +11,8 @@ compatible with as many crates as possible. In that case, you want `cargo update
 
 <!-- vim-markdown-toc GFM -->
 
+* [0.4 + 1](#04--1)
+  * [Patch changes](#patch-changes)
 * [0.4](#04)
 * [0.3.2](#032)
 * [0.3.1](#031)
@@ -24,6 +26,15 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.1](#01)
 
 <!-- vim-markdown-toc -->
+
+# 0.4 + 1
+
+> ?
+
+## Patch changes
+
+- Fix buffer kind not correctly being used (i.e. mixing vertex and index buffers is not possible, for instance). This
+  fix was the premise of the full fix, as a redesign of luminance’s buffer interface was needed to fully fix the problem.
 
 # 0.4
 
