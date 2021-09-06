@@ -6,7 +6,6 @@
 [![docs.rs](https://docs.rs/luminance/badge.svg)](https://docs.rs/luminance/)
 ![License](https://img.shields.io/crates/l/luminance)
 
-
 <!-- vim-markdown-toc GFM -->
 
 * [History](#history)
