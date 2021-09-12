@@ -2,10 +2,11 @@
 //!
 //! This interface defines the low-level API pipelines must implement to be usable.
 
-use crate::backend::buffer::Buffer;
-use crate::backend::framebuffer::Framebuffer as FramebufferBackend;
-use crate::backend::shading_gate::ShadingGate as ShadingGateBackend;
-use crate::backend::texture::{Texture, TextureBase};
+use crate::backend::{
+  framebuffer::Framebuffer as FramebufferBackend,
+  shading_gate::ShadingGate as ShadingGateBackend,
+  texture::{Texture, TextureBase},
+};
 use crate::pipeline::{PipelineError, PipelineState};
 use crate::pixel::Pixel;
 use crate::texture::Dimensionable;
@@ -25,20 +26,6 @@ where
     framebuffer: &Self::FramebufferRepr,
     pipeline_state: &PipelineState,
   );
-}
-
-pub unsafe trait PipelineBuffer<T>: PipelineBase + Buffer<T>
-where
-  T: Copy,
-{
-  type BoundBufferRepr;
-
-  unsafe fn bind_buffer(
-    pipeline: &Self::PipelineRepr,
-    buffer: &Self::BufferRepr,
-  ) -> Result<Self::BoundBufferRepr, PipelineError>;
-
-  unsafe fn buffer_binding(bound: &Self::BoundBufferRepr) -> u32;
 }
 
 pub unsafe trait PipelineTexture<D, P>: PipelineBase + Texture<D, P>

@@ -68,7 +68,6 @@
 
 #![allow(missing_docs)]
 
-pub mod buffer;
 pub mod color_slot;
 pub mod depth_slot;
 pub mod framebuffer;

@@ -218,35 +218,6 @@ impl WebGL2State {
     self.ctx.create_buffer()
   }
 
-  pub(crate) fn bind_buffer_base(&mut self, handle: &WebGlBuffer, binding: u32) {
-    match self.bound_uniform_buffers.get(binding as usize) {
-      Some(ref handle_) if Some(handle) != handle_.as_ref() => {
-        self.ctx.bind_buffer_base(
-          WebGl2RenderingContext::UNIFORM_BUFFER,
-          binding,
-          Some(handle),
-        );
-        self.bound_uniform_buffers[binding as usize] = Some(handle.clone());
-      }
-
-      None => {
-        self.ctx.bind_buffer_base(
-          WebGl2RenderingContext::UNIFORM_BUFFER,
-          binding,
-          Some(handle),
-        );
-
-        // not enough registered buffer bindings; let’s grow a bit more
-        self
-          .bound_uniform_buffers
-          .resize(binding as usize + 1, None);
-        self.bound_uniform_buffers[binding as usize] = Some(handle.clone());
-      }
-
-      _ => (), // cached
-    }
-  }
-
   pub(crate) fn bind_array_buffer(&mut self, buffer: Option<&WebGlBuffer>, bind: Bind) {
     if bind == Bind::Forced || self.bound_array_buffer.as_ref() != buffer {
       self

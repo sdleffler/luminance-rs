@@ -1,24 +1,25 @@
 use gl::types::*;
 
-use luminance::backend::pipeline::{
-  Pipeline as PipelineBackend, PipelineBase, PipelineBuffer, PipelineTexture,
+use crate::gl33::{
+  state::{BlendingState, DepthTest, FaceCullingState, GLState, ScissorState},
+  GL33,
 };
-use luminance::backend::render_gate::RenderGate;
-use luminance::backend::shading_gate::ShadingGate;
-use luminance::backend::tess::Tess;
-use luminance::backend::tess_gate::TessGate;
-use luminance::blending::BlendingMode;
-use luminance::pipeline::{PipelineError, PipelineState, Viewport};
-use luminance::pixel::Pixel;
-use luminance::render_state::RenderState;
-use luminance::tess::{Deinterleaved, DeinterleavedData, Interleaved, TessIndex, TessVertexData};
-use luminance::texture::Dimensionable;
-use std::cell::RefCell;
-use std::marker::PhantomData;
-use std::rc::Rc;
-
-use crate::gl33::state::{BlendingState, DepthTest, FaceCullingState, GLState, ScissorState};
-use crate::gl33::GL33;
+use luminance::{
+  backend::{
+    pipeline::{Pipeline as PipelineBackend, PipelineBase, PipelineTexture},
+    render_gate::RenderGate,
+    shading_gate::ShadingGate,
+    tess::Tess,
+    tess_gate::TessGate,
+  },
+  blending::BlendingMode,
+  pipeline::{PipelineError, PipelineState, Viewport},
+  pixel::Pixel,
+  render_state::RenderState,
+  tess::{Deinterleaved, DeinterleavedData, Interleaved, TessIndex, TessVertexData},
+  texture::Dimensionable,
+};
+use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
 pub struct Pipeline {
   state: Rc<RefCell<GLState>>,
@@ -138,39 +139,6 @@ where
     }
 
     state.enable_srgb_framebuffer(pipeline_state.srgb_enabled);
-  }
-}
-
-unsafe impl<T> PipelineBuffer<T> for GL33
-where
-  T: Copy,
-{
-  type BoundBufferRepr = BoundBuffer;
-
-  unsafe fn bind_buffer(
-    pipeline: &Self::PipelineRepr,
-    buffer: &Self::BufferRepr,
-  ) -> Result<Self::BoundBufferRepr, PipelineError> {
-    let mut state = pipeline.state.borrow_mut();
-    let bstack = state.binding_stack_mut();
-
-    let binding = bstack.free_buffer_bindings.pop().unwrap_or_else(|| {
-      // no more free bindings; reserve one
-      let binding = bstack.next_buffer_binding;
-      bstack.next_buffer_binding += 1;
-      binding
-    });
-
-    state.bind_buffer_base(buffer.handle(), binding);
-
-    Ok(BoundBuffer {
-      binding,
-      state: pipeline.state.clone(),
-    })
-  }
-
-  unsafe fn buffer_binding(bound: &Self::BoundBufferRepr) -> u32 {
-    bound.binding
   }
 }
 

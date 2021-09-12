@@ -1,18 +1,44 @@
 //! WebGL2 buffer implementation.
 
-use std::cell::RefCell;
-use std::cmp::Ordering;
-use std::marker::PhantomData;
-use std::mem;
-use std::ops::{Deref, DerefMut};
-use std::rc::Rc;
-use std::slice;
+use crate::webgl2::{
+  state::{Bind, WebGL2State},
+  WebGL2,
+};
+use core::fmt;
+use luminance::tess::TessError;
+use std::{
+  cell::RefCell,
+  error,
+  marker::PhantomData,
+  mem,
+  ops::{Deref, DerefMut},
+  rc::Rc,
+  slice,
+};
 use web_sys::{WebGl2RenderingContext, WebGlBuffer};
 
-use crate::webgl2::state::{Bind, WebGL2State};
-use crate::webgl2::WebGL2;
-use luminance::backend::buffer::{Buffer as BufferBackend, BufferSlice as BufferSliceBackend};
-use luminance::buffer::BufferError;
+/// Errors that can occur when dealing with buffers.
+#[derive(Clone, Debug)]
+pub enum BufferError {
+  /// Cannot create the buffer on the backend.
+  CannotCreate,
+}
+
+impl fmt::Display for BufferError {
+  fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
+    match self {
+      BufferError::CannotCreate => f.write_str("cannot create buffer on the backend"),
+    }
+  }
+}
+
+impl error::Error for BufferError {}
+
+impl From<BufferError> for TessError {
+  fn from(e: BufferError) -> Self {
+    TessError::cannot_create(e.to_string())
+  }
+}
 
 /// Wrapped WebGL buffer.
 ///
@@ -46,42 +72,6 @@ pub struct Buffer<T> {
 }
 
 impl<T> Buffer<T> {
-  /// Create a new buffer from a length and a type. This is needed to implement repeat without Default.
-  ///
-  /// The `target` parameter allows to create the buffer with
-  /// [`WebGl2RenderingContext::ARRAY_BUFFER`] or [`WebGl2RenderingContext::ELEMENT_ARRAY_BUFFER`]
-  /// directly, as WebGL2 doesn’t support changing the target type after the buffer is created.
-  fn new(webgl2: &mut WebGL2, len: usize, clear_value: T, target: u32) -> Result<Self, BufferError>
-  where
-    T: Copy,
-  {
-    let mut state = webgl2.state.borrow_mut();
-
-    let mut buf = Vec::new();
-    buf.resize_with(len, || clear_value);
-
-    // generate a buffer and force binding the handle; this prevent side-effects from previous bound
-    // resources to prevent binding the buffer
-    let handle = state
-      .create_buffer()
-      .ok_or_else(|| BufferError::cannot_create())?;
-
-    bind_buffer(&mut state, &handle, target, Bind::Forced)?;
-
-    let bytes = mem::size_of::<T>() * len;
-    state
-      .ctx
-      .buffer_data_with_i32(target, bytes as i32, WebGl2RenderingContext::STREAM_DRAW);
-
-    let gl_buf = BufferWrapper {
-      handle,
-      target,
-      state: webgl2.state.clone(),
-    };
-
-    Ok(Buffer { buf, gl_buf })
-  }
-
   pub(crate) fn from_vec(
     webgl2: &mut WebGL2,
     vec: Vec<T>,
@@ -92,7 +82,7 @@ impl<T> Buffer<T> {
 
     let handle = state
       .create_buffer()
-      .ok_or_else(|| BufferError::cannot_create())?;
+      .ok_or_else(|| BufferError::CannotCreate)?;
 
     bind_buffer(&mut state, &handle, target, Bind::Forced)?;
 
@@ -114,122 +104,29 @@ impl<T> Buffer<T> {
   pub(crate) fn handle(&self) -> &WebGlBuffer {
     &self.gl_buf.handle
   }
-}
 
-unsafe impl<T> BufferBackend<T> for WebGL2
-where
-  T: Copy,
-{
-  type BufferRepr = Buffer<T>;
-
-  unsafe fn new_buffer(&mut self, len: usize) -> Result<Self::BufferRepr, BufferError>
-  where
-    T: Default,
-  {
-    Buffer::<T>::new(
-      self,
-      len,
-      T::default(),
-      WebGl2RenderingContext::ARRAY_BUFFER,
-    )
-  }
-
-  unsafe fn len(buffer: &Self::BufferRepr) -> usize {
-    buffer.buf.len()
-  }
-
-  unsafe fn from_vec(&mut self, vec: Vec<T>) -> Result<Self::BufferRepr, BufferError> {
-    Buffer::from_vec(self, vec, WebGl2RenderingContext::ARRAY_BUFFER)
-  }
-
-  unsafe fn repeat(&mut self, len: usize, value: T) -> Result<Self::BufferRepr, BufferError> {
-    Buffer::<T>::new(self, len, value, WebGl2RenderingContext::ARRAY_BUFFER)
-  }
-
-  unsafe fn at(buffer: &Self::BufferRepr, i: usize) -> Option<T> {
-    buffer.buf.get(i).copied()
-  }
-
-  unsafe fn whole(buffer: &Self::BufferRepr) -> Vec<T> {
-    buffer.buf.iter().copied().collect()
-  }
-
-  unsafe fn set(buffer: &mut Self::BufferRepr, i: usize, x: T) -> Result<(), BufferError> {
-    let buffer_len = buffer.buf.len();
-
-    if i >= buffer_len {
-      Err(BufferError::overflow(i, buffer_len))
-    } else {
-      // update the cache first
-      buffer.buf[i] = x;
-
-      // then update the WebGL buffer
-      let mut state = buffer.gl_buf.state.borrow_mut();
-      let bytes = mem::size_of::<T>() * buffer_len;
-      update_webgl_buffer(
-        buffer.gl_buf.target,
-        &mut state,
-        &buffer.gl_buf.handle,
-        buffer.buf.as_ptr() as *const u8,
-        bytes,
-        i,
-      )?;
-
-      Ok(())
+  pub(crate) fn slice_buffer(&self) -> BufferSlice<T> {
+    BufferSlice {
+      handle: self.gl_buf.handle.clone(),
+      ptr: self.buf.as_ptr(),
+      len: self.buf.len(),
+      state: self.gl_buf.state.clone(),
     }
   }
 
-  unsafe fn write_whole(buffer: &mut Self::BufferRepr, values: &[T]) -> Result<(), BufferError> {
-    let len = values.len();
-    let buffer_len = buffer.buf.len();
+  pub(crate) fn slice_buffer_mut(&mut self) -> BufferSliceMut<T> {
+    let raw = BufferSliceMutWrapper {
+      target: self.gl_buf.target,
+      handle: self.gl_buf.handle.clone(),
+      ptr: self.buf.as_mut_ptr() as *mut u8,
+      bytes: self.buf.len() * mem::size_of::<T>(),
+      state: self.gl_buf.state.clone(),
+    };
 
-    // error if we don’t pass the right number of items
-    match len.cmp(&buffer_len) {
-      Ordering::Less => return Err(BufferError::too_few_values(len, buffer_len)),
-
-      Ordering::Greater => return Err(BufferError::too_many_values(len, buffer_len)),
-
-      _ => (),
+    BufferSliceMut {
+      raw,
+      _phantom: PhantomData,
     }
-
-    // update the internal representation of the vector; we clear it first then we extend with
-    // the input slice to re-use the allocated region
-    buffer.buf.clear();
-    buffer.buf.extend_from_slice(values);
-
-    // update the data on GPU
-    let mut state = buffer.gl_buf.state.borrow_mut();
-    let bytes = mem::size_of::<T>() * buffer_len;
-    update_webgl_buffer(
-      buffer.gl_buf.target,
-      &mut state,
-      &buffer.gl_buf.handle,
-      buffer.buf.as_ptr() as *const u8,
-      bytes,
-      0,
-    )?;
-
-    Ok(())
-  }
-
-  unsafe fn clear(buffer: &mut Self::BufferRepr, x: T) -> Result<(), BufferError> {
-    // copy the value everywhere in the buffer, then simply update the WebGL buffer
-    for item in &mut buffer.buf {
-      *item = x;
-    }
-
-    let mut state = buffer.gl_buf.state.borrow_mut();
-    let bytes = buffer.buf.len() * mem::size_of::<T>();
-    update_webgl_buffer(
-      buffer.gl_buf.target,
-      &mut state,
-      &buffer.gl_buf.handle,
-      buffer.buf.as_ptr() as *const u8,
-      bytes,
-      0,
-    )?;
-
-    Ok(())
   }
 }
 
@@ -330,44 +227,6 @@ impl<T> DerefMut for BufferSliceMut<T> {
     unsafe {
       slice::from_raw_parts_mut(self.raw.ptr as *mut T, self.raw.bytes / mem::size_of::<T>())
     }
-  }
-}
-
-unsafe impl<T> BufferSliceBackend<T> for WebGL2
-where
-  T: Copy,
-{
-  type SliceRepr = BufferSlice<T>;
-
-  type SliceMutRepr = BufferSliceMut<T>;
-
-  unsafe fn slice_buffer(buffer: &Self::BufferRepr) -> Result<Self::SliceRepr, BufferError> {
-    let slice = BufferSlice {
-      handle: buffer.gl_buf.handle.clone(),
-      ptr: buffer.buf.as_ptr(),
-      len: buffer.buf.len(),
-      state: buffer.gl_buf.state.clone(),
-    };
-
-    Ok(slice)
-  }
-
-  unsafe fn slice_buffer_mut(
-    buffer: &mut Self::BufferRepr,
-  ) -> Result<Self::SliceMutRepr, BufferError> {
-    let raw = BufferSliceMutWrapper {
-      target: buffer.gl_buf.target,
-      handle: buffer.gl_buf.handle.clone(),
-      ptr: buffer.buf.as_mut_ptr() as *mut u8,
-      bytes: buffer.buf.len() * mem::size_of::<T>(),
-      state: buffer.gl_buf.state.clone(),
-    };
-    let slice = BufferSliceMut {
-      raw,
-      _phantom: PhantomData,
-    };
-
-    Ok(slice)
   }
 }
 

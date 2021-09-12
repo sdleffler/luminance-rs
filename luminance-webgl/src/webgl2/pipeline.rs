@@ -1,8 +1,6 @@
 //! Pipeline support for WebGL2.
 
-use luminance::backend::pipeline::{
-  Pipeline as PipelineBackend, PipelineBase, PipelineBuffer, PipelineTexture,
-};
+use luminance::backend::pipeline::{Pipeline as PipelineBackend, PipelineBase, PipelineTexture};
 use luminance::backend::render_gate::RenderGate;
 use luminance::backend::shading_gate::ShadingGate;
 use luminance::backend::tess::Tess;
@@ -26,23 +24,6 @@ use crate::webgl2::{
 
 pub struct Pipeline {
   state: Rc<RefCell<WebGL2State>>,
-}
-
-pub struct BoundBuffer {
-  pub(crate) binding: u32,
-  state: Rc<RefCell<WebGL2State>>,
-}
-
-impl Drop for BoundBuffer {
-  fn drop(&mut self) {
-    // place the binding into the free list
-    self
-      .state
-      .borrow_mut()
-      .binding_stack_mut()
-      .free_buffer_bindings
-      .push(self.binding);
-  }
 }
 
 pub struct BoundTexture<D, P>
@@ -140,39 +121,6 @@ where
 
       state.ctx.clear(color_bit | depth_bit);
     }
-  }
-}
-
-unsafe impl<T> PipelineBuffer<T> for WebGL2
-where
-  T: Copy,
-{
-  type BoundBufferRepr = BoundBuffer;
-
-  unsafe fn bind_buffer(
-    pipeline: &Self::PipelineRepr,
-    buffer: &Self::BufferRepr,
-  ) -> Result<Self::BoundBufferRepr, PipelineError> {
-    let mut state = pipeline.state.borrow_mut();
-    let bstack = state.binding_stack_mut();
-
-    let binding = bstack.free_buffer_bindings.pop().unwrap_or_else(|| {
-      // no more free bindings; reserve one
-      let binding = bstack.next_buffer_binding;
-      bstack.next_buffer_binding += 1;
-      binding
-    });
-
-    state.bind_buffer_base(buffer.handle(), binding);
-
-    Ok(BoundBuffer {
-      binding,
-      state: pipeline.state.clone(),
-    })
-  }
-
-  unsafe fn buffer_binding(bound: &Self::BoundBufferRepr) -> u32 {
-    bound.binding
   }
 }
 
