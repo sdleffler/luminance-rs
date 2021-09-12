@@ -1,6 +1,5 @@
 //! WebGL2 tessellation implementation.
 
-use luminance::backend::buffer::BufferSlice as _;
 use luminance::backend::tess::{
   IndexSlice as IndexSliceBackend, InstanceSlice as InstanceSliceBackend, Tess as TessBackend,
   VertexSlice as VertexSliceBackend,
@@ -210,7 +209,7 @@ where
 
   unsafe fn vertices(tess: &mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError> {
     match tess.vertex_buffer {
-      Some(ref vb) => Ok(WebGL2::slice_buffer(vb)?),
+      Some(ref vb) => Ok(vb.slice_buffer()),
       None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
@@ -219,7 +218,7 @@ where
     tess: &mut Self::TessRepr,
   ) -> Result<Self::VertexSliceMutRepr, TessMapError> {
     match tess.vertex_buffer {
-      Some(ref mut vb) => Ok(WebGL2::slice_buffer_mut(vb)?),
+      Some(ref mut vb) => Ok(vb.slice_buffer_mut()),
       None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
@@ -236,7 +235,7 @@ where
 
   unsafe fn indices(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError> {
     match tess.raw.index_buffer {
-      Some(ref buffer) => Ok(WebGL2::slice_buffer(buffer)?),
+      Some(ref buffer) => Ok(buffer.slice_buffer()),
       None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
@@ -245,7 +244,7 @@ where
     tess: &mut Self::TessRepr,
   ) -> Result<Self::IndexSliceMutRepr, TessMapError> {
     match tess.raw.index_buffer {
-      Some(ref mut buffer) => Ok(WebGL2::slice_buffer_mut(buffer)?),
+      Some(ref mut buffer) => Ok(buffer.slice_buffer_mut()),
       None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
@@ -262,7 +261,7 @@ where
 
   unsafe fn instances(tess: &mut Self::TessRepr) -> Result<Self::InstanceSliceRepr, TessMapError> {
     match tess.instance_buffer {
-      Some(ref vb) => Ok(WebGL2::slice_buffer(vb)?),
+      Some(ref vb) => Ok(vb.slice_buffer()),
       None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
@@ -271,7 +270,7 @@ where
     tess: &mut Self::TessRepr,
   ) -> Result<Self::InstanceSliceMutRepr, TessMapError> {
     match tess.instance_buffer {
-      Some(ref mut vb) => Ok(WebGL2::slice_buffer_mut(vb)?),
+      Some(ref mut vb) => Ok(vb.slice_buffer_mut()),
       None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
@@ -389,7 +388,7 @@ where
       Err(TessMapError::forbidden_attributeless_mapping())
     } else {
       let buffer = &tess.vertex_buffers[V::RANK];
-      let slice = WebGL2::slice_buffer(buffer)?.transmute();
+      let slice = buffer.slice_buffer().transmute();
       Ok(slice)
     }
   }
@@ -401,7 +400,7 @@ where
       Err(TessMapError::forbidden_attributeless_mapping())
     } else {
       let buffer = &mut tess.vertex_buffers[V::RANK];
-      let slice = WebGL2::slice_buffer_mut(buffer)?.transmute();
+      let slice = buffer.slice_buffer_mut().transmute();
       Ok(slice)
     }
   }
@@ -418,7 +417,7 @@ where
 
   unsafe fn indices(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError> {
     match tess.raw.index_buffer {
-      Some(ref buffer) => Ok(WebGL2::slice_buffer(buffer)?),
+      Some(ref buffer) => Ok(buffer.slice_buffer()),
       None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
@@ -427,7 +426,7 @@ where
     tess: &mut Self::TessRepr,
   ) -> Result<Self::IndexSliceMutRepr, TessMapError> {
     match tess.raw.index_buffer {
-      Some(ref mut buffer) => Ok(WebGL2::slice_buffer_mut(buffer)?),
+      Some(ref mut buffer) => Ok(buffer.slice_buffer_mut()),
       None => Err(TessMapError::forbidden_attributeless_mapping()),
     }
   }
@@ -447,7 +446,7 @@ where
       Err(TessMapError::forbidden_attributeless_mapping())
     } else {
       let buffer = &tess.instance_buffers[W::RANK];
-      let slice = WebGL2::slice_buffer(buffer)?.transmute();
+      let slice = buffer.slice_buffer().transmute();
       Ok(slice)
     }
   }
@@ -459,7 +458,7 @@ where
       Err(TessMapError::forbidden_attributeless_mapping())
     } else {
       let buffer = &mut tess.instance_buffers[W::RANK];
-      let slice = WebGL2::slice_buffer_mut(buffer)?.transmute();
+      let slice = buffer.slice_buffer_mut().transmute();
       Ok(slice)
     }
   }

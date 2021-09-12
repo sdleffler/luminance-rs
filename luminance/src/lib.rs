@@ -34,11 +34,6 @@
 //!
 //! However, luminance comes with several interesting features:
 //!
-//! - **Buffers**: buffers are ways to communicate with the GPU; they represent regions of memory
-//!   you can write to and read from. There’re several kinds of buffers you can create, among
-//!   *vertex and index buffers*, *uniform buffers*, and so on and so forth…. They look like
-//!   regular array but have some differences you might be aware of. Most of the time, you will
-//!   use them to customize behaviors in shader stages.
 //! - **Framebuffers**: framebuffers are used to hold renders. Each time you want to perform a
 //!   render, you need to perform it into a framebuffer. Framebuffers can then be combined with
 //!   each other to produce effects and design render layers — this is called compositing.
@@ -100,24 +95,23 @@
 //! The luminance crate gathers all the logic and rendering abstractions necessary to write code
 //! over various graphics technologies. It contains parametric types and functions that depend on
 //! the actual _implementation type_ — as a convention, the type variable `B` (for backend) is
-//! used. For instance, the type `Buffer<B, u8>` is an 8-bit unsigned integer buffer for which the
-//! implementation is provided via the `B` type.
+//! used.
 //!
 //! Backend types — i.e. `B` — are not provided by [luminance] directly. They are typically
 //! provided by crates containing the name of the technology as suffix, such as luminance-gl,
 //! luminance-webgl, luminance-vk, etc. The interface between those backend crates and
 //! luminance is specified in [luminance::backend].
 //!
-//! On a general note, `Buffer<ConcreteType, u8>` is a monomorphic type that will be usable
+//! On a general note, `Something<ConcreteType, u8>` is a monomorphic type that will be usable
 //! **only** with code working over the `ConcreteType` backend. If you want to write a function
-//! that accepts an 8-bit integer buffer without specifying a concrete type, you will have to
+//! that accepts an 8-bit integer something without specifying a concrete type, you will have to
 //! write something along the lines of:
 //!
-//! ```
-//! use luminance::backend::buffer::Buffer as BufferBackend;
-//! use luminance::buffer::Buffer;
+//! ```ignore
+//! use luminance::backend::something::Something as SomethingBackend;
+//! use luminance::something::Something;
 //!
-//! fn work<B>(b: &Buffer<B, u8>) where B: BufferBackend<u8> {
+//! fn work<B>(b: &Something<B, u8>) where B: SomethingBackend<u8> {
 //!   todo!();
 //! }
 //! ```
@@ -126,9 +120,9 @@
 //! of using the [luminance-front] crate, you will end up writing something like:
 //!
 //! ```ignore
-//! use luminance_front::buffer::Buffer;
+//! use luminance_front::something::Something;
 //!
-//! fn work(b: &Buffer<u8>) {
+//! fn work(b: &Something<u8>) {
 //!   todo()!;
 //! }
 //! ```
@@ -341,7 +335,6 @@ pub use luminance_derive::*;
 
 pub mod backend;
 pub mod blending;
-pub mod buffer;
 pub mod context;
 pub mod depth_test;
 pub mod face_culling;

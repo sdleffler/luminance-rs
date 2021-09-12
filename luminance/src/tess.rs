@@ -69,7 +69,6 @@ use crate::{
     IndexSlice as IndexSliceBackend, InstanceSlice as InstanceSliceBackend, Tess as TessBackend,
     VertexSlice as VertexSliceBackend,
   },
-  buffer::BufferError,
   context::GraphicsContext,
   vertex::{Deinterleave, Vertex, VertexDesc},
 };
@@ -166,8 +165,8 @@ impl fmt::Display for Mode {
 #[non_exhaustive]
 #[derive(Debug, Eq, PartialEq)]
 pub enum TessMapError {
-  /// The CPU mapping failed due to buffer errors.
-  BufferMapError(BufferError),
+  /// Cannot obtain a slice on the backend.
+  CannotMap,
   /// Vertex target type is not the same as the one stored in the buffer.
   VertexTypeMismatch(VertexDesc, VertexDesc),
   /// Index target type is not the same as the one stored in the buffer.
@@ -181,9 +180,9 @@ pub enum TessMapError {
 }
 
 impl TessMapError {
-  /// The CPU mapping failed due to buffer errors.
-  pub fn buffer_map_error(e: BufferError) -> Self {
-    TessMapError::BufferMapError(e)
+  /// Cannot obtain a slice on the backend.
+  pub fn cannot_map() -> Self {
+    TessMapError::CannotMap
   }
 
   /// Vertex target type is not the same as the one stored in the buffer.
@@ -212,20 +211,24 @@ impl TessMapError {
 impl fmt::Display for TessMapError {
   fn fmt(&self, f: &mut fmt::Formatter) -> Result<(), fmt::Error> {
     match *self {
-      TessMapError::BufferMapError(ref e) => write!(f, "cannot map tessellation buffer: {}", e),
+      TessMapError::CannotMap => f.write_str("cannot map on the backend"),
+
       TessMapError::VertexTypeMismatch(ref a, ref b) => write!(
         f,
         "cannot map tessellation: vertex type mismatch between {:?} and {:?}",
         a, b
       ),
+
       TessMapError::IndexTypeMismatch(ref a, ref b) => write!(
         f,
         "cannot map tessellation: index type mismatch between {:?} and {:?}",
         a, b
       ),
+
       TessMapError::ForbiddenAttributelessMapping => {
         f.write_str("cannot map an attributeless buffer")
       }
+
       TessMapError::ForbiddenDeinterleavedMapping => {
         f.write_str("cannot map a deinterleaved buffer as interleaved")
       }
@@ -233,20 +236,7 @@ impl fmt::Display for TessMapError {
   }
 }
 
-impl From<BufferError> for TessMapError {
-  fn from(e: BufferError) -> Self {
-    TessMapError::buffer_map_error(e)
-  }
-}
-
-impl error::Error for TessMapError {
-  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-    match self {
-      TessMapError::BufferMapError(e) => Some(e),
-      _ => None,
-    }
-  }
-}
+impl error::Error for TessMapError {}
 
 /// Possible errors that might occur when dealing with [`Tess`].
 #[non_exhaustive]
@@ -258,8 +248,6 @@ pub enum TessError {
   AttributelessError(String),
   /// Length incoherency in vertex, index or instance buffers.
   LengthIncoherency(usize),
-  /// Internal error ocurring with a buffer.
-  InternalBufferError(BufferError),
   /// Forbidden primitive mode by hardware.
   ForbiddenPrimitiveMode(Mode),
   /// No data provided and empty tessellation.
@@ -282,11 +270,6 @@ impl TessError {
     TessError::LengthIncoherency(len)
   }
 
-  /// Internal error ocurring with a buffer.
-  pub fn internal_buffer_error(e: BufferError) -> Self {
-    TessError::InternalBufferError(e)
-  }
-
   /// Forbidden primitive mode by hardware.
   pub fn forbidden_primitive_mode(mode: Mode) -> Self {
     TessError::ForbiddenPrimitiveMode(mode)
@@ -306,27 +289,13 @@ impl fmt::Display for TessError {
       TessError::LengthIncoherency(ref s) => {
         write!(f, "Incoherent size for internal buffers: {}", s)
       }
-      TessError::InternalBufferError(ref e) => write!(f, "internal buffer error: {}", e),
       TessError::ForbiddenPrimitiveMode(ref e) => write!(f, "forbidden primitive mode: {}", e),
       TessError::NoData => f.write_str("no data or empty tessellation"),
     }
   }
 }
 
-impl From<BufferError> for TessError {
-  fn from(e: BufferError) -> Self {
-    TessError::internal_buffer_error(e)
-  }
-}
-
-impl error::Error for TessError {
-  fn source(&self) -> Option<&(dyn error::Error + 'static)> {
-    match self {
-      TessError::InternalBufferError(e) => Some(e),
-      _ => None,
-    }
-  }
-}
+impl error::Error for TessError {}
 
 /// Possible tessellation index types.
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]

@@ -9,56 +9,6 @@ how `cargo` resolves dependencies. `cargo update` is not enough, because all lum
 [SemVer ranges](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html) to stay
 compatible with as many crates as possible. In that case, you want `cargo update --aggressive`.
 
-<!-- vim-markdown-toc GFM -->
-
-* [0.16](#016)
-* [0.15](#015)
-  * [Breaking changes](#breaking-changes)
-* [0.14.4](#0144)
-* [0.14.3](#0143)
-* [0.14.2](#0142)
-* [0.14.1](#0141)
-* [0.14](#014)
-* [0.13.1](#0131)
-* [0.13](#013)
-* [0.12.2](#0122)
-* [0.12.1](#0121)
-* [0.12](#012)
-* [0.11](#011)
-* [0.10](#010)
-  * [Minor changes](#minor-changes)
-* [0.9](#09)
-* [0.8.1](#081)
-* [0.8](#08)
-* [0.7](#07)
-* [0.6.1](#061)
-* [0.6](#06)
-  * [Major changes](#major-changes)
-  * [Minor changes](#minor-changes-1)
-  * [Patch & misc changes](#patch--misc-changes)
-* [0.5.4](#054)
-* [0.5.3](#053)
-* [0.5.2](#052)
-* [0.5.1](#051)
-* [0.5](#05)
-* [0.4.3](#043)
-* [0.4.2](#042)
-* [0.4.1](#041)
-* [0.4](#04)
-* [0.3.3](#033)
-* [0.3.2](#032)
-* [0.3.1](#031)
-* [0.3](#03)
-* [0.2](#02)
-* [0.1.5](#015-1)
-* [0.1.4](#014-1)
-* [0.1.3](#013-1)
-* [0.1.2](#012-1)
-* [0.1.1](#011-1)
-* [0.1](#01)
-
-<!-- vim-markdown-toc -->
-
 # 0.16
 
 > `HEAD`

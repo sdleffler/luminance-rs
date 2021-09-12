@@ -9,33 +9,6 @@ how `cargo` resolves dependencies. `cargo update` is not enough, because all lum
 [SemVer ranges](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html) to stay
 compatible with as many crates as possible. In that case, you want `cargo update --aggressive`.
 
-<!-- vim-markdown-toc GFM -->
-
-* [0.4 + 1](#04--1)
-  * [Patch changes](#patch-changes)
-* [0.4](#04)
-* [0.3.2](#032)
-* [0.3.1](#031)
-* [0.3](#03)
-  * [Patch](#patch)
-  * [Breaking changes](#breaking-changes)
-* [0.2.1](#021)
-* [0.2](#02)
-* [0.1.2](#012)
-* [0.1.1](#011)
-* [0.1](#01)
-
-<!-- vim-markdown-toc -->
-
-# 0.4 + 1
-
-> ?
-
-## Patch changes
-
-- Fix buffer kind not correctly being used (i.e. mixing vertex and index buffers is not possible, for instance). This
-  fix was the premise of the full fix, as a redesign of luminance’s buffer interface was needed to fully fix the problem.
-
 # 0.4
 
 > Apr 25, 2021

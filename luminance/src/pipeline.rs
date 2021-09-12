@@ -233,9 +233,8 @@ use crate::{
     color_slot::ColorSlot,
     depth_slot::DepthSlot,
     framebuffer::Framebuffer as FramebufferBackend,
-    pipeline::{Pipeline as PipelineBackend, PipelineBase, PipelineBuffer, PipelineTexture},
+    pipeline::{Pipeline as PipelineBackend, PipelineBase, PipelineTexture},
   },
-  buffer::Buffer,
   context::GraphicsContext,
   framebuffer::Framebuffer,
   pixel::Pixel,
@@ -421,26 +420,6 @@ impl<'a, B> Pipeline<'a, B>
 where
   B: PipelineBase,
 {
-  /// Bind a buffer.
-  ///
-  /// Once the buffer is bound, the [`BoundBuffer`] object has to be dropped / die in order to
-  /// bind the buffer again.
-  pub fn bind_buffer<T>(
-    &'a self,
-    buffer: &'a mut Buffer<B, T>,
-  ) -> Result<BoundBuffer<'a, B, T>, PipelineError>
-  where
-    B: PipelineBuffer<T>,
-    T: Copy,
-  {
-    unsafe {
-      B::bind_buffer(&self.repr, &buffer.repr).map(|repr| BoundBuffer {
-        repr,
-        _phantom: PhantomData,
-      })
-    }
-  }
-
   /// Bind a texture.
   ///
   /// Once the texture is bound, the [`BoundTexture`] object has to be dropped / die in order to
@@ -622,53 +601,6 @@ impl<T> BufferBinding<T> {
   /// That value shouldn’t be read nor store, as it’s only meaningful for backend implementations.
   pub fn binding(self) -> u32 {
     self.binding
-  }
-}
-
-/// A _bound_ [`Buffer`].
-///
-/// # Parametricity
-///
-/// - `B` is the backend type. It must implement [`PipelineBuffer`].
-/// - `T` is the type of the carried item by the [`Buffer`].
-///
-/// # Notes
-///
-/// Once a [`Buffer`] is bound, it can be used and passed around to shaders. In order to do so,
-/// you will need to pass a [`BufferBinding`] to your [`ProgramInterface`]. That value is unique
-/// to each [`BoundBuffer`] and should always be asked — you shouldn’t cache them, for instance.
-///
-/// Getting a [`BufferBinding`] is a cheap operation and is performed via the
-/// [`BoundBuffer::binding`] method.
-///
-/// [`ProgramInterface`]: crate::shader::ProgramInterface
-pub struct BoundBuffer<'a, B, T>
-where
-  B: PipelineBuffer<T>,
-  T: Copy,
-{
-  pub(crate) repr: B::BoundBufferRepr,
-  _phantom: PhantomData<&'a T>,
-}
-
-impl<'a, B, T> BoundBuffer<'a, B, T>
-where
-  B: PipelineBuffer<T>,
-  T: Copy,
-{
-  /// Obtain a [`BufferBinding`] object that can be used to refer to this bound buffer in shader
-  /// stages.
-  ///
-  /// # Notes
-  ///
-  /// You shouldn’t try to do store / cache or do anything special with that value. Consider it
-  /// an opaque object.
-  pub fn binding(&self) -> BufferBinding<T> {
-    let binding = unsafe { B::buffer_binding(&self.repr) };
-    BufferBinding {
-      binding,
-      _phantom: PhantomData,
-    }
   }
 }
 

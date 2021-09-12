@@ -743,27 +743,6 @@ impl GLState {
     }
   }
 
-  pub(crate) unsafe fn bind_buffer_base(&mut self, handle: GLuint, binding: u32) {
-    let binding_ = binding as usize;
-
-    match self.bound_uniform_buffers.get(binding_) {
-      Some(&handle_) if handle != handle_ => {
-        gl::BindBufferBase(gl::UNIFORM_BUFFER, binding as GLuint, handle);
-        self.bound_uniform_buffers[binding_] = handle;
-      }
-
-      None => {
-        gl::BindBufferBase(gl::UNIFORM_BUFFER, binding as GLuint, handle);
-
-        // not enough registered buffer bindings; let’s grow a bit more
-        self.bound_uniform_buffers.resize(binding_ + 1, 0);
-        self.bound_uniform_buffers[binding_] = handle;
-      }
-
-      _ => (), // cached
-    }
-  }
-
   pub(crate) unsafe fn bind_array_buffer(&mut self, handle: GLuint, bind: Bind) {
     if bind == Bind::Forced || self.bound_array_buffer != handle {
       gl::BindBuffer(gl::ARRAY_BUFFER, handle);

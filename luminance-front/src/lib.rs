@@ -59,7 +59,6 @@
 //!
 //! [luminance]: https://crates.io/crates/luminance
 
-pub mod buffer;
 pub mod context;
 pub mod framebuffer;
 pub mod pipeline;

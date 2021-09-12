@@ -44,11 +44,10 @@
 //! ```
 
 use crate::backend::{
-  buffer::Buffer as BufferBackend, color_slot::ColorSlot, depth_slot::DepthSlot,
-  framebuffer::Framebuffer as FramebufferBackend, query::Query as QueryBackend, shader::Shader,
-  tess::Tess as TessBackend, texture::Texture as TextureBackend,
+  color_slot::ColorSlot, depth_slot::DepthSlot, framebuffer::Framebuffer as FramebufferBackend,
+  query::Query as QueryBackend, shader::Shader, tess::Tess as TessBackend,
+  texture::Texture as TextureBackend,
 };
-use crate::buffer::{Buffer, BufferError};
 use crate::framebuffer::{Framebuffer, FramebufferError};
 use crate::pipeline::PipelineGate;
 use crate::pixel::Pixel;
@@ -81,44 +80,6 @@ pub unsafe trait GraphicsContext: Sized {
   /// Create a new pipeline gate
   fn new_pipeline_gate(&mut self) -> PipelineGate<Self::Backend> {
     PipelineGate::new(self)
-  }
-
-  /// Create a new buffer.
-  ///
-  /// See the documentation of [`Buffer::new`] for further details.
-  fn new_buffer<T>(&mut self, len: usize) -> Result<Buffer<Self::Backend, T>, BufferError>
-  where
-    Self::Backend: BufferBackend<T>,
-    T: Copy + Default,
-  {
-    Buffer::new(self, len)
-  }
-
-  /// Create a new buffer from a slice.
-  ///
-  /// See the documentation of [`Buffer::from_vec`] for further details.
-  fn new_buffer_from_vec<T, X>(&mut self, vec: X) -> Result<Buffer<Self::Backend, T>, BufferError>
-  where
-    Self::Backend: BufferBackend<T>,
-    X: Into<Vec<T>>,
-    T: Copy,
-  {
-    Buffer::from_vec(self, vec)
-  }
-
-  /// Create a new buffer by repeating a value.
-  ///
-  /// See the documentation of [`Buffer::repeat`] for further details.
-  fn new_buffer_repeating<T>(
-    &mut self,
-    len: usize,
-    value: T,
-  ) -> Result<Buffer<Self::Backend, T>, BufferError>
-  where
-    Self::Backend: BufferBackend<T>,
-    T: Copy,
-  {
-    Buffer::repeat(self, len, value)
   }
 
   /// Create a new framebuffer.
