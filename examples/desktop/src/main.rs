@@ -214,7 +214,10 @@ examples! {
 }
 
 fn main() {
-  env_logger::init();
+  env_logger::builder()
+    .filter_level(log::LevelFilter::Info)
+    .parse_default_env()
+    .init();
   let cli_opts = CLIOpts::from_args();
 
   if cli_opts.list_examples {
