@@ -107,7 +107,7 @@ impl<T> Buffer<T> {
 
   pub(crate) fn slice_buffer(&self) -> BufferSlice<T> {
     BufferSlice {
-      handle: self.gl_buf.handle.clone(),
+      handle: &self.gl_buf.handle,
       ptr: self.buf.as_ptr(),
       len: self.buf.len(),
       state: self.gl_buf.state.clone(),
@@ -117,7 +117,7 @@ impl<T> Buffer<T> {
   pub(crate) fn slice_buffer_mut(&mut self) -> BufferSliceMut<T> {
     let raw = BufferSliceMutWrapper {
       target: self.gl_buf.target,
-      handle: self.gl_buf.handle.clone(),
+      handle: &self.gl_buf.handle,
       ptr: self.buf.as_mut_ptr() as *mut u8,
       bytes: self.buf.len() * mem::size_of::<T>(),
       state: self.gl_buf.state.clone(),
@@ -130,19 +130,19 @@ impl<T> Buffer<T> {
   }
 }
 
-pub struct BufferSlice<T> {
-  handle: WebGlBuffer,
+pub struct BufferSlice<'a, T> {
+  handle: &'a WebGlBuffer,
   ptr: *const T,
   len: usize,
   state: Rc<RefCell<WebGL2State>>,
 }
 
-impl BufferSlice<u8> {
+impl<'a> BufferSlice<'a, u8> {
   /// Transmute to another type.
   ///
   /// This method is highly unsafe and should only be used when certain the target type is the
   /// one actually represented by the raw bytes.
-  pub(crate) unsafe fn transmute<T>(self) -> BufferSlice<T> {
+  pub(crate) unsafe fn transmute<T>(self) -> BufferSlice<'a, T> {
     let handle = self.handle;
     let ptr = self.ptr as *const T;
     let len = self.len / mem::size_of::<T>();
@@ -157,7 +157,7 @@ impl BufferSlice<u8> {
   }
 }
 
-impl<T> Deref for BufferSlice<T> {
+impl<T> Deref for BufferSlice<'_, T> {
   type Target = [T];
 
   fn deref(&self) -> &Self::Target {
@@ -169,15 +169,15 @@ impl<T> Deref for BufferSlice<T> {
 ///
 /// When a buffer is mapped, we are the only owner of it. We can then read or write from/to the
 /// mapped buffer, and then update the GPU buffer on the [`Drop`] implementation.
-pub struct BufferSliceMutWrapper {
+pub struct BufferSliceMutWrapper<'a> {
   target: u32,
-  handle: WebGlBuffer,
+  handle: &'a WebGlBuffer,
   ptr: *mut u8,
   bytes: usize,
   state: Rc<RefCell<WebGL2State>>,
 }
 
-impl Drop for BufferSliceMutWrapper {
+impl Drop for BufferSliceMutWrapper<'_> {
   fn drop(&mut self) {
     let mut state = self.state.borrow_mut();
     let _ = update_webgl_buffer(
@@ -191,17 +191,17 @@ impl Drop for BufferSliceMutWrapper {
   }
 }
 
-pub struct BufferSliceMut<T> {
-  raw: BufferSliceMutWrapper,
+pub struct BufferSliceMut<'a, T> {
+  raw: BufferSliceMutWrapper<'a>,
   _phantom: PhantomData<T>,
 }
 
-impl BufferSliceMut<u8> {
+impl<'a> BufferSliceMut<'a, u8> {
   /// Transmute to another type.
   ///
   /// This method is highly unsafe and should only be used when certain the target type is the
   /// one actually represented by the raw bytes.
-  pub(crate) unsafe fn transmute<T>(self) -> BufferSliceMut<T> {
+  pub(crate) unsafe fn transmute<T>(self) -> BufferSliceMut<'a, T> {
     BufferSliceMut {
       raw: self.raw,
       _phantom: PhantomData,
@@ -209,7 +209,7 @@ impl BufferSliceMut<u8> {
   }
 }
 
-impl<T> Deref for BufferSliceMut<T> {
+impl<T> Deref for BufferSliceMut<'_, T> {
   type Target = [T];
 
   fn deref(&self) -> &Self::Target {
@@ -222,7 +222,7 @@ impl<T> Deref for BufferSliceMut<T> {
   }
 }
 
-impl<T> DerefMut for BufferSliceMut<T> {
+impl<T> DerefMut for BufferSliceMut<'_, T> {
   fn deref_mut(&mut self) -> &mut Self::Target {
     unsafe {
       slice::from_raw_parts_mut(self.raw.ptr as *mut T, self.raw.bytes / mem::size_of::<T>())

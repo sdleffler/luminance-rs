@@ -38,52 +38,55 @@ where
   ) -> Result<(), TessError>;
 }
 
-pub unsafe trait VertexSlice<V, I, W, S, T>: Tess<V, I, W, S>
+pub unsafe trait VertexSlice<'a, V, I, W, S, T>: Tess<V, I, W, S>
 where
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
   S: ?Sized,
 {
-  type VertexSliceRepr: Deref<Target = [T]>;
-  type VertexSliceMutRepr: DerefMut<Target = [T]>;
+  type VertexSliceRepr: 'a + Deref<Target = [T]>;
+  type VertexSliceMutRepr: 'a + DerefMut<Target = [T]>;
 
-  unsafe fn vertices(tess: &mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError>;
+  unsafe fn vertices(tess: &'a mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError>;
 
   unsafe fn vertices_mut(
-    tess: &mut Self::TessRepr,
+    tess: &'a mut Self::TessRepr,
   ) -> Result<Self::VertexSliceMutRepr, TessMapError>;
 }
 
-pub unsafe trait IndexSlice<V, I, W, S>: Tess<V, I, W, S>
+pub unsafe trait IndexSlice<'a, V, I, W, S>: Tess<V, I, W, S>
 where
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
   S: ?Sized,
 {
-  type IndexSliceRepr: Deref<Target = [I]>;
-  type IndexSliceMutRepr: DerefMut<Target = [I]>;
+  type IndexSliceRepr: 'a + Deref<Target = [I]>;
+  type IndexSliceMutRepr: 'a + DerefMut<Target = [I]>;
 
-  unsafe fn indices(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError>;
+  unsafe fn indices(tess: &'a mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError>;
 
-  unsafe fn indices_mut(tess: &mut Self::TessRepr)
-    -> Result<Self::IndexSliceMutRepr, TessMapError>;
+  unsafe fn indices_mut(
+    tess: &'a mut Self::TessRepr,
+  ) -> Result<Self::IndexSliceMutRepr, TessMapError>;
 }
 
-pub unsafe trait InstanceSlice<V, I, W, S, T>: Tess<V, I, W, S>
+pub unsafe trait InstanceSlice<'a, V, I, W, S, T>: Tess<V, I, W, S>
 where
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
   S: ?Sized,
 {
-  type InstanceSliceRepr: Deref<Target = [T]>;
-  type InstanceSliceMutRepr: DerefMut<Target = [T]>;
+  type InstanceSliceRepr: 'a + Deref<Target = [T]>;
+  type InstanceSliceMutRepr: 'a + DerefMut<Target = [T]>;
 
-  unsafe fn instances(tess: &mut Self::TessRepr) -> Result<Self::InstanceSliceRepr, TessMapError>;
+  unsafe fn instances(
+    tess: &'a mut Self::TessRepr,
+  ) -> Result<Self::InstanceSliceRepr, TessMapError>;
 
   unsafe fn instances_mut(
-    tess: &mut Self::TessRepr,
+    tess: &'a mut Self::TessRepr,
   ) -> Result<Self::InstanceSliceMutRepr, TessMapError>;
 }

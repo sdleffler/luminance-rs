@@ -198,16 +198,16 @@ where
   }
 }
 
-unsafe impl<V, I, W> VertexSliceBackend<V, I, W, Interleaved, V> for WebGL2
+unsafe impl<'a, V, I, W> VertexSliceBackend<'a, V, I, W, Interleaved, V> for WebGL2
 where
-  V: TessVertexData<Interleaved, Data = Vec<V>>,
+  V: 'a + TessVertexData<Interleaved, Data = Vec<V>>,
   I: TessIndex,
   W: TessVertexData<Interleaved, Data = Vec<W>>,
 {
-  type VertexSliceRepr = BufferSlice<V>;
-  type VertexSliceMutRepr = BufferSliceMut<V>;
+  type VertexSliceRepr = BufferSlice<'a, V>;
+  type VertexSliceMutRepr = BufferSliceMut<'a, V>;
 
-  unsafe fn vertices(tess: &mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError> {
+  unsafe fn vertices(tess: &'a mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError> {
     match tess.vertex_buffer {
       Some(ref vb) => Ok(vb.slice_buffer()),
       None => Err(TessMapError::forbidden_attributeless_mapping()),
@@ -215,7 +215,7 @@ where
   }
 
   unsafe fn vertices_mut(
-    tess: &mut Self::TessRepr,
+    tess: &'a mut Self::TessRepr,
   ) -> Result<Self::VertexSliceMutRepr, TessMapError> {
     match tess.vertex_buffer {
       Some(ref mut vb) => Ok(vb.slice_buffer_mut()),
@@ -224,16 +224,16 @@ where
   }
 }
 
-unsafe impl<V, I, W> IndexSliceBackend<V, I, W, Interleaved> for WebGL2
+unsafe impl<'a, V, I, W> IndexSliceBackend<'a, V, I, W, Interleaved> for WebGL2
 where
   V: TessVertexData<Interleaved, Data = Vec<V>>,
-  I: TessIndex,
+  I: 'a + TessIndex,
   W: TessVertexData<Interleaved, Data = Vec<W>>,
 {
-  type IndexSliceRepr = BufferSlice<I>;
-  type IndexSliceMutRepr = BufferSliceMut<I>;
+  type IndexSliceRepr = BufferSlice<'a, I>;
+  type IndexSliceMutRepr = BufferSliceMut<'a, I>;
 
-  unsafe fn indices(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError> {
+  unsafe fn indices(tess: &'a mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError> {
     match tess.raw.index_buffer {
       Some(ref buffer) => Ok(buffer.slice_buffer()),
       None => Err(TessMapError::forbidden_attributeless_mapping()),
@@ -241,7 +241,7 @@ where
   }
 
   unsafe fn indices_mut(
-    tess: &mut Self::TessRepr,
+    tess: &'a mut Self::TessRepr,
   ) -> Result<Self::IndexSliceMutRepr, TessMapError> {
     match tess.raw.index_buffer {
       Some(ref mut buffer) => Ok(buffer.slice_buffer_mut()),
@@ -250,16 +250,18 @@ where
   }
 }
 
-unsafe impl<V, I, W> InstanceSliceBackend<V, I, W, Interleaved, W> for WebGL2
+unsafe impl<'a, V, I, W> InstanceSliceBackend<'a, V, I, W, Interleaved, W> for WebGL2
 where
   V: TessVertexData<Interleaved, Data = Vec<V>>,
   I: TessIndex,
-  W: TessVertexData<Interleaved, Data = Vec<W>>,
+  W: 'a + TessVertexData<Interleaved, Data = Vec<W>>,
 {
-  type InstanceSliceRepr = BufferSlice<W>;
-  type InstanceSliceMutRepr = BufferSliceMut<W>;
+  type InstanceSliceRepr = BufferSlice<'a, W>;
+  type InstanceSliceMutRepr = BufferSliceMut<'a, W>;
 
-  unsafe fn instances(tess: &mut Self::TessRepr) -> Result<Self::InstanceSliceRepr, TessMapError> {
+  unsafe fn instances(
+    tess: &'a mut Self::TessRepr,
+  ) -> Result<Self::InstanceSliceRepr, TessMapError> {
     match tess.instance_buffer {
       Some(ref vb) => Ok(vb.slice_buffer()),
       None => Err(TessMapError::forbidden_attributeless_mapping()),
@@ -267,7 +269,7 @@ where
   }
 
   unsafe fn instances_mut(
-    tess: &mut Self::TessRepr,
+    tess: &'a mut Self::TessRepr,
   ) -> Result<Self::InstanceSliceMutRepr, TessMapError> {
     match tess.instance_buffer {
       Some(ref mut vb) => Ok(vb.slice_buffer_mut()),
@@ -374,16 +376,17 @@ where
   }
 }
 
-unsafe impl<V, I, W, T> VertexSliceBackend<V, I, W, Deinterleaved, T> for WebGL2
+unsafe impl<'a, V, I, W, T> VertexSliceBackend<'a, V, I, W, Deinterleaved, T> for WebGL2
 where
   V: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>> + Deinterleave<T>,
   I: TessIndex,
   W: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
+  T: 'a,
 {
-  type VertexSliceRepr = BufferSlice<T>;
-  type VertexSliceMutRepr = BufferSliceMut<T>;
+  type VertexSliceRepr = BufferSlice<'a, T>;
+  type VertexSliceMutRepr = BufferSliceMut<'a, T>;
 
-  unsafe fn vertices(tess: &mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError> {
+  unsafe fn vertices(tess: &'a mut Self::TessRepr) -> Result<Self::VertexSliceRepr, TessMapError> {
     if tess.vertex_buffers.is_empty() {
       Err(TessMapError::forbidden_attributeless_mapping())
     } else {
@@ -394,7 +397,7 @@ where
   }
 
   unsafe fn vertices_mut(
-    tess: &mut Self::TessRepr,
+    tess: &'a mut Self::TessRepr,
   ) -> Result<Self::VertexSliceMutRepr, TessMapError> {
     if tess.vertex_buffers.is_empty() {
       Err(TessMapError::forbidden_attributeless_mapping())
@@ -406,16 +409,16 @@ where
   }
 }
 
-unsafe impl<V, I, W> IndexSliceBackend<V, I, W, Deinterleaved> for WebGL2
+unsafe impl<'a, V, I, W> IndexSliceBackend<'a, V, I, W, Deinterleaved> for WebGL2
 where
   V: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
-  I: TessIndex,
+  I: 'a + TessIndex,
   W: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
 {
-  type IndexSliceRepr = BufferSlice<I>;
-  type IndexSliceMutRepr = BufferSliceMut<I>;
+  type IndexSliceRepr = BufferSlice<'a, I>;
+  type IndexSliceMutRepr = BufferSliceMut<'a, I>;
 
-  unsafe fn indices(tess: &mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError> {
+  unsafe fn indices(tess: &'a mut Self::TessRepr) -> Result<Self::IndexSliceRepr, TessMapError> {
     match tess.raw.index_buffer {
       Some(ref buffer) => Ok(buffer.slice_buffer()),
       None => Err(TessMapError::forbidden_attributeless_mapping()),
@@ -423,7 +426,7 @@ where
   }
 
   unsafe fn indices_mut(
-    tess: &mut Self::TessRepr,
+    tess: &'a mut Self::TessRepr,
   ) -> Result<Self::IndexSliceMutRepr, TessMapError> {
     match tess.raw.index_buffer {
       Some(ref mut buffer) => Ok(buffer.slice_buffer_mut()),
@@ -432,16 +435,19 @@ where
   }
 }
 
-unsafe impl<V, I, W, T> InstanceSliceBackend<V, I, W, Deinterleaved, T> for WebGL2
+unsafe impl<'a, V, I, W, T> InstanceSliceBackend<'a, V, I, W, Deinterleaved, T> for WebGL2
 where
   V: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>>,
   I: TessIndex,
   W: TessVertexData<Deinterleaved, Data = Vec<DeinterleavedData>> + Deinterleave<T>,
+  T: 'a,
 {
-  type InstanceSliceRepr = BufferSlice<T>;
-  type InstanceSliceMutRepr = BufferSliceMut<T>;
+  type InstanceSliceRepr = BufferSlice<'a, T>;
+  type InstanceSliceMutRepr = BufferSliceMut<'a, T>;
 
-  unsafe fn instances(tess: &mut Self::TessRepr) -> Result<Self::InstanceSliceRepr, TessMapError> {
+  unsafe fn instances(
+    tess: &'a mut Self::TessRepr,
+  ) -> Result<Self::InstanceSliceRepr, TessMapError> {
     if tess.instance_buffers.is_empty() {
       Err(TessMapError::forbidden_attributeless_mapping())
     } else {
@@ -452,7 +458,7 @@ where
   }
 
   unsafe fn instances_mut(
-    tess: &mut Self::TessRepr,
+    tess: &'a mut Self::TessRepr,
   ) -> Result<Self::InstanceSliceMutRepr, TessMapError> {
     if tess.instance_buffers.is_empty() {
       Err(TessMapError::forbidden_attributeless_mapping())
