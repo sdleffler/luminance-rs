@@ -22,13 +22,21 @@ impl Example for LocalExample {
       .build()
       .expect("tessellation");
 
-    {
-      let mut slice = tess.indices_mut().expect("sliced indices");
-      log::info!("slice before mutation is: {:?}", slice.deref());
+    tess
+      .indices_mut()
+      .expect("sliced indices")
+      .copy_from_slice(&[10, 20, 30]);
 
-      slice[1] = 2;
+    {
+      let slice = tess.indices().expect("sliced indices");
       log::info!("slice after mutation is:  {:?}", slice.deref());
     }
+
+    {
+      let _ = tess.indices_mut().expect("sliced indices");
+    }
+
+    drop(tess);
 
     LocalExample
   }

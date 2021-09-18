@@ -955,9 +955,9 @@ where
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
   /// This method gives access to the underlying _index storage_.
-  pub fn indices(&mut self) -> Result<Indices<B, V, I, W, S>, TessMapError>
+  pub fn indices<'a>(&'a mut self) -> Result<Indices<'a, B, V, I, W, S>, TessMapError>
   where
-    B: IndexSliceBackend<V, I, W, S>,
+    B: IndexSliceBackend<'a, V, I, W, S>,
   {
     unsafe { B::indices(&mut self.repr).map(|repr| Indices { repr }) }
   }
@@ -965,9 +965,9 @@ where
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
   /// This method gives access to the underlying _index storage_.
-  pub fn indices_mut(&mut self) -> Result<IndicesMut<B, V, I, W, S>, TessMapError>
+  pub fn indices_mut<'a>(&'a mut self) -> Result<IndicesMut<'a, B, V, I, W, S>, TessMapError>
   where
-    B: IndexSliceBackend<V, I, W, S>,
+    B: IndexSliceBackend<'a, V, I, W, S>,
   {
     unsafe { B::indices_mut(&mut self.repr).map(|repr| IndicesMut { repr }) }
   }
@@ -983,9 +983,11 @@ where
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
   /// This method gives access to the underlying _vertex storage_.
-  pub fn vertices(&mut self) -> Result<Vertices<B, V, I, W, Interleaved, V>, TessMapError>
+  pub fn vertices<'a>(
+    &'a mut self,
+  ) -> Result<Vertices<'a, B, V, I, W, Interleaved, V>, TessMapError>
   where
-    B: VertexSliceBackend<V, I, W, Interleaved, V>,
+    B: VertexSliceBackend<'a, V, I, W, Interleaved, V>,
   {
     unsafe { B::vertices(&mut self.repr).map(|repr| Vertices { repr }) }
   }
@@ -993,9 +995,11 @@ where
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
   /// This method gives access to the underlying _vertex storage_.
-  pub fn vertices_mut(&mut self) -> Result<VerticesMut<B, V, I, W, Interleaved, V>, TessMapError>
+  pub fn vertices_mut<'a>(
+    &'a mut self,
+  ) -> Result<VerticesMut<'a, B, V, I, W, Interleaved, V>, TessMapError>
   where
-    B: VertexSliceBackend<V, I, W, Interleaved, V>,
+    B: VertexSliceBackend<'a, V, I, W, Interleaved, V>,
   {
     unsafe { B::vertices_mut(&mut self.repr).map(|repr| VerticesMut { repr }) }
   }
@@ -1003,9 +1007,11 @@ where
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
   /// This method gives access to the underlying _instance storage_.
-  pub fn instances(&mut self) -> Result<Instances<B, V, I, W, Interleaved, V>, TessMapError>
+  pub fn instances<'a>(
+    &'a mut self,
+  ) -> Result<Instances<'a, B, V, I, W, Interleaved, V>, TessMapError>
   where
-    B: InstanceSliceBackend<V, I, W, Interleaved, V>,
+    B: InstanceSliceBackend<'a, V, I, W, Interleaved, V>,
   {
     unsafe { B::instances(&mut self.repr).map(|repr| Instances { repr }) }
   }
@@ -1013,9 +1019,11 @@ where
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
   /// This method gives access to the underlying _instance storage_.
-  pub fn instances_mut(&mut self) -> Result<InstancesMut<B, V, I, W, Interleaved, V>, TessMapError>
+  pub fn instances_mut<'a>(
+    &'a mut self,
+  ) -> Result<InstancesMut<'a, B, V, I, W, Interleaved, V>, TessMapError>
   where
-    B: InstanceSliceBackend<V, I, W, Interleaved, V>,
+    B: InstanceSliceBackend<'a, V, I, W, Interleaved, V>,
   {
     unsafe { B::instances_mut(&mut self.repr).map(|repr| InstancesMut { repr }) }
   }
@@ -1031,9 +1039,11 @@ where
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
   /// This method gives access to the underlying _vertex storage_.
-  pub fn vertices<T>(&mut self) -> Result<Vertices<B, V, I, W, Deinterleaved, T>, TessMapError>
+  pub fn vertices<'a, T>(
+    &'a mut self,
+  ) -> Result<Vertices<'a, B, V, I, W, Deinterleaved, T>, TessMapError>
   where
-    B: VertexSliceBackend<V, I, W, Deinterleaved, T>,
+    B: VertexSliceBackend<'a, V, I, W, Deinterleaved, T>,
     V: Deinterleave<T>,
   {
     unsafe { B::vertices(&mut self.repr).map(|repr| Vertices { repr }) }
@@ -1042,11 +1052,11 @@ where
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
   /// This method gives access to the underlying _vertex storage_.
-  pub fn vertices_mut<T>(
-    &mut self,
-  ) -> Result<VerticesMut<B, V, I, W, Deinterleaved, T>, TessMapError>
+  pub fn vertices_mut<'a, T>(
+    &'a mut self,
+  ) -> Result<VerticesMut<'a, B, V, I, W, Deinterleaved, T>, TessMapError>
   where
-    B: VertexSliceBackend<V, I, W, Deinterleaved, T>,
+    B: VertexSliceBackend<'a, V, I, W, Deinterleaved, T>,
     V: Deinterleave<T>,
   {
     unsafe { B::vertices_mut(&mut self.repr).map(|repr| VerticesMut { repr }) }
@@ -1055,9 +1065,11 @@ where
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
   /// This method gives access to the underlying _instance storage_.
-  pub fn instances<T>(&mut self) -> Result<Instances<B, V, I, W, Deinterleaved, T>, TessMapError>
+  pub fn instances<'a, T>(
+    &'a mut self,
+  ) -> Result<Instances<'a, B, V, I, W, Deinterleaved, T>, TessMapError>
   where
-    B: InstanceSliceBackend<V, I, W, Deinterleaved, T>,
+    B: InstanceSliceBackend<'a, V, I, W, Deinterleaved, T>,
     W: Deinterleave<T>,
   {
     unsafe { B::instances(&mut self.repr).map(|repr| Instances { repr }) }
@@ -1066,11 +1078,11 @@ where
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
   /// This method gives access to the underlying _instance storage_.
-  pub fn instances_mut<T>(
-    &mut self,
-  ) -> Result<InstancesMut<B, V, I, W, Deinterleaved, T>, TessMapError>
+  pub fn instances_mut<'a, T>(
+    &'a mut self,
+  ) -> Result<InstancesMut<'a, B, V, I, W, Deinterleaved, T>, TessMapError>
   where
-    B: InstanceSliceBackend<V, I, W, Deinterleaved, T>,
+    B: InstanceSliceBackend<'a, V, I, W, Deinterleaved, T>,
     W: Deinterleave<T>,
   {
     unsafe { B::instances_mut(&mut self.repr).map(|repr| InstancesMut { repr }) }
@@ -1079,9 +1091,9 @@ where
 
 /// TODO
 #[derive(Debug)]
-pub struct Vertices<B, V, I, W, S, T>
+pub struct Vertices<'a, B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W, S> + VertexSliceBackend<V, I, W, S, T>,
+  B: ?Sized + TessBackend<V, I, W, S> + VertexSliceBackend<'a, V, I, W, S, T>,
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
@@ -1090,9 +1102,9 @@ where
   repr: B::VertexSliceRepr,
 }
 
-impl<B, V, I, W, S, T> Deref for Vertices<B, V, I, W, S, T>
+impl<'a, B, V, I, W, S, T> Deref for Vertices<'a, B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W, S> + VertexSliceBackend<V, I, W, S, T>,
+  B: ?Sized + TessBackend<V, I, W, S> + VertexSliceBackend<'a, V, I, W, S, T>,
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
@@ -1107,9 +1119,9 @@ where
 
 /// TODO
 #[derive(Debug)]
-pub struct VerticesMut<B, V, I, W, S, T>
+pub struct VerticesMut<'a, B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W, S> + VertexSliceBackend<V, I, W, S, T>,
+  B: ?Sized + TessBackend<V, I, W, S> + VertexSliceBackend<'a, V, I, W, S, T>,
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
@@ -1118,9 +1130,9 @@ where
   repr: B::VertexSliceMutRepr,
 }
 
-impl<B, V, I, W, S, T> Deref for VerticesMut<B, V, I, W, S, T>
+impl<'a, B, V, I, W, S, T> Deref for VerticesMut<'a, B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W, S> + VertexSliceBackend<V, I, W, S, T>,
+  B: ?Sized + TessBackend<V, I, W, S> + VertexSliceBackend<'a, V, I, W, S, T>,
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
@@ -1133,9 +1145,9 @@ where
   }
 }
 
-impl<B, V, I, W, S, T> DerefMut for VerticesMut<B, V, I, W, S, T>
+impl<'a, B, V, I, W, S, T> DerefMut for VerticesMut<'a, B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W, S> + VertexSliceBackend<V, I, W, S, T>,
+  B: ?Sized + TessBackend<V, I, W, S> + VertexSliceBackend<'a, V, I, W, S, T>,
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
@@ -1148,9 +1160,9 @@ where
 
 /// TODO
 #[derive(Debug)]
-pub struct Indices<B, V, I, W, S>
+pub struct Indices<'a, B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W, S> + IndexSliceBackend<V, I, W, S>,
+  B: ?Sized + TessBackend<V, I, W, S> + IndexSliceBackend<'a, V, I, W, S>,
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
@@ -1159,9 +1171,9 @@ where
   repr: B::IndexSliceRepr,
 }
 
-impl<B, V, I, W, S> Deref for Indices<B, V, I, W, S>
+impl<'a, B, V, I, W, S> Deref for Indices<'a, B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W, S> + IndexSliceBackend<V, I, W, S>,
+  B: ?Sized + TessBackend<V, I, W, S> + IndexSliceBackend<'a, V, I, W, S>,
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
@@ -1176,9 +1188,9 @@ where
 
 /// TODO
 #[derive(Debug)]
-pub struct IndicesMut<B, V, I, W, S>
+pub struct IndicesMut<'a, B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W, S> + IndexSliceBackend<V, I, W, S>,
+  B: ?Sized + TessBackend<V, I, W, S> + IndexSliceBackend<'a, V, I, W, S>,
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
@@ -1187,9 +1199,9 @@ where
   repr: B::IndexSliceMutRepr,
 }
 
-impl<B, V, I, W, S> Deref for IndicesMut<B, V, I, W, S>
+impl<'a, B, V, I, W, S> Deref for IndicesMut<'a, B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W, S> + IndexSliceBackend<V, I, W, S>,
+  B: ?Sized + TessBackend<V, I, W, S> + IndexSliceBackend<'a, V, I, W, S>,
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
@@ -1202,9 +1214,9 @@ where
   }
 }
 
-impl<B, V, I, W, S> DerefMut for IndicesMut<B, V, I, W, S>
+impl<'a, B, V, I, W, S> DerefMut for IndicesMut<'a, B, V, I, W, S>
 where
-  B: ?Sized + TessBackend<V, I, W, S> + IndexSliceBackend<V, I, W, S>,
+  B: ?Sized + TessBackend<V, I, W, S> + IndexSliceBackend<'a, V, I, W, S>,
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
@@ -1217,9 +1229,9 @@ where
 
 /// TODO
 #[derive(Debug)]
-pub struct Instances<B, V, I, W, S, T>
+pub struct Instances<'a, B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W, S> + InstanceSliceBackend<V, I, W, S, T>,
+  B: ?Sized + TessBackend<V, I, W, S> + InstanceSliceBackend<'a, V, I, W, S, T>,
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
@@ -1228,9 +1240,9 @@ where
   repr: B::InstanceSliceRepr,
 }
 
-impl<B, V, I, W, S, T> Deref for Instances<B, V, I, W, S, T>
+impl<'a, B, V, I, W, S, T> Deref for Instances<'a, B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W, S> + InstanceSliceBackend<V, I, W, S, T>,
+  B: ?Sized + TessBackend<V, I, W, S> + InstanceSliceBackend<'a, V, I, W, S, T>,
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
@@ -1245,9 +1257,9 @@ where
 
 /// TODO
 #[derive(Debug)]
-pub struct InstancesMut<B, V, I, W, S, T>
+pub struct InstancesMut<'a, B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W, S> + InstanceSliceBackend<V, I, W, S, T>,
+  B: ?Sized + TessBackend<V, I, W, S> + InstanceSliceBackend<'a, V, I, W, S, T>,
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,
@@ -1256,9 +1268,9 @@ where
   repr: B::InstanceSliceMutRepr,
 }
 
-impl<B, V, I, W, S, T> Deref for InstancesMut<B, V, I, W, S, T>
+impl<'a, B, V, I, W, S, T> Deref for InstancesMut<'a, B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W, S> + InstanceSliceBackend<V, I, W, S, T>,
+  B: ?Sized + TessBackend<V, I, W, S> + InstanceSliceBackend<'a, V, I, W, S, T>,
   S: ?Sized,
   V: TessVertexData<S>,
   I: TessIndex,
@@ -1271,9 +1283,9 @@ where
   }
 }
 
-impl<B, V, I, W, S, T> DerefMut for InstancesMut<B, V, I, W, S, T>
+impl<'a, B, V, I, W, S, T> DerefMut for InstancesMut<'a, B, V, I, W, S, T>
 where
-  B: ?Sized + TessBackend<V, I, W, S> + InstanceSliceBackend<V, I, W, S, T>,
+  B: ?Sized + TessBackend<V, I, W, S> + InstanceSliceBackend<'a, V, I, W, S, T>,
   V: TessVertexData<S>,
   I: TessIndex,
   W: TessVertexData<S>,

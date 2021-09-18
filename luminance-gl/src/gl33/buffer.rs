@@ -108,7 +108,7 @@ impl<T> Buffer<T> {
 
     mapping_buffer(gl::ARRAY_BUFFER, gl::READ_ONLY, |ptr| {
       let handle = self.handle();
-      let state = self.gl_buf.state.clone();
+      let state = &self.gl_buf.state;
       let raw = BufferSliceWrapper { handle, state };
       let len = self.buf.len();
 
@@ -125,9 +125,9 @@ impl<T> Buffer<T> {
         .bind_array_buffer(self.handle(), Bind::Cached);
     }
 
-    mapping_buffer(gl::ARRAY_BUFFER, gl::READ_WRITE, |ptr| {
+    mapping_buffer(gl::ARRAY_BUFFER, gl::READ_WRITE, move |ptr| {
       let handle = self.handle();
-      let state = self.gl_buf.state.clone();
+      let state = &self.gl_buf.state;
       let raw = BufferSliceWrapper { handle, state };
       let len = self.buf.len();
 
@@ -137,12 +137,13 @@ impl<T> Buffer<T> {
 }
 
 /// Wrapper to drop buffer slices.
-struct BufferSliceWrapper {
+struct BufferSliceWrapper<'a> {
   handle: GLuint,
-  state: Rc<RefCell<GLState>>,
+  // we use a &'a to the state to prevent cloning it when creating a buffer slice and keep the lifetime around
+  state: &'a Rc<RefCell<GLState>>,
 }
 
-impl Drop for BufferSliceWrapper {
+impl Drop for BufferSliceWrapper<'_> {
   fn drop(&mut self) {
     unsafe {
       self
@@ -155,13 +156,13 @@ impl Drop for BufferSliceWrapper {
   }
 }
 
-pub struct BufferSlice<T> {
-  raw: BufferSliceWrapper,
+pub struct BufferSlice<'a, T> {
+  raw: BufferSliceWrapper<'a>,
   len: usize,
   ptr: *const T,
 }
 
-impl<T> Deref for BufferSlice<T> {
+impl<T> Deref for BufferSlice<'_, T> {
   type Target = [T];
 
   fn deref(&self) -> &Self::Target {
@@ -169,12 +170,12 @@ impl<T> Deref for BufferSlice<T> {
   }
 }
 
-impl BufferSlice<u8> {
+impl<'a> BufferSlice<'a, u8> {
   /// Transmute to another type.
   ///
   /// This method is highly unsafe and should only be used when certain the target type is the
   /// one actually represented by the raw bytes.
-  pub(crate) unsafe fn transmute<T>(self) -> BufferSlice<T> {
+  pub(crate) unsafe fn transmute<T>(self) -> BufferSlice<'a, T> {
     let len = self.len / mem::size_of::<T>();
     let ptr = self.ptr as _;
 
@@ -186,13 +187,13 @@ impl BufferSlice<u8> {
   }
 }
 
-pub struct BufferSliceMut<T> {
-  raw: BufferSliceWrapper,
+pub struct BufferSliceMut<'a, T> {
+  raw: BufferSliceWrapper<'a>,
   len: usize,
   ptr: *mut T,
 }
 
-impl<T> Deref for BufferSliceMut<T> {
+impl<T> Deref for BufferSliceMut<'_, T> {
   type Target = [T];
 
   fn deref(&self) -> &Self::Target {
@@ -200,18 +201,18 @@ impl<T> Deref for BufferSliceMut<T> {
   }
 }
 
-impl<T> DerefMut for BufferSliceMut<T> {
+impl<T> DerefMut for BufferSliceMut<'_, T> {
   fn deref_mut(&mut self) -> &mut Self::Target {
     unsafe { slice::from_raw_parts_mut(self.ptr, self.len) }
   }
 }
 
-impl BufferSliceMut<u8> {
+impl<'a> BufferSliceMut<'a, u8> {
   /// Transmute to another type.
   ///
   /// This method is highly unsafe and should only be used when certain the target type is the
   /// one actually represented by the raw bytes.
-  pub(crate) unsafe fn transmute<T>(self) -> BufferSliceMut<T> {
+  pub(crate) unsafe fn transmute<T>(self) -> BufferSliceMut<'a, T> {
     let len = self.len / mem::size_of::<T>();
     let ptr = self.ptr as _;
 
