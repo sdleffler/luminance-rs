@@ -27,6 +27,8 @@
 
 # `luminance-glfw`
 
+- Add support for `glfw-0.42`.
+
 # `luminance-glutin`
 
 # `luminance-sdl2`
