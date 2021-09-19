@@ -233,12 +233,13 @@ use crate::{
     color_slot::ColorSlot,
     depth_slot::DepthSlot,
     framebuffer::Framebuffer as FramebufferBackend,
-    pipeline::{Pipeline as PipelineBackend, PipelineBase, PipelineTexture},
+    pipeline::{Pipeline as PipelineBackend, PipelineBase, PipelineShaderData, PipelineTexture},
   },
   context::GraphicsContext,
   framebuffer::Framebuffer,
   pixel::Pixel,
   scissor::ScissorRegion,
+  shader::ShaderData,
   shading_gate::ShadingGate,
   texture::{Dimensionable, Texture},
 };
@@ -422,8 +423,7 @@ where
 {
   /// Bind a texture.
   ///
-  /// Once the texture is bound, the [`BoundTexture`] object has to be dropped / die in order to
-  /// bind the texture again.
+  /// Once the texture is bound, the [`BoundTexture`] object has to be dropped / die in order to bind the texture again.
   pub fn bind_texture<D, P>(
     &'a self,
     texture: &'a mut Texture<B, D, P>,
@@ -435,6 +435,25 @@ where
   {
     unsafe {
       B::bind_texture(&self.repr, &texture.repr).map(|repr| BoundTexture {
+        repr,
+        _phantom: PhantomData,
+      })
+    }
+  }
+
+  /// Bind a shader data.
+  ///
+  /// Once the shader data is bound, the [`BoundShaderData`] object has to be dropped / die in order to bind the shader
+  /// data again.
+  pub fn bind_shader_data<T>(
+    &'a self,
+    shader_data: &'a mut ShaderData<B, T>,
+  ) -> Result<BoundShaderData<'a, B, T>, PipelineError>
+  where
+    B: PipelineShaderData<T>,
+  {
+    unsafe {
+      B::bind_shader_data(&self.repr, &shader_data.repr).map(|repr| BoundShaderData {
         repr,
         _phantom: PhantomData,
       })
@@ -572,28 +591,27 @@ impl<E> DerefMut for Render<E> {
   }
 }
 
-/// Opaque buffer binding.
+/// Opaque shader data binding.
 ///
-/// This type represents a bound [`Buffer`] via [`BoundBuffer`]. It can be used along with a
-/// [`Uniform`] to customize a shader’s behavior.
+/// This type represents a bound [`ShaderData`] via [`BoundShaderData`]. It can be used along with a [`Uniform`] to
+/// customize a shader’s behavior.
 ///
 /// # Parametricity
 ///
-/// - `T` is the type of the carried item by the [`Buffer`].
+/// - `T` is the type of the carried item by the [`ShaderData`].
 ///
 /// # Notes
 ///
-/// You shouldn’t try to do store / cache or do anything special with that value. Consider it
-/// an opaque object.
+/// You shouldn’t try to do store / cache or do anything special with that value. Consider it an opaque object.
 ///
 /// [`Uniform`]: crate::shader::Uniform
 #[derive(Debug)]
-pub struct BufferBinding<T> {
+pub struct ShaderDataBinding<T> {
   binding: u32,
   _phantom: PhantomData<*const T>,
 }
 
-impl<T> BufferBinding<T> {
+impl<T> ShaderDataBinding<T> {
   /// Access the underlying binding value.
   ///
   /// # Notes
@@ -601,6 +619,49 @@ impl<T> BufferBinding<T> {
   /// That value shouldn’t be read nor store, as it’s only meaningful for backend implementations.
   pub fn binding(self) -> u32 {
     self.binding
+  }
+}
+
+/// A _bound_ [`ShaderData`].
+///
+/// # Parametricity
+///
+/// - `B` is the backend type. It must implement [`ShaderData`](crate::backend::shader::ShaderData).
+/// - `T` is the carried item type.
+///
+/// # Notes
+///
+/// Once a [`ShaderData`] is bound, it can be used and passed around to shaders. In order to do so, you will need to
+/// pass a [`ShaderDataBinding`] to your [`ProgramInterface`]. That value is unique to each [`BoundShaderData`] and
+/// should always be asked — you shouldn’t cache them, for instance.
+///
+/// Getting a [`ShaderDataBinding`] is a cheap operation and is performed via the [`BoundShaderData::binding`] method.
+///
+/// [`ProgramInterface`]: crate::shader::ProgramInterface
+pub struct BoundShaderData<'a, B, T>
+where
+  B: PipelineShaderData<T>,
+{
+  pub(crate) repr: B::BoundShaderDataRepr,
+  _phantom: PhantomData<&'a ()>,
+}
+
+impl<'a, B, T> BoundShaderData<'a, B, T>
+where
+  B: PipelineShaderData<T>,
+{
+  /// Obtain a [`ShaderDataBinding`] object that can be used to refer to this bound shader data in shader stages.
+  ///
+  /// # Notes
+  ///
+  /// You shouldn’t try to do store / cache or do anything special with that value. Consider it
+  /// an opaque object.
+  pub fn binding(&self) -> ShaderDataBinding<T> {
+    let binding = unsafe { B::shader_data_binding(&self.repr) };
+    ShaderDataBinding {
+      binding,
+      _phantom: PhantomData,
+    }
   }
 }
 

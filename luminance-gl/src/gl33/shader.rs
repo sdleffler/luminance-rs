@@ -213,7 +213,7 @@ unsafe impl Shader for GL33 {
     T: Uniformable<Self>,
   {
     let uniform = match T::ty() {
-      UniformType::BufferBinding => uniform_builder.ask_uniform_block(name)?,
+      UniformType::ShaderDataBinding => uniform_builder.ask_uniform_block(name)?,
       _ => uniform_builder.ask_uniform(name)?,
     };
 
@@ -661,7 +661,7 @@ unsafe impl<'a> Uniformable<GL33> for &'a [[bool; 4]] {
 
 unsafe impl<T> Uniformable<GL33> for BufferBinding<T> {
   unsafe fn ty() -> UniformType {
-    UniformType::BufferBinding
+    UniformType::ShaderDataBinding
   }
 
   unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
