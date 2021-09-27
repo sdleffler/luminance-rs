@@ -9,6 +9,13 @@ how `cargo` resolves dependencies. `cargo update` is not enough, because all lum
 [SemVer ranges](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html) to stay
 compatible with as many crates as possible. In that case, you want `cargo update --aggressive`.
 
+# 0.44.1
+
+> Sep 27, 2021
+
+- Fix `Tess::instances` and `Tess::instances_mut` returned slices, which were using the wrong type variables and made it
+  impossible to even compile that code. Because that situation couldn’t compile, we release this as a patch bump.
+
 # 0.44
 
 > Jun 28, 2021
