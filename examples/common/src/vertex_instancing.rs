@@ -42,23 +42,23 @@ const TRI_VERTICES: [Vertex; 3] = [
 const INSTANCES: [Instance; 5] = [
   Instance {
     pos: VertexInstancePosition::new([0., 0.]),
-    w: VertexWeight::new(0.1),
+    w: VertexWeight::new(1.),
   },
   Instance {
     pos: VertexInstancePosition::new([-0.5, 0.5]),
-    w: VertexWeight::new(0.5),
+    w: VertexWeight::new(1.),
   },
   Instance {
     pos: VertexInstancePosition::new([-0.25, -0.1]),
-    w: VertexWeight::new(0.1),
+    w: VertexWeight::new(1.),
   },
   Instance {
     pos: VertexInstancePosition::new([0.45, 0.25]),
-    w: VertexWeight::new(0.75),
+    w: VertexWeight::new(1.),
   },
   Instance {
     pos: VertexInstancePosition::new([0.6, -0.3]),
-    w: VertexWeight::new(0.3),
+    w: VertexWeight::new(1.),
   },
 ];
 
@@ -102,6 +102,16 @@ impl Example for LocalExample {
         InputAction::Quit => return LoopFeedback::Exit,
 
         _ => (),
+      }
+    }
+
+    // make instances go boop boop by changing their weight dynamically
+    {
+      let mut instances = self.triangle.instances_mut().expect("instances");
+
+      for (i, instance) in instances.iter_mut().enumerate() {
+        let tcos = (t * (i + 1) as f32 * 0.5).cos().powf(2.);
+        instance.w = VertexWeight::new(tcos);
       }
     }
 
