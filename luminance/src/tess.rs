@@ -1009,9 +1009,9 @@ where
   /// This method gives access to the underlying _instance storage_.
   pub fn instances<'a>(
     &'a mut self,
-  ) -> Result<Instances<'a, B, V, I, W, Interleaved, V>, TessMapError>
+  ) -> Result<Instances<'a, B, V, I, W, Interleaved, W>, TessMapError>
   where
-    B: InstanceSliceBackend<'a, V, I, W, Interleaved, V>,
+    B: InstanceSliceBackend<'a, V, I, W, Interleaved, W>,
   {
     unsafe { B::instances(&mut self.repr).map(|repr| Instances { repr }) }
   }
@@ -1021,9 +1021,9 @@ where
   /// This method gives access to the underlying _instance storage_.
   pub fn instances_mut<'a>(
     &'a mut self,
-  ) -> Result<InstancesMut<'a, B, V, I, W, Interleaved, V>, TessMapError>
+  ) -> Result<InstancesMut<'a, B, V, I, W, Interleaved, W>, TessMapError>
   where
-    B: InstanceSliceBackend<'a, V, I, W, Interleaved, V>,
+    B: InstanceSliceBackend<'a, V, I, W, Interleaved, W>,
   {
     unsafe { B::instances_mut(&mut self.repr).map(|repr| InstancesMut { repr }) }
   }

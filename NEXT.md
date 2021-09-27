@@ -13,6 +13,8 @@
   This change shouldn’t create any issue if your code is sound but if you were doing something like dropping a `Tess`
   while still maintaining a slice, or randomly dropping `Tess` and slices, it is likely that you will have `rustc` ask
   you to fix your code now.
+- Fix `Tess::instances` and `Tess::instances_mut` in the case of `Interleaved` memory. They didn’t return the right type
+  of slices and would  prevent people from even using them.
 
 # `luminance-derive`
 
