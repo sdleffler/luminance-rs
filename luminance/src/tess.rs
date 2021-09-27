@@ -1034,9 +1034,9 @@ where
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
   /// This method gives access to the underlying _instance storage_.
-  pub fn instances(&mut self) -> Result<Instances<B, V, I, W, Interleaved, V>, TessMapError>
+  pub fn instances(&mut self) -> Result<Instances<B, V, I, W, Interleaved, W>, TessMapError>
   where
-    B: InstanceSliceBackend<V, I, W, Interleaved, V>,
+    B: InstanceSliceBackend<V, I, W, Interleaved, W>,
   {
     unsafe { B::instances(&mut self.repr).map(|repr| Instances { repr }) }
   }
@@ -1044,9 +1044,9 @@ where
   /// Slice the [`Tess`] in order to read its content via usual slices.
   ///
   /// This method gives access to the underlying _instance storage_.
-  pub fn instances_mut(&mut self) -> Result<InstancesMut<B, V, I, W, Interleaved, V>, TessMapError>
+  pub fn instances_mut(&mut self) -> Result<InstancesMut<B, V, I, W, Interleaved, W>, TessMapError>
   where
-    B: InstanceSliceBackend<V, I, W, Interleaved, V>,
+    B: InstanceSliceBackend<V, I, W, Interleaved, W>,
   {
     unsafe { B::instances_mut(&mut self.repr).map(|repr| InstancesMut { repr }) }
   }

@@ -9,8 +9,7 @@ how `cargo` resolves dependencies. `cargo update` is not enough, because all lum
 [SemVer ranges](https://doc.rust-lang.org/cargo/reference/specifying-dependencies.html) to stay
 compatible with as many crates as possible. In that case, you want `cargo update --aggressive`.
 
-<!-- vim-markdown-toc GFM -->
-
+* [0.44.1](#0441)
 * [0.44](#044)
 * [0.43.2](#0432)
 * [0.43.1](#0431)
@@ -126,7 +125,12 @@ compatible with as many crates as possible. In that case, you want `cargo update
 * [0.2](#02)
 * [0.1](#01)
 
-<!-- vim-markdown-toc -->
+# 0.44.1
+
+> Sep 27, 2021
+
+- Fix `Tess::instances` and `Tess::instances_mut` returned slices, which were using the wrong type variables and made it
+  impossible to even compile that code. Because that situation couldn’t compile, we release this as a patch bump.
 
 # 0.44
 
