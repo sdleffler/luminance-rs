@@ -1,10 +1,11 @@
 <p align="center"><img src="https://github.com/phaazon/luminance-rs/blob/master/docs/imgs/luminance.svg" alt="luminance logo"/></p>
-<h1 align="right"><b>luminance</b>, the elegant, safe, type-safe, stateless <i>and simple</i> graphics crate</h1>
+<h1 align="right"><b>luminance</b>, the safe, type-driven, multi-backend <i>and simple</i> graphics crate</h1>
 
 [![Build Status](https://img.shields.io/travis/phaazon/luminance-rs?logo=travis)](https://travis-ci.org/phaazon/luminance-rs)
-[![crates.io](https://img.shields.io/crates/v/luminance.svg?logo=rust)](https://crates.io/crates/luminance)
 [![docs.rs](https://docs.rs/luminance/badge.svg)](https://docs.rs/luminance/)
+[![crates.io](https://img.shields.io/crates/v/luminance.svg?logo=rust)](https://crates.io/crates/luminance)
 ![License](https://img.shields.io/crates/l/luminance)
+![Matrix room](https://img.shields.io/matrix/luminance:matrix.org?color=%239b6dff)
 
 <!-- vim-markdown-toc GFM -->
 
