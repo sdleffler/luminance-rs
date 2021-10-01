@@ -5,7 +5,7 @@
 [![docs.rs](https://docs.rs/luminance/badge.svg)](https://docs.rs/luminance/)
 [![crates.io](https://img.shields.io/crates/v/luminance.svg?logo=rust)](https://crates.io/crates/luminance)
 ![License](https://img.shields.io/crates/l/luminance)
-![Matrix room](https://img.shields.io/matrix/luminance:matrix.org?color=%239b6dff)
+[![Matrix room](https://img.shields.io/matrix/luminance:matrix.org?color=%239b6dff)](https://matrix.to/#/#luminance:matrix.org)
 
 <!-- vim-markdown-toc GFM -->
 
