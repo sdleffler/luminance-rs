@@ -72,7 +72,7 @@ luminance is written to be fairly simple. There are several ways to learn how to
 - The [“Learn luminance” book](https://rust-tutorials.github.io/learn-luminance). Ideal for
   newcomers as well as people already used to luminance, as it’s always updated to the latest
   version — you might learn new things!
-- The [luminance-examples](https://github.com/phaazon/luminance-rs/tree/master/luminance-examples)
+- The [luminance-examples](https://github.com/phaazon/luminance-rs/tree/master/examples)
   project. It contains lots of examples describing how to do specifics things. Not adapted for
   newcomers, you will likely want to consult those examples if you’re already familiar with
   graphics programing and to look for how to do a specific thing.
