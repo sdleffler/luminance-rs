@@ -5,7 +5,7 @@ use luminance_front::{
   framebuffer::Framebuffer,
   pipeline::PipelineState,
   render_state::RenderState,
-  shader::{Program, Uniform},
+  shader::{types::Vec3, Program, Uniform},
   tess::{Mode, Tess},
   texture::Dim2,
   Backend,
@@ -34,7 +34,7 @@ void main() {
 
 #[derive(Debug, UniformInterface)]
 struct ShaderInterface {
-  color: Uniform<[f64; 3]>,
+  color: Uniform<Vec3<f64>>,
 }
 
 pub struct LocalExample {
@@ -78,7 +78,7 @@ impl Example for LocalExample {
     }
 
     let t = t as f64;
-    let color = [t.cos(), 0.3, t.sin()];
+    let color = Vec3::new(t.cos(), 0.3, t.sin());
     let program = &mut self.program;
     let tess = &self.tess;
 

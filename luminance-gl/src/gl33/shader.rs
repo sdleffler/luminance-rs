@@ -1,18 +1,23 @@
-use gl;
-use gl::types::*;
-use std::ffi::CString;
-use std::ptr::{null, null_mut};
-
+use super::buffer::Buffer;
 use crate::gl33::GL33;
-use luminance::backend::shader::{Shader, Uniformable};
-use luminance::pipeline::{BufferBinding, TextureBinding};
-use luminance::pixel::{SamplerType, Type as PixelType};
-use luminance::shader::{
-  ProgramError, StageError, StageType, TessellationStages, Uniform, UniformType, UniformWarning,
-  VertexAttribWarning,
+use gl::{self, types::*};
+use luminance::{
+  backend::shader::{Shader, ShaderData, Uniformable},
+  pipeline::{ShaderDataBinding, TextureBinding},
+  pixel::{SamplerType, Type as PixelType},
+  shader::{
+    ProgramError, ShaderDataError, StageError, StageType, TessellationStages, Uniform, UniformType,
+    UniformWarning, VertexAttribWarning,
+  },
+  texture::{Dim, Dimensionable},
+  vertex::Semantics,
 };
-use luminance::texture::{Dim, Dimensionable};
-use luminance::vertex::Semantics;
+use luminance_std140::Std140;
+use std::{
+  ffi::CString,
+  mem,
+  ptr::{null, null_mut},
+};
 
 #[derive(Debug)]
 pub struct Stage {
@@ -659,7 +664,7 @@ unsafe impl<'a> Uniformable<GL33> for &'a [[bool; 4]] {
   }
 }
 
-unsafe impl<T> Uniformable<GL33> for BufferBinding<T> {
+unsafe impl<T> Uniformable<GL33> for ShaderDataBinding<T> {
   unsafe fn ty() -> UniformType {
     UniformType::ShaderDataBinding
   }
@@ -720,5 +725,63 @@ where
 
   unsafe fn update(self, _: &mut Program, uniform: &Uniform<Self>) {
     gl::Uniform1i(uniform.index(), self.binding() as GLint)
+  }
+}
+
+unsafe impl<T> ShaderData<T> for GL33
+where
+  T: Std140,
+{
+  type ShaderDataRepr = Buffer<T::Encoded>;
+
+  unsafe fn new_shader_data(
+    &mut self,
+    values: impl Iterator<Item = T>,
+  ) -> Result<Self::ShaderDataRepr, ShaderDataError> {
+    Ok(Buffer::from_vec(
+      self,
+      values.into_iter().map(Std140::std140_encode).collect(),
+    ))
+  }
+
+  unsafe fn get_shader_data_at(
+    shader_data: &Self::ShaderDataRepr,
+    i: usize,
+  ) -> Result<T, ShaderDataError> {
+    shader_data
+      .buf
+      .get(i)
+      .map(|&x| T::std140_decode(x))
+      .ok_or_else(|| ShaderDataError::OutOfBounds { index: i })
+  }
+
+  unsafe fn set_shader_data_at(
+    shader_data: &mut Self::ShaderDataRepr,
+    i: usize,
+    x: T,
+  ) -> Result<T, ShaderDataError> {
+    let prev = mem::replace(
+      &mut shader_data
+        .slice_buffer_mut()
+        .map_err(|_| ShaderDataError::CannotSetData { index: i })?[i],
+      x.std140_encode(),
+    );
+
+    Ok(T::std140_decode(prev))
+  }
+
+  unsafe fn set_shader_data_values(
+    shader_data: &mut Self::ShaderDataRepr,
+    values: impl Iterator<Item = T>,
+  ) -> Result<(), ShaderDataError> {
+    let mut slice = shader_data
+      .slice_buffer_mut()
+      .map_err(|_| ShaderDataError::CannotReplaceData)?;
+
+    for (item, value) in slice.iter_mut().zip(values) {
+      *item = value.std140_encode();
+    }
+
+    Ok(())
   }
 }
