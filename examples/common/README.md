@@ -157,6 +157,12 @@ Shows how to get some information about the backend and luminance.
 This program shows how to render a single triangle into an offscreen framebuffer with two target textures, and how to
 render the contents of these textures into the back buffer (i.e. the screen), combining data from both.
 
+## [18 – Shader Data](./src/shader_data.rs)
+
+This example shows how to use _shader data_ to implement _geometry instancing_, a technique allowing to quickly render a
+large number of instances of the same model (here, a simple square). This example shows how to update all the squares’
+positions at once in the render loop.
+
 [luminance]: https://crates.io/crates/luminance
 [glutin]: https://crates.io/crates/glutin
 [the book]: https://rust-tutorials.github.io/learn-luminance
