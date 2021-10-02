@@ -1258,6 +1258,9 @@ where
 #[non_exhaustive]
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ShaderDataError {
+  /// Cannot create the shader data on the backend side.
+  CannotCreate,
+
   /// Index out of bounds.,
   OutOfBounds {
     /// Tried (incorrect) index.

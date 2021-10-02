@@ -17,8 +17,8 @@ use web_sys::{
 pub(crate) struct BindingStack {
   pub(crate) next_texture_unit: u32,
   pub(crate) free_texture_units: Vec<u32>,
-  pub(crate) next_buffer_binding: u32,
-  pub(crate) free_buffer_bindings: Vec<u32>,
+  pub(crate) next_shader_data_binding: u32,
+  pub(crate) free_shader_data_bindings: Vec<u32>,
 }
 
 impl BindingStack {
@@ -27,8 +27,8 @@ impl BindingStack {
     BindingStack {
       next_texture_unit: 0,
       free_texture_units: Vec::new(),
-      next_buffer_binding: 0,
-      free_buffer_bindings: Vec::new(),
+      next_shader_data_binding: 0,
+      free_shader_data_bindings: Vec::new(),
     }
   }
 }
@@ -95,6 +95,8 @@ pub struct WebGL2State {
   bound_array_buffer: Option<WebGlBuffer>,
   // element buffer
   bound_element_array_buffer: Option<WebGlBuffer>,
+  // uniform buffer
+  bound_uniform_buffer: Option<WebGlBuffer>,
 
   // framebuffer
   bound_draw_framebuffer: Option<WebGlFramebuffer>,
@@ -162,6 +164,7 @@ impl WebGL2State {
     let bound_uniform_buffers = vec![None; 36]; // 36 is the platform minimal requirement
     let bound_array_buffer = None;
     let bound_element_array_buffer = None;
+    let bound_uniform_buffer = None;
     let bound_draw_framebuffer = None;
     let bound_read_framebuffer = None;
     let readback_framebuffer = None;
@@ -197,6 +200,7 @@ impl WebGL2State {
       bound_uniform_buffers,
       bound_array_buffer,
       bound_element_array_buffer,
+      bound_uniform_buffer,
       bound_draw_framebuffer,
       bound_read_framebuffer,
       readback_framebuffer,
@@ -236,11 +240,51 @@ impl WebGL2State {
     }
   }
 
+  pub(crate) fn bind_uniform_buffer(&mut self, buffer: Option<&WebGlBuffer>, bind: Bind) {
+    if bind == Bind::Forced || self.bound_uniform_buffer.as_ref() != buffer {
+      self
+        .ctx
+        .bind_buffer(WebGl2RenderingContext::UNIFORM_BUFFER, buffer);
+      self.bound_uniform_buffer = buffer.cloned();
+    }
+  }
+
+  pub(crate) fn bind_uniform_buffer_at(&mut self, handle: &WebGlBuffer, binding: u32) {
+    match self.bound_uniform_buffers.get(binding as usize) {
+      Some(ref handle_) if Some(handle) != handle_.as_ref() => {
+        self.ctx.bind_buffer_base(
+          WebGl2RenderingContext::UNIFORM_BUFFER,
+          binding,
+          Some(handle),
+        );
+        self.bound_uniform_buffers[binding as usize] = Some(handle.clone());
+      }
+
+      None => {
+        self.ctx.bind_buffer_base(
+          WebGl2RenderingContext::UNIFORM_BUFFER,
+          binding,
+          Some(handle),
+        );
+
+        // not enough registered buffer bindings; let’s grow a bit more
+        self
+          .bound_uniform_buffers
+          .resize(binding as usize + 1, None);
+        self.bound_uniform_buffers[binding as usize] = Some(handle.clone());
+      }
+
+      _ => (), // cached
+    }
+  }
+
   pub(crate) fn unbind_buffer(&mut self, buffer: &WebGlBuffer) {
     if self.bound_array_buffer.as_ref() == Some(buffer) {
       self.bind_array_buffer(None, Bind::Cached);
     } else if self.bound_element_array_buffer.as_ref() == Some(buffer) {
       self.bind_element_array_buffer(None, Bind::Cached);
+    } else if self.bound_uniform_buffer.as_ref() == Some(buffer) {
+      self.bind_uniform_buffer(None, Bind::Cached);
     } else if let Some(handle_) = self
       .bound_uniform_buffers
       .iter_mut()
@@ -987,7 +1031,7 @@ fn load_webgl2_extensions(ctx: &mut WebGl2RenderingContext) -> Result<(), StateQ
 
 /// Should the binding be cached or forced to the provided value?
 #[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub(crate) enum Bind {
+pub enum Bind {
   Forced,
   Cached,
 }
