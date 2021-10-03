@@ -5,6 +5,7 @@ use luminance::{
   pipeline::{ShaderDataBinding, TextureBinding},
   pixel::{SamplerType, Type as PixelType},
   shader::{
+    types::{Vec2, Vec3, Vec4},
     ProgramError, ShaderDataError, StageError, StageType, TessellationStages, Uniform, UniformType,
     UniformWarning, VertexAttribWarning,
   },
@@ -476,15 +477,55 @@ fn get_vertex_attrib_location(
 //
 // I’m so sorry.
 macro_rules! impl_Uniformable {
-  (&[[$t:ty; $dim:expr]], $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<WebGL2> for &'a [[$t; $dim]] {
+  (&[Vec2<$t:ty>], $uty:tt, $f:tt) => {
+    unsafe impl<'a> Uniformable<WebGL2> for &'a [Vec2<$t>] {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
       unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
         let len = self.len();
-        let data = flatten_slice!(self: $t, len = $dim * self.len());
+        let data = flatten_slice!(self: $t, len = 2 * self.len());
+
+        program.state.borrow().ctx.$f(
+          program.location_map.borrow().get(&uniform.index()),
+          data,
+          0, // offset
+          len as _,
+        );
+      }
+    }
+  };
+
+  (&[Vec3<$t:ty>], $uty:tt, $f:tt) => {
+    unsafe impl<'a> Uniformable<WebGL2> for &'a [Vec3<$t>] {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+        let len = self.len();
+        let data = flatten_slice!(self: $t, len = 3 * self.len());
+
+        program.state.borrow().ctx.$f(
+          program.location_map.borrow().get(&uniform.index()),
+          data,
+          0, // offset
+          len as _,
+        );
+      }
+    }
+  };
+
+  (&[Vec4<$t:ty>], $uty:tt, $f:tt) => {
+    unsafe impl<'a> Uniformable<WebGL2> for &'a [Vec4<$t>] {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+        let len = self.len();
+        let data = flatten_slice!(self: $t, len = 4 * self.len());
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
@@ -512,18 +553,47 @@ macro_rules! impl_Uniformable {
     }
   };
 
-  ([$t:ty; $dim:expr], $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<WebGL2> for [$t; $dim] {
+  (Vec2<$t:ty>, $uty:tt, $f:tt) => {
+    unsafe impl Uniformable<WebGL2> for Vec2<$t> {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
       unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-        program
-          .state
-          .borrow()
-          .ctx
-          .$f(program.location_map.borrow().get(&uniform.index()), &self);
+        program.state.borrow().ctx.$f(
+          program.location_map.borrow().get(&uniform.index()),
+          self.as_ref(),
+        );
+      }
+    }
+  };
+
+  (Vec3<$t:ty>, $uty:tt, $f:tt) => {
+    unsafe impl Uniformable<WebGL2> for Vec3<$t> {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+        program.state.borrow().ctx.$f(
+          program.location_map.borrow().get(&uniform.index()),
+          self.as_ref(),
+        );
+      }
+    }
+  };
+
+  (Vec4<$t:ty>, $uty:tt, $f:tt) => {
+    unsafe impl Uniformable<WebGL2> for Vec4<$t> {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+        program.state.borrow().ctx.$f(
+          program.location_map.borrow().get(&uniform.index()),
+          self.as_ref(),
+        );
       }
     }
   };
@@ -586,64 +656,64 @@ macro_rules! impl_Uniformable {
 
 // here we go in deep mud
 impl_Uniformable!(i32, Int, uniform1i);
-impl_Uniformable!([i32; 2], IVec2, uniform2iv_with_i32_array);
-impl_Uniformable!([i32; 3], IVec3, uniform3iv_with_i32_array);
-impl_Uniformable!([i32; 4], IVec4, uniform4iv_with_i32_array);
+impl_Uniformable!(Vec2<i32>, IVec2, uniform2iv_with_i32_array);
+impl_Uniformable!(Vec3<i32>, IVec3, uniform3iv_with_i32_array);
+impl_Uniformable!(Vec4<i32>, IVec4, uniform4iv_with_i32_array);
 impl_Uniformable!(&[i32], Int, uniform1iv_with_i32_array);
 impl_Uniformable!(
-  &[[i32; 2]],
+  &[Vec2<i32>],
   IVec2,
   uniform2iv_with_i32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  &[[i32; 3]],
+  &[Vec3<i32>],
   IVec3,
   uniform3iv_with_i32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  &[[i32; 4]],
+  &[Vec4<i32>],
   IVec4,
   uniform4iv_with_i32_array_and_src_offset_and_src_length
 );
 
 impl_Uniformable!(u32, UInt, uniform1ui);
-impl_Uniformable!([u32; 2], UIVec2, uniform2uiv_with_u32_array);
-impl_Uniformable!([u32; 3], UIVec3, uniform3uiv_with_u32_array);
-impl_Uniformable!([u32; 4], UIVec4, uniform4uiv_with_u32_array);
+impl_Uniformable!(Vec2<u32>, UIVec2, uniform2uiv_with_u32_array);
+impl_Uniformable!(Vec3<u32>, UIVec3, uniform3uiv_with_u32_array);
+impl_Uniformable!(Vec4<u32>, UIVec4, uniform4uiv_with_u32_array);
 impl_Uniformable!(&[u32], UInt, uniform1uiv_with_u32_array);
 impl_Uniformable!(
-  &[[u32; 2]],
+  &[Vec2<u32>],
   UIVec2,
   uniform2uiv_with_u32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  &[[u32; 3]],
+  &[Vec3<u32>],
   UIVec3,
   uniform3uiv_with_u32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  &[[u32; 4]],
+  &[Vec4<u32>],
   UIVec4,
   uniform4uiv_with_u32_array_and_src_offset_and_src_length
 );
 
 impl_Uniformable!(f32, Float, uniform1f);
-impl_Uniformable!([f32; 2], Vec2, uniform2fv_with_f32_array);
-impl_Uniformable!([f32; 3], Vec3, uniform3fv_with_f32_array);
-impl_Uniformable!([f32; 4], Vec4, uniform4fv_with_f32_array);
+impl_Uniformable!(Vec2<f32>, Vec2, uniform2fv_with_f32_array);
+impl_Uniformable!(Vec3<f32>, Vec3, uniform3fv_with_f32_array);
+impl_Uniformable!(Vec4<f32>, Vec4, uniform4fv_with_f32_array);
 impl_Uniformable!(&[f32], Float, uniform1fv_with_f32_array);
 impl_Uniformable!(
-  &[[f32; 2]],
+  &[Vec2<f32>],
   Vec2,
   uniform2fv_with_f32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  &[[f32; 3]],
+  &[Vec3<f32>],
   Vec3,
   uniform3fv_with_f32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  &[[f32; 4]],
+  &[Vec4<f32>],
   Vec4,
   uniform4fv_with_f32_array_and_src_offset_and_src_length
 );

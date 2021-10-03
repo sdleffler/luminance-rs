@@ -1,5 +1,7 @@
 use crate::Backend;
 
+pub mod types;
+
 pub use luminance::shader::{
   ProgramError, ProgramWarning, ShaderDataError, StageError, StageType, TessellationStages,
   Uniform, UniformInterface, UniformType, UniformWarning, VertexAttribWarning,

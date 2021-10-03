@@ -16,12 +16,12 @@ use crate::{
   shared::{Semantics, Vertex, VertexColor, VertexPosition},
   Example, InputAction, LoopFeedback, PlatformServices,
 };
-use luminance::context::GraphicsContext;
 use luminance_front::{
+  context::GraphicsContext,
   framebuffer::Framebuffer,
   pipeline::PipelineState,
   render_state::RenderState,
-  shader::Program,
+  shader::{types::Vec2, Program},
   tess::{Mode, Tess},
   texture::Dim2,
   Backend,
@@ -49,7 +49,7 @@ const TRI_VERTICES: [Vertex; 3] = [
 pub struct LocalExample {
   program: Program<Semantics, (), ()>,
   triangle: Tess<Vertex>,
-  triangle_pos: [f32; 2],
+  triangle_pos: Vec2<f32>,
 }
 
 impl Example for LocalExample {
@@ -71,7 +71,7 @@ impl Example for LocalExample {
       .build()
       .unwrap();
 
-    let triangle_pos = [0., 0.];
+    let triangle_pos = Vec2::new(0., 0.);
 
     Self {
       program,

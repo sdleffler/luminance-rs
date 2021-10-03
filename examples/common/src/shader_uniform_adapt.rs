@@ -18,12 +18,13 @@ use crate::{
   shared::{Semantics, Vertex, VertexColor, VertexPosition},
   Example, InputAction, LoopFeedback, PlatformServices,
 };
-use luminance::{context::GraphicsContext, UniformInterface};
+use luminance::UniformInterface;
 use luminance_front::{
+  context::GraphicsContext,
   framebuffer::Framebuffer,
   pipeline::PipelineState,
   render_state::RenderState,
-  shader::{AdaptationFailure, Program, Uniform},
+  shader::{types::Vec2, AdaptationFailure, Program, Uniform},
   tess::{Mode, Tess},
   texture::Dim2,
   Backend,
@@ -61,7 +62,7 @@ struct ShaderInterface1 {
 struct ShaderInterface2 {
   #[uniform(name = "t")]
   time: Uniform<f32>,
-  triangle_pos: Uniform<[f32; 2]>,
+  triangle_pos: Uniform<Vec2<f32>>,
 }
 
 // Which interface to use?
@@ -95,7 +96,7 @@ impl ProgramMode {
 pub struct LocalExample {
   program: ProgramMode,
   triangle: Tess<Vertex>,
-  triangle_pos: [f32; 2],
+  triangle_pos: Vec2<f32>,
 }
 
 impl Example for LocalExample {
@@ -118,7 +119,7 @@ impl Example for LocalExample {
       .build()
       .unwrap();
 
-    let triangle_pos = [0., 0.];
+    let triangle_pos = Vec2::new(0., 0.);
 
     Self {
       program,

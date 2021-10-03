@@ -2,6 +2,8 @@
 //!
 //! [std140]: https://www.khronos.org/registry/OpenGL/specs/gl/glspec45.core.pdf#page=159
 
+use luminance::shader::types::{Vec2, Vec3, Vec4};
+
 /// Types that have a `std140` representation.
 ///
 /// This trait allows to encode types into their `std140` representation but also decode such representation into the
@@ -15,6 +17,13 @@ pub trait Std140: Copy {
   /// Decode a value from its `std140` representation.
   fn std140_decode(encoded: Self::Encoded) -> Self;
 }
+
+/// 4-bytes aligned wrapper.
+///
+/// This wrapper type wraps its inner type on 4-bytes, allowing for fast encode/decode operations.
+#[repr(C, align(4))]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct Aligned4<T>(pub T);
 
 /// 16-bytes aligned wrapper.
 ///
@@ -74,15 +83,20 @@ macro_rules! impl_Std140_Aligned16 {
   };
 }
 
-// vec*
-impl_Std140_id!([f32; 2], [0.; 2]);
-impl_Std140_Aligned16!([f32; 3], [0.; 3]);
-impl_Std140_Aligned16!([f32; 4], [0.; 4]);
+impl_Std140_id!(f32, 0.);
+impl_Std140_id!(Vec2<f32>, Vec2::new(0., 0.));
+impl_Std140_Aligned16!(Vec3<f32>, Vec3::new(0., 0., 0.));
+impl_Std140_Aligned16!(Vec4<f32>, Vec4::new(0., 0., 0., 0.));
 
-// ivec*
-impl_Std140_id!([i32; 2], [0; 2]);
-impl_Std140_Aligned16!([i32; 3], [0; 3]);
-impl_Std140_Aligned16!([i32; 4], [0; 4]);
+impl_Std140_id!(i32, 0);
+impl_Std140_id!(Vec2<i32>, Vec2::new(0, 0));
+impl_Std140_Aligned16!(Vec3<i32>, Vec3::new(0, 0, 0));
+impl_Std140_Aligned16!(Vec4<i32>, Vec4::new(0, 0, 0, 0));
+
+impl_Std140_id!(u32, 0);
+impl_Std140_id!(Vec2<u32>, Vec2::new(0, 0));
+impl_Std140_Aligned16!(Vec3<u32>, Vec3::new(0, 0, 0));
+impl_Std140_Aligned16!(Vec4<u32>, Vec4::new(0, 0, 0, 0));
 
 impl_Std140_Aligned4!(bool, false);
 
@@ -126,6 +140,7 @@ where
 #[cfg(test)]
 mod tests {
   use super::*;
+  use luminance::shader::types::{Vec3, Vec4};
   use std::mem;
 
   fn assert_size_align<T>(size: usize, align: usize)
@@ -137,48 +152,83 @@ mod tests {
   }
 
   #[test]
+  fn f32() {
+    assert_size_align::<f32>(4, 4);
+  }
+
+  #[test]
   fn vec2() {
-    assert_size_align::<[f32; 2]>(8, 4);
+    assert_size_align::<Vec2<f32>>(8, 4);
   }
 
   #[test]
   fn vec3() {
-    assert_size_align::<[f32; 3]>(16, 16);
+    assert_size_align::<Vec3<f32>>(16, 16);
   }
 
   #[test]
   fn vec4() {
-    assert_size_align::<[f32; 4]>(16, 16);
+    assert_size_align::<Vec4<f32>>(16, 16);
+  }
+
+  #[test]
+  fn i32() {
+    assert_size_align::<i32>(4, 4);
   }
 
   #[test]
   fn ivec2() {
-    assert_size_align::<[i32; 2]>(8, 4);
+    assert_size_align::<Vec2<i32>>(8, 4);
   }
 
   #[test]
   fn ivec3() {
-    assert_size_align::<[i32; 3]>(16, 16);
+    assert_size_align::<Vec3<i32>>(16, 16);
   }
 
   #[test]
   fn ivec4() {
-    assert_size_align::<[i32; 4]>(16, 16);
+    assert_size_align::<Vec4<i32>>(16, 16);
+  }
+
+  #[test]
+  fn u32() {
+    assert_size_align::<u32>(4, 4);
   }
 
   #[test]
   fn uvec2() {
-    assert_size_align::<[u32; 2]>(8, 4);
+    assert_size_align::<Vec2<u32>>(8, 4);
   }
 
   #[test]
   fn uvec3() {
-    assert_size_align::<[u32; 3]>(16, 16);
+    assert_size_align::<Vec3<i32>>(16, 16);
   }
 
   #[test]
   fn uvec4() {
-    assert_size_align::<[u32; 4]>(16, 16);
+    assert_size_align::<Vec4<i32>>(16, 16);
+  }
+
+  #[test]
+  fn bool() {
+    assert_size_align::<bool>(4, 4);
+  }
+
+  #[test]
+  fn bvec2() {
+    assert_size_align::<Vec2<bool>>(8, 4);
+  }
+
+  #[test]
+  fn bvec3() {
+    assert_size_align::<Vec3<bool>>(16, 16);
+  }
+
+  #[test]
+  fn bvec4() {
+    assert_size_align::<Vec4<bool>>(16, 16);
   }
 
   #[test]

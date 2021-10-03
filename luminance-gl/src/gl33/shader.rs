@@ -6,6 +6,7 @@ use luminance::{
   pipeline::{ShaderDataBinding, TextureBinding},
   pixel::{SamplerType, Type as PixelType},
   shader::{
+    types::{Vec2, Vec3, Vec4},
     ProgramError, ShaderDataError, StageError, StageType, TessellationStages, Uniform, UniformType,
     UniformWarning, VertexAttribWarning,
   },
@@ -415,8 +416,32 @@ fn get_vertex_attrib_location(
 }
 
 macro_rules! impl_Uniformable {
-  (&[[$t:ty; $dim:expr]], $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<GL33> for &'a [[$t; $dim]] {
+  (&[Vec2<$t:ty>], $uty:tt, $f:tt) => {
+    unsafe impl<'a> Uniformable<GL33> for &'a [Vec2<$t>] {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, _: &mut Program, uniform: &Uniform<Self>) {
+        gl::$f(uniform.index(), self.len() as GLsizei, self.as_ptr() as _);
+      }
+    }
+  };
+
+  (&[Vec3<$t:ty>], $uty:tt, $f:tt) => {
+    unsafe impl<'a> Uniformable<GL33> for &'a [Vec3<$t>] {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, _: &mut Program, uniform: &Uniform<Self>) {
+        gl::$f(uniform.index(), self.len() as GLsizei, self.as_ptr() as _);
+      }
+    }
+  };
+
+  (&[Vec4<$t:ty>], $uty:tt, $f:tt) => {
+    unsafe impl<'a> Uniformable<GL33> for &'a [Vec4<$t>] {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
@@ -439,8 +464,32 @@ macro_rules! impl_Uniformable {
     }
   };
 
-  ([$t:ty; $dim:expr], $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<GL33> for [$t; $dim] {
+  (Vec2<$t:ty>, $uty:tt, $f:tt) => {
+    unsafe impl Uniformable<GL33> for Vec2<$t> {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, _: &mut Program, uniform: &Uniform<Self>) {
+        gl::$f(uniform.index(), 1, self.as_ptr());
+      }
+    }
+  };
+
+  (Vec3<$t:ty>, $uty:tt, $f:tt) => {
+    unsafe impl Uniformable<GL33> for Vec3<$t> {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, _: &mut Program, uniform: &Uniform<Self>) {
+        gl::$f(uniform.index(), 1, self.as_ptr());
+      }
+    }
+  };
+
+  (Vec4<$t:ty>, $uty:tt, $f:tt) => {
+    unsafe impl Uniformable<GL33> for Vec4<$t> {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
@@ -495,48 +544,48 @@ macro_rules! impl_Uniformable {
 }
 
 impl_Uniformable!(i32, Int, Uniform1i);
-impl_Uniformable!([i32; 2], IVec2, Uniform2iv);
-impl_Uniformable!([i32; 3], IVec3, Uniform3iv);
-impl_Uniformable!([i32; 4], IVec4, Uniform4iv);
+impl_Uniformable!(Vec2<i32>, IVec2, Uniform2iv);
+impl_Uniformable!(Vec3<i32>, IVec3, Uniform3iv);
+impl_Uniformable!(Vec4<i32>, IVec4, Uniform4iv);
 impl_Uniformable!(&[i32], Int, Uniform1iv);
-impl_Uniformable!(&[[i32; 2]], IVec2, Uniform2iv);
-impl_Uniformable!(&[[i32; 3]], IVec3, Uniform3iv);
-impl_Uniformable!(&[[i32; 4]], IVec4, Uniform4iv);
+impl_Uniformable!(&[Vec2<i32>], IVec2, Uniform2iv);
+impl_Uniformable!(&[Vec3<i32>], IVec3, Uniform3iv);
+impl_Uniformable!(&[Vec4<i32>], IVec4, Uniform4iv);
 
 impl_Uniformable!(u32, UInt, Uniform1ui);
-impl_Uniformable!([u32; 2], UIVec2, Uniform2uiv);
-impl_Uniformable!([u32; 3], UIVec3, Uniform3uiv);
-impl_Uniformable!([u32; 4], UIVec4, Uniform4uiv);
+impl_Uniformable!(Vec2<u32>, UIVec2, Uniform2uiv);
+impl_Uniformable!(Vec3<u32>, UIVec3, Uniform3uiv);
+impl_Uniformable!(Vec4<u32>, UIVec4, Uniform4uiv);
 impl_Uniformable!(&[u32], UInt, Uniform1uiv);
-impl_Uniformable!(&[[u32; 2]], UIVec2, Uniform2uiv);
-impl_Uniformable!(&[[u32; 3]], UIVec3, Uniform3uiv);
-impl_Uniformable!(&[[u32; 4]], UIVec4, Uniform4uiv);
+impl_Uniformable!(&[Vec2<u32>], UIVec2, Uniform2uiv);
+impl_Uniformable!(&[Vec3<u32>], UIVec3, Uniform3uiv);
+impl_Uniformable!(&[Vec4<u32>], UIVec4, Uniform4uiv);
 
 impl_Uniformable!(f32, Float, Uniform1f);
-impl_Uniformable!([f32; 2], Vec2, Uniform2fv);
-impl_Uniformable!([f32; 3], Vec3, Uniform3fv);
-impl_Uniformable!([f32; 4], Vec4, Uniform4fv);
+impl_Uniformable!(Vec2<f32>, Vec2, Uniform2fv);
+impl_Uniformable!(Vec3<f32>, Vec3, Uniform3fv);
+impl_Uniformable!(Vec4<f32>, Vec4, Uniform4fv);
 impl_Uniformable!(&[f32], Float, Uniform1fv);
-impl_Uniformable!(&[[f32; 2]], Vec2, Uniform2fv);
-impl_Uniformable!(&[[f32; 3]], Vec3, Uniform3fv);
-impl_Uniformable!(&[[f32; 4]], Vec4, Uniform4fv);
+impl_Uniformable!(&[Vec2<f32>], Vec2, Uniform2fv);
+impl_Uniformable!(&[Vec3<f32>], Vec3, Uniform3fv);
+impl_Uniformable!(&[Vec4<f32>], Vec4, Uniform4fv);
 
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
 impl_Uniformable!(f64, Double, Uniform1d);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!([f64; 2], DVec2, Uniform2dv);
+impl_Uniformable!(Vec2<f64>, DVec2, Uniform2dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!([f64; 3], DVec3, Uniform3dv);
+impl_Uniformable!(Vec3<f64>, DVec3, Uniform3dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!([f64; 4], DVec4, Uniform4dv);
+impl_Uniformable!(Vec4<f64>, DVec4, Uniform4dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
 impl_Uniformable!(&[f64], Double, Uniform1dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(&[[f64; 2]], DVec2, Uniform2dv);
+impl_Uniformable!(&[Vec2<f64>], DVec2, Uniform2dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(&[[f64; 3]], DVec3, Uniform3dv);
+impl_Uniformable!(&[Vec3<f64>], DVec3, Uniform3dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(&[[f64; 4]], DVec4, Uniform4dv);
+impl_Uniformable!(&[Vec4<f64>], DVec4, Uniform4dv);
 
 impl_Uniformable!(mat [[f32; 2]; 2], M22, UniformMatrix2fv);
 impl_Uniformable!(mat & [[[f32; 2]; 2]], M22, UniformMatrix2fv);

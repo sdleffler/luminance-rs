@@ -141,6 +141,8 @@
 //! [`BoundBuffer`]: crate::pipeline::BoundBuffer
 //! [`BufferBinding`]: crate::pipeline::BufferBinding
 
+pub mod types;
+
 use crate::{
   backend::shader::{Shader, ShaderData as ShaderDataBackend, Uniformable},
   context::GraphicsContext,
