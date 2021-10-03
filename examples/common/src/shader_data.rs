@@ -11,12 +11,13 @@ use crate::{
   shared::{Semantics, Vertex, VertexColor, VertexPosition},
   Example, InputAction, LoopFeedback, PlatformServices,
 };
-use luminance::{pipeline::ShaderDataBinding, render_state::RenderState, UniformInterface};
+use luminance::UniformInterface;
 use luminance_front::{
   context::GraphicsContext,
   framebuffer::Framebuffer,
-  pipeline::PipelineState,
-  shader::{Program, ShaderData, Uniform},
+  pipeline::{PipelineState, ShaderDataBinding},
+  render_state::RenderState,
+  shader::{types::Vec2, Program, ShaderData, Uniform},
   tess::{Mode, Tess, View as _},
   texture::Dim2,
   Backend,
@@ -47,13 +48,13 @@ const VERTICES: [Vertex; 4] = [
 #[derive(Debug, UniformInterface)]
 struct ShaderInterface {
   #[uniform(name = "Positions")]
-  positions: Uniform<ShaderDataBinding<[f32; 2]>>,
+  positions: Uniform<ShaderDataBinding<Vec2<f32>>>,
 }
 
 pub struct LocalExample {
   square: Tess<Vertex>,
   program: Program<Semantics, (), ShaderInterface>,
-  shader_data: ShaderData<[f32; 2]>,
+  shader_data: ShaderData<Vec2<f32>>,
 }
 
 impl Example for LocalExample {
@@ -74,7 +75,9 @@ impl Example for LocalExample {
       .expect("shader program")
       .ignore_warnings();
 
-    let shader_data = ctx.new_shader_data([[0.; 2]; 100]).expect("shader data");
+    let shader_data = ctx
+      .new_shader_data([Vec2::new(0., 0.); 100])
+      .expect("shader data");
 
     Self {
       square,
@@ -107,7 +110,7 @@ impl Example for LocalExample {
       let phi = i * 2. * PI * 0.01 + time * 0.2;
       let radius = 0.8;
 
-      [phi.cos() * radius, phi.sin() * radius]
+      Vec2::new(phi.cos() * radius, phi.sin() * radius)
     });
     shader_data
       .replace(new_positions)
