@@ -30,16 +30,3 @@ default-members = [
   "luminance-std140",
   "luminance-windowing",
 ]
-
-[patch.crates-io]
-luminance = { path = "./luminance" }
-luminance-derive = { path = "./luminance-derive" }
-luminance-front = { path = "./luminance-front" }
-luminance-gl = { path = "./luminance-gl" }
-luminance-glfw = { path = "./luminance-glfw" }
-luminance-glutin = { path = "./luminance-glutin" }
-luminance-sdl2 = { path = "./luminance-sdl2" }
-luminance-std140 = { path = "./luminance-std140" }
-luminance-webgl = { path = "./luminance-webgl" }
-luminance-web-sys = { path = "./luminance-web-sys" }
-luminance-windowing = { path = "./luminance-windowing" }

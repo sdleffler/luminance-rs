@@ -22,10 +22,10 @@ gl33-GL_ARB_gpu_shader_fp64 = ["luminance-gl/GL_ARB_gpu_shader_fp64"]
 webgl2 = []
 
 [dependencies]
-luminance = "0.44"
+luminance = { version = "0.44", path = "../luminance" }
 
 [target.'cfg(any(target_arch = "x86", target_arch = "x86_64"))'.dependencies]
-luminance-gl = "0.17"
+luminance-gl = { version = "0.17", path = "../luminance-gl" }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-luminance-webgl = "0.4"
+luminance-webgl = { version = "0.4", path = "../luminance-webgl" }

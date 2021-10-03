@@ -21,4 +21,5 @@ derive = ["luminance-derive"]
 
 [dependencies.luminance-derive]
 version = "0.7.0"
+path = "../luminance-derive"
 optional = true
