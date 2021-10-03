@@ -12,7 +12,7 @@ use luminance::{
   texture::{Dim, Dimensionable},
   vertex::Semantics,
 };
-use luminance_std140::Std140;
+use luminance_std140::{Arr, Std140};
 use std::{cell::RefCell, collections::HashMap, mem, rc::Rc};
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation};
 
@@ -312,7 +312,8 @@ fn webgl_shader_type(ty: StageType) -> Option<u32> {
 
 const GLSL_PRAGMA: &str = "#version 300 es\n\
                            precision highp float;\n\
-                           precision highp int;\n";
+                           precision highp int;
+                           layout(std140) uniform;\n";
 
 fn patch_shader_src(src: &str) -> String {
   let mut pragma = String::from(GLSL_PRAGMA);
@@ -944,7 +945,8 @@ unsafe impl<T> ShaderData<T> for WebGL2
 where
   T: Std140,
 {
-  type ShaderDataRepr = Buffer<T::Encoded, { WebGl2RenderingContext::UNIFORM_BUFFER }>;
+  type ShaderDataRepr =
+    Buffer<<Arr<T> as Std140>::Encoded, { WebGl2RenderingContext::UNIFORM_BUFFER }>;
 
   unsafe fn new_shader_data(
     &mut self,
@@ -952,7 +954,7 @@ where
   ) -> Result<Self::ShaderDataRepr, ShaderDataError> {
     Buffer::from_vec(
       self,
-      values.into_iter().map(Std140::std140_encode).collect(),
+      values.into_iter().map(|x| Arr(x).std140_encode()).collect(),
     )
     .map_err(|BufferError::CannotCreate| ShaderDataError::CannotCreate)
   }
@@ -964,7 +966,7 @@ where
     shader_data
       .buf
       .get(i)
-      .map(|&x| T::std140_decode(x))
+      .map(|&x| <Arr<T> as Std140>::std140_decode(x).0)
       .ok_or_else(|| ShaderDataError::OutOfBounds { index: i })
   }
 
@@ -973,9 +975,12 @@ where
     i: usize,
     x: T,
   ) -> Result<T, ShaderDataError> {
-    let prev = mem::replace(&mut shader_data.slice_buffer_mut()[i], x.std140_encode());
+    let prev = mem::replace(
+      &mut shader_data.slice_buffer_mut()[i],
+      Arr(x).std140_encode(),
+    );
 
-    Ok(T::std140_decode(prev))
+    Ok(<Arr<T> as Std140>::std140_decode(prev).0)
   }
 
   unsafe fn set_shader_data_values(
@@ -985,7 +990,7 @@ where
     let mut slice = shader_data.slice_buffer_mut();
 
     for (item, value) in slice.iter_mut().zip(values) {
-      *item = value.std140_encode();
+      *item = Arr(value).std140_encode();
     }
 
     Ok(())

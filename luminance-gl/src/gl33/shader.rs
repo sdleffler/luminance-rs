@@ -13,7 +13,7 @@ use luminance::{
   texture::{Dim, Dimensionable},
   vertex::Semantics,
 };
-use luminance_std140::Std140;
+use luminance_std140::{Arr, Std140};
 use std::{
   ffi::CString,
   mem,
@@ -249,10 +249,12 @@ fn opengl_shader_type(t: StageType) -> GLenum {
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
 const GLSL_PRAGMA: &str = "#version 330 core\n\
                            #extension GL_ARB_separate_shader_objects : require\n
-                           #extension GL_ARB_gpu_shader_fp64 : require\n";
+                           #extension GL_ARB_gpu_shader_fp64 : require\n\
+                           layout(std140) uniform;\n";
 #[cfg(not(feature = "GL_ARB_gpu_shader_fp64"))]
 const GLSL_PRAGMA: &str = "#version 330 core\n\
-                           #extension GL_ARB_separate_shader_objects : require\n";
+                           #extension GL_ARB_separate_shader_objects : require\n\
+                           layout(std140) uniform;\n";
 
 fn glsl_pragma_src(src: &str) -> String {
   let mut pragma = String::from(GLSL_PRAGMA);
@@ -781,7 +783,7 @@ unsafe impl<T> ShaderData<T> for GL33
 where
   T: Std140,
 {
-  type ShaderDataRepr = Buffer<T::Encoded>;
+  type ShaderDataRepr = Buffer<<Arr<T> as Std140>::Encoded>;
 
   unsafe fn new_shader_data(
     &mut self,
@@ -789,7 +791,7 @@ where
   ) -> Result<Self::ShaderDataRepr, ShaderDataError> {
     Ok(Buffer::from_vec(
       self,
-      values.into_iter().map(Std140::std140_encode).collect(),
+      values.into_iter().map(|x| Arr(x).std140_encode()).collect(),
     ))
   }
 
@@ -800,7 +802,7 @@ where
     shader_data
       .buf
       .get(i)
-      .map(|&x| T::std140_decode(x))
+      .map(|&x| <Arr<T> as Std140>::std140_decode(x).0)
       .ok_or_else(|| ShaderDataError::OutOfBounds { index: i })
   }
 
@@ -813,10 +815,10 @@ where
       &mut shader_data
         .slice_buffer_mut()
         .map_err(|_| ShaderDataError::CannotSetData { index: i })?[i],
-      x.std140_encode(),
+      Arr(x).std140_encode(),
     );
 
-    Ok(T::std140_decode(prev))
+    Ok(<Arr<T> as Std140>::std140_decode(prev).0)
   }
 
   unsafe fn set_shader_data_values(
@@ -828,7 +830,7 @@ where
       .map_err(|_| ShaderDataError::CannotReplaceData)?;
 
     for (item, value) in slice.iter_mut().zip(values) {
-      *item = value.std140_encode();
+      *item = Arr(value).std140_encode();
     }
 
     Ok(())

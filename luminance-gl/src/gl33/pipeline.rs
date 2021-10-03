@@ -20,7 +20,7 @@ use luminance::{
   tess::{Deinterleaved, DeinterleavedData, Interleaved, TessIndex, TessVertexData},
   texture::Dimensionable,
 };
-use luminance_std140::Std140;
+use luminance_std140::{Arr, Std140};
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
 pub struct Pipeline {
@@ -187,7 +187,7 @@ where
 
 unsafe impl<T> PipelineShaderData<T> for GL33
 where
-  Self: ShaderData<T, ShaderDataRepr = Buffer<T::Encoded>>,
+  Self: ShaderData<T, ShaderDataRepr = Buffer<<Arr<T> as Std140>::Encoded>>,
   T: Std140,
 {
   type BoundShaderDataRepr = BoundShaderData<T>;

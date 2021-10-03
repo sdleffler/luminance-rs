@@ -25,6 +25,13 @@ pub trait Std140: Copy {
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Aligned4<T>(pub T);
 
+/// 8-bytes aligned wrapper.
+///
+/// This wrapper type wraps its inner type on 8-bytes, allowing for fast encode/decode operations.
+#[repr(C, align(8))]
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct Aligned8<T>(pub T);
+
 /// 16-bytes aligned wrapper.
 ///
 /// This wrapper type wraps its inner type on 16-bytes, allowing for fast encode/decode operations.
@@ -32,26 +39,9 @@ pub struct Aligned4<T>(pub T);
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Aligned16<T>(pub T);
 
-/// Implement [`Std140`] for a type via an identity function.
-macro_rules! impl_Std140_id {
-  ($t:ty, $zero:expr) => {
-    impl Std140 for $t {
-      type Encoded = $t;
-
-      fn std140_encode(self) -> Self::Encoded {
-        self
-      }
-
-      fn std140_decode(encoded: Self::Encoded) -> Self {
-        encoded
-      }
-    }
-  };
-}
-
 /// Implement [`Std140`] for a type by wrapping it in [`Aligned4`].
 macro_rules! impl_Std140_Aligned4 {
-  ($t:ty, $zero:expr) => {
+  ($t:ty) => {
     impl Std140 for $t {
       type Encoded = Aligned4<$t>;
 
@@ -66,9 +56,26 @@ macro_rules! impl_Std140_Aligned4 {
   };
 }
 
+/// Implement [`Std140`] for a type by wrapping it in [`Aligned8`].
+macro_rules! impl_Std140_Aligned8 {
+  ($t:ty) => {
+    impl Std140 for $t {
+      type Encoded = Aligned8<$t>;
+
+      fn std140_encode(self) -> Self::Encoded {
+        Aligned8(self)
+      }
+
+      fn std140_decode(encoded: Self::Encoded) -> Self {
+        encoded.0
+      }
+    }
+  };
+}
+
 /// Implement [`Std140`] for a type by wrapping it in [`Aligned16`].
 macro_rules! impl_Std140_Aligned16 {
-  ($t:ty, $zero:expr) => {
+  ($t:ty) => {
     impl Std140 for $t {
       type Encoded = Aligned16<$t>;
 
@@ -83,39 +90,39 @@ macro_rules! impl_Std140_Aligned16 {
   };
 }
 
-impl_Std140_id!(f32, 0.);
-impl_Std140_id!(Vec2<f32>, Vec2::new(0., 0.));
-impl_Std140_Aligned16!(Vec3<f32>, Vec3::new(0., 0., 0.));
-impl_Std140_Aligned16!(Vec4<f32>, Vec4::new(0., 0., 0., 0.));
+impl_Std140_Aligned4!(f32);
+impl_Std140_Aligned8!(Vec2<f32>);
+impl_Std140_Aligned16!(Vec3<f32>);
+impl_Std140_Aligned16!(Vec4<f32>);
 
-impl_Std140_id!(i32, 0);
-impl_Std140_id!(Vec2<i32>, Vec2::new(0, 0));
-impl_Std140_Aligned16!(Vec3<i32>, Vec3::new(0, 0, 0));
-impl_Std140_Aligned16!(Vec4<i32>, Vec4::new(0, 0, 0, 0));
+impl_Std140_Aligned4!(i32);
+impl_Std140_Aligned8!(Vec2<i32>);
+impl_Std140_Aligned16!(Vec3<i32>);
+impl_Std140_Aligned16!(Vec4<i32>);
 
-impl_Std140_id!(u32, 0);
-impl_Std140_id!(Vec2<u32>, Vec2::new(0, 0));
-impl_Std140_Aligned16!(Vec3<u32>, Vec3::new(0, 0, 0));
-impl_Std140_Aligned16!(Vec4<u32>, Vec4::new(0, 0, 0, 0));
+impl_Std140_Aligned4!(u32);
+impl_Std140_Aligned8!(Vec2<u32>);
+impl_Std140_Aligned16!(Vec3<u32>);
+impl_Std140_Aligned16!(Vec4<u32>);
 
-impl_Std140_Aligned4!(bool, false);
+impl_Std140_Aligned4!(bool);
 
 impl Std140 for Vec2<bool> {
-  type Encoded = Vec2<Aligned4<bool>>;
+  type Encoded = Aligned8<Vec2<Aligned4<bool>>>;
 
   fn std140_encode(self) -> Self::Encoded {
     let Vec2([x, y]) = self;
-    Vec2::new(Aligned4(x), Aligned4(y))
+    Aligned8(Vec2::new(Aligned4(x), Aligned4(y)))
   }
 
   fn std140_decode(encoded: Self::Encoded) -> Self {
-    let Vec2([Aligned4(x), Aligned4(y)]) = encoded;
+    let Aligned8(Vec2([Aligned4(x), Aligned4(y)])) = encoded;
     Vec2::new(x, y)
   }
 }
 
-impl_Std140_Aligned16!(Vec3<bool>, Vec3::new(false, false, false));
-impl_Std140_Aligned16!(Vec4<bool>, Vec4::new(false, false, false, false));
+impl_Std140_Aligned16!(Vec3<bool>);
+impl_Std140_Aligned16!(Vec4<bool>);
 
 /// Type wrapper for values inside arrays.
 #[repr(C, align(16))]
