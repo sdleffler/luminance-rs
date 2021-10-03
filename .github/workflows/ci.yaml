@@ -114,6 +114,10 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/luminance-sdl2
           cargo sync-readme -c
+      - name: cargo sync-readme luminance-std140
+        run: |
+          cd $GITHUB_WORKSPACE/luminance-std140
+          cargo sync-readme -c
       - name: cargo sync-readme luminance-web-sys
         run: |
           cd $GITHUB_WORKSPACE/luminance-web-sys
