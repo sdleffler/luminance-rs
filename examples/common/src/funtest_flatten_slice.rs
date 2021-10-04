@@ -6,7 +6,7 @@ use luminance_front::{
   framebuffer::Framebuffer,
   pipeline::PipelineState,
   render_state::RenderState,
-  shader::{BuiltProgram, Program},
+  shader::{types::Mat44, BuiltProgram, Program},
   tess::{Interleaved, Mode, Tess},
   texture::Dim2,
   Backend,
@@ -111,7 +111,7 @@ impl Example for LocalExample {
         |_, mut shd_gate| {
           shd_gate.shade(program, |mut iface, _, mut rdr_gate| {
             let uni = iface.query().unwrap().ask("translation_mat").unwrap();
-            let mat: [[f32; 4]; 4] = translation_mat.into();
+            let mat = Mat44::new(translation_mat);
             iface.set(&uni, mat);
 
             // aspect ratio

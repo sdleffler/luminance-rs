@@ -138,3 +138,54 @@ impl<T> Vec4<T> {
     Self([x, y, z, w])
   }
 }
+
+macro_rules! matrix {
+  ($t:ident, $r:literal, $c:literal) => {
+    #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+    /// Matrix N×M.
+    pub struct $t<T>(pub [[T; $c]; $r]);
+
+    impl<T> From<[[T; $c]; $r]> for $t<T> {
+      fn from(a: [[T; $c]; $r]) -> Self {
+        $t(a)
+      }
+    }
+
+    impl<T> From<$t<T>> for [[T; $c]; $r] {
+      fn from($t(a): $t<T>) -> Self {
+        a
+      }
+    }
+
+    impl<T> AsRef<[[T; $c]; $r]> for $t<T> {
+      fn as_ref(&self) -> &[[T; $c]; $r] {
+        &self.0
+      }
+    }
+
+    impl<T> Deref for $t<T> {
+      type Target = [[T; $c]; $r];
+
+      fn deref(&self) -> &Self::Target {
+        &self.0
+      }
+    }
+
+    impl<T> DerefMut for $t<T> {
+      fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+      }
+    }
+
+    impl<T> $t<T> {
+      /// Create a matrix via its array representation.
+      pub fn new(array: impl Into<[[T; $c]; $r]>) -> Self {
+        $t(array.into())
+      }
+    }
+  };
+}
+
+matrix!(Mat22, 2, 2);
+matrix!(Mat33, 3, 3);
+matrix!(Mat44, 4, 4);

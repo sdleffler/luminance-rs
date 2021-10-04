@@ -6,7 +6,7 @@ use luminance::{
   pipeline::{ShaderDataBinding, TextureBinding},
   pixel::{SamplerType, Type as PixelType},
   shader::{
-    types::{Vec2, Vec3, Vec4},
+    types::{Mat22, Mat33, Mat44, Vec2, Vec3, Vec4},
     ProgramError, ShaderDataError, StageError, StageType, TessellationStages, Uniform, UniformType,
     UniformWarning, VertexAttribWarning,
   },
@@ -589,29 +589,29 @@ impl_Uniformable!(&[Vec3<f64>], DVec3, Uniform3dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
 impl_Uniformable!(&[Vec4<f64>], DVec4, Uniform4dv);
 
-impl_Uniformable!(mat [[f32; 2]; 2], M22, UniformMatrix2fv);
-impl_Uniformable!(mat & [[[f32; 2]; 2]], M22, UniformMatrix2fv);
+impl_Uniformable!(mat Mat22<f32>, M22, UniformMatrix2fv);
+impl_Uniformable!(mat &[Mat22<f32>], M22, UniformMatrix2fv);
 
-impl_Uniformable!(mat [[f32; 3]; 3], M33, UniformMatrix3fv);
-impl_Uniformable!(mat & [[[f32; 3]; 3]], M33, UniformMatrix3fv);
+impl_Uniformable!(mat Mat33<f32>, M33, UniformMatrix3fv);
+impl_Uniformable!(mat &[Mat33<f32>], M33, UniformMatrix3fv);
 
-impl_Uniformable!(mat [[f32; 4]; 4], M44, UniformMatrix4fv);
-impl_Uniformable!(mat & [[[f32; 4]; 4]], M44, UniformMatrix4fv);
-
-#[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(mat [[f64; 2]; 2], DM22, UniformMatrix2dv);
-#[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(mat & [[[f64; 2]; 2]], DM22, UniformMatrix2dv);
+impl_Uniformable!(mat Mat44<f32>, M44, UniformMatrix4fv);
+impl_Uniformable!(mat &[Mat44<f32>], M44, UniformMatrix4fv);
 
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(mat [[f64; 3]; 3], DM33, UniformMatrix3dv);
+impl_Uniformable!(mat Mat22<f64>, DM22, UniformMatrix2dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(mat & [[[f64; 3]; 3]], DM33, UniformMatrix3dv);
+impl_Uniformable!(mat &[Mat22<f64>], DM22, UniformMatrix2dv);
 
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(mat [[f64; 4]; 4], DM44, UniformMatrix4dv);
+impl_Uniformable!(mat Mat33<f64>, DM33, UniformMatrix3dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(mat & [[[f64; 4]; 4]], DM44, UniformMatrix4dv);
+impl_Uniformable!(mat &[Mat33<f64>], DM33, UniformMatrix3dv);
+
+#[cfg(feature = "GL_ARB_gpu_shader_fp64")]
+impl_Uniformable!(mat Mat44<f64>, DM44, UniformMatrix4dv);
+#[cfg(feature = "GL_ARB_gpu_shader_fp64")]
+impl_Uniformable!(mat &[Mat44<f64>], DM44, UniformMatrix4dv);
 
 unsafe impl Uniformable<GL33> for bool {
   unsafe fn ty() -> UniformType {
