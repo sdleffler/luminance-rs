@@ -125,7 +125,7 @@ impl_Std140_Aligned16!(Vec3<bool>);
 impl_Std140_Aligned16!(Vec4<bool>);
 
 /// Type wrapper for values inside arrays.
-#[repr(C, align(16))]
+#[repr(transparent)]
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Arr<T>(pub T);
 
@@ -133,14 +133,14 @@ impl<T> Std140 for Arr<T>
 where
   T: Std140,
 {
-  type Encoded = Aligned16<T>;
+  type Encoded = Aligned16<<T as Std140>::Encoded>;
 
   fn std140_encode(self) -> Self::Encoded {
-    Aligned16(self.0)
+    Aligned16(self.0.std140_encode())
   }
 
   fn std140_decode(encoded: Self::Encoded) -> Self {
-    Arr(encoded.0)
+    Arr(<T as Std140>::std140_decode(encoded.0))
   }
 }
 
@@ -164,8 +164,14 @@ mod tests {
   }
 
   #[test]
+  fn aligned16() {
+    assert_eq!(std::mem::size_of::<Aligned16<f32>>(), 16);
+    assert_eq!(std::mem::size_of::<Aligned16<Aligned16<f32>>>(), 16);
+  }
+
+  #[test]
   fn vec2() {
-    assert_size_align::<Vec2<f32>>(8, 4);
+    assert_size_align::<Vec2<f32>>(8, 8);
   }
 
   #[test]
@@ -185,7 +191,7 @@ mod tests {
 
   #[test]
   fn ivec2() {
-    assert_size_align::<Vec2<i32>>(8, 4);
+    assert_size_align::<Vec2<i32>>(8, 8);
   }
 
   #[test]
@@ -205,7 +211,7 @@ mod tests {
 
   #[test]
   fn uvec2() {
-    assert_size_align::<Vec2<u32>>(8, 4);
+    assert_size_align::<Vec2<u32>>(8, 8);
   }
 
   #[test]
@@ -225,7 +231,7 @@ mod tests {
 
   #[test]
   fn bvec2() {
-    assert_size_align::<Vec2<bool>>(8, 4);
+    assert_size_align::<Vec2<bool>>(8, 8);
   }
 
   #[test]
