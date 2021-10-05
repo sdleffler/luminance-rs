@@ -107,6 +107,7 @@ It is currently composed of several different crates:
 
 ## Other crates
 
+- [luminance-std140]: a crate useful to _backend crates_ based on Khronos / OpenGL’s `std140`.
 - [examples]: a combination of examples to show off some features / techniques.
 
 # Learning
@@ -167,6 +168,7 @@ Those projects use luminance:
 [luminance-web-sys]: ./luminance-web-sys
 [luminance-windowing]: ./luminance-windowing
 [luminance-front]: ./luminance-front
+[luminance-std140]: ./luminance-std140
 [examples]: ./examples
 [glutin]: https://crates.io/crates/glutin
 [gfx-hal]: https://crates.io/crates/gfx-hal
