@@ -165,6 +165,6 @@ positions at once in the render loop.
 
 [luminance]: https://crates.io/crates/luminance
 [glutin]: https://crates.io/crates/glutin
-[the book]: https://rust-tutorials.github.io/learn-luminance
+[the book]: https://phaazon.github.io/learn-luminance
 [wasm]: https://webassembly.org
 [cargo-web]: https://crates.io/crates/cargo-web

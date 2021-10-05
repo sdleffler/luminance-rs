@@ -113,7 +113,7 @@ It is currently composed of several different crates:
 
 [luminance] has two main and official resources to learn:
 
-- The [book](https://rust-tutorials.github.io/learn-luminance). It contains various chapters,
+- The [book](https://phaazon.github.io/learn-luminance). It contains various chapters,
   including tutorials and onboarding newcomers. It will not provide you with the best description
   of a given feature as it focuses more on the overall comprehension and explaining than code
   directly. It also fits people who don’t know anything about rendering.

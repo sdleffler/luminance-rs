@@ -69,7 +69,7 @@ However, luminance comes with several interesting features:
 luminance is written to be fairly simple. There are several ways to learn how to use luminance:
 
 - The [online documentation](https://docs.rs/luminance) is a mandatory start for newcomers.
-- The [“Learn luminance” book](https://rust-tutorials.github.io/learn-luminance). Ideal for
+- The [“Learn luminance” book](https://phaazon.github.io/learn-luminance). Ideal for
   newcomers as well as people already used to luminance, as it’s always updated to the latest
   version — you might learn new things!
 - The [luminance-examples](https://github.com/phaazon/luminance-rs/tree/master/examples)
