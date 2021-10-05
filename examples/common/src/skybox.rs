@@ -32,7 +32,7 @@ use luminance_front::{
   pipeline::{PipelineState, TextureBinding},
   pixel::{NormRGB8UI, NormUnsigned},
   render_state::RenderState,
-  shader::{Program, Uniform},
+  shader::{types::Mat44, Program, Uniform},
   tess::{Mode, Tess},
   texture::{CubeFace, Cubemap, Dim2, GenMipmaps, Sampler, Texture},
   Backend,
@@ -101,7 +101,7 @@ impl fmt::Display for AppError {
 #[derive(UniformInterface)]
 struct SkyboxShaderInterface {
   #[uniform(unbound)]
-  view: Uniform<[[f32; 4]; 4]>,
+  view: Uniform<Mat44<f32>>,
   #[uniform(unbound)]
   fovy: Uniform<f32>,
   #[uniform(unbound)]
@@ -114,9 +114,9 @@ struct SkyboxShaderInterface {
 #[derive(UniformInterface)]
 struct EnvironmentMappingShaderInterface {
   #[uniform(unbound)]
-  projection: Uniform<[[f32; 4]; 4]>,
+  projection: Uniform<Mat44<f32>>,
   #[uniform(unbound)]
-  view: Uniform<[[f32; 4]; 4]>,
+  view: Uniform<Mat44<f32>>,
   #[uniform(unbound)]
   aspect_ratio: Uniform<f32>,
   #[uniform(unbound)]
@@ -370,8 +370,8 @@ impl Example for LocalExample {
 
     let mut pipeline_gate = context.new_pipeline_gate();
     let skybox = &mut self.skybox;
-    let projection = self.projection.into();
-    let view = Matrix4::from(self.cam_view).into();
+    let projection = Mat44::new(self.projection);
+    let view = Mat44::new(Matrix4::from(self.cam_view));
     let skybox_program = &mut self.skybox_program;
     let env_map_program = &mut self.env_map_program;
     let skybox_orient = &self.skybox_orient;
@@ -393,7 +393,7 @@ impl Example for LocalExample {
 
           // render the skybox
           shd_gate.shade(skybox_program, |mut iface, unis, mut rdr_gate| {
-            iface.set(&unis.view, Matrix4::from(*skybox_orient).into());
+            iface.set(&unis.view, Mat44::new(Matrix4::from(*skybox_orient)));
             iface.set(&unis.fovy, fovy);
             iface.set(&unis.aspect_ratio, aspect_ratio);
             iface.set(&unis.skybox, environment_map.binding());

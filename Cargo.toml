@@ -11,6 +11,7 @@ members = [
   "luminance-glfw",
   "luminance-glutin",
   "luminance-sdl2",
+  "luminance-std140",
   "luminance-webgl",
   "luminance-web-sys",
   "luminance-windowing",
@@ -26,17 +27,6 @@ default-members = [
   "luminance-glfw",
   "luminance-glutin",
   #"luminance-sdl2", # commented out because of <https://github.com/Rust-SDL2/rust-sdl2/issues/1029>
+  "luminance-std140",
   "luminance-windowing",
 ]
-
-[patch.crates-io]
-luminance = { path = "./luminance" }
-luminance-derive = { path = "./luminance-derive" }
-luminance-front = { path = "./luminance-front" }
-luminance-gl = { path = "./luminance-gl" }
-luminance-glfw = { path = "./luminance-glfw" }
-luminance-glutin = { path = "./luminance-glutin" }
-luminance-sdl2 = { path = "./luminance-sdl2" }
-luminance-webgl = { path = "./luminance-webgl" }
-luminance-web-sys = { path = "./luminance-web-sys" }
-luminance-windowing = { path = "./luminance-windowing" }

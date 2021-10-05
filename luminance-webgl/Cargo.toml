@@ -16,7 +16,8 @@ edition = "2018"
 maintenance = { status = "actively-developed" }
 
 [dependencies]
-luminance = "0.44"
+luminance = { version = "0.44", path = "../luminance" }
+luminance-std140 = { version = "0.1", path = "../luminance-std140" }
 serde = "1"
 serde_derive = "1"
 wasm-bindgen = "0.2.60"

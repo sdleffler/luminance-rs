@@ -1,13 +1,14 @@
-use gl::types::*;
-
+use super::buffer::Buffer;
 use crate::gl33::{
   state::{BlendingState, DepthTest, FaceCullingState, GLState, ScissorState},
   GL33,
 };
+use gl::types::*;
 use luminance::{
   backend::{
-    pipeline::{Pipeline as PipelineBackend, PipelineBase, PipelineTexture},
+    pipeline::{Pipeline as PipelineBackend, PipelineBase, PipelineShaderData, PipelineTexture},
     render_gate::RenderGate,
+    shader::ShaderData,
     shading_gate::ShadingGate,
     tess::Tess,
     tess_gate::TessGate,
@@ -19,26 +20,11 @@ use luminance::{
   tess::{Deinterleaved, DeinterleavedData, Interleaved, TessIndex, TessVertexData},
   texture::Dimensionable,
 };
+use luminance_std140::{Arr, Std140};
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 
 pub struct Pipeline {
   state: Rc<RefCell<GLState>>,
-}
-
-pub struct BoundBuffer {
-  pub(crate) binding: u32,
-  state: Rc<RefCell<GLState>>,
-}
-
-impl Drop for BoundBuffer {
-  fn drop(&mut self) {
-    // place the binding into the free list
-    let mut state = self.state.borrow_mut();
-    state
-      .binding_stack_mut()
-      .free_buffer_bindings
-      .push(self.binding);
-  }
 }
 
 pub struct BoundTexture<D, P>
@@ -60,6 +46,24 @@ where
     // place the binding into the free list
     let mut state = self.state.borrow_mut();
     state.binding_stack_mut().free_texture_units.push(self.unit);
+  }
+}
+
+pub struct BoundShaderData<T> {
+  pub(crate) binding: u32,
+  state: Rc<RefCell<GLState>>,
+  _phantom: PhantomData<*const T>,
+}
+
+impl<T> Drop for BoundShaderData<T> {
+  fn drop(&mut self) {
+    // place the binding into the free list
+    self
+      .state
+      .borrow_mut()
+      .binding_stack_mut()
+      .free_shader_data
+      .push(self.binding);
   }
 }
 
@@ -161,7 +165,7 @@ where
     let bstack = state.binding_stack_mut();
 
     let unit = bstack.free_texture_units.pop().unwrap_or_else(|| {
-      // no more free units; reserve one
+      // no more free units; reserve one
       let unit = bstack.next_texture_unit;
       bstack.next_texture_unit += 1;
       unit
@@ -178,6 +182,41 @@ where
 
   unsafe fn texture_binding(bound: &Self::BoundTextureRepr) -> u32 {
     bound.unit
+  }
+}
+
+unsafe impl<T> PipelineShaderData<T> for GL33
+where
+  Self: ShaderData<T, ShaderDataRepr = Buffer<<Arr<T> as Std140>::Encoded>>,
+  T: Std140,
+{
+  type BoundShaderDataRepr = BoundShaderData<T>;
+
+  unsafe fn bind_shader_data(
+    pipeline: &Self::PipelineRepr,
+    shader_data: &Self::ShaderDataRepr,
+  ) -> Result<Self::BoundShaderDataRepr, PipelineError> {
+    let mut state = pipeline.state.borrow_mut();
+    let bstack = state.binding_stack_mut();
+
+    let binding = bstack.free_shader_data.pop().unwrap_or_else(|| {
+      // no more free bindings; reserve one
+      let binding = bstack.next_shader_data;
+      bstack.next_shader_data += 1;
+      binding
+    });
+
+    state.bind_uniform_buffer(shader_data.handle(), binding);
+
+    Ok(BoundShaderData {
+      binding,
+      state: pipeline.state.clone(),
+      _phantom: PhantomData,
+    })
+  }
+
+  unsafe fn shader_data_binding(bound: &Self::BoundShaderDataRepr) -> u32 {
+    bound.binding
   }
 }
 

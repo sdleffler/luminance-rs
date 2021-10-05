@@ -24,6 +24,6 @@ bundled = ["sdl2/bundled"]
 
 [dependencies]
 gl = "0.14"
-luminance = "0.44"
-luminance-gl = "0.17"
+luminance = { version = "0.44", path = "../luminance" }
+luminance-gl = { version = "0.17", path = "../luminance-gl" }
 sdl2 = "0.34.3"

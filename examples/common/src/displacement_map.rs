@@ -27,7 +27,7 @@ use luminance_front::{
   pipeline::{PipelineState, TextureBinding},
   pixel::NormUnsigned,
   render_state::RenderState,
-  shader::{Program, Uniform},
+  shader::{types::Vec2, Program, Uniform},
   tess::{Mode, Tess},
   texture::{Dim2, GenMipmaps, Sampler},
   Backend,
@@ -43,7 +43,7 @@ struct ShaderInterface {
   displacement_map_2: Uniform<TextureBinding<Dim2, NormUnsigned>>,
   displacement_scale: Uniform<f32>,
   time: Uniform<f32>,
-  window_dimensions: Uniform<[f32; 2]>,
+  window_dimensions: Uniform<Vec2<f32>>,
 }
 
 pub struct LocalExample {
@@ -145,7 +145,7 @@ impl Example for LocalExample {
             interface.set(&uni.time, t);
             interface.set(
               &uni.window_dimensions,
-              [back_buffer_size[0] as f32, back_buffer_size[1] as f32],
+              Vec2::new(back_buffer_size[0] as f32, back_buffer_size[1] as f32),
             );
 
             render_gate.render(render_state, |mut tess_gate| tess_gate.render(tess))

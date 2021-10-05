@@ -141,13 +141,14 @@
 //! [`BoundBuffer`]: crate::pipeline::BoundBuffer
 //! [`BufferBinding`]: crate::pipeline::BufferBinding
 
-use std::error;
-use std::fmt;
-use std::marker::PhantomData;
+pub mod types;
 
-use crate::backend::shader::{Shader, Uniformable};
-use crate::context::GraphicsContext;
-use crate::vertex::Semantics;
+use crate::{
+  backend::shader::{Shader, ShaderData as ShaderDataBackend, Uniformable},
+  context::GraphicsContext,
+  vertex::Semantics,
+};
+use std::{error, fmt, marker::PhantomData};
 
 /// A shader stage type.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -588,9 +589,8 @@ pub enum UniformType {
   /// Floating-point cubemap sampler.
   Cubemap,
 
-  // buffer
-  /// Buffer binding; used for UBOs.
-  BufferBinding,
+  /// Shader data binding.
+  ShaderDataBinding,
 }
 
 impl fmt::Display for UniformType {
@@ -640,7 +640,7 @@ impl fmt::Display for UniformType {
       UniformType::ICubemap => f.write_str("isamplerCube"),
       UniformType::UICubemap => f.write_str("usamplerCube"),
       UniformType::Cubemap => f.write_str("samplerCube"),
-      UniformType::BufferBinding => f.write_str("buffer binding"),
+      UniformType::ShaderDataBinding => f.write_str("buffer binding"),
     }
   }
 }
@@ -1211,3 +1211,90 @@ where
     self.adapt_env(env)
   }
 }
+
+/// Shader data.
+///
+/// # Parametricity
+///
+/// - `B` is the backend type.
+/// - `T` is the type of the carried items.
+pub struct ShaderData<B, T>
+where
+  B: ?Sized + ShaderDataBackend<T>,
+{
+  pub(crate) repr: B::ShaderDataRepr,
+}
+
+impl<B, T> ShaderData<B, T>
+where
+  B: ?Sized + ShaderDataBackend<T>,
+{
+  /// Create a [`ShaderData`] via an iterator of values.
+  pub fn new(
+    ctx: &mut impl GraphicsContext<Backend = B>,
+    values: impl IntoIterator<Item = T>,
+  ) -> Result<Self, ShaderDataError> {
+    let repr = unsafe { ctx.backend().new_shader_data(values.into_iter())? };
+    Ok(Self { repr })
+  }
+
+  /// Get the value at index `i`.
+  pub fn at(&self, i: usize) -> Result<T, ShaderDataError> {
+    unsafe { B::get_shader_data_at(&self.repr, i) }
+  }
+
+  /// Set the item at index `i` with the value `x`.
+  ///
+  /// Return the previous value.
+  pub fn set(&mut self, i: usize, x: T) -> Result<T, ShaderDataError> {
+    unsafe { B::set_shader_data_at(&mut self.repr, i, x) }
+  }
+
+  /// Replace all the values with the one provided by the iterator.
+  pub fn replace(&mut self, values: impl IntoIterator<Item = T>) -> Result<(), ShaderDataError> {
+    unsafe { B::set_shader_data_values(&mut self.repr, values.into_iter()) }
+  }
+}
+
+/// Possible errors that can occur with shader data.
+#[non_exhaustive]
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub enum ShaderDataError {
+  /// Cannot create the shader data on the backend side.
+  CannotCreate,
+
+  /// Index out of bounds.,
+  OutOfBounds {
+    /// Tried (incorrect) index.
+    index: usize,
+  },
+
+  /// Cannot set data.
+  CannotSetData {
+    /// Tried (incorrect) index.
+    index: usize,
+  },
+
+  /// Cannot replace data.
+  CannotReplaceData,
+}
+
+impl fmt::Display for ShaderDataError {
+  fn fmt(&self, f: &mut fmt::Formatter<'_>) -> Result<(), fmt::Error> {
+    match self {
+      ShaderDataError::CannotCreate => f.write_str("cannot create shader data"),
+
+      ShaderDataError::OutOfBounds { index } => {
+        write!(f, "cannot get shader data item; out of bounds {}", index)
+      }
+
+      ShaderDataError::CannotSetData { index } => {
+        write!(f, "cannot get shader data item; out of bounds {}", index)
+      }
+
+      ShaderDataError::CannotReplaceData => f.write_str("cannot replace shader data"),
+    }
+  }
+}
+
+impl std::error::Error for ShaderDataError {}

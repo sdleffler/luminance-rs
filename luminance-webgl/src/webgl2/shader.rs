@@ -1,21 +1,22 @@
 //! Shader support for WebGL2.
 
-use luminance::backend::shader::{Shader, Uniformable};
-use luminance::pipeline::{BufferBinding, TextureBinding};
-use luminance::pixel::{SamplerType, Type as PixelType};
-use luminance::shader::{
-  ProgramError, StageError, StageType, TessellationStages, Uniform, UniformType, UniformWarning,
-  VertexAttribWarning,
+use super::buffer::{Buffer, BufferError};
+use crate::webgl2::{state::WebGL2State, WebGL2};
+use luminance::{
+  backend::shader::{Shader, ShaderData, Uniformable},
+  pipeline::{ShaderDataBinding, TextureBinding},
+  pixel::{SamplerType, Type as PixelType},
+  shader::{
+    types::{Mat22, Mat33, Mat44, Vec2, Vec3, Vec4},
+    ProgramError, ShaderDataError, StageError, StageType, TessellationStages, Uniform, UniformType,
+    UniformWarning, VertexAttribWarning,
+  },
+  texture::{Dim, Dimensionable},
+  vertex::Semantics,
 };
-use luminance::texture::{Dim, Dimensionable};
-use luminance::vertex::Semantics;
-use std::cell::RefCell;
-use std::collections::HashMap;
-use std::rc::Rc;
+use luminance_std140::{Arr, Std140};
+use std::{cell::RefCell, collections::HashMap, mem, rc::Rc};
 use web_sys::{WebGl2RenderingContext, WebGlProgram, WebGlShader, WebGlUniformLocation};
-
-use crate::webgl2::state::WebGL2State;
-use crate::webgl2::WebGL2;
 
 #[derive(Debug)]
 pub struct Stage {
@@ -274,12 +275,18 @@ unsafe impl Shader for WebGL2 {
   {
     let ty = T::ty();
     let uniform = match ty {
-      UniformType::BufferBinding => uniform_builder.ask_uniform_block(name)?,
+      UniformType::ShaderDataBinding => uniform_builder.ask_uniform_block(name)?,
       _ => uniform_builder.ask_uniform(name)?,
     };
 
     let state = uniform_builder.state.borrow();
-    uniform_type_match(&state, &uniform_builder.handle, name, ty)?;
+    uniform_type_match(
+      &state,
+      &uniform_builder.handle,
+      name,
+      uniform.index() as u32,
+      ty,
+    )?;
 
     Ok(uniform)
   }
@@ -302,7 +309,8 @@ fn webgl_shader_type(ty: StageType) -> Option<u32> {
 
 const GLSL_PRAGMA: &str = "#version 300 es\n\
                            precision highp float;\n\
-                           precision highp int;\n";
+                           precision highp int;
+                           layout(std140) uniform;\n";
 
 fn patch_shader_src(src: &str) -> String {
   let mut pragma = String::from(GLSL_PRAGMA);
@@ -314,24 +322,31 @@ fn uniform_type_match(
   state: &WebGL2State,
   program: &WebGlProgram,
   name: &str,
+  location: u32,
   ty: UniformType,
 ) -> Result<(), UniformWarning> {
-  // create a 1-item array to hold the name of the uniform we’d like to get information from
-  let name_array = js_sys::Array::new();
-  name_array.push(&name.into()); // push the name as a JsValue
+  // uniform blocks are not handled the same way as regular uniforms, so we can already re-use the previously queried
+  // location, which is an index for them
+  let index = if ty == UniformType::ShaderDataBinding {
+    location
+  } else {
+    // create a 1-item array to hold the name of the uniform we’d like to get information from
+    let name_array = js_sys::Array::new();
+    name_array.push(&name.into()); // push the name as a JsValue
 
-  // get the index of the uniform; it’s represented as an array of a single element, since our
-  // input has only one element
-  let index = state
-    .ctx
-    .get_uniform_indices(program, name_array.as_ref())
-    .ok_or_else(|| UniformWarning::TypeMismatch("cannot retrieve uniform index".to_owned(), ty))?
-    .get(0)
-    .as_f64()
-    .map(|x| x as u32)
-    .ok_or_else(|| {
-      UniformWarning::TypeMismatch("wrong type when retrieving uniform".to_owned(), ty)
-    })?;
+    // get the index of the uniform; it’s represented as an array of a single element, since our
+    // input has only one element
+    state
+      .ctx
+      .get_uniform_indices(program, name_array.as_ref())
+      .ok_or_else(|| UniformWarning::TypeMismatch("cannot retrieve uniform index".to_owned(), ty))?
+      .get(0)
+      .as_f64()
+      .map(|x| x as u32)
+      .ok_or_else(|| {
+        UniformWarning::TypeMismatch("wrong type when retrieving uniform".to_owned(), ty)
+      })?
+  };
 
   // get its size and type
   let info = state
@@ -460,15 +475,55 @@ fn get_vertex_attrib_location(
 //
 // I’m so sorry.
 macro_rules! impl_Uniformable {
-  (&[[$t:ty; $dim:expr]], $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<WebGL2> for &'a [[$t; $dim]] {
+  (&[Vec2<$t:ty>], $uty:tt, $f:tt) => {
+    unsafe impl<'a> Uniformable<WebGL2> for &'a [Vec2<$t>] {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
       unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
         let len = self.len();
-        let data = flatten_slice!(self: $t, len = $dim * self.len());
+        let data = flatten_slice!(self: $t, len = 2 * self.len());
+
+        program.state.borrow().ctx.$f(
+          program.location_map.borrow().get(&uniform.index()),
+          data,
+          0, // offset
+          len as _,
+        );
+      }
+    }
+  };
+
+  (&[Vec3<$t:ty>], $uty:tt, $f:tt) => {
+    unsafe impl<'a> Uniformable<WebGL2> for &'a [Vec3<$t>] {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+        let len = self.len();
+        let data = flatten_slice!(self: $t, len = 3 * self.len());
+
+        program.state.borrow().ctx.$f(
+          program.location_map.borrow().get(&uniform.index()),
+          data,
+          0, // offset
+          len as _,
+        );
+      }
+    }
+  };
+
+  (&[Vec4<$t:ty>], $uty:tt, $f:tt) => {
+    unsafe impl<'a> Uniformable<WebGL2> for &'a [Vec4<$t>] {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+        let len = self.len();
+        let data = flatten_slice!(self: $t, len = 4 * self.len());
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
@@ -496,18 +551,47 @@ macro_rules! impl_Uniformable {
     }
   };
 
-  ([$t:ty; $dim:expr], $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<WebGL2> for [$t; $dim] {
+  (Vec2<$t:ty>, $uty:tt, $f:tt) => {
+    unsafe impl Uniformable<WebGL2> for Vec2<$t> {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
       unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-        program
-          .state
-          .borrow()
-          .ctx
-          .$f(program.location_map.borrow().get(&uniform.index()), &self);
+        program.state.borrow().ctx.$f(
+          program.location_map.borrow().get(&uniform.index()),
+          self.as_ref(),
+        );
+      }
+    }
+  };
+
+  (Vec3<$t:ty>, $uty:tt, $f:tt) => {
+    unsafe impl Uniformable<WebGL2> for Vec3<$t> {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+        program.state.borrow().ctx.$f(
+          program.location_map.borrow().get(&uniform.index()),
+          self.as_ref(),
+        );
+      }
+    }
+  };
+
+  (Vec4<$t:ty>, $uty:tt, $f:tt) => {
+    unsafe impl Uniformable<WebGL2> for Vec4<$t> {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+        program.state.borrow().ctx.$f(
+          program.location_map.borrow().get(&uniform.index()),
+          self.as_ref(),
+        );
       }
     }
   };
@@ -529,14 +613,14 @@ macro_rules! impl_Uniformable {
   };
 
   // matrix notation
-  (mat & $t:ty ; $dim:expr, $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<WebGL2> for &'a [[[$t; $dim]; $dim]] {
+  (mat & Mat22<$t:ty> ; $uty:tt, $f:tt) => {
+    unsafe impl<'a> Uniformable<WebGL2> for &'a [Mat22<$t>] {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
       unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-        let data = flatten_slice!(self: $t, len = $dim * $dim * self.len());
+        let data = flatten_slice!(self: $t, len = 4 * self.len());
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
@@ -549,14 +633,90 @@ macro_rules! impl_Uniformable {
     }
   };
 
-  (mat $t:ty ; $dim:expr, $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<WebGL2> for [[$t; $dim]; $dim] {
+  (mat & Mat33<$t:ty> ; $uty:tt, $f:tt) => {
+    unsafe impl<'a> Uniformable<WebGL2> for &'a [Mat33<$t>] {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
       unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-        let data = flatten_slice!(self: $t, len = $dim * $dim);
+        let data = flatten_slice!(self: $t, len = 9 * self.len());
+
+        program.state.borrow().ctx.$f(
+          program.location_map.borrow().get(&uniform.index()),
+          false,
+          data,
+          0,
+          self.len() as u32,
+        );
+      }
+    }
+  };
+
+  (mat & Mat44<$t:ty> ; $uty:tt, $f:tt) => {
+    unsafe impl<'a> Uniformable<WebGL2> for &'a [Mat44<$t>] {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+        let data = flatten_slice!(self: $t, len = 16 * self.len());
+
+        program.state.borrow().ctx.$f(
+          program.location_map.borrow().get(&uniform.index()),
+          false,
+          data,
+          0,
+          self.len() as u32,
+        );
+      }
+    }
+  };
+
+  (mat Mat22<$t:ty> ; $uty:tt, $f:tt) => {
+    unsafe impl Uniformable<WebGL2> for Mat22<$t> {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+        let data = flatten_slice!(self: $t, len = 4);
+
+        program.state.borrow().ctx.$f(
+          program.location_map.borrow().get(&uniform.index()),
+          false,
+          data,
+        );
+      }
+    }
+  };
+
+  (mat Mat33<$t:ty> ; $uty:tt, $f:tt) => {
+    unsafe impl Uniformable<WebGL2> for Mat33<$t> {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+        let data = flatten_slice!(self: $t, len = 9);
+
+        program.state.borrow().ctx.$f(
+          program.location_map.borrow().get(&uniform.index()),
+          false,
+          data,
+        );
+      }
+    }
+  };
+
+  (mat Mat44<$t:ty> ; $uty:tt, $f:tt) => {
+    unsafe impl Uniformable<WebGL2> for Mat44<$t> {
+      unsafe fn ty() -> UniformType {
+        UniformType::$uty
+      }
+
+      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+        let data = flatten_slice!(self: $t, len = 16);
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
@@ -570,77 +730,77 @@ macro_rules! impl_Uniformable {
 
 // here we go in deep mud
 impl_Uniformable!(i32, Int, uniform1i);
-impl_Uniformable!([i32; 2], IVec2, uniform2iv_with_i32_array);
-impl_Uniformable!([i32; 3], IVec3, uniform3iv_with_i32_array);
-impl_Uniformable!([i32; 4], IVec4, uniform4iv_with_i32_array);
+impl_Uniformable!(Vec2<i32>, IVec2, uniform2iv_with_i32_array);
+impl_Uniformable!(Vec3<i32>, IVec3, uniform3iv_with_i32_array);
+impl_Uniformable!(Vec4<i32>, IVec4, uniform4iv_with_i32_array);
 impl_Uniformable!(&[i32], Int, uniform1iv_with_i32_array);
 impl_Uniformable!(
-  &[[i32; 2]],
+  &[Vec2<i32>],
   IVec2,
   uniform2iv_with_i32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  &[[i32; 3]],
+  &[Vec3<i32>],
   IVec3,
   uniform3iv_with_i32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  &[[i32; 4]],
+  &[Vec4<i32>],
   IVec4,
   uniform4iv_with_i32_array_and_src_offset_and_src_length
 );
 
 impl_Uniformable!(u32, UInt, uniform1ui);
-impl_Uniformable!([u32; 2], UIVec2, uniform2uiv_with_u32_array);
-impl_Uniformable!([u32; 3], UIVec3, uniform3uiv_with_u32_array);
-impl_Uniformable!([u32; 4], UIVec4, uniform4uiv_with_u32_array);
+impl_Uniformable!(Vec2<u32>, UIVec2, uniform2uiv_with_u32_array);
+impl_Uniformable!(Vec3<u32>, UIVec3, uniform3uiv_with_u32_array);
+impl_Uniformable!(Vec4<u32>, UIVec4, uniform4uiv_with_u32_array);
 impl_Uniformable!(&[u32], UInt, uniform1uiv_with_u32_array);
 impl_Uniformable!(
-  &[[u32; 2]],
+  &[Vec2<u32>],
   UIVec2,
   uniform2uiv_with_u32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  &[[u32; 3]],
+  &[Vec3<u32>],
   UIVec3,
   uniform3uiv_with_u32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  &[[u32; 4]],
+  &[Vec4<u32>],
   UIVec4,
   uniform4uiv_with_u32_array_and_src_offset_and_src_length
 );
 
 impl_Uniformable!(f32, Float, uniform1f);
-impl_Uniformable!([f32; 2], Vec2, uniform2fv_with_f32_array);
-impl_Uniformable!([f32; 3], Vec3, uniform3fv_with_f32_array);
-impl_Uniformable!([f32; 4], Vec4, uniform4fv_with_f32_array);
+impl_Uniformable!(Vec2<f32>, Vec2, uniform2fv_with_f32_array);
+impl_Uniformable!(Vec3<f32>, Vec3, uniform3fv_with_f32_array);
+impl_Uniformable!(Vec4<f32>, Vec4, uniform4fv_with_f32_array);
 impl_Uniformable!(&[f32], Float, uniform1fv_with_f32_array);
 impl_Uniformable!(
-  &[[f32; 2]],
+  &[Vec2<f32>],
   Vec2,
   uniform2fv_with_f32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  &[[f32; 3]],
+  &[Vec3<f32>],
   Vec3,
   uniform3fv_with_f32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  &[[f32; 4]],
+  &[Vec4<f32>],
   Vec4,
   uniform4fv_with_f32_array_and_src_offset_and_src_length
 );
 
 // please don’t judge me
-impl_Uniformable!(mat f32; 2, M22, uniform_matrix2fv_with_f32_array);
-impl_Uniformable!(mat & f32; 2, M22, uniform_matrix2fv_with_f32_array_and_src_offset_and_src_length);
+impl_Uniformable!(mat Mat22<f32>; M22, uniform_matrix2fv_with_f32_array);
+impl_Uniformable!(mat &Mat22<f32>; M22, uniform_matrix2fv_with_f32_array_and_src_offset_and_src_length);
 
-impl_Uniformable!(mat f32; 3, M33, uniform_matrix3fv_with_f32_array);
-impl_Uniformable!(mat & f32; 3, M33, uniform_matrix3fv_with_f32_array_and_src_offset_and_src_length);
+impl_Uniformable!(mat Mat33<f32>; M33, uniform_matrix3fv_with_f32_array);
+impl_Uniformable!(mat &Mat33<f32>; M33, uniform_matrix3fv_with_f32_array_and_src_offset_and_src_length);
 
-impl_Uniformable!(mat f32; 4, M44, uniform_matrix4fv_with_f32_array);
-impl_Uniformable!(mat & f32; 4, M44, uniform_matrix4fv_with_f32_array_and_src_offset_and_src_length);
+impl_Uniformable!(mat Mat44<f32>; M44, uniform_matrix4fv_with_f32_array);
+impl_Uniformable!(mat &Mat44<f32>; M44, uniform_matrix4fv_with_f32_array_and_src_offset_and_src_length);
 
 // Special exception for booleans: because we cannot simply send the bool Rust type down to the
 // GPU, we have to convert them to 32-bit integer (unsigned), which is a total fuck up and waste of
@@ -787,9 +947,9 @@ unsafe impl<'a> Uniformable<WebGL2> for &'a [[bool; 4]] {
   }
 }
 
-unsafe impl<T> Uniformable<WebGL2> for BufferBinding<T> {
+unsafe impl<T> Uniformable<WebGL2> for ShaderDataBinding<T> {
   unsafe fn ty() -> UniformType {
-    UniformType::BufferBinding
+    UniformType::ShaderDataBinding
   }
 
   unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
@@ -851,5 +1011,61 @@ where
       program.location_map.borrow().get(&uniform.index()),
       self.binding() as i32,
     );
+  }
+}
+
+unsafe impl<T> ShaderData<T> for WebGL2
+where
+  T: Std140,
+{
+  type ShaderDataRepr =
+    Buffer<<Arr<T> as Std140>::Encoded, { WebGl2RenderingContext::UNIFORM_BUFFER }>;
+
+  unsafe fn new_shader_data(
+    &mut self,
+    values: impl Iterator<Item = T>,
+  ) -> Result<Self::ShaderDataRepr, ShaderDataError> {
+    Buffer::from_vec(
+      self,
+      values.into_iter().map(|x| Arr(x).std140_encode()).collect(),
+    )
+    .map_err(|BufferError::CannotCreate| ShaderDataError::CannotCreate)
+  }
+
+  unsafe fn get_shader_data_at(
+    shader_data: &Self::ShaderDataRepr,
+    i: usize,
+  ) -> Result<T, ShaderDataError> {
+    shader_data
+      .buf
+      .get(i)
+      .map(|&x| <Arr<T> as Std140>::std140_decode(x).0)
+      .ok_or_else(|| ShaderDataError::OutOfBounds { index: i })
+  }
+
+  unsafe fn set_shader_data_at(
+    shader_data: &mut Self::ShaderDataRepr,
+    i: usize,
+    x: T,
+  ) -> Result<T, ShaderDataError> {
+    let prev = mem::replace(
+      &mut shader_data.slice_buffer_mut()[i],
+      Arr(x).std140_encode(),
+    );
+
+    Ok(<Arr<T> as Std140>::std140_decode(prev).0)
+  }
+
+  unsafe fn set_shader_data_values(
+    shader_data: &mut Self::ShaderDataRepr,
+    values: impl Iterator<Item = T>,
+  ) -> Result<(), ShaderDataError> {
+    let mut slice = shader_data.slice_buffer_mut();
+
+    for (item, value) in slice.iter_mut().zip(values) {
+      *item = Arr(value).std140_encode();
+    }
+
+    Ok(())
   }
 }

@@ -21,7 +21,7 @@ use luminance_front::{
   framebuffer::Framebuffer,
   pipeline::PipelineState,
   render_state::RenderState,
-  shader::{Program, Uniform},
+  shader::{types::Vec2, Program, Uniform},
   tess::{Mode, Tess},
   texture::Dim2,
   Backend,
@@ -54,13 +54,13 @@ const TRI_VERTICES: [Vertex; 3] = [
 struct ShaderInterface {
   #[uniform(name = "t")]
   time: Uniform<f32>,
-  triangle_pos: Uniform<[f32; 2]>,
+  triangle_pos: Uniform<Vec2<f32>>,
 }
 
 pub struct LocalExample {
   program: Program<Semantics, (), ShaderInterface>,
   triangle: Tess<Vertex>,
-  triangle_pos: [f32; 2],
+  triangle_pos: Vec2<f32>,
 }
 
 impl Example for LocalExample {
@@ -79,7 +79,7 @@ impl Example for LocalExample {
       .set_mode(Mode::Triangle)
       .build()
       .unwrap();
-    let triangle_pos = [0., 0.];
+    let triangle_pos = Vec2::new(0., 0.);
 
     Self {
       program,
