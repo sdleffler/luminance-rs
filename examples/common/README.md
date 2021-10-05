@@ -16,8 +16,6 @@ have a look at [the book] first.
 
 **Have fun!**
 
-<!-- vim-markdown-toc GFM -->
-
 * [Prologue: architecture](#prologue-architecture)
 * [01 – Hello World](#01--hello-world)
 * [02 – Render State](#02--render-state)
@@ -36,8 +34,7 @@ have a look at [the book] first.
 * [15 – Texture resize](#15--texture-resize)
 * [16 – Query information](#16--query-information)
 * [17 – MRT (Multi Render Target)](#17--mrt-multi-render-target)
-
-<!-- vim-markdown-toc -->
+* [18 – Shader Data](#18--shader-data)
 
 ## Prologue: architecture
 
