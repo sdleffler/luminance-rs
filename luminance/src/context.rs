@@ -168,6 +168,8 @@ pub unsafe trait GraphicsContext: Sized {
   /// Create a new texture by reserving space for texels.
   ///
   /// Feel free to have a look at the documentation of [`Texture::new_no_texels`] for further details.
+  ///
+  /// [`Texture::new_no_texels`]: crate::texture::Texture::new_no_texels
   fn new_texture_no_texels<D, P>(
     &mut self,
     size: D::Size,

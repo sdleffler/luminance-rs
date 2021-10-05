@@ -106,27 +106,14 @@
 //! very similar to environment variables. You can declare several ones as you would declare
 //! several environment variables. More on that on the documentation of [`Uniform`].
 //!
-//! ## Uniform buffers
+//! ## Shader data
 //!
-//! > This section is under heavy rewriting, both the documentation and API.
+//! Another way to pass data to shader is to use a [`ShaderData`]. This kind of object allows to
+//! shared data between shaders: set the data once, it will be available to any shader you pass the
+//! [`ShaderData`] to.
 //!
-//! Sometimes, you will want to set and pass around rich and more complex data. Instead of a `f32`,
-//! you will want to pass a `struct`. This operation is currently supported but highly unsafe. The
-//! reason for this is that your GPU will expect a specific kind of memory layout for the types
-//! you use, and that also depends on the backend you use.
-//!
-//! Also, passing a lot of data is not very practical with default [`Uniform`] directly.
-//!
-//! In order to pass more data or `struct`s, you need to create a [`Buffer`]. That buffer will
-//! simply contain the data / object(s) you want to pass to the shader. It is then possible, via
-//! the use of a [`Pipeline`], to retrieve a [`BoundBuffer`], which can be used to get a
-//! [`BufferBinding`]. That [`BufferBinding`] can then be set on a
-//! `Uniform<BufferBinding<YourType>>`, telling your shader program where to grab the data — from
-//! the bound buffer.
-//!
-//! This way of doing is very practical and powerful but currently, in this version of the crate,
-//! very unsafe. A better API will be available in a next release to make all this simpler and
-//! safer.
+//! Most implementation also allows much more data via this mechanism, allowing to pass huge amount
+//! of data to implement various techniques, such as _geometry instancing_ for instance.
 //!
 //! ## Uniform interfaces
 //!
@@ -136,10 +123,8 @@
 //! fields in it. More on the [`UniformInterface`] documentation.
 //!
 //! [`Vertex`]: crate::vertex::Vertex
-//! [`Buffer`]: crate::buffer::Buffer
 //! [`Pipeline`]: crate::pipeline::Pipeline
-//! [`BoundBuffer`]: crate::pipeline::BoundBuffer
-//! [`BufferBinding`]: crate::pipeline::BufferBinding
+//! [`ShaderData`]: crate::shader::ShaderData
 
 pub mod types;
 
@@ -437,8 +422,9 @@ impl error::Error for VertexAttribWarning {}
 ///
 /// A uniform is a special variable that can be used to send data to a GPU. Several
 /// forms exist, but the idea is that `T` represents the data you want to send. Some exceptions
-/// exist that allow to pass _indirect_ data — such as [`BufferBinding`] to pass a buffer, or
-/// [`TextureBinding`] to pass a texture in order to fetch from it in a shader stage.
+/// exist that allow to pass shared data — such as [`ShaderDataBinding`] to pass a
+/// [`ShaderData`], or [`TextureBinding`] to pass a [`Texture`] in order to fetch from it in a
+/// shader stage.
 ///
 /// You will never be able to store them by your own. Instead, you must use a [`UniformInterface`],
 /// which provides a _contravariant_ interface for you. Creation is `unsafe` and should be
@@ -448,8 +434,9 @@ impl error::Error for VertexAttribWarning {}
 ///
 /// - `T` is the type of data you want to be able to set in a shader program.
 ///
-/// [`BufferBinding`]: crate::pipeline::BufferBinding
+/// [`Texture`]: crate::texture::Texture
 /// [`TextureBinding`]: crate::pipeline::TextureBinding
+/// [`ShaderDataBinding`]: crate::pipeline::ShaderDataBinding
 #[derive(Debug)]
 pub struct Uniform<T>
 where
@@ -640,7 +627,7 @@ impl fmt::Display for UniformType {
       UniformType::ICubemap => f.write_str("isamplerCube"),
       UniformType::UICubemap => f.write_str("usamplerCube"),
       UniformType::Cubemap => f.write_str("samplerCube"),
-      UniformType::ShaderDataBinding => f.write_str("buffer binding"),
+      UniformType::ShaderDataBinding => f.write_str("shader data binding"),
     }
   }
 }
