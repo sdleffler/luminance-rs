@@ -24,15 +24,16 @@ void main() {
 }";
 
 const FS: &str = "
-out vec3 frag;
+out vec4 frag;
 
 void main() {
-  frag = vec3(1., .5, .5);
+  frag = vec4(1., .5, .5, 1.);
 }";
 
 pub struct LocalExample {
   program: Program<(), (), ()>,
   tess: Tess<()>,
+  is_active: bool,
 }
 
 impl Example for LocalExample {
@@ -53,7 +54,11 @@ impl Example for LocalExample {
       .build()
       .unwrap();
 
-    LocalExample { program, tess }
+    LocalExample {
+      program,
+      tess,
+      is_active: true,
+    }
   }
 
   fn render_frame(
@@ -65,6 +70,14 @@ impl Example for LocalExample {
   ) -> LoopFeedback<Self> {
     for action in actions {
       match action {
+        InputAction::PrimaryReleased => {
+          self.is_active = !self.is_active;
+          log::info!(
+            "scissor test is {}",
+            if self.is_active { "active" } else { "inactive" },
+          );
+        }
+
         InputAction::Quit => return LoopFeedback::Exit,
         _ => (),
       }
@@ -72,14 +85,9 @@ impl Example for LocalExample {
 
     let [width, height] = back_buffer.size();
     let (w2, h2) = (width as u32 / 2, height as u32 / 2);
-    let rdr_st = RenderState::default().set_scissor(ScissorRegion {
-      x: w2 - w2 / 2,
-      y: h2 - h2 / 2,
-      width: w2,
-      height: h2,
-    });
     let program = &mut self.program;
     let tess = &self.tess;
+    let is_active = self.is_active;
 
     let render = context
       .new_pipeline_gate()
@@ -88,7 +96,20 @@ impl Example for LocalExample {
         &PipelineState::default(),
         |_, mut shd_gate| {
           shd_gate.shade(program, |_, _, mut rdr_gate| {
-            rdr_gate.render(&rdr_st, |mut tess_gate| tess_gate.render(tess))
+            if is_active {
+              let rdr_st = RenderState::default().set_scissor(ScissorRegion {
+                x: w2 - w2 / 2,
+                y: h2 - h2 / 2,
+                width: w2,
+                height: h2,
+              });
+
+              rdr_gate.render(&rdr_st, |mut tess_gate| tess_gate.render(tess))
+            } else {
+              rdr_gate.render(&RenderState::default(), |mut tess_gate| {
+                tess_gate.render(tess)
+              })
+            }
           })
         },
       )
