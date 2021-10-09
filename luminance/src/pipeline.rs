@@ -92,8 +92,8 @@
 //!       // ditto for render state
 //!       triangle.render(); // render the tessellation
 //!     });
-//!   );
-//! );
+//!   });
+//! });
 //! ```
 //!
 //! See how simple it is to represent `AST1` with just closures? Rust’s lifetimes and existential
@@ -115,8 +115,8 @@
 //!     use_render_state(other_render_state, || {
 //!       third.render()
 //!     });
-//!   );
-//! );
+//!   });
+//! });
 //! ```
 //!
 //! And `AST3`:
@@ -134,14 +134,14 @@
 //!     use_render_state(other_render_state, || {
 //!       third.render()
 //!     });
-//!   );
+//!   });
 //!
 //!   use_shader(other_shader, || {
 //!     use_render_state(yet_another_render_state, || {
 //!       other_triangle.render();
 //!     });
 //!   });
-//! );
+//! });
 //! ```
 //!
 //! The luminance equivalent is a bit more complex because it implies some objects that need

@@ -1,6 +1,6 @@
 //! Query backend interface.
 //!
-//! This interface provides various means to query some metrics and data from the GPU, such as the maximum number of
+//! This interface provides various means to query some metrics and data from the backend, such as the maximum number of
 //! active texture units, memory sizes, etc.
 
 use std::fmt;
@@ -41,9 +41,12 @@ impl fmt::Display for QueryError {
 }
 
 /// Backends that support querying.
+///
+/// Querying provide metadata information about the backend, but can also provide more useful information, such as
+/// capabilities, maximum limits, etc.
 pub unsafe trait Query {
-  /// The implementation author, most of the time referred to as “vendor” or “compagny” responsible for the driver the
-  /// implementation uses.
+  /// The implementation author, most of the time referred to as “vendor” or “company” responsible for the driver the
+  /// backend uses.
   fn backend_author(&self) -> Result<String, QueryError>;
 
   /// The backend name.
@@ -52,7 +55,7 @@ pub unsafe trait Query {
   /// The backend version.
   fn backend_version(&self) -> Result<String, QueryError>;
 
-  /// The shading language version.
+  /// The shading language version supported by the backend.
   fn backend_shading_lang_version(&self) -> Result<String, QueryError>;
 
   /// The maximum number of elements a texture array can hold.

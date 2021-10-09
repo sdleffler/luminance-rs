@@ -8,7 +8,7 @@
 //!   it’s possible to specify the number of vertices to render or just let the [`Tess`] render
 //!   a default number of vertices (typically, the whole [`Tess`]).
 //! - A default number of _instances_, which allows for geometry instancing. Geometry instancing
-//!   is the fact of drawing with the same [`Tess`] (GPU buffers) several times, only changing the
+//!   is the fact of drawing with the same [`Tess`] several times, only changing the
 //!   instance index every time a new render is performed. This is done entirely on the GPU to
 //!   prevent bandwidth exhaustion. The index of the instance, in the shader stages, is often used
 //!   to pick material properties, matrices, etc. to customize each instances.
@@ -480,8 +480,6 @@ impl DeinterleavedData {
 /// - Vectors: you can pass vectors as input data for both vertices and indices. Those will be
 ///   interpreted differently based on the vertex storage you chose for vertices, and the normal
 ///   way for indices.
-/// - Buffers: you can pass [`Buffer`] objects, too. Those are more flexible than vectors as you can
-///   use all of the [`Buffer`] API before sending them to the builder.
 /// - Disabled: disabling means that no data will be passed to the GPU. You can disable independently
 ///   vertex data and/or index data by using the unit `()` type.
 ///
@@ -508,8 +506,6 @@ impl DeinterleavedData {
 /// - `I` is the index type.
 /// - `W` is the vertex instance type.
 /// - `S` is the storage type.
-///
-/// [`Buffer`]: crate::buffer::Buffer
 #[derive(Debug)]
 pub struct TessBuilder<'a, B, V, I = (), W = (), S = Interleaved>
 where

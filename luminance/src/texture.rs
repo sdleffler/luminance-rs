@@ -41,17 +41,17 @@ use crate::pixel::{Pixel, PixelFormat};
 /// How to wrap texture coordinates while sampling textures?
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum Wrap {
-  /// If textures coordinates lay outside of *[0;1]*, they will be clamped to either *0* or *1* for
+  /// If textures coordinates lay outside of `[0;1]`, they will be clamped to either `0` or `1` for
   /// every components.
   ClampToEdge,
-  /// Textures coordinates are repeated if they lay outside of *[0;1]*. Picture this as:
+  /// Textures coordinates are repeated if they lay outside of `[0;1]`. Picture this as:
   ///
   /// ```ignore
   /// // given the frac function returning the fractional part of a floating number:
-  /// coord_ith = frac(coord_ith); // always between [0;1]
+  /// coord_ith = frac(coord_ith); // always between `[0;1]`
   /// ```
   Repeat,
-  /// Same as `Repeat` but it will alternatively repeat between *[0;1]* and *[1;0]*.
+  /// Same as `Repeat` but it will alternatively repeat between `[0;1]` and `[1;0]`.
   MirroredRepeat,
 }
 
@@ -582,7 +582,7 @@ where
   ///
   /// Feel free to have a look at the documentation of [`GraphicsContext::new_texture_no_texels`] for a
   /// simpler interface.
-  pub(crate) fn new_no_texels<C>(
+  pub fn new_no_texels<C>(
     ctx: &mut C,
     size: D::Size,
     mipmaps: usize,

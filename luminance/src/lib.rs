@@ -19,10 +19,6 @@
 //! > behavior, a crash, a panic or a black screen, it’s considered `unsafe`. That definition
 //! > obviously includes the Rust definiton of safety — memory safety.
 //!
-//! # Feature flags
-//!
-//! None so far.
-//!
 //! # What’s included?
 //!
 //! luminance is a rendering crate, not a 3D engine nor a video game framework. As so, it doesn’t
@@ -70,36 +66,39 @@
 //! - The [luminance-examples](https://github.com/phaazon/luminance-rs/tree/master/examples)
 //!   project. It contains lots of examples describing how to do specifics things. Not adapted for
 //!   newcomers, you will likely want to consult those examples if you’re already familiar with
-//!   graphics programing and to look for how to do a specific thing.
+//!   graphics programing and to look for how to do a specific thing. Still, for newcomers, the
+//!   [hello-world](../../examples/common/src/hello_world.rs) example might be a good read.
 //!
 //! # Implementation and architecture
 //!
 //! **luminance** has been originally designed around the OpenGL 3.3 and OpenGL 4.5 APIs. However,
-//! it has mutated to adapt to new technologies and modern graphics programming. Even though its API
+//! it has mutated _a lot_ to adapt to new technologies and modern graphics programming. Even though its API
 //! is _not_ meant to converge towards something like Vulkan, it’s changing over time to meet
 //! better design decisions and performance implications.
 //!
 //! The current state of luminance comprises several crates:
 //!
-//! - A “core” crate, [luminance], which is about all the
-//!   abstract, common and interface code.
-//! - A set of _backend implementation_ crates, implementing the [luminance] crate.
-//! - A set of _windowing_ crates, executing your code written with the core and backend crate.
+//! - A “core” crate, [luminance], which is about all the abstract, common and interface code.
+//! - A proc-macro crate, [luminance-derive], which is exported by [luminance] if you use the `"derive"`
+//!   feature flag. That crate allows to implement various important traits of the core crate.
+//! - A set of _backend implementation_ crates, implementing the [luminance] crate backend interfaces.
+//! - A set of _windowing_ crates, executing your code written with the core and backend crate on native
+//!   systems (most of the time, _windowing platforms_, but not limited to).
 //! - A special crate, [luminance-front], a special _backend_ crate that allows to combine
 //!   several “official” crates to provide a cross-platform experience without having to pick
 //!   several backend crates — the crate does it for you. This crate is mainly designed for end-user
-//!   crates.
+//!   crates and should be a good fit for most users.
 //!
 //! ## The core crate
 //!
-//! The luminance crate gathers all the logic and rendering abstractions necessary to write code
-//! over various graphics technologies. It contains parametric types and functions that depend on
+//! The [luminance] crate gathers all the logic and rendering abstractions necessary to write code
+//! over various graphics technologies. It contains parametric types and functions that abstract over
 //! the actual _implementation type_ — as a convention, the type variable `B` (for backend) is
 //! used.
 //!
 //! Backend types — i.e. `B` — are not provided by [luminance] directly. They are typically
-//! provided by crates containing the name of the technology as suffix, such as luminance-gl,
-//! luminance-webgl, luminance-vk, etc. The interface between those backend crates and
+//! provided by crates containing the name of the technology as suffix, such as [luminance-gl],
+//! [luminance-webgl], luminance-vk, etc. The interface between those backend crates and
 //! luminance is specified in [luminance::backend].
 //!
 //! On a general note, `Something<ConcreteType, u8>` is a monomorphic type that will be usable
@@ -116,7 +115,7 @@
 //! }
 //! ```
 //!
-//! This kind of code is intented for people writing libraries with luminance. For the special case
+//! This kind of code is intended for people writing libraries with luminance. For the more usual case
 //! of using the [luminance-front] crate, you will end up writing something like:
 //!
 //! ```ignore
@@ -157,13 +156,15 @@
 //!
 //! luminance does not provide a way to create windows because it’s important that it not depend
 //! on windowing libraries – so that end-users can use whatever they like. Furthermore, such
-//! libraries typically implement windowing and events features, which have nothing to do with our
+//! libraries typically implement windowing and event features, which have nothing to do with our
 //! initial purpose.
 //!
-//! A windowing crate supporting luminance will typically provide native types by re-exporting
+//! A platform crate supporting luminance will typically provide native types by re-exporting
 //! symbols (types, functions, etc.) from a windowing crate and the necessary code to make it
 //! compatible with luminance. That means providing a way to access a backend type, which
-//! implements the [luminance::backend] interface.
+//! implements the [luminance::backend] interface. However, platform crates are not supposed to
+//! be a replacement for the underlying platform system; you will typically still have to depend
+//! it as well.
 //!
 //! ## luminance-derive
 //!
@@ -175,27 +176,26 @@
 //! The [`Vertex`] derive proc-macro.
 //!
 //! That proc-macro allows you to create custom vertex types easily without having to care about
-//! implementing the required traits for your types to be usable with the rest of the crate.
+//! implementing the required traits.
 //!
-//! The [`Vertex`] trait must be implemented if you want to use a type as vertex (passed-in via
-//! slices to [`Tess`]). Either you can decide to implement it on your own, or you could just let
-//! this crate do the job for you.
+//! The [`Vertex`] trait must be implemented if you want to use a type as vertex (consumed by [`Tess`]).
+//! Either you can decide to implement it on your own, or you could just let this crate do the job for you.
 //!
 //! > Important: the [`Vertex`] trait is `unsafe`, which means that all of its implementors must be
-//! > as well. This is due to the fact that vertex formats include information about raw-level
-//! > GPU memory and a bad implementation can have undefined behaviors.
+//! > as well. This is due to the fact that vertex formats include information about the structure of the
+//! > data that will be sent to the backend, and a bad implementation can lead to undefined behaviors.
 //!
 //! You can derive the [`Vertex`] trait if your type follows these conditions:
 //!
-//!   - It must be a `struct` with named fields. This is just a temporary limitation that will get
-//!     dropped as soon as the crate is stable enough.
-//!   - Its fields must have a type that implements [`VertexAttrib`]. This is mandatory so that the
-//!     backend knows enough about the types used in the structure to correctly align memory, pick
-//!     the right types, etc.
-//!   - Its fields must have a type that implements [`HasSemantics`] as well. This trait is just a
-//!     type family that associates a single constant (i.e. the semantics) that the vertex attribute
-//!     uses.
-//!   - Each field's type must be different.
+//! - It must be a `struct` with named fields. This is just a temporary limitation that will get
+//!   dropped as soon as the crate is stable enough.
+//! - Its fields must have a type that implements [`VertexAttrib`]. This is mandatory so that the
+//!   backend knows enough about the types used in the structure to correctly align memory, pick
+//!   the right types, etc.
+//! - Its fields must have a type that implements [`HasSemantics`] as well. This trait is just a
+//!   type family that associates a single constant (i.e. the semantics) that the vertex attribute
+//!   uses.
+//! - Each field's type must be different.
 //!
 //! Once all those requirements are met, you can derive [`Vertex`] pretty easily.
 //!
@@ -207,7 +207,7 @@
 //! The syntax is the following:
 //!
 //! ```rust
-//! # use luminance_derive::{Vertex, Semantics};
+//! use luminance::{Vertex, Semantics};
 //!
 //! // visit the Semantics proc-macro documentation for further details
 //! #[derive(Clone, Copy, Debug, PartialEq, Semantics)]
@@ -215,24 +215,24 @@
 //!   #[sem(name = "position", repr = "[f32; 3]", wrapper = "VertexPosition")]
 //!   Position,
 //!   #[sem(name = "color", repr = "[f32; 4]", wrapper = "VertexColor")]
-//!   Color
+//!   Color,
 //! }
 //!
-//! #[derive(Clone, Copy, Debug, PartialEq, Vertex)] // just add Vertex to the list of derived traits
+//! #[derive(Clone, Copy, Debug, PartialEq, Vertex)]
 //! #[vertex(sem = "Semantics")] // specify the semantics to use for this type
 //! struct MyVertex {
 //!   position: VertexPosition,
-//!   color: VertexColor
+//!   color: VertexColor,
 //! }
 //! ```
 //!
 //! > Note: the `Semantics` enum must be public because of the implementation of [`HasSemantics`]
 //! > trait.
 //!
-//! Besides the `Semantics`-related code, this will:
+//! Besides the [`Semantics`]-related code, this will:
 //!
-//!   - Create a type called `MyVertex`, a struct that will hold a single vertex.
-//!   - Implement `Vertex for MyVertex`.
+//! - Create a type called `MyVertex`, a struct that will hold a single vertex.
+//! - Implement `Vertex for MyVertex`.
 //!
 //! The proc-macro also supports an optional `#[vertex(instanced = "<bool>")]` struct attribute.
 //! This attribute allows you to specify whether the fields are to be instanced or not. For more
@@ -249,13 +249,12 @@
 //! The procedural macro is very simple to use. You declare a struct as you would normally do:
 //!
 //! ```
-//! # use luminance::shader::Uniform;
-//! # use luminance_derive::UniformInterface;
+//! use luminance::{shader::{types::Vec4, Uniform}, UniformInterface};
 //!
 //! #[derive(Debug, UniformInterface)]
 //! struct MyIface {
 //!   time: Uniform<f32>,
-//!   resolution: Uniform<[f32; 4]>
+//!   resolution: Uniform<Vec4<f32>>,
 //! }
 //! ```
 //!
@@ -270,14 +269,12 @@
 //! attribute:
 //!
 //! ```
-//! # use luminance::shader::Uniform;
-//! # use luminance_derive::UniformInterface;
-//!
+//! # use luminance::{shader::{types::Vec4, Uniform}, UniformInterface};
 //! #[derive(Debug, UniformInterface)]
 //! struct MyIface {
 //!   #[uniform(unbound)]
 //!   time: Uniform<f32>, // if this field cannot be mapped, it’ll be ignored
-//!   resolution: Uniform<[f32; 4]>
+//!   resolution: Uniform<Vec4<f32>>,
 //! }
 //! ```
 //!
@@ -286,14 +283,12 @@
 //! to be complete:
 //!
 //! ```
-//! # use luminance::shader::Uniform;
-//! # use luminance_derive::UniformInterface;
-//!
+//! # use luminance::{shader::{types::Vec4, Uniform}, UniformInterface};
 //! #[derive(Debug, UniformInterface)]
 //! struct MyIface {
 //!   time: Uniform<f32>,
 //!   #[uniform(name = "res")]
-//!   resolution: Uniform<[f32; 4]> // maps "res" from the shader program
+//!   resolution: Uniform<Vec4<f32>>, // maps "res" from the shader program
 //! }
 //! ```
 //!
@@ -301,17 +296,14 @@
 //! uniform if it cannot be mapped:
 //!
 //! ```
-//! # use luminance::shader::Uniform;
-//! # use luminance_derive::UniformInterface;
-//!
+//! # use luminance::{shader::{types::Vec4, Uniform}, UniformInterface};
 //! #[derive(Debug, UniformInterface)]
 //! struct MyIface {
 //!   time: Uniform<f32>,
 //!   #[uniform(name = "res", unbound)]
-//!   resolution: Uniform<[f32; 4]> // must map "res" from the shader program and ignored otherwise
+//!   resolution: Uniform<Vec4<f32>>,
 //! }
 //! ```
-//!
 //!
 //! [luminance]: https://crates.io/crates/luminance
 //! [luminance-gl]: https://crates.io/crates/luminance-gl

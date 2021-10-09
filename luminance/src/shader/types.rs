@@ -1,6 +1,8 @@
 //! Shader type wrappers.
 //!
 //! These types are used, mostly, to be passed to shaders as [`Uniform`] data.
+//!
+//! [`Uniform`]: crate::shader::Uniform
 
 use std::ops::{Deref, DerefMut};
 
