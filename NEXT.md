@@ -19,6 +19,7 @@
   implement techniques such as geometry instancing.
 - Add `shader::types::*`, thin type wrappers allowing to pass aligned data in a fast backend agnostic way. If you were
   using encodings such as `[f32; 2]` for the GLSL counterpart `vec2`, you should now use `Vec2<f32>`.
+- Update the documentation of the `luminance::backend` module.
 
 # `luminance-derive`
 
