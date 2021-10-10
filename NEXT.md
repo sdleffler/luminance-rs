@@ -20,6 +20,9 @@
 - Add `shader::types::*`, thin type wrappers allowing to pass aligned data in a fast backend agnostic way. If you were
   using encodings such as `[f32; 2]` for the GLSL counterpart `vec2`, you should now use `Vec2<f32>`.
 - Update the documentation of the `luminance::backend` module.
+- Change the backend interface for `Uniformable`. Backends must now implement `Uniformable<T>`, instead of having to provide the
+  implementor `T: Uniformable<Backend>`. This is a change allowing for better polymorphic code, where people can create
+  « trait aliases » by simply adding `Uniformable<TypeHere>`.
 
 # `luminance-derive`
 
@@ -34,6 +37,7 @@
 
 - Fix lifetime issue with slicing tessellation.
 - Add support for `ShaderData` via `Std140` (`luminance-std140`).
+- Implement the new `Uniformable` interface.
 
 # `luminance-glfw`
 
@@ -55,5 +59,6 @@
   fix was the premise of the full fix, as a redesign of luminance’s buffer interface was needed to fully fix the problem.
 - Fix lifetime issue with slicing tessellation.
 - Add support for `ShaderData` via `Std140` (`luminance-std140`).
+- Implement the new `Uniformable` interface.
 
 # `luminance-windowing`

@@ -120,7 +120,7 @@ pub(crate) fn generate_uniform_interface_impl(
           let #field_ident = #build_call;
         });
         field_where_clause.push(quote! {
-          #field_ty: luminance::backend::shader::Uniformable<S>
+          S: luminance::backend::shader::Uniformable<#field_ty>
         });
       }
 

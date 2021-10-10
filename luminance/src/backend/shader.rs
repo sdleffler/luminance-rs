@@ -33,10 +33,10 @@ use crate::{
   vertex::Semantics,
 };
 
-/// A type that can be a [`Uniform`].
+/// Backend support for uniforms.
 ///
-/// When a type implements [`Uniformable`], it is recognized by the backend as being a _uniform type_ and then can be
-/// mapped in a uniform interface via [`Uniform`].
+/// When a backend implements [`Uniformable`], it add support for the type parameter as being a recognized _uniform
+/// type_ and then can be mapped in a uniform interface via [`Uniform`].
 ///
 /// Implementing such a trait is relatively trivial:
 ///
@@ -46,15 +46,12 @@ use crate::{
 /// - You must implement [`Uniformable::update`], which updates the value of the [`Uniform`] in a given shader program.
 ///   For indirect values such as bound resources (textures, shader data, etc.), uploading will most of the time be a
 ///   binding update on the backend side.
-pub unsafe trait Uniformable<B>
-where
-  B: ?Sized + Shader,
-{
+pub unsafe trait Uniformable<T>: Shader {
   /// Reify the type of the uniform as a [`UniformType`].
   unsafe fn ty() -> UniformType;
 
   /// Update the associated value of the [`Uniform`] in the given shader program.
-  unsafe fn update(self, program: &mut B::ProgramRepr, uniform: &Uniform<Self>);
+  unsafe fn update(program: &mut Self::ProgramRepr, uniform: &Uniform<T>, value: T);
 }
 
 /// Shader support.
@@ -119,14 +116,14 @@ pub unsafe trait Shader {
     name: &str,
   ) -> Result<Uniform<T>, UniformWarning>
   where
-    T: Uniformable<Self>;
+    Self: Uniformable<T>;
 
   /// Backend representation of an _unbound_ [`Uniform`] (i.e. that is inactive in the shader program).
   ///
   /// This is a method taking a uniform builder so that the builder can accumulate a state.
   unsafe fn unbound<T>(uniform_builder: &mut Self::UniformBuilderRepr) -> Uniform<T>
   where
-    T: Uniformable<Self>;
+    Self: Uniformable<T>;
 }
 
 /// Shader data backend.

@@ -702,7 +702,7 @@ where
   pub fn ask<T, N>(&mut self, name: N) -> Result<Uniform<T>, UniformWarning>
   where
     N: AsRef<str>,
-    T: Uniformable<B>,
+    B: Uniformable<T>,
   {
     unsafe { B::ask_uniform(&mut self.repr, name.as_ref()) }
   }
@@ -714,7 +714,7 @@ where
   pub fn ask_or_unbound<T, N>(&mut self, name: N) -> Uniform<T>
   where
     N: AsRef<str>,
-    T: Uniformable<B>,
+    B: Uniformable<T>,
   {
     match self.ask(name) {
       Ok(uniform) => uniform,
@@ -851,21 +851,21 @@ where
 /// `B` is the backend type.
 pub struct ProgramInterface<'a, B>
 where
-  B: ?Sized + Shader,
+  B: Shader,
 {
   pub(crate) program: &'a mut B::ProgramRepr,
 }
 
 impl<'a, B> ProgramInterface<'a, B>
 where
-  B: ?Sized + Shader,
+  B: Shader,
 {
   /// Set a value on a [`Uniform`].
   pub fn set<T>(&mut self, uniform: &Uniform<T>, value: T)
   where
-    T: Uniformable<B>,
+    B: Uniformable<T>,
   {
-    unsafe { T::update(value, self.program, uniform) };
+    unsafe { B::update(self.program, uniform, value) };
   }
 
   /// Get back a [`UniformBuilder`] to dynamically access [`Uniform`] objects.

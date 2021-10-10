@@ -182,7 +182,7 @@ impl UniformBuilder {
 
   fn ask_uniform<T>(&mut self, name: &str) -> Result<Uniform<T>, UniformWarning>
   where
-    T: Uniformable<WebGL2>,
+    WebGL2: Uniformable<T>,
   {
     let location = self
       .state
@@ -207,7 +207,7 @@ impl UniformBuilder {
 
   fn ask_uniform_block<T>(&self, name: &str) -> Result<Uniform<T>, UniformWarning>
   where
-    T: Uniformable<WebGL2>,
+    WebGL2: Uniformable<T>,
   {
     let location = self
       .state
@@ -271,9 +271,9 @@ unsafe impl Shader for WebGL2 {
     name: &str,
   ) -> Result<Uniform<T>, UniformWarning>
   where
-    T: Uniformable<Self>,
+    Self: Uniformable<T>,
   {
-    let ty = T::ty();
+    let ty = Self::ty();
     let uniform = match ty {
       UniformType::ShaderDataBinding => uniform_builder.ask_uniform_block(name)?,
       _ => uniform_builder.ask_uniform(name)?,
@@ -293,7 +293,7 @@ unsafe impl Shader for WebGL2 {
 
   unsafe fn unbound<T>(_: &mut Self::UniformBuilderRepr) -> Uniform<T>
   where
-    T: Uniformable<Self>,
+    Self: Uniformable<T>,
   {
     Uniform::new(-1)
   }
@@ -475,15 +475,20 @@ fn get_vertex_attrib_location(
 //
 // I’m so sorry.
 macro_rules! impl_Uniformable {
+  // FIXME: not usable
   (&[Vec2<$t:ty>], $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<WebGL2> for &'a [Vec2<$t>] {
+    unsafe impl<'a> Uniformable<&'a [Vec2<$t>]> for WebGL2 {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-        let len = self.len();
-        let data = flatten_slice!(self: $t, len = 2 * self.len());
+      unsafe fn update(
+        program: &mut Program,
+        uniform: &Uniform<&'a [Vec2<$t>]>,
+        value: &'a [Vec2<$t>],
+      ) {
+        let len = value.len();
+        let data = flatten_slice!(value: $t, len = 2 * value.len());
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
@@ -495,15 +500,20 @@ macro_rules! impl_Uniformable {
     }
   };
 
+  // FIXME: unusable
   (&[Vec3<$t:ty>], $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<WebGL2> for &'a [Vec3<$t>] {
+    unsafe impl<'a> Uniformable<&'a [Vec3<$t>]> for WebGL2 {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-        let len = self.len();
-        let data = flatten_slice!(self: $t, len = 3 * self.len());
+      unsafe fn update(
+        program: &mut Program,
+        uniform: &Uniform<&'a [Vec3<$t>]>,
+        value: &'a [Vec3<$t>],
+      ) {
+        let len = value.len();
+        let data = flatten_slice!(value: $t, len = 3 * value.len());
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
@@ -515,15 +525,20 @@ macro_rules! impl_Uniformable {
     }
   };
 
+  // FIXME: unusable
   (&[Vec4<$t:ty>], $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<WebGL2> for &'a [Vec4<$t>] {
+    unsafe impl<'a> Uniformable<&'a [Vec4<$t>]> for WebGL2 {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-        let len = self.len();
-        let data = flatten_slice!(self: $t, len = 4 * self.len());
+      unsafe fn update(
+        program: &mut Program,
+        uniform: &Uniform<&'a [Vec4<$t>]>,
+        value: &'a [Vec4<$t>],
+      ) {
+        let len = value.len();
+        let data = flatten_slice!(value: $t, len = 4 * value.len());
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
@@ -535,152 +550,168 @@ macro_rules! impl_Uniformable {
     }
   };
 
+  // FIXME: unusable
   (&[$t:ty], $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<WebGL2> for &'a [$t] {
+    unsafe impl<'a> Uniformable<&'a [$t]> for WebGL2 {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+      unsafe fn update(program: &mut Program, uniform: &Uniform<&'a [$t]>, value: &'a [$t]) {
         program
           .state
           .borrow()
           .ctx
-          .$f(program.location_map.borrow().get(&uniform.index()), self);
+          .$f(program.location_map.borrow().get(&uniform.index()), value);
       }
     }
   };
 
   (Vec2<$t:ty>, $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<WebGL2> for Vec2<$t> {
+    unsafe impl Uniformable<Vec2<$t>> for WebGL2 {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+      unsafe fn update(program: &mut Program, uniform: &Uniform<Vec2<$t>>, value: Vec2<$t>) {
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
-          self.as_ref(),
+          value.as_ref(),
         );
       }
     }
   };
 
   (Vec3<$t:ty>, $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<WebGL2> for Vec3<$t> {
+    unsafe impl Uniformable<Vec3<$t>> for WebGL2 {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+      unsafe fn update(program: &mut Program, uniform: &Uniform<Vec3<$t>>, value: Vec3<$t>) {
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
-          self.as_ref(),
+          value.as_ref(),
         );
       }
     }
   };
 
   (Vec4<$t:ty>, $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<WebGL2> for Vec4<$t> {
+    unsafe impl Uniformable<Vec4<$t>> for WebGL2 {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+      unsafe fn update(program: &mut Program, uniform: &Uniform<Vec4<$t>>, value: Vec4<$t>) {
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
-          self.as_ref(),
+          value.as_ref(),
         );
       }
     }
   };
 
   ($t:ty, $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<WebGL2> for $t {
+    unsafe impl Uniformable<$t> for WebGL2 {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+      unsafe fn update(program: &mut Program, uniform: &Uniform<$t>, value: $t) {
         program
           .state
           .borrow()
           .ctx
-          .$f(program.location_map.borrow().get(&uniform.index()), self);
+          .$f(program.location_map.borrow().get(&uniform.index()), value);
       }
     }
   };
 
+  // FIXME: unusable
   // matrix notation
   (mat & Mat22<$t:ty> ; $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<WebGL2> for &'a [Mat22<$t>] {
+    unsafe impl<'a> Uniformable<&'a [Mat22<$t>]> for WebGL2 {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-        let data = flatten_slice!(self: $t, len = 4 * self.len());
+      unsafe fn update(
+        program: &mut Program,
+        uniform: &Uniform<&'a [Mat22<$t>]>,
+        value: &'a [Mat22<$t>],
+      ) {
+        let data = flatten_slice!(value: $t, len = 4 * value.len());
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
           false,
           data,
           0,
-          self.len() as u32,
+          value.len() as u32,
         );
       }
     }
   };
 
+  // FIXME: unusable
   (mat & Mat33<$t:ty> ; $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<WebGL2> for &'a [Mat33<$t>] {
+    unsafe impl<'a> Uniformable<&'a [Mat33<$t>]> for WebGL2 {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-        let data = flatten_slice!(self: $t, len = 9 * self.len());
+      unsafe fn update(
+        program: &mut Program,
+        uniform: &Uniform<&'a [Mat33<$t>]>,
+        value: &'a [Mat33<$t>],
+      ) {
+        let data = flatten_slice!(value: $t, len = 9 * value.len());
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
           false,
           data,
           0,
-          self.len() as u32,
+          value.len() as u32,
         );
       }
     }
   };
 
+  // FIXME: unusable
   (mat & Mat44<$t:ty> ; $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<WebGL2> for &'a [Mat44<$t>] {
+    unsafe impl<'a> Uniformable<&'a [Mat44<$t>]> for WebGL2 {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-        let data = flatten_slice!(self: $t, len = 16 * self.len());
+      unsafe fn update(
+        program: &mut Program,
+        uniform: &Uniform<&'a [Mat44<$t>]>,
+        value: &'a [Mat44<$t>],
+      ) {
+        let data = flatten_slice!(value: $t, len = 16 * value.len());
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
           false,
           data,
           0,
-          self.len() as u32,
+          value.len() as u32,
         );
       }
     }
   };
 
   (mat Mat22<$t:ty> ; $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<WebGL2> for Mat22<$t> {
+    unsafe impl Uniformable<Mat22<$t>> for WebGL2 {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-        let data = flatten_slice!(self: $t, len = 4);
+      unsafe fn update(program: &mut Program, uniform: &Uniform<Mat22<$t>>, value: Mat22<$t>) {
+        let data = flatten_slice!(value: $t, len = 4);
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
@@ -692,13 +723,13 @@ macro_rules! impl_Uniformable {
   };
 
   (mat Mat33<$t:ty> ; $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<WebGL2> for Mat33<$t> {
+    unsafe impl Uniformable<Mat33<$t>> for WebGL2 {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-        let data = flatten_slice!(self: $t, len = 9);
+      unsafe fn update(program: &mut Program, uniform: &Uniform<Mat33<$t>>, value: Mat33<$t>) {
+        let data = flatten_slice!(value: $t, len = 9);
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
@@ -710,13 +741,13 @@ macro_rules! impl_Uniformable {
   };
 
   (mat Mat44<$t:ty> ; $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<WebGL2> for Mat44<$t> {
+    unsafe impl Uniformable<Mat44<$t>> for WebGL2 {
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-        let data = flatten_slice!(self: $t, len = 16);
+      unsafe fn update(program: &mut Program, uniform: &Uniform<Mat44<$t>>, value: Mat44<$t>) {
+        let data = flatten_slice!(value: $t, len = 16);
 
         program.state.borrow().ctx.$f(
           program.location_map.borrow().get(&uniform.index()),
@@ -808,26 +839,26 @@ impl_Uniformable!(mat &Mat44<f32>; M44, uniform_matrix4fv_with_f32_array_and_src
 // to allocate short-living, temporary vectors to hold the converted data.
 //
 // All this makes me so sad that I want a corgi by my side. Please. And chimken nuggets.
-unsafe impl Uniformable<WebGL2> for bool {
+unsafe impl Uniformable<bool> for WebGL2 {
   unsafe fn ty() -> UniformType {
     UniformType::Bool
   }
 
-  unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+  unsafe fn update(program: &mut Program, uniform: &Uniform<bool>, value: bool) {
     program.state.borrow().ctx.uniform1ui(
       program.location_map.borrow().get(&uniform.index()),
-      self as u32,
+      value as u32,
     );
   }
 }
 
-unsafe impl Uniformable<WebGL2> for [bool; 2] {
+unsafe impl Uniformable<[bool; 2]> for WebGL2 {
   unsafe fn ty() -> UniformType {
     UniformType::BVec2
   }
 
-  unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-    let v = [self[0] as u32, self[1] as u32];
+  unsafe fn update(program: &mut Program, uniform: &Uniform<[bool; 2]>, value: [bool; 2]) {
+    let v = [value[0] as u32, value[1] as u32];
 
     program
       .state
@@ -837,13 +868,13 @@ unsafe impl Uniformable<WebGL2> for [bool; 2] {
   }
 }
 
-unsafe impl Uniformable<WebGL2> for [bool; 3] {
+unsafe impl Uniformable<[bool; 3]> for WebGL2 {
   unsafe fn ty() -> UniformType {
     UniformType::BVec3
   }
 
-  unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-    let v = [self[0] as u32, self[1] as u32, self[2] as u32];
+  unsafe fn update(program: &mut Program, uniform: &Uniform<[bool; 3]>, value: [bool; 3]) {
+    let v = [value[0] as u32, value[1] as u32, value[2] as u32];
 
     program
       .state
@@ -853,17 +884,17 @@ unsafe impl Uniformable<WebGL2> for [bool; 3] {
   }
 }
 
-unsafe impl Uniformable<WebGL2> for [bool; 4] {
+unsafe impl Uniformable<[bool; 4]> for WebGL2 {
   unsafe fn ty() -> UniformType {
     UniformType::BVec4
   }
 
-  unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+  unsafe fn update(program: &mut Program, uniform: &Uniform<[bool; 4]>, value: [bool; 4]) {
     let v = [
-      self[0] as u32,
-      self[1] as u32,
-      self[2] as u32,
-      self[3] as u32,
+      value[0] as u32,
+      value[1] as u32,
+      value[2] as u32,
+      value[3] as u32,
     ];
 
     program
@@ -874,13 +905,14 @@ unsafe impl Uniformable<WebGL2> for [bool; 4] {
   }
 }
 
-unsafe impl<'a> Uniformable<WebGL2> for &'a [bool] {
+// FIXME: unusable
+unsafe impl<'a> Uniformable<&'a [bool]> for WebGL2 {
   unsafe fn ty() -> UniformType {
     UniformType::Bool
   }
 
-  unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-    let v: Vec<_> = self.iter().map(|x| *x as u32).collect();
+  unsafe fn update(program: &mut Program, uniform: &Uniform<&'a [bool]>, value: &'a [bool]) {
+    let v: Vec<_> = value.iter().map(|x| *x as u32).collect();
 
     program
       .state
@@ -890,13 +922,18 @@ unsafe impl<'a> Uniformable<WebGL2> for &'a [bool] {
   }
 }
 
-unsafe impl<'a> Uniformable<WebGL2> for &'a [[bool; 2]] {
+// FIXME: unusable
+unsafe impl<'a> Uniformable<&'a [[bool; 2]]> for WebGL2 {
   unsafe fn ty() -> UniformType {
     UniformType::BVec2
   }
 
-  unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-    let v: Vec<_> = self.iter().map(|x| [x[0] as u32, x[1] as u32]).collect();
+  unsafe fn update(
+    program: &mut Program,
+    uniform: &Uniform<&'a [[bool; 2]]>,
+    value: &'a [[bool; 2]],
+  ) {
+    let v: Vec<_> = value.iter().map(|x| [x[0] as u32, x[1] as u32]).collect();
     let data = flatten_slice!(v: u32, len = 2 * v.len());
 
     program
@@ -907,13 +944,18 @@ unsafe impl<'a> Uniformable<WebGL2> for &'a [[bool; 2]] {
   }
 }
 
-unsafe impl<'a> Uniformable<WebGL2> for &'a [[bool; 3]] {
+// FIXME: unusable
+unsafe impl<'a> Uniformable<&'a [[bool; 3]]> for WebGL2 {
   unsafe fn ty() -> UniformType {
     UniformType::BVec3
   }
 
-  unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-    let v: Vec<_> = self
+  unsafe fn update(
+    program: &mut Program,
+    uniform: &Uniform<&'a [[bool; 3]]>,
+    value: &'a [[bool; 3]],
+  ) {
+    let v: Vec<_> = value
       .iter()
       .map(|x| [x[0] as u32, x[1] as u32, x[2] as u32])
       .collect();
@@ -927,13 +969,18 @@ unsafe impl<'a> Uniformable<WebGL2> for &'a [[bool; 3]] {
   }
 }
 
-unsafe impl<'a> Uniformable<WebGL2> for &'a [[bool; 4]] {
+// FIXME: unusable
+unsafe impl<'a> Uniformable<&'a [[bool; 4]]> for WebGL2 {
   unsafe fn ty() -> UniformType {
     UniformType::BVec4
   }
 
-  unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
-    let v: Vec<_> = self
+  unsafe fn update(
+    program: &mut Program,
+    uniform: &Uniform<&'a [[bool; 4]]>,
+    value: &'a [[bool; 4]],
+  ) {
+    let v: Vec<_> = value
       .iter()
       .map(|x| [x[0] as u32, x[1] as u32, x[2] as u32, x[3] as u32])
       .collect();
@@ -947,21 +994,25 @@ unsafe impl<'a> Uniformable<WebGL2> for &'a [[bool; 4]] {
   }
 }
 
-unsafe impl<T> Uniformable<WebGL2> for ShaderDataBinding<T> {
+unsafe impl<T> Uniformable<ShaderDataBinding<T>> for WebGL2 {
   unsafe fn ty() -> UniformType {
     UniformType::ShaderDataBinding
   }
 
-  unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+  unsafe fn update(
+    program: &mut Program,
+    uniform: &Uniform<ShaderDataBinding<T>>,
+    value: ShaderDataBinding<T>,
+  ) {
     program.state.borrow().ctx.uniform_block_binding(
       &program.handle,
       uniform.index() as u32,
-      self.binding(),
+      value.binding(),
     );
   }
 }
 
-unsafe impl<D, S> Uniformable<WebGL2> for TextureBinding<D, S>
+unsafe impl<D, S> Uniformable<TextureBinding<D, S>> for WebGL2
 where
   D: Dimensionable,
   S: SamplerType,
@@ -1006,10 +1057,14 @@ where
     }
   }
 
-  unsafe fn update(self, program: &mut Program, uniform: &Uniform<Self>) {
+  unsafe fn update(
+    program: &mut Program,
+    uniform: &Uniform<TextureBinding<D, S>>,
+    value: TextureBinding<D, S>,
+  ) {
     program.state.borrow().ctx.uniform1i(
       program.location_map.borrow().get(&uniform.index()),
-      self.binding() as i32,
+      value.binding() as i32,
     );
   }
 }
