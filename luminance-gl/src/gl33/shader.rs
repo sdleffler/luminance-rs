@@ -6,14 +6,14 @@ use luminance::{
   pipeline::{ShaderDataBinding, TextureBinding},
   pixel::{SamplerType, Type as PixelType},
   shader::{
-    types::{Mat22, Mat33, Mat44, Vec2, Vec3, Vec4},
+    types::{Arr, Mat22, Mat33, Mat44, Vec2, Vec3, Vec4},
     ProgramError, ShaderDataError, StageError, StageType, TessellationStages, Uniform, UniformType,
     UniformWarning, VertexAttribWarning,
   },
   texture::{Dim, Dimensionable},
   vertex::Semantics,
 };
-use luminance_std140::{Arr, Std140};
+use luminance_std140::{ArrElem, Std140};
 use std::{
   ffi::CString,
   mem,
@@ -87,7 +87,7 @@ impl UniformBuilder {
 
   fn ask_uniform<T>(&self, name: &str) -> Result<Uniform<T>, UniformWarning>
   where
-    GL33: Uniformable<T>,
+    GL33: for<'u> Uniformable<'u, T>,
   {
     let location = {
       let c_name = CString::new(name.as_bytes()).unwrap();
@@ -103,7 +103,7 @@ impl UniformBuilder {
 
   fn ask_uniform_block<T>(&self, name: &str) -> Result<Uniform<T>, UniformWarning>
   where
-    GL33: Uniformable<T>,
+    GL33: for<'u> Uniformable<'u, T>,
   {
     let location = {
       let c_name = CString::new(name.as_bytes()).unwrap();
@@ -216,7 +216,7 @@ unsafe impl Shader for GL33 {
     name: &str,
   ) -> Result<Uniform<T>, UniformWarning>
   where
-    Self: Uniformable<T>,
+    Self: for<'u> Uniformable<'u, T>,
   {
     let uniform = match Self::ty() {
       UniformType::ShaderDataBinding => uniform_builder.ask_uniform_block(name)?,
@@ -230,7 +230,7 @@ unsafe impl Shader for GL33 {
 
   unsafe fn unbound<T>(_: &mut Self::UniformBuilderRepr) -> Uniform<T>
   where
-    Self: Uniformable<T>,
+    Self: for<'u> Uniformable<'u, T>,
   {
     Uniform::new(-1)
   }
@@ -418,116 +418,61 @@ fn get_vertex_attrib_location(
 }
 
 macro_rules! impl_Uniformable {
-  // FIXME: I think those implementors are wrong, because they require a weird lifetime that cannot be honored — because
-  // of Uniform<&'here T>; we might need something smarter
-  (&[Vec2<$t:ty>], $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<&'a [Vec2<$t>]> for GL33 {
+  (Arr<$t:ty>, $uty:tt, $f:tt) => {
+    unsafe impl<'a, const N: usize> Uniformable<'a, Arr<$t, N>> for GL33 {
+      type Target = &'a [$t; N];
+
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(_: &mut Program, uniform: &Uniform<&'a [Vec2<$t>]>, value: &'a [Vec2<$t>]) {
-        gl::$f(uniform.index(), value.len() as GLsizei, value.as_ptr() as _);
+      unsafe fn update(_: &mut Program, uniform: &'a Uniform<Arr<$t, N>>, value: Self::Target) {
+        gl::$f(uniform.index(), N as GLsizei, value.as_ptr() as _);
       }
     }
   };
 
-  (&[Vec3<$t:ty>], $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<&'a [Vec3<$t>]> for GL33 {
+  (vec $t:ty, $uty:tt, $f:tt) => {
+    unsafe impl<'a> Uniformable<'a, $t> for GL33 {
+      type Target = $t;
+
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(_: &mut Program, uniform: &Uniform<&'a [Vec3<$t>]>, value: &'a [Vec3<$t>]) {
-        gl::$f(uniform.index(), value.len() as GLsizei, value.as_ptr() as _);
-      }
-    }
-  };
-
-  (&[Vec4<$t:ty>], $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<&'a [Vec4<$t>]> for GL33 {
-      unsafe fn ty() -> UniformType {
-        UniformType::$uty
-      }
-
-      unsafe fn update(_: &mut Program, uniform: &Uniform<&'a [Vec4<$t>]>, value: &'a [Vec4<$t>]) {
-        gl::$f(uniform.index(), value.len() as GLsizei, value.as_ptr() as _);
-      }
-    }
-  };
-
-  (&[$t:ty], $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<&'a [$t]> for GL33 {
-      unsafe fn ty() -> UniformType {
-        UniformType::$uty
-      }
-
-      unsafe fn update(_: &mut Program, uniform: &Uniform<&'a [$t]>, value: &'a [$t]) {
-        gl::$f(uniform.index(), value.len() as GLsizei, value.as_ptr());
-      }
-    }
-  };
-
-  (Vec2<$t:ty>, $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<Vec2<$t>> for GL33 {
-      unsafe fn ty() -> UniformType {
-        UniformType::$uty
-      }
-
-      unsafe fn update(_: &mut Program, uniform: &Uniform<Vec2<$t>>, value: Vec2<$t>) {
-        gl::$f(uniform.index(), 1, value.as_ptr());
-      }
-    }
-  };
-
-  (Vec3<$t:ty>, $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<Vec3<$t>> for GL33 {
-      unsafe fn ty() -> UniformType {
-        UniformType::$uty
-      }
-
-      unsafe fn update(_: &mut Program, uniform: &Uniform<Vec3<$t>>, value: Vec3<$t>) {
-        gl::$f(uniform.index(), 1, value.as_ptr());
-      }
-    }
-  };
-
-  (Vec4<$t:ty>, $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<Vec4<$t>> for GL33 {
-      unsafe fn ty() -> UniformType {
-        UniformType::$uty
-      }
-
-      unsafe fn update(_: &mut Program, uniform: &Uniform<Vec4<$t>>, value: Vec4<$t>) {
+      unsafe fn update(_: &mut Program, uniform: &'a Uniform<$t>, value: Self::Target) {
         gl::$f(uniform.index(), 1, value.as_ptr());
       }
     }
   };
 
   ($t:ty, $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<$t> for GL33 {
+    unsafe impl<'a> Uniformable<'a, $t> for GL33 {
+      type Target = $t;
+
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(_: &mut Program, uniform: &Uniform<$t>, value: $t) {
+      unsafe fn update(_: &mut Program, uniform: &'a Uniform<$t>, value: Self::Target) {
         gl::$f(uniform.index(), value);
       }
     }
   };
 
   // matrix notation
-  // FIXME: not usable
-  (mat &[$t:ty], $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<&'a [$t]> for GL33 {
+  (mat Arr<$t:ty>, $uty:tt, $f:tt) => {
+    unsafe impl<'a, const N: usize> Uniformable<'a, Arr<$t, N>> for GL33 {
+      type Target = &'a [$t; N];
+
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(_: &mut Program, uniform: &Uniform<&'a [$t]>, value: &'a [$t]) {
+      unsafe fn update(_: &mut Program, uniform: &'a Uniform<Arr<$t, N>>, value: Self::Target) {
         gl::$f(
           uniform.index(),
-          value.len() as GLsizei,
+          N as GLsizei,
           gl::FALSE,
           value.as_ptr() as _,
         );
@@ -536,12 +481,14 @@ macro_rules! impl_Uniformable {
   };
 
   (mat $t:ty, $uty:tt, $f:tt) => {
-    unsafe impl Uniformable<$t> for GL33 {
+    unsafe impl<'a> Uniformable<'a, $t> for GL33 {
+      type Target = $t;
+
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(_: &mut Program, uniform: &Uniform<$t>, value: $t) {
+      unsafe fn update(_: &mut Program, uniform: &'a Uniform<$t>, value: Self::Target) {
         gl::$f(uniform.index(), 1, gl::FALSE, value.as_ptr() as _);
       }
     }
@@ -549,111 +496,120 @@ macro_rules! impl_Uniformable {
 }
 
 impl_Uniformable!(i32, Int, Uniform1i);
-impl_Uniformable!(Vec2<i32>, IVec2, Uniform2iv);
-impl_Uniformable!(Vec3<i32>, IVec3, Uniform3iv);
-impl_Uniformable!(Vec4<i32>, IVec4, Uniform4iv);
-impl_Uniformable!(&[i32], Int, Uniform1iv);
-impl_Uniformable!(&[Vec2<i32>], IVec2, Uniform2iv);
-impl_Uniformable!(&[Vec3<i32>], IVec3, Uniform3iv);
-impl_Uniformable!(&[Vec4<i32>], IVec4, Uniform4iv);
+impl_Uniformable!(vec Vec2<i32>, IVec2, Uniform2iv);
+impl_Uniformable!(vec Vec3<i32>, IVec3, Uniform3iv);
+impl_Uniformable!(vec Vec4<i32>, IVec4, Uniform4iv);
+
+impl_Uniformable!(Arr<i32>, Int, Uniform1iv);
+impl_Uniformable!(Arr<Vec2<i32>>, IVec2, Uniform2iv);
+impl_Uniformable!(Arr<Vec3<i32>>, IVec3, Uniform3iv);
+impl_Uniformable!(Arr<Vec4<i32>>, IVec4, Uniform4iv);
 
 impl_Uniformable!(u32, UInt, Uniform1ui);
-impl_Uniformable!(Vec2<u32>, UIVec2, Uniform2uiv);
-impl_Uniformable!(Vec3<u32>, UIVec3, Uniform3uiv);
-impl_Uniformable!(Vec4<u32>, UIVec4, Uniform4uiv);
-impl_Uniformable!(&[u32], UInt, Uniform1uiv);
-impl_Uniformable!(&[Vec2<u32>], UIVec2, Uniform2uiv);
-impl_Uniformable!(&[Vec3<u32>], UIVec3, Uniform3uiv);
-impl_Uniformable!(&[Vec4<u32>], UIVec4, Uniform4uiv);
+impl_Uniformable!(vec Vec2<u32>, UIVec2, Uniform2uiv);
+impl_Uniformable!(vec Vec3<u32>, UIVec3, Uniform3uiv);
+impl_Uniformable!(vec Vec4<u32>, UIVec4, Uniform4uiv);
+impl_Uniformable!(Arr<u32>, UInt, Uniform1uiv);
+impl_Uniformable!(Arr<Vec2<u32>>, UIVec2, Uniform2uiv);
+impl_Uniformable!(Arr<Vec3<u32>>, UIVec3, Uniform3uiv);
+impl_Uniformable!(Arr<Vec4<u32>>, UIVec4, Uniform4uiv);
 
 impl_Uniformable!(f32, Float, Uniform1f);
-impl_Uniformable!(Vec2<f32>, Vec2, Uniform2fv);
-impl_Uniformable!(Vec3<f32>, Vec3, Uniform3fv);
-impl_Uniformable!(Vec4<f32>, Vec4, Uniform4fv);
-impl_Uniformable!(&[f32], Float, Uniform1fv);
-impl_Uniformable!(&[Vec2<f32>], Vec2, Uniform2fv);
-impl_Uniformable!(&[Vec3<f32>], Vec3, Uniform3fv);
-impl_Uniformable!(&[Vec4<f32>], Vec4, Uniform4fv);
+impl_Uniformable!(vec Vec2<f32>, Vec2, Uniform2fv);
+impl_Uniformable!(vec Vec3<f32>, Vec3, Uniform3fv);
+impl_Uniformable!(vec Vec4<f32>, Vec4, Uniform4fv);
+impl_Uniformable!(Arr<f32>, Float, Uniform1fv);
+impl_Uniformable!(Arr<Vec2<f32>>, Vec2, Uniform2fv);
+impl_Uniformable!(Arr<Vec3<f32>>, Vec3, Uniform3fv);
+impl_Uniformable!(Arr<Vec4<f32>>, Vec4, Uniform4fv);
 
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
 impl_Uniformable!(f64, Double, Uniform1d);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(Vec2<f64>, DVec2, Uniform2dv);
+impl_Uniformable!(vec Vec2<f64>, DVec2, Uniform2dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(Vec3<f64>, DVec3, Uniform3dv);
+impl_Uniformable!(vec Vec3<f64>, DVec3, Uniform3dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(Vec4<f64>, DVec4, Uniform4dv);
+impl_Uniformable!(vec Vec4<f64>, DVec4, Uniform4dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(&[f64], Double, Uniform1dv);
+impl_Uniformable!(Arr<f64>, Double, Uniform1dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(&[Vec2<f64>], DVec2, Uniform2dv);
+impl_Uniformable!(Arr<Vec2<f64>>, DVec2, Uniform2dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(&[Vec3<f64>], DVec3, Uniform3dv);
+impl_Uniformable!(Arr<Vec3<f64>>, DVec3, Uniform3dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(&[Vec4<f64>], DVec4, Uniform4dv);
+impl_Uniformable!(Arr<Vec4<f64>>, DVec4, Uniform4dv);
 
 impl_Uniformable!(mat Mat22<f32>, M22, UniformMatrix2fv);
-impl_Uniformable!(mat &[Mat22<f32>], M22, UniformMatrix2fv);
+impl_Uniformable!(mat Arr<Mat22<f32>>, M22, UniformMatrix2fv);
 
 impl_Uniformable!(mat Mat33<f32>, M33, UniformMatrix3fv);
-impl_Uniformable!(mat &[Mat33<f32>], M33, UniformMatrix3fv);
+impl_Uniformable!(mat Arr<Mat33<f32>>, M33, UniformMatrix3fv);
 
 impl_Uniformable!(mat Mat44<f32>, M44, UniformMatrix4fv);
-impl_Uniformable!(mat &[Mat44<f32>], M44, UniformMatrix4fv);
+impl_Uniformable!(mat Arr<Mat44<f32>>, M44, UniformMatrix4fv);
 
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
 impl_Uniformable!(mat Mat22<f64>, DM22, UniformMatrix2dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(mat &[Mat22<f64>], DM22, UniformMatrix2dv);
+impl_Uniformable!(mat Arr<Mat22<f64>>, DM22, UniformMatrix2dv);
 
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
 impl_Uniformable!(mat Mat33<f64>, DM33, UniformMatrix3dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(mat &[Mat33<f64>], DM33, UniformMatrix3dv);
+impl_Uniformable!(mat Arr<Mat33<f64>>, DM33, UniformMatrix3dv);
 
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
 impl_Uniformable!(mat Mat44<f64>, DM44, UniformMatrix4dv);
 #[cfg(feature = "GL_ARB_gpu_shader_fp64")]
-impl_Uniformable!(mat &[Mat44<f64>], DM44, UniformMatrix4dv);
+impl_Uniformable!(mat Arr<Mat44<f64>>, DM44, UniformMatrix4dv);
 
-unsafe impl Uniformable<bool> for GL33 {
+unsafe impl<'a> Uniformable<'a, bool> for GL33 {
+  type Target = bool;
+
   unsafe fn ty() -> UniformType {
     UniformType::Bool
   }
 
-  unsafe fn update(_: &mut Program, uniform: &Uniform<bool>, value: bool) {
+  unsafe fn update(_: &mut Program, uniform: &'a Uniform<bool>, value: Self::Target) {
     gl::Uniform1ui(uniform.index(), value as u32);
   }
 }
 
-unsafe impl Uniformable<[bool; 2]> for GL33 {
+unsafe impl<'a> Uniformable<'a, Vec2<bool>> for GL33 {
+  type Target = Vec2<bool>;
+
   unsafe fn ty() -> UniformType {
     UniformType::BVec2
   }
 
-  unsafe fn update(_: &mut Program, uniform: &Uniform<[bool; 2]>, value: [bool; 2]) {
+  unsafe fn update(_: &mut Program, uniform: &'a Uniform<Vec2<bool>>, value: Self::Target) {
     let v = [value[0] as u32, value[1] as u32];
     gl::Uniform2uiv(uniform.index(), 1, v.as_ptr() as _);
   }
 }
 
-unsafe impl Uniformable<[bool; 3]> for GL33 {
+unsafe impl<'a> Uniformable<'a, Vec3<bool>> for GL33 {
+  type Target = Vec3<bool>;
+
   unsafe fn ty() -> UniformType {
     UniformType::BVec3
   }
 
-  unsafe fn update(_: &mut Program, uniform: &Uniform<[bool; 3]>, value: [bool; 3]) {
+  unsafe fn update(_: &mut Program, uniform: &'a Uniform<Vec3<bool>>, value: Self::Target) {
     let v = [value[0] as u32, value[1] as u32, value[2] as u32];
     gl::Uniform3uiv(uniform.index(), 1, v.as_ptr() as _);
   }
 }
 
-unsafe impl Uniformable<[bool; 4]> for GL33 {
+unsafe impl<'a> Uniformable<'a, Vec4<bool>> for GL33 {
+  type Target = Vec4<bool>;
+
   unsafe fn ty() -> UniformType {
     UniformType::BVec4
   }
 
-  unsafe fn update(_: &mut Program, uniform: &Uniform<[bool; 4]>, value: [bool; 4]) {
+  unsafe fn update(_: &mut Program, uniform: &'a Uniform<Vec4<bool>>, value: Self::Target) {
     let v = [
       value[0] as u32,
       value[1] as u32,
@@ -664,39 +620,50 @@ unsafe impl Uniformable<[bool; 4]> for GL33 {
   }
 }
 
-// FIXME: not usable
-unsafe impl<'a> Uniformable<&'a [bool]> for GL33 {
+unsafe impl<'a> Uniformable<'a, ArrElem<bool>> for GL33 {
+  type Target = &'a [bool];
+
   unsafe fn ty() -> UniformType {
     UniformType::Bool
   }
 
-  unsafe fn update(_: &mut Program, uniform: &Uniform<&'a [bool]>, value: &'a [bool]) {
+  unsafe fn update(_: &mut Program, uniform: &'a Uniform<ArrElem<bool>>, value: Self::Target) {
     let v: Vec<_> = value.iter().map(|x| *x as u32).collect();
 
     gl::Uniform1uiv(uniform.index(), v.len() as GLsizei, v.as_ptr() as _);
   }
 }
 
-// FIXME: not usable
-unsafe impl<'a> Uniformable<&'a [[bool; 2]]> for GL33 {
+unsafe impl<'a> Uniformable<'a, ArrElem<Vec2<bool>>> for GL33 {
+  type Target = &'a [Vec2<bool>];
+
   unsafe fn ty() -> UniformType {
     UniformType::BVec2
   }
 
-  unsafe fn update(_: &mut Program, uniform: &Uniform<&'a [[bool; 2]]>, value: &'a [[bool; 2]]) {
+  unsafe fn update(
+    _: &mut Program,
+    uniform: &'a Uniform<ArrElem<Vec2<bool>>>,
+    value: Self::Target,
+  ) {
     let v: Vec<_> = value.iter().map(|x| [x[0] as u32, x[1] as u32]).collect();
 
     gl::Uniform2uiv(uniform.index(), v.len() as GLsizei, v.as_ptr() as _);
   }
 }
 
-// FIXME: not usable
-unsafe impl<'a> Uniformable<&'a [[bool; 3]]> for GL33 {
+unsafe impl<'a> Uniformable<'a, ArrElem<Vec3<bool>>> for GL33 {
+  type Target = &'a [Vec3<bool>];
+
   unsafe fn ty() -> UniformType {
     UniformType::BVec3
   }
 
-  unsafe fn update(_: &mut Program, uniform: &Uniform<&'a [[bool; 3]]>, value: &'a [[bool; 3]]) {
+  unsafe fn update(
+    _: &mut Program,
+    uniform: &'a Uniform<ArrElem<Vec3<bool>>>,
+    value: Self::Target,
+  ) {
     let v: Vec<_> = value
       .iter()
       .map(|x| [x[0] as u32, x[1] as u32, x[2] as u32])
@@ -707,12 +674,18 @@ unsafe impl<'a> Uniformable<&'a [[bool; 3]]> for GL33 {
 }
 
 // FIXME: not usable
-unsafe impl<'a> Uniformable<&'a [[bool; 4]]> for GL33 {
+unsafe impl<'a> Uniformable<'a, ArrElem<Vec4<bool>>> for GL33 {
+  type Target = &'a [Vec4<bool>];
+
   unsafe fn ty() -> UniformType {
     UniformType::BVec4
   }
 
-  unsafe fn update(_: &mut Program, uniform: &Uniform<&'a [[bool; 4]]>, value: &'a [[bool; 4]]) {
+  unsafe fn update(
+    _: &mut Program,
+    uniform: &'a Uniform<ArrElem<Vec4<bool>>>,
+    value: Self::Target,
+  ) {
     let v: Vec<_> = value
       .iter()
       .map(|x| [x[0] as u32, x[1] as u32, x[2] as u32, x[3] as u32])
@@ -722,15 +695,20 @@ unsafe impl<'a> Uniformable<&'a [[bool; 4]]> for GL33 {
   }
 }
 
-unsafe impl<T> Uniformable<ShaderDataBinding<T>> for GL33 {
+unsafe impl<'a, T> Uniformable<'a, ShaderDataBinding<T>> for GL33
+where
+  T: 'a,
+{
+  type Target = ShaderDataBinding<T>;
+
   unsafe fn ty() -> UniformType {
     UniformType::ShaderDataBinding
   }
 
   unsafe fn update(
     program: &mut Program,
-    uniform: &Uniform<ShaderDataBinding<T>>,
-    value: ShaderDataBinding<T>,
+    uniform: &'a Uniform<ShaderDataBinding<T>>,
+    value: Self::Target,
   ) {
     gl::UniformBlockBinding(
       program.handle,
@@ -740,11 +718,13 @@ unsafe impl<T> Uniformable<ShaderDataBinding<T>> for GL33 {
   }
 }
 
-unsafe impl<D, S> Uniformable<TextureBinding<D, S>> for GL33
+unsafe impl<'a, D, S> Uniformable<'a, TextureBinding<D, S>> for GL33
 where
-  D: Dimensionable,
-  S: SamplerType,
+  D: 'a + Dimensionable,
+  S: 'a + SamplerType,
 {
+  type Target = TextureBinding<D, S>;
+
   unsafe fn ty() -> UniformType {
     match (S::sample_type(), D::dim()) {
       (PixelType::NormIntegral, Dim::Dim1) => UniformType::Sampler1D,
@@ -787,8 +767,8 @@ where
 
   unsafe fn update(
     _: &mut Program,
-    uniform: &Uniform<TextureBinding<D, S>>,
-    value: TextureBinding<D, S>,
+    uniform: &'a Uniform<TextureBinding<D, S>>,
+    value: Self::Target,
   ) {
     gl::Uniform1i(uniform.index(), value.binding() as GLint)
   }
@@ -798,7 +778,7 @@ unsafe impl<T> ShaderData<T> for GL33
 where
   T: Std140,
 {
-  type ShaderDataRepr = Buffer<<Arr<T> as Std140>::Encoded>;
+  type ShaderDataRepr = Buffer<<ArrElem<T> as Std140>::Encoded>;
 
   unsafe fn new_shader_data(
     &mut self,
@@ -806,7 +786,10 @@ where
   ) -> Result<Self::ShaderDataRepr, ShaderDataError> {
     Ok(Buffer::from_vec(
       self,
-      values.into_iter().map(|x| Arr(x).std140_encode()).collect(),
+      values
+        .into_iter()
+        .map(|x| ArrElem(x).std140_encode())
+        .collect(),
     ))
   }
 
@@ -817,7 +800,7 @@ where
     shader_data
       .buf
       .get(i)
-      .map(|&x| <Arr<T> as Std140>::std140_decode(x).0)
+      .map(|&x| <ArrElem<T> as Std140>::std140_decode(x).0)
       .ok_or_else(|| ShaderDataError::OutOfBounds { index: i })
   }
 
@@ -830,10 +813,10 @@ where
       &mut shader_data
         .slice_buffer_mut()
         .map_err(|_| ShaderDataError::CannotSetData { index: i })?[i],
-      Arr(x).std140_encode(),
+      ArrElem(x).std140_encode(),
     );
 
-    Ok(<Arr<T> as Std140>::std140_decode(prev).0)
+    Ok(<ArrElem<T> as Std140>::std140_decode(prev).0)
   }
 
   unsafe fn set_shader_data_values(
@@ -845,7 +828,7 @@ where
       .map_err(|_| ShaderDataError::CannotReplaceData)?;
 
     for (item, value) in slice.iter_mut().zip(values) {
-      *item = Arr(value).std140_encode();
+      *item = ArrElem(value).std140_encode();
     }
 
     Ok(())

@@ -35,7 +35,7 @@ use crate::{
 
 /// Backend support for uniforms.
 ///
-/// When a backend implements [`Uniformable`], it add support for the type parameter as being a recognized _uniform
+/// When a backend implements [`Uniformable`], it adds support for the type parameter as being a recognized _uniform
 /// type_ and then can be mapped in a uniform interface via [`Uniform`].
 ///
 /// Implementing such a trait is relatively trivial:
@@ -46,12 +46,16 @@ use crate::{
 /// - You must implement [`Uniformable::update`], which updates the value of the [`Uniform`] in a given shader program.
 ///   For indirect values such as bound resources (textures, shader data, etc.), uploading will most of the time be a
 ///   binding update on the backend side.
-pub unsafe trait Uniformable<T>: Shader {
+/// - You must provide an associated type that will be the actual type users will pass. This is needed because some
+///   uniform types cannot be expressed directly, such as existentials (think of types with lifetimes, for instance).
+pub unsafe trait Uniformable<'a, T>: Shader {
+  type Target: 'a;
+
   /// Reify the type of the uniform as a [`UniformType`].
   unsafe fn ty() -> UniformType;
 
   /// Update the associated value of the [`Uniform`] in the given shader program.
-  unsafe fn update(program: &mut Self::ProgramRepr, uniform: &Uniform<T>, value: T);
+  unsafe fn update(program: &mut Self::ProgramRepr, uniform: &'a Uniform<T>, value: Self::Target);
 }
 
 /// Shader support.
@@ -116,14 +120,14 @@ pub unsafe trait Shader {
     name: &str,
   ) -> Result<Uniform<T>, UniformWarning>
   where
-    Self: Uniformable<T>;
+    Self: for<'u> Uniformable<'u, T>;
 
   /// Backend representation of an _unbound_ [`Uniform`] (i.e. that is inactive in the shader program).
   ///
   /// This is a method taking a uniform builder so that the builder can accumulate a state.
   unsafe fn unbound<T>(uniform_builder: &mut Self::UniformBuilderRepr) -> Uniform<T>
   where
-    Self: Uniformable<T>;
+    Self: for<'u> Uniformable<'u, T>;
 }
 
 /// Shader data backend.

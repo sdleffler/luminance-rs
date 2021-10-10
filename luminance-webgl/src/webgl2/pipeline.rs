@@ -16,7 +16,7 @@ use luminance::{
   tess::{Deinterleaved, DeinterleavedData, Interleaved, TessIndex, TessVertexData},
   texture::Dimensionable,
 };
-use luminance_std140::{Arr, Std140};
+use luminance_std140::{ArrElem, Std140};
 use std::{cell::RefCell, marker::PhantomData, rc::Rc};
 use web_sys::WebGl2RenderingContext;
 
@@ -195,7 +195,7 @@ where
   Self: ShaderData<
     T,
     ShaderDataRepr = Buffer<
-      <Arr<T> as Std140>::Encoded,
+      <ArrElem<T> as Std140>::Encoded,
       { WebGl2RenderingContext::UNIFORM_BUFFER },
     >,
   >,
