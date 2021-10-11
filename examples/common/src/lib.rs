@@ -23,8 +23,11 @@
 
 use std::error::Error;
 
-use luminance::context::GraphicsContext;
-use luminance_front::{framebuffer::Framebuffer, texture::Dim2, Backend};
+use luminance::{
+  backend::framebuffer::FramebufferBackBuffer, context::GraphicsContext, framebuffer::Framebuffer,
+  texture::Dim2,
+};
+use luminance_front::Backend;
 
 // examples
 pub mod attributeless;
@@ -64,7 +67,10 @@ pub mod funtest_scissor_test;
 pub mod funtest_tess_no_data;
 
 /// Example interface.
-pub trait Example: Sized {
+pub trait Example<B = Backend>: Sized
+where
+  B: FramebufferBackBuffer,
+{
   /// List of features required by the example.
   fn features() -> Features {
     Features::default()
@@ -73,16 +79,16 @@ pub trait Example: Sized {
   /// Bootstrap the example.
   fn bootstrap(
     platform: &mut impl PlatformServices,
-    context: &mut impl GraphicsContext<Backend = Backend>,
+    context: &mut impl GraphicsContext<Backend = B>,
   ) -> Self;
 
   /// Render a frame of the example.
   fn render_frame(
     self,
     time: f32,
-    back_buffer: Framebuffer<Dim2, (), ()>,
+    back_buffer: Framebuffer<B, Dim2, (), ()>,
     actions: impl Iterator<Item = InputAction>,
-    context: &mut impl GraphicsContext<Backend = Backend>,
+    context: &mut impl GraphicsContext<Backend = B>,
   ) -> LoopFeedback<Self>;
 }
 

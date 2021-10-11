@@ -27,6 +27,7 @@ log = "0.4.11"
 luminance = { version = "0.44", path = "../../luminance" }
 luminance-examples = { version = "0.1", path = "../common" }
 luminance-front = { version = "0.4", path = "../../luminance-front" }
+luminance-gl = { version = "0.17", path = "../../luminance-gl" }
 luminance-glfw = { version = "0.16", path = "../../luminance-glfw" }
 luminance-windowing = { version = "0.10", path = "../../luminance-windowing" }
 structopt = "0.3.21"
