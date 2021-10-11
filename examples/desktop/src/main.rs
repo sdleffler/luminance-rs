@@ -186,6 +186,7 @@ fn adapt_events(event: WindowEvent) -> Option<InputAction> {
 examples! {
   examples:
   "hello-world", hello_world,
+  "polymorphic-hello-world", polymorphic_hello_world,
   "render-state", render_state,
   "sliced-tess", sliced_tess,
   "shader-uniforms", shader_uniforms,
