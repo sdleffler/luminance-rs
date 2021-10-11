@@ -467,9 +467,9 @@ fn get_vertex_attrib_location(
 // WebGL function along with a flatten version of a slice, while scalar versions will simply
 // forward the arguments.
 macro_rules! impl_Uniformable {
-  (vec Arr<$t:ty>, $size:expr, $uty:tt, $f:tt) => {
-    unsafe impl<'a, const N: usize> Uniformable<'a, Arr<$t, N>> for WebGL2 {
-      type Target = &'a [$t; N];
+  (vec arr $q:ident $t:ty, $size:expr, $uty:tt, $f:tt) => {
+    unsafe impl<'a, const N: usize> Uniformable<'a, Arr<$q<$t>, N>> for WebGL2 {
+      type Target = &'a [$q<$t>; N];
 
       unsafe fn ty() -> UniformType {
         UniformType::$uty
@@ -477,7 +477,7 @@ macro_rules! impl_Uniformable {
 
       unsafe fn update(
         program: &mut Program,
-        uniform: &'a Uniform<Arr<$t, N>>,
+        uniform: &'a Uniform<Arr<$q<$t>, N>>,
         value: Self::Target,
       ) {
         let len = value.len();
@@ -493,7 +493,7 @@ macro_rules! impl_Uniformable {
     }
   };
 
-  (Arr<$t:ty>, $uty:tt, $f:tt) => {
+  (arr $t:ty , $uty:tt, $f:tt) => {
     unsafe impl<'a, const N: usize> Uniformable<'a, Arr<$t, N>> for WebGL2 {
       type Target = &'a [$t; N];
 
@@ -551,9 +551,9 @@ macro_rules! impl_Uniformable {
   };
 
   // matrix notation
-  (mat Arr<$t:ty>, $size:expr, $uty:tt, $f:tt) => {
-    unsafe impl<'a, const N: usize> Uniformable<'a, Arr<$t, N>> for WebGL2 {
-      type Target = &'a [$t; N];
+  (mat arr $q:ident $t:ty, $size:expr, $uty:tt, $f:tt) => {
+    unsafe impl<'a, const N: usize> Uniformable<'a, Arr<$q<$t>, N>> for WebGL2 {
+      type Target = &'a [$q<$t>; N];
 
       unsafe fn ty() -> UniformType {
         UniformType::$uty
@@ -561,7 +561,7 @@ macro_rules! impl_Uniformable {
 
       unsafe fn update(
         program: &mut Program,
-        uniform: &'a Uniform<Arr<$t, N>>,
+        uniform: &'a Uniform<Arr<$q<$t>, N>>,
         value: Self::Target,
       ) {
         let data = flatten_slice!(value: $t, len = $size * N);
@@ -577,15 +577,15 @@ macro_rules! impl_Uniformable {
     }
   };
 
-  (mat $t:ty, $size:expr, $uty:tt, $f:tt) => {
-    unsafe impl<'a> Uniformable<'a, $t> for WebGL2 {
-      type Target = $t;
+  (mat $q:ident $t:ty, $size:expr, $uty:tt, $f:tt) => {
+    unsafe impl<'a> Uniformable<'a, $q<$t>> for WebGL2 {
+      type Target = $q<$t>;
 
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
 
-      unsafe fn update(program: &mut Program, uniform: &'a Uniform<$t>, value: Self::Target) {
+      unsafe fn update(program: &mut Program, uniform: &'a Uniform<$q<$t>>, value: Self::Target) {
         let data = flatten_slice!(value: $t, len = $size);
 
         program.state.borrow().ctx.$f(
@@ -603,21 +603,21 @@ impl_Uniformable!(i32, Int, uniform1i);
 impl_Uniformable!(vec Vec2<i32>, IVec2, uniform2iv_with_i32_array);
 impl_Uniformable!(vec Vec3<i32>, IVec3, uniform3iv_with_i32_array);
 impl_Uniformable!(vec Vec4<i32>, IVec4, uniform4iv_with_i32_array);
-impl_Uniformable!(Arr<i32>, Int, uniform1iv_with_i32_array);
+impl_Uniformable!(arr i32, Int, uniform1iv_with_i32_array);
 impl_Uniformable!(
-  vec Arr<Vec2<i32>>,
+  vec arr Vec2 i32,
   2,
   IVec2,
   uniform2iv_with_i32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  vec Arr<Vec3<i32>>,
+  vec arr Vec3 i32,
   3,
   IVec3,
   uniform3iv_with_i32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  vec Arr<Vec4<i32>>,
+  vec arr Vec4 i32,
   4,
   IVec4,
   uniform4iv_with_i32_array_and_src_offset_and_src_length
@@ -627,21 +627,21 @@ impl_Uniformable!(u32, UInt, uniform1ui);
 impl_Uniformable!(vec Vec2<u32>, UIVec2, uniform2uiv_with_u32_array);
 impl_Uniformable!(vec Vec3<u32>, UIVec3, uniform3uiv_with_u32_array);
 impl_Uniformable!(vec Vec4<u32>, UIVec4, uniform4uiv_with_u32_array);
-impl_Uniformable!(Arr<u32>, UInt, uniform1uiv_with_u32_array);
+impl_Uniformable!(arr u32, UInt, uniform1uiv_with_u32_array);
 impl_Uniformable!(
-  vec Arr<Vec2<u32>>,
+  vec arr Vec2 u32,
   2,
   UIVec2,
   uniform2uiv_with_u32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  vec Arr<Vec3<u32>>,
+  vec arr Vec3 u32,
   3,
   UIVec3,
   uniform3uiv_with_u32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  vec Arr<Vec4<u32>>,
+  vec arr Vec4 u32,
   4,
   UIVec4,
   uniform4uiv_with_u32_array_and_src_offset_and_src_length
@@ -651,35 +651,35 @@ impl_Uniformable!(f32, Float, uniform1f);
 impl_Uniformable!(vec Vec2<f32>, Vec2, uniform2fv_with_f32_array);
 impl_Uniformable!(vec Vec3<f32>, Vec3, uniform3fv_with_f32_array);
 impl_Uniformable!(vec Vec4<f32>, Vec4, uniform4fv_with_f32_array);
-impl_Uniformable!(Arr<f32>, Float, uniform1fv_with_f32_array);
+impl_Uniformable!(arr f32, Float, uniform1fv_with_f32_array);
 impl_Uniformable!(
-  vec Arr<Vec2<f32>>,
+  vec arr Vec2 f32,
   2,
   Vec2,
   uniform2fv_with_f32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  vec Arr<Vec3<f32>>,
+  vec arr Vec3 f32,
   3,
   Vec3,
   uniform3fv_with_f32_array_and_src_offset_and_src_length
 );
 impl_Uniformable!(
-  vec Arr<Vec4<f32>>,
+  vec arr Vec4 f32,
   4,
   Vec4,
   uniform4fv_with_f32_array_and_src_offset_and_src_length
 );
 
 // please don’t judge me
-impl_Uniformable!(mat Mat22<f32>, 4, M22, uniform_matrix2fv_with_f32_array);
-impl_Uniformable!(mat Arr<Mat22<f32>>, 4, M22, uniform_matrix2fv_with_f32_array_and_src_offset_and_src_length);
+impl_Uniformable!(mat Mat22 f32, 4, M22, uniform_matrix2fv_with_f32_array);
+impl_Uniformable!(mat arr Mat22 f32, 4, M22, uniform_matrix2fv_with_f32_array_and_src_offset_and_src_length);
 
-impl_Uniformable!(mat Mat33<f32>, 9, M33, uniform_matrix3fv_with_f32_array);
-impl_Uniformable!(mat Arr<Mat33<f32>>, 9, M33, uniform_matrix3fv_with_f32_array_and_src_offset_and_src_length);
+impl_Uniformable!(mat Mat33 f32, 9, M33, uniform_matrix3fv_with_f32_array);
+impl_Uniformable!(mat arr Mat33 f32, 9, M33, uniform_matrix3fv_with_f32_array_and_src_offset_and_src_length);
 
-impl_Uniformable!(mat Mat44<f32>, 16, M44, uniform_matrix4fv_with_f32_array);
-impl_Uniformable!(mat Arr<Mat44<f32>>, 16, M44, uniform_matrix4fv_with_f32_array_and_src_offset_and_src_length);
+impl_Uniformable!(mat Mat44 f32, 16, M44, uniform_matrix4fv_with_f32_array);
+impl_Uniformable!(mat arr Mat44 f32, 16, M44, uniform_matrix4fv_with_f32_array_and_src_offset_and_src_length);
 
 // Special exception for booleans: because we cannot simply send the bool Rust type down to the
 // GPU, we have to convert them to 32-bit integer (unsigned), which is a total fuck up and waste of

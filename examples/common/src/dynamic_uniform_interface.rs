@@ -122,12 +122,9 @@ impl Example for LocalExample {
         &PipelineState::default(),
         |_, mut shd_gate| {
           shd_gate.shade(program, |mut iface, _, mut rdr_gate| {
-            let (time_u, triangle_pos_u) = {
-              let mut query = iface.query().unwrap();
-              let time_u = query.ask("t");
-              let triangle_pos_u = query.ask("triangle_pos");
-              (time_u, triangle_pos_u)
-            };
+            let mut query = iface.query().unwrap();
+            let time_u = query.ask::<f32>("t");
+            let triangle_pos_u = query.ask::<Vec2<f32>>("triangle_pos");
 
             if let Ok(ref time_u) = time_u {
               iface.set(time_u, t);

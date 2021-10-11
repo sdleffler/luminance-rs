@@ -699,21 +699,19 @@ where
   B: ?Sized + Shader,
 {
   /// Ask the creation of a [`Uniform`], identified by its `name`.
-  pub fn ask<T, N>(&mut self, name: N) -> Result<Uniform<T>, UniformWarning>
+  pub fn ask<T>(&mut self, name: &str) -> Result<Uniform<T>, UniformWarning>
   where
-    N: AsRef<str>,
     B: for<'u> Uniformable<'u, T>,
   {
-    unsafe { B::ask_uniform(&mut self.repr, name.as_ref()) }
+    unsafe { B::ask_uniform(&mut self.repr, name) }
   }
 
   /// Ask the creation of a [`Uniform`], identified by its `name`.
   ///
   /// If the name is not found, an _unbound_ [`Uniform`] is returned (i.e. a [`Uniform`]) that does
   /// nothing.
-  pub fn ask_or_unbound<T, N>(&mut self, name: N) -> Uniform<T>
+  pub fn ask_or_unbound<T>(&mut self, name: &str) -> Uniform<T>
   where
-    N: AsRef<str>,
     B: for<'u> Uniformable<'u, T>,
   {
     match self.ask(name) {
@@ -865,7 +863,7 @@ where
   /// The value that is passed depends on the associated [`Uniformable::Target`] type. Most of the time, it will be the
   /// same as `T`, but it might sometimes be something different if you are using existential types, such as with types
   /// with lifetimes.
-  pub fn set<'u, T>(&mut self, uniform: &'u Uniform<T>, value: B::Target)
+  pub fn set<'u, T>(&'u mut self, uniform: &'u Uniform<T>, value: B::Target)
   where
     B: Uniformable<'u, T>,
   {
