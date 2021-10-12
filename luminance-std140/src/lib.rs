@@ -257,9 +257,9 @@ impl Std140 for Mat44<f64> {
 /// Type wrapper for values inside arrays.
 #[repr(transparent)]
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-pub struct Arr<T>(pub T);
+pub struct ArrElem<T>(pub T);
 
-impl<T> Std140 for Arr<T>
+impl<T> Std140 for ArrElem<T>
 where
   T: Std140,
 {
@@ -270,7 +270,7 @@ where
   }
 
   fn std140_decode(encoded: Self::Encoded) -> Self {
-    Arr(<T as Std140>::std140_decode(encoded.0))
+    ArrElem(<T as Std140>::std140_decode(encoded.0))
   }
 }
 
@@ -394,37 +394,37 @@ mod tests {
 
   #[test]
   fn vec2_arrayed() {
-    assert_size_align::<Arr<Vec2<f32>>>(16, 16);
-    assert_size_align::<Arr<Vec2<f64>>>(16, 16);
+    assert_size_align::<ArrElem<Vec2<f32>>>(16, 16);
+    assert_size_align::<ArrElem<Vec2<f64>>>(16, 16);
   }
 
   #[test]
   fn vec3_array() {
-    assert_size_align::<Arr<Vec3<f32>>>(16, 16);
-    assert_size_align::<Arr<Vec3<f64>>>(32, 32);
+    assert_size_align::<ArrElem<Vec3<f32>>>(16, 16);
+    assert_size_align::<ArrElem<Vec3<f64>>>(32, 32);
   }
 
   #[test]
   fn vec4_array() {
-    assert_size_align::<Arr<Vec4<f32>>>(16, 16);
-    assert_size_align::<Arr<Vec4<f64>>>(32, 32);
+    assert_size_align::<ArrElem<Vec4<f32>>>(16, 16);
+    assert_size_align::<ArrElem<Vec4<f64>>>(32, 32);
   }
 
   #[test]
   fn mat22_array() {
-    assert_size_align::<Arr<Mat22<f32>>>(32, 16);
-    assert_size_align::<Arr<Mat22<f64>>>(64, 32);
+    assert_size_align::<ArrElem<Mat22<f32>>>(32, 16);
+    assert_size_align::<ArrElem<Mat22<f64>>>(64, 32);
   }
 
   #[test]
   fn mat33_array() {
-    assert_size_align::<Arr<Mat33<f32>>>(48, 16);
-    assert_size_align::<Arr<Mat33<f64>>>(96, 32);
+    assert_size_align::<ArrElem<Mat33<f32>>>(48, 16);
+    assert_size_align::<ArrElem<Mat33<f64>>>(96, 32);
   }
 
   #[test]
   fn mat44_array() {
-    assert_size_align::<Arr<Mat44<f32>>>(64, 16);
-    assert_size_align::<Arr<Mat44<f64>>>(128, 32);
+    assert_size_align::<ArrElem<Mat44<f32>>>(64, 16);
+    assert_size_align::<ArrElem<Mat44<f64>>>(128, 32);
   }
 }

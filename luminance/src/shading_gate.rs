@@ -4,10 +4,12 @@
 //!
 //! [`Program`]: crate::shader::Program
 
-use crate::backend::shading_gate::ShadingGate as ShadingGateBackend;
-use crate::render_gate::RenderGate;
-use crate::shader::{Program, ProgramInterface, UniformInterface};
-use crate::vertex::Semantics;
+use crate::{
+  backend::shading_gate::ShadingGate as ShadingGateBackend,
+  render_gate::RenderGate,
+  shader::{Program, ProgramInterface, UniformInterface},
+  vertex::Semantics,
+};
 
 /// A shading gate.
 ///
@@ -18,16 +20,13 @@ use crate::vertex::Semantics;
 /// - `B` is the backend type.
 ///
 /// [`PipelineGate`]: crate::pipeline::PipelineGate
-pub struct ShadingGate<'a, B>
-where
-  B: ?Sized,
-{
+pub struct ShadingGate<'a, B> {
   pub(crate) backend: &'a mut B,
 }
 
 impl<'a, B> ShadingGate<'a, B>
 where
-  B: ?Sized + ShadingGateBackend,
+  B: ShadingGateBackend,
 {
   /// Enter a [`ShadingGate`] by using a shader [`Program`].
   ///

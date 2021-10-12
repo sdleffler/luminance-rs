@@ -470,17 +470,11 @@ where
 /// # Parametricity
 ///
 /// - `B`, the backend type.
-pub struct PipelineGate<'a, B>
-where
-  B: ?Sized,
-{
+pub struct PipelineGate<'a, B> {
   backend: &'a mut B,
 }
 
-impl<'a, B> PipelineGate<'a, B>
-where
-  B: ?Sized,
-{
+impl<'a, B> PipelineGate<'a, B> {
   /// Create a new [`PipelineGate`].
   pub fn new<C>(ctx: &'a mut C) -> Self
   where

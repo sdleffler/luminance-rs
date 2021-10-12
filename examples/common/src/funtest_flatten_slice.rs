@@ -110,13 +110,17 @@ impl Example for LocalExample {
         &PipelineState::default(),
         |_, mut shd_gate| {
           shd_gate.shade(program, |mut iface, _, mut rdr_gate| {
-            let uni = iface.query().unwrap().ask("translation_mat").unwrap();
+            let uni = iface
+              .query()
+              .unwrap()
+              .ask::<Mat44<f32>>("translation_mat")
+              .unwrap();
             let mat = Mat44::new(translation_mat);
             iface.set(&uni, mat);
 
             // aspect ratio
             let [width, height] = back_buffer.size();
-            let aspect_ratio_uni = iface.query().unwrap().ask("aspect_ratio").unwrap();
+            let aspect_ratio_uni = iface.query().unwrap().ask::<f32>("aspect_ratio").unwrap();
             iface.set(&aspect_ratio_uni, width as f32 / height as f32);
 
             rdr_gate.render(&RenderState::default(), |mut tess_gate| {

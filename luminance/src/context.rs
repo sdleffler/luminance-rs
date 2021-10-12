@@ -68,7 +68,7 @@ use crate::vertex::Semantics;
 pub unsafe trait GraphicsContext: Sized {
   /// Internal type used by the backend to cache, optimize and store data. This roughly represents
   /// the GPU data / context a backend implementation needs to work correctly.
-  type Backend: ?Sized;
+  type Backend;
 
   /// Access the underlying backend.
   fn backend(&mut self) -> &mut Self::Backend;

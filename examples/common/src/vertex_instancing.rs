@@ -8,8 +8,8 @@ use crate::{
   },
   Example, InputAction, LoopFeedback, PlatformServices,
 };
-use luminance::context::GraphicsContext;
 use luminance_front::{
+  context::GraphicsContext,
   framebuffer::Framebuffer,
   pipeline::PipelineState,
   render_state::RenderState,
@@ -125,7 +125,7 @@ impl Example for LocalExample {
         &PipelineState::default(),
         |_, mut shd_gate| {
           shd_gate.shade(program, |mut iface, _, mut rdr_gate| {
-            if let Ok(ref time_u) = iface.query().unwrap().ask("t") {
+            if let Ok(ref time_u) = iface.query().unwrap().ask::<f32>("t") {
               iface.set(time_u, t);
             }
 

@@ -18,6 +18,7 @@ have a look at [the book] first.
 
 * [Prologue: architecture](#prologue-architecture)
 * [01 – Hello World](#01--hello-world)
+* [01a — Polymorphic Hello World](#01a--polymorphic-hello-world)
 * [02 – Render State](#02--render-state)
 * [03 – Sliced Tessellation](#03--sliced-tessellation)
 * [04 – Shader Uniforms](#04--shader-uniforms)
@@ -61,6 +62,11 @@ are necessary to wrap your fingers around, especially _vertex semantics_, _buffe
 procedural macros_, _graphics pipelines_, etc. etc.
 
 ![](../../docs/imgs/01-screenshot.png)
+
+## [01a – Polymorphic Hello World](./polymorphic_hello_world.rs)
+
+A variant of [01 – Hello World](#01--hello-world) that doesn’t use [luminance-front] and shows how to use the
+polymorphic interface instead.
 
 ## [02 – Render State](./src/render_state.rs)
 
@@ -161,6 +167,7 @@ large number of instances of the same model (here, a simple square). This exampl
 positions at once in the render loop.
 
 [luminance]: https://crates.io/crates/luminance
+[luminance-front]: https://crates.io/crates/luminance-front
 [glutin]: https://crates.io/crates/glutin
 [the book]: https://phaazon.github.io/learn-luminance
 [wasm]: https://webassembly.org

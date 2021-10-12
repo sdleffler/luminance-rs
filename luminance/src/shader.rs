@@ -699,22 +699,20 @@ where
   B: ?Sized + Shader,
 {
   /// Ask the creation of a [`Uniform`], identified by its `name`.
-  pub fn ask<T, N>(&mut self, name: N) -> Result<Uniform<T>, UniformWarning>
+  pub fn ask<T>(&mut self, name: &str) -> Result<Uniform<T>, UniformWarning>
   where
-    N: AsRef<str>,
-    T: Uniformable<B>,
+    B: for<'u> Uniformable<'u, T>,
   {
-    unsafe { B::ask_uniform(&mut self.repr, name.as_ref()) }
+    unsafe { B::ask_uniform(&mut self.repr, name) }
   }
 
   /// Ask the creation of a [`Uniform`], identified by its `name`.
   ///
   /// If the name is not found, an _unbound_ [`Uniform`] is returned (i.e. a [`Uniform`]) that does
   /// nothing.
-  pub fn ask_or_unbound<T, N>(&mut self, name: N) -> Uniform<T>
+  pub fn ask_or_unbound<T>(&mut self, name: &str) -> Uniform<T>
   where
-    N: AsRef<str>,
-    T: Uniformable<B>,
+    B: for<'u> Uniformable<'u, T>,
   {
     match self.ask(name) {
       Ok(uniform) => uniform,
@@ -749,7 +747,7 @@ where
 /// [luminance-derive]: https://crates.io/crates/luminance-derive
 pub trait UniformInterface<B, E = ()>: Sized
 where
-  B: ?Sized + Shader,
+  B: Shader,
 {
   /// Create a [`UniformInterface`] by constructing [`Uniform`]s with a [`UniformBuilder`] and an
   /// optional environment object.
@@ -766,7 +764,7 @@ where
 
 impl<B, E> UniformInterface<B, E> for ()
 where
-  B: ?Sized + Shader,
+  B: Shader,
 {
   fn uniform_interface<'a>(
     _: &mut UniformBuilder<'a, B>,
@@ -788,7 +786,7 @@ where
 /// - `Uni` is the [`UniformInterface`] type.
 pub struct BuiltProgram<B, Sem, Out, Uni>
 where
-  B: ?Sized + Shader,
+  B: Shader,
 {
   /// Built program.
   pub program: Program<B, Sem, Out, Uni>,
@@ -798,7 +796,7 @@ where
 
 impl<B, Sem, Out, Uni> BuiltProgram<B, Sem, Out, Uni>
 where
-  B: ?Sized + Shader,
+  B: Shader,
 {
   /// Get the program and ignore the warnings.
   pub fn ignore_warnings(self) -> Program<B, Sem, Out, Uni> {
@@ -816,7 +814,7 @@ where
 /// - `Uni` is the [`UniformInterface`] type.
 pub struct AdaptationFailure<B, Sem, Out, Uni>
 where
-  B: ?Sized + Shader,
+  B: Shader,
 {
   /// Program used before trying to adapt.
   pub program: Program<B, Sem, Out, Uni>,
@@ -826,7 +824,7 @@ where
 
 impl<B, Sem, Out, Uni> AdaptationFailure<B, Sem, Out, Uni>
 where
-  B: ?Sized + Shader,
+  B: Shader,
 {
   pub(crate) fn new(program: Program<B, Sem, Out, Uni>, error: ProgramError) -> Self {
     AdaptationFailure { program, error }
@@ -851,21 +849,25 @@ where
 /// `B` is the backend type.
 pub struct ProgramInterface<'a, B>
 where
-  B: ?Sized + Shader,
+  B: Shader,
 {
   pub(crate) program: &'a mut B::ProgramRepr,
 }
 
 impl<'a, B> ProgramInterface<'a, B>
 where
-  B: ?Sized + Shader,
+  B: Shader,
 {
   /// Set a value on a [`Uniform`].
-  pub fn set<T>(&mut self, uniform: &Uniform<T>, value: T)
+  ///
+  /// The value that is passed depends on the associated [`Uniformable::Target`] type. Most of the time, it will be the
+  /// same as `T`, but it might sometimes be something different if you are using existential types, such as with types
+  /// with lifetimes.
+  pub fn set<'u, T>(&'u mut self, uniform: &'u Uniform<T>, value: B::Target)
   where
-    T: Uniformable<B>,
+    B: Uniformable<'u, T>,
   {
-    unsafe { T::update(value, self.program, uniform) };
+    unsafe { B::update(self.program, uniform, value) };
   }
 
   /// Get back a [`UniformBuilder`] to dynamically access [`Uniform`] objects.
@@ -1106,7 +1108,7 @@ where
 /// - `Uni` is the [`UniformInterface`] type.
 pub struct Program<B, Sem, Out, Uni>
 where
-  B: ?Sized + Shader,
+  B: Shader,
 {
   pub(crate) repr: B::ProgramRepr,
   pub(crate) uni: Uni,
@@ -1116,7 +1118,7 @@ where
 
 impl<B, Sem, Out, Uni> Program<B, Sem, Out, Uni>
 where
-  B: ?Sized + Shader,
+  B: Shader,
   Sem: Semantics,
 {
   /// Create a new [`UniformInterface`] but keep the [`Program`] around without rebuilding it.

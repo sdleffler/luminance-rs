@@ -6,9 +6,54 @@
 
 use std::ops::{Deref, DerefMut};
 
+/// An array of values.
+///
+/// The array length is indexed at compile time with `N`.
+#[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+pub struct Arr<T, const N: usize>(pub [T; N]);
+
+impl<T, const N: usize> From<[T; N]> for Arr<T, N> {
+  fn from(a: [T; N]) -> Self {
+    Arr(a)
+  }
+}
+
+impl<T, const N: usize> From<Arr<T, N>> for [T; N] {
+  fn from(Arr(a): Arr<T, N>) -> Self {
+    a
+  }
+}
+
+impl<T, const N: usize> AsRef<[T; N]> for Arr<T, N> {
+  fn as_ref(&self) -> &[T; N] {
+    &self.0
+  }
+}
+
+impl<T, const N: usize> Deref for Arr<T, N> {
+  type Target = [T; N];
+
+  fn deref(&self) -> &Self::Target {
+    &self.0
+  }
+}
+
+impl<T, const N: usize> DerefMut for Arr<T, N> {
+  fn deref_mut(&mut self) -> &mut Self::Target {
+    &mut self.0
+  }
+}
+
+impl<T, const N: usize> Arr<T, N> {
+  /// Create a new array.
+  pub const fn new(arr: [T; N]) -> Self {
+    Self(arr)
+  }
+}
+
 /// A 2 dimensional vector.
 ///
-/// This is akin to a `[T; 2]`.
+/// This is akin to a `[T; 2]`.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Vec2<T>(pub [T; 2]);
 
@@ -53,7 +98,7 @@ impl<T> Vec2<T> {
 
 /// A 3 dimensional vector.
 ///
-/// This is akin to a `[T; 3]`.
+/// This is akin to a `[T; 3]`.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Vec3<T>(pub [T; 3]);
 
@@ -98,7 +143,7 @@ impl<T> Vec3<T> {
 
 /// A 4 dimensional vector.
 ///
-/// This is akin to a `[T; 4]`.
+/// This is akin to a `[T; 4]`.
 #[derive(Clone, Copy, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
 pub struct Vec4<T>(pub [T; 4]);
 

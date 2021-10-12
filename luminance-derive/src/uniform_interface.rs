@@ -120,18 +120,18 @@ pub(crate) fn generate_uniform_interface_impl(
           let #field_ident = #build_call;
         });
         field_where_clause.push(quote! {
-          #field_ty: luminance::backend::shader::Uniformable<S>
+          B: for<'a> luminance::backend::shader::Uniformable<'a, #field_ty>
         });
       }
 
       let output = quote! {
-        impl<S> luminance::shader::UniformInterface<S> for #ident
+        impl<B> luminance::shader::UniformInterface<B> for #ident
         where
-          S: ?Sized + luminance::backend::shader::Shader,
+          B: luminance::backend::shader::Shader,
           #(#field_where_clause),*,
         {
           fn uniform_interface<'a>(
-            builder: &mut luminance::shader::UniformBuilder<'a, S>,
+            builder: &mut luminance::shader::UniformBuilder<'a, B>,
             _: &mut ()
           ) -> Result<Self, luminance::shader::UniformWarning> {
             #(#field_decls)*
