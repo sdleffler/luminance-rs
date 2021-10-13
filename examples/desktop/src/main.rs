@@ -2,6 +2,7 @@ mod platform;
 
 use glfw::{Action, Context as _, Key, Modifiers, MouseButton, WindowEvent};
 use luminance_examples::{Example, InputAction, LoopFeedback};
+use luminance_gl::GL33;
 use luminance_glfw::GlfwSurface;
 use luminance_windowing::{WindowDim, WindowOpt};
 use platform::DesktopPlatformServices;
@@ -24,14 +25,20 @@ pub struct CLIOpts {
 
 /// Macro to declaratively add examples.
 macro_rules! examples {
-  (examples: $($ex_name:literal, $test_ident:ident),* , funtests: $($fun_name:literal $(if $fun_feature_gate:literal)?, $fun_ident:ident),* $(,)?) => {
+  (examples: $($ex_name:literal, $test_ident:ident),* ,
+   polymorphic examples: $($poly_ex_name:literal, $poly_test_ident:ident),* ,
+   funtests: $($fun_name:literal $(if $fun_feature_gate:literal)?, $fun_ident:ident),* $(,)?
+  ) => {
     fn show_available_examples() {
-      println!("available examples:");
+      println!("simple examples:");
       $( println!("  - {}", $ex_name); )*
+
+      println!("\npolymorphic examples:");
+      $( println!("  - {}", $poly_ex_name); )*
 
       #[cfg(feature = "funtest")]
       {
-        println!("\navailable functional tests:");
+        println!("\nfunctional tests:");
         $(
           print!("  - {}", $fun_name);
           $(
@@ -54,6 +61,12 @@ macro_rules! examples {
         ),*
 
         $(
+          Some($poly_ex_name) => {
+            run_example::<luminance_examples::$poly_test_ident::LocalExample<GL33>>(cli_opts, $poly_ex_name)
+          }
+        ),*
+
+        $(
           #[cfg(all(feature = "funtest"$(, feature = $fun_feature_gate)?))]
           Some($fun_name) => {
             run_example::<luminance_examples::$fun_ident::LocalExample>(cli_opts, $fun_name)
@@ -72,7 +85,7 @@ macro_rules! examples {
 // Run an example.
 fn run_example<E>(cli_opts: CLIOpts, name: &str)
 where
-  E: Example,
+  E: Example<GL33>,
 {
   // Check the features so that we know what we need to load.
   let mut services = DesktopPlatformServices::new(cli_opts, E::features());
@@ -202,6 +215,10 @@ examples! {
   "mrt", mrt,
   "skybox", skybox,
   "shader-data", shader_data,
+
+  // examples that do not use luminance-front but luminance polymorphic interface directly
+  polymorphic examples:
+  "polymorphic-hello-world", polymorphic_hello_world,
 
   // functional tests
   funtests:
