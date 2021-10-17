@@ -29,14 +29,13 @@
 //!
 //! # Creating a texture
 
-use std::error;
-use std::fmt;
-use std::marker::PhantomData;
-
-use crate::backend::texture::Texture as TextureBackend;
-use crate::context::GraphicsContext;
-use crate::depth_test::DepthComparison;
-use crate::pixel::{Pixel, PixelFormat};
+use crate::{
+  backend::texture::Texture as TextureBackend,
+  context::GraphicsContext,
+  depth_test::DepthComparison,
+  pixel::{Pixel, PixelFormat},
+};
+use std::{error, fmt, marker::PhantomData};
 
 /// How to wrap texture coordinates while sampling textures?
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
