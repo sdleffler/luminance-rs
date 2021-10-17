@@ -620,78 +620,65 @@ unsafe impl<'a> Uniformable<'a, Vec4<bool>> for GL33 {
   }
 }
 
-unsafe impl<'a> Uniformable<'a, ArrElem<bool>> for GL33 {
-  type Target = &'a [bool];
+unsafe impl<'a, const N: usize> Uniformable<'a, Arr<bool, N>> for GL33 {
+  type Target = &'a [bool; N];
 
   unsafe fn ty() -> UniformType {
     UniformType::Bool
   }
 
-  unsafe fn update(_: &mut Program, uniform: &'a Uniform<ArrElem<bool>>, value: Self::Target) {
+  unsafe fn update(_: &mut Program, uniform: &'a Uniform<Arr<bool, N>>, value: Self::Target) {
     let v: Vec<_> = value.iter().map(|x| *x as u32).collect();
 
-    gl::Uniform1uiv(uniform.index(), v.len() as GLsizei, v.as_ptr() as _);
+    gl::Uniform1uiv(uniform.index(), N as GLsizei, v.as_ptr() as _);
   }
 }
 
-unsafe impl<'a> Uniformable<'a, ArrElem<Vec2<bool>>> for GL33 {
-  type Target = &'a [Vec2<bool>];
+unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec2<bool>, N>> for GL33 {
+  type Target = &'a [Vec2<bool>; N];
 
   unsafe fn ty() -> UniformType {
     UniformType::BVec2
   }
 
-  unsafe fn update(
-    _: &mut Program,
-    uniform: &'a Uniform<ArrElem<Vec2<bool>>>,
-    value: Self::Target,
-  ) {
+  unsafe fn update(_: &mut Program, uniform: &'a Uniform<Arr<Vec2<bool>, N>>, value: Self::Target) {
     let v: Vec<_> = value.iter().map(|x| [x[0] as u32, x[1] as u32]).collect();
 
-    gl::Uniform2uiv(uniform.index(), v.len() as GLsizei, v.as_ptr() as _);
+    gl::Uniform2uiv(uniform.index(), N as GLsizei, v.as_ptr() as _);
   }
 }
 
-unsafe impl<'a> Uniformable<'a, ArrElem<Vec3<bool>>> for GL33 {
-  type Target = &'a [Vec3<bool>];
+unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec3<bool>, N>> for GL33 {
+  type Target = &'a [Vec3<bool>; N];
 
   unsafe fn ty() -> UniformType {
     UniformType::BVec3
   }
 
-  unsafe fn update(
-    _: &mut Program,
-    uniform: &'a Uniform<ArrElem<Vec3<bool>>>,
-    value: Self::Target,
-  ) {
+  unsafe fn update(_: &mut Program, uniform: &'a Uniform<Arr<Vec3<bool>, N>>, value: Self::Target) {
     let v: Vec<_> = value
       .iter()
       .map(|x| [x[0] as u32, x[1] as u32, x[2] as u32])
       .collect();
 
-    gl::Uniform3uiv(uniform.index(), v.len() as GLsizei, v.as_ptr() as _);
+    gl::Uniform3uiv(uniform.index(), N as GLsizei, v.as_ptr() as _);
   }
 }
 
-// FIXME: not usable
-unsafe impl<'a> Uniformable<'a, ArrElem<Vec4<bool>>> for GL33 {
-  type Target = &'a [Vec4<bool>];
+unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec4<bool>, N>> for GL33 {
+  type Target = &'a [Vec4<bool>; N];
 
   unsafe fn ty() -> UniformType {
     UniformType::BVec4
   }
 
-  unsafe fn update(
-    _: &mut Program,
-    uniform: &'a Uniform<ArrElem<Vec4<bool>>>,
-    value: Self::Target,
-  ) {
+  unsafe fn update(_: &mut Program, uniform: &'a Uniform<Arr<Vec4<bool>, N>>, value: Self::Target) {
     let v: Vec<_> = value
       .iter()
       .map(|x| [x[0] as u32, x[1] as u32, x[2] as u32, x[3] as u32])
       .collect();
 
-    gl::Uniform4uiv(uniform.index(), v.len() as GLsizei, v.as_ptr() as _);
+    gl::Uniform4uiv(uniform.index(), N as GLsizei, v.as_ptr() as _);
   }
 }
 
