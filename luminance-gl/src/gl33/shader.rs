@@ -620,6 +620,9 @@ unsafe impl<'a> Uniformable<'a, Vec4<bool>> for GL33 {
   }
 }
 
+// a cache for implementors needing to switch from [bool; N] to [u32; N]
+static mut BOOL_CACHE: Vec<u32> = Vec::new();
+
 unsafe impl<'a, const N: usize> Uniformable<'a, Arr<bool, N>> for GL33 {
   type Target = &'a [bool; N];
 
@@ -628,9 +631,10 @@ unsafe impl<'a, const N: usize> Uniformable<'a, Arr<bool, N>> for GL33 {
   }
 
   unsafe fn update(_: &mut Program, uniform: &'a Uniform<Arr<bool, N>>, value: Self::Target) {
-    let v: Vec<_> = value.iter().map(|x| *x as u32).collect();
+    BOOL_CACHE.clear();
+    BOOL_CACHE.extend(value.iter().map(|x| *x as u32));
 
-    gl::Uniform1uiv(uniform.index(), N as GLsizei, v.as_ptr() as _);
+    gl::Uniform1uiv(uniform.index(), N as GLsizei, BOOL_CACHE.as_ptr() as _);
   }
 }
 
@@ -642,9 +646,10 @@ unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec2<bool>, N>> for GL33 {
   }
 
   unsafe fn update(_: &mut Program, uniform: &'a Uniform<Arr<Vec2<bool>, N>>, value: Self::Target) {
-    let v: Vec<_> = value.iter().map(|x| [x[0] as u32, x[1] as u32]).collect();
+    BOOL_CACHE.clear();
+    BOOL_CACHE.extend(value.iter().flat_map(|x| [x[0] as u32, x[1] as u32]));
 
-    gl::Uniform2uiv(uniform.index(), N as GLsizei, v.as_ptr() as _);
+    gl::Uniform2uiv(uniform.index(), N as GLsizei, BOOL_CACHE.as_ptr() as _);
   }
 }
 
@@ -656,12 +661,14 @@ unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec3<bool>, N>> for GL33 {
   }
 
   unsafe fn update(_: &mut Program, uniform: &'a Uniform<Arr<Vec3<bool>, N>>, value: Self::Target) {
-    let v: Vec<_> = value
-      .iter()
-      .map(|x| [x[0] as u32, x[1] as u32, x[2] as u32])
-      .collect();
+    BOOL_CACHE.clear();
+    BOOL_CACHE.extend(
+      value
+        .iter()
+        .flat_map(|x| [x[0] as u32, x[1] as u32, x[2] as u32]),
+    );
 
-    gl::Uniform3uiv(uniform.index(), N as GLsizei, v.as_ptr() as _);
+    gl::Uniform3uiv(uniform.index(), N as GLsizei, BOOL_CACHE.as_ptr() as _);
   }
 }
 
@@ -673,12 +680,14 @@ unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec4<bool>, N>> for GL33 {
   }
 
   unsafe fn update(_: &mut Program, uniform: &'a Uniform<Arr<Vec4<bool>, N>>, value: Self::Target) {
-    let v: Vec<_> = value
-      .iter()
-      .map(|x| [x[0] as u32, x[1] as u32, x[2] as u32, x[3] as u32])
-      .collect();
+    BOOL_CACHE.clear();
+    BOOL_CACHE.extend(
+      value
+        .iter()
+        .flat_map(|x| [x[0] as u32, x[1] as u32, x[2] as u32, x[3] as u32]),
+    );
 
-    gl::Uniform4uiv(uniform.index(), N as GLsizei, v.as_ptr() as _);
+    gl::Uniform4uiv(uniform.index(), N as GLsizei, BOOL_CACHE.as_ptr() as _);
   }
 }
 
