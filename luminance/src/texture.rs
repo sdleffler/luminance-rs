@@ -4,39 +4,39 @@
 //! and is a dimensional object. Textures are often associated with _images_, even though their
 //! usage in the graphics world can be much larger than that.
 //!
-//! Textures — [`Texture`] come in several flavors and the differences lie in:
+//! Textures ([`Texture`]) come in several flavors and the differences lie in:
 //!
-//! - The dimensionality: textures can be 1D, 2D, 3D, layered, cube maps, etc.
+//! - The dimensionality: textures can be 1D, 2D, 3D, layered, cube maps, etc. Dimension is encoded
+//!   via the [`Dim`] type, and indexed in the type-system with the [`Dimensionable`] and its
+//!   implementors.
 //! - The encoding: the _items_ inside textures are called _pixels_ or _texels_. Those can be
-//!   encoded in several ways.
+//!   encoded in several ways. They are represented by various types, which are implementors of the
+//!   [`Pixel`] trait.
 //! - The usage: some textures will be used as images, others will be used to pass arbitrary data
 //!   around in shaders, etc.
 //!
-//! Whatever the flavor, textures have few even not no use outside of shaders. When a shader wants
+//! Whatever the flavor, textures have few uses outside of shaders. When a shader wants
 //! to use a texture, it can do it directly, by accessing each pixel by their position inside the
 //! texture (using a normalized coordinates system) or via the use of a [`Sampler`]. A [`Sampler`],
 //! as the name implies, is an object that tells the GPU how fetching (sampling) a texture should
 //! occur. Several options there too:
 //!
-//! - The GPU can fetch a pixel without sampler. It means that you have to pass the exact
+//! - The GPU can fetch a pixel without sampling. It means that you have to pass the exact
 //!   coordinates of the pixel you want to access. This is useful when you store arbitrary
 //!   information, like UUID, velocities, etc.
 //! - The GPU can fetch a pixel with a floating-point coordinates system. How that system works
 //!   depends on the settings of [`Sampler`] you choose. For instance, you can always fetch the
 //!   _nearest_ pixel to where you sample, or you can ask the GPU to perform a linear
-//!   interpolation between all neighboring pixels, etc. [`Sampler`] allow way more than that, so
+//!   interpolation between all neighboring pixels, etc. [`Sampler`] allows way more than that, so
 //!   feel free to read their documentation.
-//!
-//! # Creating a texture
 
-use std::error;
-use std::fmt;
-use std::marker::PhantomData;
-
-use crate::backend::texture::Texture as TextureBackend;
-use crate::context::GraphicsContext;
-use crate::depth_test::DepthComparison;
-use crate::pixel::{Pixel, PixelFormat};
+use crate::{
+  backend::texture::Texture as TextureBackend,
+  context::GraphicsContext,
+  depth_test::DepthComparison,
+  pixel::{Pixel, PixelFormat},
+};
+use std::{error, fmt, marker::PhantomData};
 
 /// How to wrap texture coordinates while sampling textures?
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -85,7 +85,11 @@ pub enum MagFilter {
   Linear,
 }
 
-/// Reify a type into a [`Dim`].
+/// Class of [`Texture`] dimensions.
+///
+/// This trait provides a simple mapping between the implementor and the [`Dim`] type, which represents a [`Texture`]
+/// dimension. This allows to heavily type [`Texture`] so that their dimension is indexed-tracked in the type-system.
+/// This trait is then used to reify the implementors into [`Dim`] so that the runtime can work with them.
 pub trait Dimensionable {
   /// Size type of a dimension (used to caracterize dimensions’ areas).
   type Size: Copy;
@@ -94,9 +98,13 @@ pub trait Dimensionable {
   type Offset: Copy;
 
   /// Zero offset.
+  ///
+  /// Any size added with `ZERO_OFFSET` must remain the size itself.
   const ZERO_OFFSET: Self::Offset;
 
-  /// Dimension.
+  /// Reified [`Dim`].
+  ///
+  /// Implementors must ensure they map to the right variant of [`Dim`].
   fn dim() -> Dim;
 
   /// Width of the associated [`Dimensionable::Size`].
@@ -144,8 +152,14 @@ pub enum Dim {
   /// Cubemap (i.e. a cube defining 6 faces — akin to 4D).
   Cubemap,
   /// 1D array.
+  ///
+  /// This corresponds to _layered_ 1D textures, i.e. a 1D texture with an extra parameter to tap into the corresponding
+  /// layer. Using in a [`Texture`] allows to perform _layered rendering_.
   Dim1Array,
   /// 2D array.
+  ///
+  /// This corresponds to _layered_ 2D textures, i.e. a 2D texture with an extra parameter to tap into the corresponding
+  /// layer. Using in a [`Texture`] allows to perform _layered rendering_.
   Dim2Array,
 }
 
@@ -550,7 +564,54 @@ impl fmt::Display for TextureError {
 
 impl error::Error for TextureError {}
 
-/// GPU textures.
+/// Textures.
+///
+/// Textures allow mainly two use cases:
+///
+/// - Passing data (in the form of images or regular data) to shaders.
+/// - Offscreen rendering.
+///
+/// In the former case, you will want to uplad _images_ to [`Texture`]. This can be done with the various upload functions:
+///
+/// - [`Texture::upload_part`]
+/// - [`Texture::upload`]
+/// - [`Texture::upload_part_raw`]
+/// - [`Texture::upload_raw`]
+/// - [`Texture::clear_part`]
+/// - [`Texture::clear`]
+///
+/// In the second case, a [`Texture`] can be used as part of a [`ColorSlot`] or [`DepthSlot`] of a [`Framebuffer`]. This
+/// allows to create graphics pipeline that will output into the [`Texture`], that you can use in another graphics
+/// pipeline later.
+///
+/// # Parametricity
+///
+/// Textures have three type parameters:
+///
+/// - `B`, which is the backend type. It must implement [`TextureBackend`].
+/// - `D`, the dimension of the texture. It must implement [`Dimensionable`].
+/// - `P`, the pixel type. It must implement [`Pixel`].
+///
+/// # Dimension
+///
+/// The dimension of the texture gives its flavor: 2D, 3D, cubemap, etc. You have access to a bunch of different types
+/// here, which all are implementors of the [`Dimensionable`] trait.
+///
+/// # Pixel format
+///
+/// The internal representation of the [`Texture`] will be derived from the `P` type, which is the [`Pixel`] type. Lots
+/// of types are available, but you have to know that depending on the use you want to make of the texture, not all
+/// types are compatible. For instance, if you access a [`Texture`] as part of a [`ColorSlot`] of a [`Framebuffer`], the
+/// [`Pixel`] type must be [`RenderablePixel`]. The compiler will always tells you if you are trying to use a pixel type
+/// that is not compatible, but you should check the implementors of [`Pixel`], [`RenderablePixel`] and [`DepthPixel`]
+/// before starting using them.
+///
+/// [`Framebuffer`]: crate::framebuffer::Framebuffer
+/// [`ColorSlot`]: crate::backend::color_slot::ColorSlot
+/// [`DepthSlot`]: crate::backend::depth_slot::DepthSlot
+/// [`RenderablePixel`]: crate::pixel::RenderablePixel
+/// [`DepthPixel`]: crate::pixel::DepthPixel
+/// [`TextureBackend`]: crate::backend::texture::Texture
 pub struct Texture<B, D, P>
 where
   B: ?Sized + TextureBackend<D, P>,

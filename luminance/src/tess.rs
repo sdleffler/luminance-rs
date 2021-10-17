@@ -78,7 +78,7 @@ use std::{
   ops::{Deref, DerefMut, Range, RangeFrom, RangeFull, RangeInclusive, RangeTo, RangeToInclusive},
 };
 
-/// Vertices can be connected via several modes.
+/// Primitive mode.
 ///
 /// Some modes allow for _primitive restart_. Primitive restart is a cool feature that allows to
 /// _break_ the building of a primitive to _start over again_. For instance, when making a curve,
@@ -90,6 +90,9 @@ use std::{
 ///
 /// _Primitive restart_ should be used as much as possible as it will decrease the number of GPU
 /// commands you have to issue.
+///
+/// > Deprecation notice: the next version of luminance will not support setting the primitive restart index: you will
+/// then must provide the maximum value of index type.
 ///
 /// That feature is encoded with a special _vertex index_. You can setup the value of the _primitive
 /// restart index_ with [`TessBuilder::set_primitive_restart_index`]. Whenever a vertex index is set
@@ -385,6 +388,28 @@ pub enum Interleaved {}
 pub enum Deinterleaved {}
 
 /// Vertex input data of a [`TessBuilder`].
+///
+/// This trait defines the _storage_ of vertices that a [`TessBuilder`] will use to build its internal storage on the
+/// backend.
+///
+/// There are two implementors of this trait:
+///
+/// - `impl<V> TessVertexData<Interleaved> for V where V: Vertex`
+/// - `impl<V> TessVertexData<Deinterleaved> for V where V: Vertex`
+///
+/// For the situation where `S` is [`Interleaved`], this trait associates the data (with [`TessVertexData::Data`]) to be
+/// a `Vec<V>`. What it means is that the [`TessBuilder`] will build the vertices as a `Vec<V>`, where `V: Vertex`,
+/// implementing an _interleaved memory layout_.
+///
+/// For the situation where `S` is [`Deinterleaved`], this trait associates the data to be a `Vec<DeinterleavedData>`.
+/// [`DeinterleavedData`] is a special type used to store a collection of one of the attributes of a `V: Vertex`. For
+/// instance, if `V: Vertex` has two attributes, vertices will end up in two [`DeinterleavedData`]: the first one for
+/// the first attribute, the second one for the second attribute. The [`TessBuilder`] will handle that logic for you
+/// when you will use the [`TessBuilder::set_vertices`] by tracking at the type-level which set of attributes you are setting.
+///
+/// # Parametricity
+///
+/// - `S` is the storage marker. It will be set to either [`Interleaved`] or [`Deinterleaved`].
 pub trait TessVertexData<S>: Vertex
 where
   S: ?Sized,
@@ -394,8 +419,8 @@ where
 
   /// Coherent length of the vertices.
   ///
-  /// Vertices length can be incohent for some implementations of [`TessVertexData::Data`],
-  /// especially with deinterleaved memory.
+  /// Vertices length can be incoherent for some implementations of [`TessVertexData::Data`],
+  /// especially with deinterleaved memory. For this reason, this method can fail with [`TessError`].
   fn coherent_len(data: &Self::Data) -> Result<usize, TessError>;
 }
 
@@ -432,6 +457,9 @@ where
 }
 
 /// Deinterleaved data.
+///
+/// [`DeinterleavedData`] represents a collection of one type of attributes of a set of vertices, for each vertex
+/// implements [`Vertex`]. End-users shouldn’t need to know about this type as it’s only used internally.
 #[derive(Debug, Clone)]
 pub struct DeinterleavedData {
   raw: Vec<u8>,
@@ -469,7 +497,7 @@ impl DeinterleavedData {
 ///
 /// This is the same as interleaved data in terms of interface, but the `T` type is interpreted
 /// a bit differently. Here, the encoding is `(Vec<Field0>, Vec<Field1>, …)`, where `Field0`,
-/// `Field1` etc. are all the ordered fieds in `T`.
+/// `Field1` etc. are all the ordered fieds in `T`. This logic is hidden behind `Vec<DeinterleavedData>`.
 ///
 /// That representation allows field-based operations on [`Tess`], while it would be impossible
 /// with the interleaved version (you would need to get all the fields at once, since
@@ -478,8 +506,8 @@ impl DeinterleavedData {
 /// # Data encoding
 ///
 /// - Vectors: you can pass vectors as input data for both vertices and indices. Those will be
-///   interpreted differently based on the vertex storage you chose for vertices, and the normal
-///   way for indices.
+///   interpreted differently based on the vertex storage you chose for vertices / instances. For indices, there is no
+///   difference.
 /// - Disabled: disabling means that no data will be passed to the GPU. You can disable independently
 ///   vertex data and/or index data by using the unit `()` type.
 ///
@@ -489,15 +517,19 @@ impl DeinterleavedData {
 /// regions of memory (`Vec<T>`), where `T` satisfies [`TessIndex`]. When using an indexed tessellation,
 /// the meaning of its attributes slightly changes. First, the vertices are not used as input source for
 /// the vertex stream. In order to provide vertices that will go through the vertex stream, the indices
-/// reference the vertex set to provide the order in which they should appear in the stream. That has a
-/// consequence on the meaning of subsequent operations, such as [`Tess::vert_nb`] and how rendering
-/// works.
+/// reference the vertex set to provide the order in which they should appear in the stream.
 ///
 /// When rendering with a [`TessView`], the number of vertices to render must be provided or inferred
 /// based on the [`Tess`] the view was made from. That number will refer to either the vertex set or
 /// index set, depending on the kind of tessellation. Asking to render a [`Tess`] with 3 vertices will
 /// pick 3 vertices from the vertex set for direct tessellations and 3 indices to index the vertex set
 /// for indexed tessellations.
+///
+/// # Primitive mode
+///
+/// By default, a [`TessBuilder`] will build _points_. Each vertex in the vertex stream will be independently rendered
+/// from the others, resulting in a _point cloud_. This logic is encoded with [`Mode::Point`]. You can change how
+/// vertices are interpreted by changing the [`Mode`].
 ///
 /// # Parametricity
 ///

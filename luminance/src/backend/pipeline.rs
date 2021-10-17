@@ -15,6 +15,8 @@
 //!
 //! [`PipelineTexture`], [`PipelineShaderData`] etc. are used to scope-bind specific resources, such as textures and
 //! shader data.
+//!
+//! [`Framebuffer`]: crate::framebuffer::Framebuffer
 
 use crate::{
   backend::{
@@ -36,6 +38,8 @@ use crate::{
 ///
 /// This trait has [`ShadingGate`] and [`TextureBase`] as super traits, as those are required to perform more operations
 /// on pipelines.
+///
+/// [`ShadingGate`]: crate::backend::shading_gate::ShadingGate
 pub unsafe trait PipelineBase: ShadingGateBackend + TextureBase {
   type PipelineRepr;
 
@@ -46,6 +50,8 @@ pub unsafe trait PipelineBase: ShadingGateBackend + TextureBase {
 /// Start a pipeline.
 ///
 /// This trait requires [`PipelineBase`] and [`Framebuffer`], as it starts rendering into one.
+///
+/// [`Framebuffer`]: crate::backend::framebuffer::Framebuffer
 pub unsafe trait Pipeline<D>: PipelineBase + FramebufferBackend<D>
 where
   D: Dimensionable,
@@ -54,6 +60,8 @@ where
   ///
   /// This method should perform the required backend action to take into account the framebuffer and the state to start
   /// the pipeline.
+  ///
+  /// [`Framebuffer`]: crate::backend::framebuffer::Framebuffer
   unsafe fn start_pipeline(
     &mut self,
     framebuffer: &Self::FramebufferRepr,

@@ -9,6 +9,8 @@ use crate::backend::shader::Shader as ShaderBackend;
 /// Shading gate backend.
 ///
 /// This trait requires [`Shader`] as super trait.
+///
+/// [`Shader`]: crate::backend::shader::Shader
 pub unsafe trait ShadingGate: ShaderBackend {
   /// Apply the shader program and make it currently in-use for subsequent pipeline nodes.
   unsafe fn apply_shader_program(&mut self, shader_program: &Self::ProgramRepr);

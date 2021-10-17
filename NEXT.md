@@ -23,6 +23,7 @@
 - Change the backend interface for `Uniformable`. Backends must now implement `Uniformable<T>`, instead of having to provide the
   implementor `T: Uniformable<Backend>`. This is a change allowing for better polymorphic code, where people can create
   « trait aliases » by simply adding `Uniformable<TypeHere>`.
+- Enhance the documentation of various types.
 
 # `luminance-derive`
 

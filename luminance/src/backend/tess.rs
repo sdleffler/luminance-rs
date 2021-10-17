@@ -12,6 +12,9 @@
 //! - Indices, which allow to index vertices, reducing the amount of data to send and prevent duplicates.
 //! - Primitive modes which connect vertices in specific ways (lines, line strips, triangles, etc.).
 //! - Instance data, which is vertex data associated with the tessellation but available only to specific instances.
+//!
+//! [`Interleaved`]: crate::tess::Interleaved
+//! [`Deinterleaved`]: crate::tess::Deinterleaved
 
 use std::ops::{Deref, DerefMut};
 
@@ -34,6 +37,9 @@ use crate::tess::{Mode, TessError, TessIndex, TessMapError, TessVertexData};
 ///
 /// You will want to have a look at [`TessVertexData`] and [`TessIndex`] to know how to make your vertex and index types
 /// compatible with [`Tess`].
+///
+/// [`Interleaved`]: crate::tess::Interleaved
+/// [`Deinterleaved`]: crate::tess::Deinterleaved
 pub unsafe trait Tess<V, I, W, S>
 where
   V: TessVertexData<S>,
@@ -56,6 +62,10 @@ where
   ///   data (it doesn’t make any difference for indices, so stick to [`Vec`] and [`()`]). [`DeinterleavedData`]
   ///   contains its own [`Vec`], so you basically end up with a [`Vec`] of [`Vec`], allowing to provide separate
   ///   attributes for all the vertices in their own containers.
+  ///
+  /// [`Interleaved`]: crate::tess::Interleaved
+  /// [`Deinterleaved`]: crate::tess::Deinterleaved
+  /// [`DeinterleavedData`]: crate::tess::DeinterleavedData
   unsafe fn build(
     &mut self,
     vertex_data: Option<V::Data>,
@@ -158,8 +168,8 @@ where
 /// This trait must be implemented by the backend so that it’s possible to _slice_ the instance data. The idea is that the
 /// instance storage is backend-dependent; the backend can decide to cache the data, or not, and we should assume the data
 /// to live in a memory that is costly to access. For this reason, slicing the instance data requires to get an object on
-/// which one can use [`Deref`] (and possibly [`DerefMut`]). The [`InstanceSlice::vertices`] and
-/// [`InstanceSlice::vertices_mut`] methods must get such objects. Implementations will typically map memory regions and
+/// which one can use [`Deref`] (and possibly [`DerefMut`]). The [`InstanceSlice::instances`] and
+/// [`InstanceSlice::instances_mut`] methods must get such objects. Implementations will typically map memory regions and
 /// retain the mapped data until the [`InstanceSlice::InstanceSliceRepr`] and [`InstanceSlice::InstanceSliceMutRepr`] objects
 /// are dropped (c.f. [`Drop`]).
 pub unsafe trait InstanceSlice<'a, V, I, W, S, T>: Tess<V, I, W, S>
