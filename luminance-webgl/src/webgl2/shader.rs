@@ -761,6 +761,9 @@ unsafe impl<'a> Uniformable<'a, Vec4<bool>> for WebGL2 {
   }
 }
 
+// bool cache for optimizing [bool; N] -> [u32; N]
+static mut BOOL_CACHE: Vec<u32> = Vec::new();
+
 unsafe impl<'a, const N: usize> Uniformable<'a, Arr<bool, N>> for WebGL2 {
   type Target = &'a [bool; N];
 
@@ -769,13 +772,13 @@ unsafe impl<'a, const N: usize> Uniformable<'a, Arr<bool, N>> for WebGL2 {
   }
 
   unsafe fn update(program: &mut Program, uniform: &'a Uniform<Arr<bool, N>>, value: Self::Target) {
-    let v: Vec<_> = value.iter().map(|x| *x as u32).collect();
+    BOOL_CACHE.clear();
+    BOOL_CACHE.extend(value.iter().map(|x| *x as u32));
 
-    program
-      .state
-      .borrow()
-      .ctx
-      .uniform1uiv_with_u32_array(program.location_map.borrow().get(&uniform.index()), &v);
+    program.state.borrow().ctx.uniform1uiv_with_u32_array(
+      program.location_map.borrow().get(&uniform.index()),
+      &BOOL_CACHE,
+    );
   }
 }
 
@@ -791,14 +794,13 @@ unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec2<bool>, N>> for WebGL2 {
     uniform: &'a Uniform<Arr<Vec2<bool>, N>>,
     value: Self::Target,
   ) {
-    let v: Vec<_> = value.iter().map(|x| [x[0] as u32, x[1] as u32]).collect();
-    let data = flatten_slice!(v: u32, len = 2 * v.len());
+    BOOL_CACHE.clear();
+    BOOL_CACHE.extend(value.iter().flat_map(|x| [x[0] as u32, x[1] as u32]));
 
-    program
-      .state
-      .borrow()
-      .ctx
-      .uniform2uiv_with_u32_array(program.location_map.borrow().get(&uniform.index()), data);
+    program.state.borrow().ctx.uniform2uiv_with_u32_array(
+      program.location_map.borrow().get(&uniform.index()),
+      &BOOL_CACHE,
+    );
   }
 }
 
@@ -814,17 +816,17 @@ unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec3<bool>, N>> for WebGL2 {
     uniform: &'a Uniform<Arr<Vec3<bool>, N>>,
     value: Self::Target,
   ) {
-    let v: Vec<_> = value
-      .iter()
-      .map(|x| [x[0] as u32, x[1] as u32, x[2] as u32])
-      .collect();
-    let data = flatten_slice!(v: u32, len = 3 * v.len());
+    BOOL_CACHE.clear();
+    BOOL_CACHE.extend(
+      value
+        .iter()
+        .flat_map(|x| [x[0] as u32, x[1] as u32, x[2] as u32]),
+    );
 
-    program
-      .state
-      .borrow()
-      .ctx
-      .uniform3uiv_with_u32_array(program.location_map.borrow().get(&uniform.index()), data);
+    program.state.borrow().ctx.uniform3uiv_with_u32_array(
+      program.location_map.borrow().get(&uniform.index()),
+      &BOOL_CACHE,
+    );
   }
 }
 
@@ -840,17 +842,17 @@ unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec4<bool>, N>> for WebGL2 {
     uniform: &'a Uniform<Arr<Vec4<bool>, N>>,
     value: Self::Target,
   ) {
-    let v: Vec<_> = value
-      .iter()
-      .map(|x| [x[0] as u32, x[1] as u32, x[2] as u32, x[3] as u32])
-      .collect();
-    let data = flatten_slice!(v: u32, len = 4 * v.len());
+    BOOL_CACHE.clear();
+    BOOL_CACHE.extend(
+      value
+        .iter()
+        .flat_map(|x| [x[0] as u32, x[1] as u32, x[2] as u32, x[3] as u32]),
+    );
 
-    program
-      .state
-      .borrow()
-      .ctx
-      .uniform4uiv_with_u32_array(program.location_map.borrow().get(&uniform.index()), data);
+    program.state.borrow().ctx.uniform4uiv_with_u32_array(
+      program.location_map.borrow().get(&uniform.index()),
+      &BOOL_CACHE,
+    );
   }
 }
 
