@@ -180,7 +180,12 @@ impl UniformBuilder {
     }
   }
 
-  fn ask_uniform<T>(&mut self, name: &str) -> Result<Uniform<T>, UniformWarning>
+  fn ask_uniform<T>(
+    &mut self,
+    name: &str,
+    ty: UniformType,
+    size: usize,
+  ) -> Result<Uniform<T>, UniformWarning>
   where
     WebGL2: for<'a> Uniformable<'a, T>,
   {
@@ -197,6 +202,16 @@ impl UniformBuilder {
         let mut location_map = self.location_map.borrow_mut();
         let idx = location_map.len() as i32;
         location_map.insert(idx, location);
+
+        // check the type
+        uniform_type_match(
+          &self.state.borrow(),
+          &self.handle,
+          name,
+          idx as u32,
+          ty,
+          size,
+        )?;
 
         Ok(unsafe { Uniform::new(idx) })
       }
@@ -276,17 +291,8 @@ unsafe impl Shader for WebGL2 {
     let ty = Self::ty();
     let uniform = match ty {
       UniformType::ShaderDataBinding => uniform_builder.ask_uniform_block(name)?,
-      _ => uniform_builder.ask_uniform(name)?,
+      _ => uniform_builder.ask_uniform(name, ty, Self::SIZE)?,
     };
-
-    let state = uniform_builder.state.borrow();
-    uniform_type_match(
-      &state,
-      &uniform_builder.handle,
-      name,
-      uniform.index() as u32,
-      ty,
-    )?;
 
     Ok(uniform)
   }
@@ -324,6 +330,7 @@ fn uniform_type_match(
   name: &str,
   location: u32,
   ty: UniformType,
+  size: usize,
 ) -> Result<(), UniformWarning> {
   // uniform blocks are not handled the same way as regular uniforms, so we can already re-use the previously queried
   // location, which is an index for them
@@ -354,9 +361,9 @@ fn uniform_type_match(
     .get_active_uniform(program, index)
     .ok_or_else(|| UniformWarning::TypeMismatch("cannot retrieve active uniform".to_owned(), ty))?;
 
-  // early-return if array – we don’t support them yet
-  if info.size() != 1 {
-    return Ok(());
+  let found_size = info.size() as usize;
+  if found_size != size {
+    return Err(UniformWarning::size_mismatch(name, size, found_size));
   }
 
   check_types_match(name, ty, info.type_())
@@ -366,7 +373,7 @@ fn uniform_type_match(
 fn check_types_match(name: &str, ty: UniformType, glty: u32) -> Result<(), UniformWarning> {
   // helper macro to check type mismatch for each variant
   macro_rules! milkcheck {
-    ($ty:expr, $( ( $v:tt, $t:tt ) ),*) => {
+    ($ty:expr, $( ( $v:tt, $t:tt ) ),* $(,)?) => {
       match $ty {
         $(
           UniformType::$v => {
@@ -419,7 +426,7 @@ fn check_types_match(name: &str, ty: UniformType, glty: u32) -> Result<(), Unifo
     (Sampler2DArray, SAMPLER_2D_ARRAY),
     (ICubemap, INT_SAMPLER_CUBE),
     (UICubemap, UNSIGNED_INT_SAMPLER_CUBE),
-    (Cubemap, SAMPLER_CUBE)
+    (Cubemap, SAMPLER_CUBE),
   )
 }
 
@@ -471,6 +478,8 @@ macro_rules! impl_Uniformable {
     unsafe impl<'a, const N: usize> Uniformable<'a, Arr<$q<$t>, N>> for WebGL2 {
       type Target = &'a [$q<$t>; N];
 
+      const SIZE: usize = N;
+
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
@@ -497,6 +506,8 @@ macro_rules! impl_Uniformable {
     unsafe impl<'a, const N: usize> Uniformable<'a, Arr<$t, N>> for WebGL2 {
       type Target = &'a [$t; N];
 
+      const SIZE: usize = N;
+
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
@@ -519,6 +530,8 @@ macro_rules! impl_Uniformable {
     unsafe impl<'a> Uniformable<'a, $t> for WebGL2 {
       type Target = $t;
 
+      const SIZE: usize = 1;
+
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
@@ -535,6 +548,8 @@ macro_rules! impl_Uniformable {
   ($t:ty, $uty:tt, $f:tt) => {
     unsafe impl<'a> Uniformable<'a, $t> for WebGL2 {
       type Target = $t;
+
+      const SIZE: usize = 1;
 
       unsafe fn ty() -> UniformType {
         UniformType::$uty
@@ -554,6 +569,8 @@ macro_rules! impl_Uniformable {
   (mat arr $q:ident $t:ty, $size:expr, $uty:tt, $f:tt) => {
     unsafe impl<'a, const N: usize> Uniformable<'a, Arr<$q<$t>, N>> for WebGL2 {
       type Target = &'a [$q<$t>; N];
+
+      const SIZE: usize = N;
 
       unsafe fn ty() -> UniformType {
         UniformType::$uty
@@ -580,6 +597,8 @@ macro_rules! impl_Uniformable {
   (mat $q:ident $t:ty, $size:expr, $uty:tt, $f:tt) => {
     unsafe impl<'a> Uniformable<'a, $q<$t>> for WebGL2 {
       type Target = $q<$t>;
+
+      const SIZE: usize = 1;
 
       unsafe fn ty() -> UniformType {
         UniformType::$uty
@@ -690,6 +709,8 @@ impl_Uniformable!(mat arr Mat44 f32, 16, M44, uniform_matrix4fv_with_f32_array_a
 unsafe impl<'a> Uniformable<'a, bool> for WebGL2 {
   type Target = bool;
 
+  const SIZE: usize = 1;
+
   unsafe fn ty() -> UniformType {
     UniformType::Bool
   }
@@ -704,6 +725,8 @@ unsafe impl<'a> Uniformable<'a, bool> for WebGL2 {
 
 unsafe impl<'a> Uniformable<'a, Vec2<bool>> for WebGL2 {
   type Target = Vec2<bool>;
+
+  const SIZE: usize = 1;
 
   unsafe fn ty() -> UniformType {
     UniformType::BVec2
@@ -723,6 +746,8 @@ unsafe impl<'a> Uniformable<'a, Vec2<bool>> for WebGL2 {
 unsafe impl<'a> Uniformable<'a, Vec3<bool>> for WebGL2 {
   type Target = Vec3<bool>;
 
+  const SIZE: usize = 1;
+
   unsafe fn ty() -> UniformType {
     UniformType::BVec3
   }
@@ -740,6 +765,8 @@ unsafe impl<'a> Uniformable<'a, Vec3<bool>> for WebGL2 {
 
 unsafe impl<'a> Uniformable<'a, Vec4<bool>> for WebGL2 {
   type Target = Vec4<bool>;
+
+  const SIZE: usize = 1;
 
   unsafe fn ty() -> UniformType {
     UniformType::BVec4
@@ -767,6 +794,8 @@ static mut BOOL_CACHE: Vec<u32> = Vec::new();
 unsafe impl<'a, const N: usize> Uniformable<'a, Arr<bool, N>> for WebGL2 {
   type Target = &'a [bool; N];
 
+  const SIZE: usize = N;
+
   unsafe fn ty() -> UniformType {
     UniformType::Bool
   }
@@ -784,6 +813,8 @@ unsafe impl<'a, const N: usize> Uniformable<'a, Arr<bool, N>> for WebGL2 {
 
 unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec2<bool>, N>> for WebGL2 {
   type Target = &'a [Vec2<bool>; N];
+
+  const SIZE: usize = N;
 
   unsafe fn ty() -> UniformType {
     UniformType::BVec2
@@ -806,6 +837,8 @@ unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec2<bool>, N>> for WebGL2 {
 
 unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec3<bool>, N>> for WebGL2 {
   type Target = &'a [Vec3<bool>; N];
+
+  const SIZE: usize = N;
 
   unsafe fn ty() -> UniformType {
     UniformType::BVec3
@@ -832,6 +865,8 @@ unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec3<bool>, N>> for WebGL2 {
 
 unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec4<bool>, N>> for WebGL2 {
   type Target = &'a [Vec4<bool>; N];
+
+  const SIZE: usize = N;
 
   unsafe fn ty() -> UniformType {
     UniformType::BVec4
@@ -862,6 +897,8 @@ where
 {
   type Target = ShaderDataBinding<T>;
 
+  const SIZE: usize = 0;
+
   unsafe fn ty() -> UniformType {
     UniformType::ShaderDataBinding
   }
@@ -885,6 +922,8 @@ where
   S: 'a + SamplerType,
 {
   type Target = TextureBinding<D, S>;
+
+  const SIZE: usize = 0;
 
   unsafe fn ty() -> UniformType {
     match (S::sample_type(), D::dim()) {
