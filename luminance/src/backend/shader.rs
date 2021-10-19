@@ -51,6 +51,12 @@ use crate::{
 pub unsafe trait Uniformable<'a, T>: Shader {
   type Target: 'a;
 
+  /// Return the size of the uniform.
+  ///
+  /// For regular uniform variables, this should be `1`. For arrays, it should be the length of the array.
+  /// For anything that is not sized, such as texture bindings, shader data, etc., set it to `0`.
+  const SIZE: usize;
+
   /// Reify the type of the uniform as a [`UniformType`].
   unsafe fn ty() -> UniformType;
 

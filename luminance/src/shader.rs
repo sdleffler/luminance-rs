@@ -323,6 +323,7 @@ impl From<ProgramWarning> for ProgramError {
 pub enum UniformWarning {
   /// Inactive uniform (not in use / no participation to the final output in shaders).
   Inactive(String),
+
   /// Type mismatch between the static requested type (i.e. the `T` in [`Uniform<T>`] for instance)
   /// and the type that got reflected from the backend in the shaders.
   ///
@@ -330,11 +331,27 @@ pub enum UniformWarning {
   ///
   /// [`Uniform<T>`]: crate::shader::Uniform
   TypeMismatch(String, UniformType),
+
   /// The requested type is unsupported by the backend.
   ///
   /// The [`String`] is the name of the uniform. The [`UniformType`] is the type that is not
   /// supported by the backend.
   UnsupportedType(String, UniformType),
+
+  /// Size mismatch between the static requested type (i.e. the `T` in [`Uniform<T>`] for instance)
+  /// and the size that got reflected from the backend in the shaders.
+  ///
+  /// [`Uniform<T>`]: crate::shader::Uniform
+  SizeMismatch {
+    /// Name of the uniform.
+    name: String,
+
+    /// Size of the uniform (static).
+    size: usize,
+
+    /// Found size of the uniform (in the shader).
+    found_size: usize,
+  },
 }
 
 impl UniformWarning {
@@ -361,6 +378,15 @@ impl UniformWarning {
   {
     UniformWarning::UnsupportedType(name.into(), ty)
   }
+
+  /// Create a size mismatch error.
+  pub fn size_mismatch(name: impl Into<String>, size: usize, found_size: usize) -> Self {
+    UniformWarning::SizeMismatch {
+      name: name.into(),
+      size,
+      found_size,
+    }
+  }
 }
 
 impl fmt::Display for UniformWarning {
@@ -374,6 +400,18 @@ impl fmt::Display for UniformWarning {
 
       UniformWarning::UnsupportedType(ref name, ref ty) => {
         write!(f, "unsupported type {} for uniform {}", ty, name)
+      }
+
+      UniformWarning::SizeMismatch {
+        ref name,
+        size,
+        found_size,
+      } => {
+        write!(
+          f,
+          "size mismatch for uniform {}: {} (tdetected size={}",
+          name, size, found_size
+        )
       }
     }
   }
