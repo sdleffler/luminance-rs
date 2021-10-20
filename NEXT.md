@@ -24,6 +24,7 @@
   implementor `T: Uniformable<Backend>`. This is a change allowing for better polymorphic code, where people can create
   « trait aliases » by simply adding `Uniformable<TypeHere>`.
 - Enhance the documentation of various types.
+- Support for uniform array and runtime-check them.
 
 # `luminance-derive`
 
@@ -39,6 +40,7 @@
 - Fix lifetime issue with slicing tessellation.
 - Add support for `ShaderData` via `Std140` (`luminance-std140`).
 - Implement the new `Uniformable` interface.
+- Support for uniform array and runtime-check them.
 
 # `luminance-glfw`
 
@@ -61,5 +63,6 @@
 - Fix lifetime issue with slicing tessellation.
 - Add support for `ShaderData` via `Std140` (`luminance-std140`).
 - Implement the new `Uniformable` interface.
+- Support for uniform array and runtime-check them.
 
 # `luminance-windowing`
