@@ -85,7 +85,12 @@ impl UniformBuilder {
     }
   }
 
-  fn ask_uniform<T>(&self, name: &str) -> Result<Uniform<T>, UniformWarning>
+  fn ask_uniform<T>(
+    &self,
+    name: &str,
+    ty: UniformType,
+    size: usize,
+  ) -> Result<Uniform<T>, UniformWarning>
   where
     GL33: for<'u> Uniformable<'u, T>,
   {
@@ -94,11 +99,15 @@ impl UniformBuilder {
       unsafe { gl::GetUniformLocation(self.handle, c_name.as_ptr() as *const GLchar) }
     };
 
+    // ensure the location smells good
     if location < 0 {
-      Err(UniformWarning::inactive(name))
-    } else {
-      Ok(unsafe { Uniform::new(location) })
+      return Err(UniformWarning::inactive(name));
     }
+
+    // ensure the type is correct regarding what we have in the type-system
+    uniform_type_match(self.handle, name, ty, size)?;
+
+    Ok(unsafe { Uniform::new(location) })
   }
 
   fn ask_uniform_block<T>(&self, name: &str) -> Result<Uniform<T>, UniformWarning>
@@ -110,11 +119,12 @@ impl UniformBuilder {
       unsafe { gl::GetUniformBlockIndex(self.handle, c_name.as_ptr() as *const GLchar) }
     };
 
+    // ensure the location smells good
     if location == gl::INVALID_INDEX {
-      Err(UniformWarning::inactive(name))
-    } else {
-      Ok(unsafe { Uniform::new(location as _) })
+      return Err(UniformWarning::inactive(name));
     }
+
+    Ok(unsafe { Uniform::new(location as _) })
   }
 }
 
@@ -220,10 +230,8 @@ unsafe impl Shader for GL33 {
   {
     let uniform = match Self::ty() {
       UniformType::ShaderDataBinding => uniform_builder.ask_uniform_block(name)?,
-      _ => uniform_builder.ask_uniform(name)?,
+      _ => uniform_builder.ask_uniform(name, Self::ty(), Self::SIZE)?,
     };
-
-    uniform_type_match(uniform_builder.handle, name, Self::ty())?;
 
     Ok(uniform)
   }
@@ -262,9 +270,14 @@ fn glsl_pragma_src(src: &str) -> String {
   pragma
 }
 
-fn uniform_type_match(program: GLuint, name: &str, ty: UniformType) -> Result<(), UniformWarning> {
-  let mut size: GLint = 0;
+fn uniform_type_match(
+  program: GLuint,
+  name: &str,
+  ty: UniformType,
+  size: usize,
+) -> Result<(), UniformWarning> {
   let mut glty: GLuint = 0;
+  let mut found_size: GLint = 0;
 
   unsafe {
     // get the max length of the returned names
@@ -289,25 +302,29 @@ fn uniform_type_match(program: GLuint, name: &str, ty: UniformType) -> Result<()
       index,
       max_len,
       null_mut(),
-      &mut size,
+      &mut found_size,
       &mut glty,
       name_.as_mut_ptr(),
     );
   }
 
-  // early-return if array – we don’t support them yet
-  if size != 1 {
-    return Ok(());
+  let found_size = found_size as usize;
+  if size > 0 && found_size != size {
+    return Err(UniformWarning::size_mismatch(name, size, found_size));
   }
 
-  check_types_match(name, ty, glty)
+  check_uniform_type_match(name, ty, glty)
 }
 
 #[allow(clippy::cognitive_complexity)]
-fn check_types_match(name: &str, ty: UniformType, glty: GLuint) -> Result<(), UniformWarning> {
+fn check_uniform_type_match(
+  name: &str,
+  ty: UniformType,
+  glty: GLuint,
+) -> Result<(), UniformWarning> {
   // helper macro to check type mismatch for each variant
   macro_rules! milkcheck {
-    ($ty:expr, $( ( $v:tt, $t:tt ) ),*) => {
+    ($ty:expr, $( ( $v:tt, $t:tt ) ),* $(,)?) => {
       match $ty {
         $(
           UniformType::$v => {
@@ -373,7 +390,7 @@ fn check_types_match(name: &str, ty: UniformType, glty: GLuint) -> Result<(), Un
     (Sampler2DArray, SAMPLER_2D_ARRAY),
     (ICubemap, INT_SAMPLER_CUBE),
     (UICubemap, UNSIGNED_INT_SAMPLER_CUBE),
-    (Cubemap, SAMPLER_CUBE)
+    (Cubemap, SAMPLER_CUBE),
   )
 }
 
@@ -422,6 +439,8 @@ macro_rules! impl_Uniformable {
     unsafe impl<'a, const N: usize> Uniformable<'a, Arr<$t, N>> for GL33 {
       type Target = &'a [$t; N];
 
+      const SIZE: usize = N;
+
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
@@ -435,6 +454,8 @@ macro_rules! impl_Uniformable {
   (vec $t:ty, $uty:tt, $f:tt) => {
     unsafe impl<'a> Uniformable<'a, $t> for GL33 {
       type Target = $t;
+
+      const SIZE: usize = 1;
 
       unsafe fn ty() -> UniformType {
         UniformType::$uty
@@ -450,6 +471,8 @@ macro_rules! impl_Uniformable {
     unsafe impl<'a> Uniformable<'a, $t> for GL33 {
       type Target = $t;
 
+      const SIZE: usize = 1;
+
       unsafe fn ty() -> UniformType {
         UniformType::$uty
       }
@@ -464,6 +487,8 @@ macro_rules! impl_Uniformable {
   (mat Arr<$t:ty>, $uty:tt, $f:tt) => {
     unsafe impl<'a, const N: usize> Uniformable<'a, Arr<$t, N>> for GL33 {
       type Target = &'a [$t; N];
+
+      const SIZE: usize = N;
 
       unsafe fn ty() -> UniformType {
         UniformType::$uty
@@ -483,6 +508,8 @@ macro_rules! impl_Uniformable {
   (mat $t:ty, $uty:tt, $f:tt) => {
     unsafe impl<'a> Uniformable<'a, $t> for GL33 {
       type Target = $t;
+
+      const SIZE: usize = 1;
 
       unsafe fn ty() -> UniformType {
         UniformType::$uty
@@ -567,6 +594,8 @@ impl_Uniformable!(mat Arr<Mat44<f64>>, DM44, UniformMatrix4dv);
 unsafe impl<'a> Uniformable<'a, bool> for GL33 {
   type Target = bool;
 
+  const SIZE: usize = 1;
+
   unsafe fn ty() -> UniformType {
     UniformType::Bool
   }
@@ -578,6 +607,8 @@ unsafe impl<'a> Uniformable<'a, bool> for GL33 {
 
 unsafe impl<'a> Uniformable<'a, Vec2<bool>> for GL33 {
   type Target = Vec2<bool>;
+
+  const SIZE: usize = 1;
 
   unsafe fn ty() -> UniformType {
     UniformType::BVec2
@@ -592,6 +623,8 @@ unsafe impl<'a> Uniformable<'a, Vec2<bool>> for GL33 {
 unsafe impl<'a> Uniformable<'a, Vec3<bool>> for GL33 {
   type Target = Vec3<bool>;
 
+  const SIZE: usize = 1;
+
   unsafe fn ty() -> UniformType {
     UniformType::BVec3
   }
@@ -604,6 +637,8 @@ unsafe impl<'a> Uniformable<'a, Vec3<bool>> for GL33 {
 
 unsafe impl<'a> Uniformable<'a, Vec4<bool>> for GL33 {
   type Target = Vec4<bool>;
+
+  const SIZE: usize = 1;
 
   unsafe fn ty() -> UniformType {
     UniformType::BVec4
@@ -626,6 +661,8 @@ static mut BOOL_CACHE: Vec<u32> = Vec::new();
 unsafe impl<'a, const N: usize> Uniformable<'a, Arr<bool, N>> for GL33 {
   type Target = &'a [bool; N];
 
+  const SIZE: usize = N;
+
   unsafe fn ty() -> UniformType {
     UniformType::Bool
   }
@@ -641,6 +678,8 @@ unsafe impl<'a, const N: usize> Uniformable<'a, Arr<bool, N>> for GL33 {
 unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec2<bool>, N>> for GL33 {
   type Target = &'a [Vec2<bool>; N];
 
+  const SIZE: usize = N;
+
   unsafe fn ty() -> UniformType {
     UniformType::BVec2
   }
@@ -655,6 +694,8 @@ unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec2<bool>, N>> for GL33 {
 
 unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec3<bool>, N>> for GL33 {
   type Target = &'a [Vec3<bool>; N];
+
+  const SIZE: usize = N;
 
   unsafe fn ty() -> UniformType {
     UniformType::BVec3
@@ -674,6 +715,8 @@ unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec3<bool>, N>> for GL33 {
 
 unsafe impl<'a, const N: usize> Uniformable<'a, Arr<Vec4<bool>, N>> for GL33 {
   type Target = &'a [Vec4<bool>; N];
+
+  const SIZE: usize = N;
 
   unsafe fn ty() -> UniformType {
     UniformType::BVec4
@@ -696,6 +739,8 @@ where
   T: 'a,
 {
   type Target = ShaderDataBinding<T>;
+
+  const SIZE: usize = 0;
 
   unsafe fn ty() -> UniformType {
     UniformType::ShaderDataBinding
@@ -720,6 +765,8 @@ where
   S: 'a + SamplerType,
 {
   type Target = TextureBinding<D, S>;
+
+  const SIZE: usize = 0;
 
   unsafe fn ty() -> UniformType {
     match (S::sample_type(), D::dim()) {
