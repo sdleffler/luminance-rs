@@ -16,16 +16,17 @@ edition = "2018"
 maintenance = { status = "actively-developed" }
 
 [features]
-default = ["gl33", "webgl2"]
-gl33 = []
-gl33-GL_ARB_gpu_shader_fp64 = ["luminance-gl/GL_ARB_gpu_shader_fp64"]
-webgl2 = []
+default = ["autoselect"]
+autoselect = ["gl33", "webgl2"] # automatically pick the right backend depending on the compilation target
+gl33 = ["luminance-gl"] # OpenGL 3.3 backend
+gl33-GL_ARB_gpu_shader_fp64 = ["luminance-gl/GL_ARB_gpu_shader_fp64"] # 64-bit support
+webgl2 = ["luminance-webgl"] # WebGL2 backend
 
 [dependencies]
 luminance = { version = "0.44", path = "../luminance" }
 
-[target.'cfg(any(target_arch = "x86", target_arch = "x86_64"))'.dependencies]
-luminance-gl = { version = "0.17", path = "../luminance-gl" }
+[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+luminance-gl = { version = "0.17", path = "../luminance-gl", optional = true }
 
 [target.'cfg(target_arch = "wasm32")'.dependencies]
-luminance-webgl = { version = "0.4", path = "../luminance-webgl" }
+luminance-webgl = { version = "0.4", path = "../luminance-webgl", optional = true }
