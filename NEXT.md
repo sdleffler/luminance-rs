@@ -43,6 +43,7 @@
 - Add support for `ShaderData` via `Std140` (`luminance-std140`).
 - Implement the new `Uniformable` interface.
 - Support for uniform array and runtime-check them.
+- Document public symbols.
 
 # `luminance-glfw`
 
