@@ -34,6 +34,8 @@
   change that happened in `luminance`.
 - Export the `tess::View` trait, which was missing from the public interface.
 - Export the new `luminance::shader::types::*`.
+- Fix architecture-based detection. The current process is that if the target architecture is not
+  `wasm32-unknown-unknown`, we use `luminance-gl`. So we don’t depend on the CPU architecture anymore.
 
 # `luminance-gl`
 
