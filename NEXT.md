@@ -25,6 +25,8 @@
   « trait aliases » by simply adding `Uniformable<TypeHere>`.
 - Enhance the documentation of various types.
 - Support for uniform array and runtime-check them.
+- Change the encoding of clear color. Now, `PipelineState` expects an `Option<[f32; 4]>`. If it’s `None`, then
+  color clearing will be disabled. Otherwise, it will be enabled with the provided color.
 
 # `luminance-derive`
 
@@ -44,6 +46,7 @@
 - Implement the new `Uniformable` interface.
 - Support for uniform array and runtime-check them.
 - Document public symbols.
+- Support the new color clearing.
 
 # `luminance-glfw`
 
@@ -67,5 +70,6 @@
 - Add support for `ShaderData` via `Std140` (`luminance-std140`).
 - Implement the new `Uniformable` interface.
 - Support for uniform array and runtime-check them.
+- Support the new color clearing.
 
 # `luminance-windowing`

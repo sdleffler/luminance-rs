@@ -110,36 +110,33 @@ where
       }
     }
 
-    state.set_clear_color([
-      clear_color[0] as _,
-      clear_color[1] as _,
-      clear_color[2] as _,
-      clear_color[3] as _,
-    ]);
+    let mut clear_buffer_bits = 0;
+    if let Some(clear_color) = clear_color {
+      state.set_clear_color([
+        clear_color[0] as _,
+        clear_color[1] as _,
+        clear_color[2] as _,
+        clear_color[3] as _,
+      ]);
 
-    if pipeline_state.clear_color_enabled || pipeline_state.clear_depth_enabled {
-      let color_bit = if pipeline_state.clear_color_enabled {
-        gl::COLOR_BUFFER_BIT
-      } else {
-        0
-      };
+      clear_buffer_bits |= gl::COLOR_BUFFER_BIT;
+    }
 
-      let depth_bit = if pipeline_state.clear_depth_enabled {
-        gl::DEPTH_BUFFER_BIT
-      } else {
-        0
-      };
+    if pipeline_state.clear_depth_enabled {
+      clear_buffer_bits |= gl::DEPTH_BUFFER_BIT;
+    }
 
-      match pipeline_state.scissor().as_ref() {
-        Some(region) => {
-          state.set_scissor_state(ScissorState::On);
-          state.set_scissor_region(region);
-        }
-
-        None => state.set_scissor_state(ScissorState::Off),
+    match pipeline_state.scissor().as_ref() {
+      Some(region) => {
+        state.set_scissor_state(ScissorState::On);
+        state.set_scissor_region(region);
       }
 
-      gl::Clear(color_bit | depth_bit);
+      None => state.set_scissor_state(ScissorState::Off),
+    }
+
+    if clear_buffer_bits != 0 {
+      gl::Clear(clear_buffer_bits);
     }
 
     state.enable_srgb_framebuffer(pipeline_state.srgb_enabled);
