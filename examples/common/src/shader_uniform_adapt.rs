@@ -12,7 +12,7 @@
 //! Press the <main> action to switch between uniform interfaces.
 //! Press <escape> to quit or close the window.
 //!
-//! https://docs.rs/luminance
+//! <https://docs.rs/luminance>
 
 use crate::{
   shared::{Semantics, Vertex, VertexColor, VertexPosition},

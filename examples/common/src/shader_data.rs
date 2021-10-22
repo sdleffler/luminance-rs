@@ -3,7 +3,7 @@
 //!
 //! Shader data are often used to implement geometry instancing and various kinds of effects.
 //!
-//! https://docs.rs/luminance
+//! <https://docs.rs/luminance>
 
 use std::f32::consts::PI;
 

@@ -6,7 +6,7 @@
 //! Press the <main action> to switch which triangle is rendered atop of which.
 //! Press the <auxiliary action> to activate additive blending or disable it.
 //!
-//! https://docs.rs/luminance
+//! <https://docs.rs/luminance>
 
 use crate::{
   shared::{Semantics, Vertex, VertexColor, VertexPosition},

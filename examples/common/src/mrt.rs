@@ -2,7 +2,7 @@
 //! target textures, and how to render the contents of these textures into the back
 //! buffer (i.e. the screen), combining data from both.
 //!
-//! https://docs.rs/luminance
+//! <https://docs.rs/luminance>
 
 use crate::{
   shared::{Semantics, Vertex, VertexColor, VertexPosition},

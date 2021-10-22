@@ -9,7 +9,7 @@
 //! Press the <up action>, <down action>, <left action> and <right action> to move the triangle on
 //! the screen.
 //!
-//! https://docs.rs/luminance
+//! <https://docs.rs/luminance>
 
 use crate::{
   shared::{Semantics, Vertex, VertexColor, VertexPosition},

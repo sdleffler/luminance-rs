@@ -2,7 +2,7 @@
 //! outputs the information via the `log` crate via `log::info`, so don’t forget to enable information level in the
 //! executor you choose.
 //!
-//! https://docs.rs/luminance
+//! <https://docs.rs/luminance>
 
 use crate::{Example, InputAction, LoopFeedback, PlatformServices};
 use luminance_front::{context::GraphicsContext, framebuffer::Framebuffer, texture::Dim2, Backend};

@@ -5,7 +5,7 @@
 //!
 //! Press the <main action> to switch between direct tessellation and indexed tessellation.
 //!
-//! https://docs.rs/luminance
+//! <https://docs.rs/luminance>
 
 use crate::{Example, InputAction, LoopFeedback, PlatformServices};
 use luminance::{tess::Deinterleaved, Semantics, Vertex};

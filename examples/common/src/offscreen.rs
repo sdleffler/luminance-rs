@@ -1,7 +1,7 @@
 //! This program shows how to render a single triangle into an offscreen framebuffer and how to
 //! render the content of this offscreen framebuffer into the back buffer (i.e. the screen).
 //!
-//! https://docs.rs/luminance
+//! <https://docs.rs/luminance>
 
 use crate::{
   shared::{Semantics, Vertex, VertexColor, VertexPosition},
