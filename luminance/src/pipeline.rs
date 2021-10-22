@@ -282,14 +282,27 @@ pub enum Viewport {
 pub struct PipelineState {
   /// Color to use when clearing buffers.
   pub clear_color: [f32; 4],
+
   /// Whether clearing color buffers.
   pub clear_color_enabled: bool,
+
   /// Whether clearing depth buffers.
   pub clear_depth_enabled: bool,
+
   /// Viewport to use when rendering.
   pub viewport: Viewport,
-  /// Whether [sRGB](https://en.wikipedia.org/wiki/SRGB) should be enabled.
+
+  /// Whether [sRGB](https://en.wikipedia.org/wiki/SRGB) support should be enabled.
+  ///
+  /// When this is set to `true`, shader outputs that go in [`Framebuffer`] for each of the color slots have sRGB pixel
+  /// formats are assumed to be in the linear RGB color space. The pipeline will then convert that linear color outputs
+  /// to sRGB to be stored in the [`Framebuffer`].
+  ///
+  /// Typical examples are when you are rendering into an image that is to be displayed to on screen: the
+  /// [`Framebuffer`] can use sRGB color pixel formats and the shader doesn’t have to worry about converting from linear
+  /// color space into sRGB color space, as the pipeline will do that for you.
   pub srgb_enabled: bool,
+
   /// Whether to use scissor test when clearing buffers.
   pub clear_scissor: Option<ScissorRegion>,
 }
