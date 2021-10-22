@@ -6,7 +6,7 @@
 //!
 //! Press <escape> to quit or close the window.
 //!
-//! https://docs.rs/luminance
+//! <https://docs.rs/luminance>
 
 use crate::{Example, InputAction, LoopFeedback, PlatformServices};
 use luminance_front::{

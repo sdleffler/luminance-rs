@@ -15,7 +15,7 @@
 //!
 //! Where F = front, L = left, R = right, B = behind, U = up and D = down.
 //!
-//! https://docs.rs/luminance
+//! <https://docs.rs/luminance>
 
 use std::{error::Error, fmt};
 

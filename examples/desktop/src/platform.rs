@@ -5,7 +5,7 @@ use image::ImageError;
 use luminance_examples::{Features, PlatformServices};
 use std::{collections::HashMap, error::Error, fmt};
 
-/// Desktop implementation of the [`PlatformService`] API.
+/// Desktop implementation of the [`PlatformServices`] API.
 #[derive(Debug)]
 pub struct DesktopPlatformServices {
   cli_opts: CLIOpts,

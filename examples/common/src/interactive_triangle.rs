@@ -6,7 +6,7 @@
 //! it, move it around and release the left click to put it at the place your cursor is.
 //! Press <escape> to quit or close the window.
 //!
-//! https://docs.rs/luminance
+//! <https://docs.rs/luminance>
 
 use crate::{
   shared::{Semantics, Vertex, VertexColor, VertexPosition},

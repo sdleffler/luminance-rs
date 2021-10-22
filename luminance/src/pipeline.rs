@@ -4,211 +4,106 @@
 //! provide a way to describe how resources should be shared and used to produce a single
 //! pixel frame.
 //!
-//! # Pipelines and AST
+//! # Pipelines and graphs
 //!
 //! luminance has a very particular way of doing graphics. It represents a typical _graphics
-//! pipeline_ via a typed [AST] that is embedded into your code. As you might already know, when you
-//! write code, you’re actually creating an [AST]: expressions, assignments, bindings, conditions,
-//! function calls, etc. They all represent a typed tree that represents your program.
+//! pipeline_ via a typed graph that is embedded into your code. Graphs are used to create a
+//! dependency between resources your GPU needs to have in order to perform a render. It might
+//! be weird at first but you’ll see how simple and easy it actually is. If you want to perform
+//! a simple draw call of a triangle, you need several resources:
 //!
-//! luminance uses that property to create a dependency between resources your GPU needs to
-//! have in order to perform a render. It might be weird at first but you’ll see how simple and easy
-//! it is. If you want to perform a simple draw call of a triangle, you need several resources:
-//!
-//! - A [`Tess`] that represents the triangle. It holds three vertices.
+//! - A [`Tess`] that represents the triangle — assuming you don’t cheat with an attributeless
+//!   render ;). It holds three vertices.
 //! - A shader [`Program`], for shading the triangle with a constant color, for short and simple.
 //! - A [`Framebuffer`], to accept and hold the actual render.
 //! - A [`RenderState`], to state how the render should be performed.
 //! - And finally, a [`PipelineState`], which allows even more customization on how the pipeline
-//!   behaves
+//!   runs.
 //!
-//! There is a dependency _graph_ to represent how the resources must behave regarding each other:
+//! The terminology used in luminance is as follows: a graphics pipeline is a graph in which nodes
+//! are called _gates_. A gate represents a particular resource exposed as a shared scarce resource
+//! for child, nested nodes. For instance, you can share framebuffer in a [`PipelineGate`]: all
+//! nodes that are children of that framebuffer node will then be able to render into that
+//! framebuffer.
 //!
-//! ```text
-//! (AST1)
-//!
-//! PipelineState ─── Framebuffer ─── Shader ─── RenderState ─── Tess
-//! ```
-//!
-//! The framebuffer must be _active_, _bound_, _used_ — or whatever verb you want to picture it
-//! with — before the shader can start doing things. The shader must also be in use before we can
-//! actually render the tessellation.
-//!
-//! That triple dependency relationship is already a small flat [AST]. Imagine we want to render
-//! a second triangle with the same render state and a third triangle with a different render state:
-//!
-//! ```text
-//! (AST2)
-//!
-//! PipelineState ─── Framebuffer ─── Shader ─┬─ RenderState ─┬─ Tess
-//!                                           │               │
-//!                                           │               └─ Tess
-//!                                           │
-//!                                           └─ RenderState ─── Tess
-//! ```
-//!
-//! That [AST] looks more complex. Imagine now that we want to shade one other triangle with
-//! another shader!
-//!
-//! ```text
-//! (AST3)
-//!
-//! PipelineState ─── Framebuffer ─┬─ Shader ─┬─ RenderState ─┬─ Tess
-//!                                │          │               │
-//!                                │          │               └─ Tess
-//!                                │          │
-//!                                │          └─ RenderState ─── Tess
-//!                                │
-//!                                └─ Shader ─── RenderState ─── Tess
-//! ```
-//!
-//! You can now clearly see the [AST]s and the relationships between objects. Those are encoded
-//! in luminance within your code directly: lambdas / closures.
-//!
-//! > If you have followed thoroughly, you might have noticed that you cannot, with such [AST]s,
-//! > shade a triangle with another shader but using the same render state as another node. That
-//! > was a decision that was needed to be made: how should we allow the [AST] to be shared?
-//! > In terms of graphics pipeline, luminance tries to do the best thing to minimize the number
-//! > of GPU context switches and CPU <=> GPU bandwidth congestion.
-//!
-//! # The lambda & closure design
-//!
-//! A function is a perfect candidate to modelize a dependency: the arguments of the function
-//! modelize the dependency — they will be provided _at some point in time_, but it doesn’t matter
-//! when while writing the function. We can then write code _depending_ on something without even
-//! knowing where it’s from.
-//!
-//! Using pseudo-code, here’s what the ASTs from above look like: (this is not a real luminance,
-//! excerpt, just a simplification).
-//!
-//! ```ignore
-//! // AST1
-//! pipeline(framebuffer, pipeline_state, || {
-//!   // here, we are passing a closure that will get called whenever the framebuffer is ready to
-//!   // receive renders
-//!   use_shader(shader, || {
-//!     // same thing but for shader
-//!     use_render_state(render_state, || {
-//!       // ditto for render state
-//!       triangle.render(); // render the tessellation
-//!     });
-//!   });
-//! });
-//! ```
-//!
-//! See how simple it is to represent `AST1` with just closures? Rust’s lifetimes and existential
-//! quantification allow us to ensure that no resource will leak from the scope of each closures,
-//! hence enforcing memory and coherency safety.
-//!
-//! Now let’s try to tackle `AST2`.
-//!
-//! ```ignore
-//! // AST2
-//! pipeline(framebuffer, pipeline_state, || {
-//!   use_shader(shader, || {
-//!     use_render_state(render_state, || {
-//!       first_triangle.render();
-//!       second_triangle.render(); // simple and straight-forward
-//!     });
-//!
-//!     // we can just branch a new render state here!
-//!     use_render_state(other_render_state, || {
-//!       third.render()
-//!     });
-//!   });
-//! });
-//! ```
-//!
-//! And `AST3`:
-//!
-//! ```ignore
-//! // AST3
-//! pipeline(framebuffer, pipeline_state, || {
-//!   use_shader(shader, || {
-//!     use_render_state(render_state, || {
-//!       first_triangle.render();
-//!       second_triangle.render(); // simple and straight-forward
-//!     });
-//!
-//!     // we can just branch a new render state here!
-//!     use_render_state(other_render_state, || {
-//!       third.render()
-//!     });
-//!   });
-//!
-//!   use_shader(other_shader, || {
-//!     use_render_state(yet_another_render_state, || {
-//!       other_triangle.render();
-//!     });
-//!   });
-//! });
-//! ```
-//!
-//! The luminance equivalent is a bit more complex because it implies some objects that need
-//! to be introduced first.
+//! This design is well-typed: when you enter a given gate, the set of operations and children nodes
+//! you can create is directly dependent on the parent node.
 //!
 //! # PipelineGate and Pipeline
 //!
-//! A [`PipelineGate`] represents a whole [AST] as seen as just above. It is created by a
-//! [`GraphicsContext`] when you ask to create a pipeline gate. A [`PipelineGate`] is typically
+//! A [`PipelineGate`] is the gate allowing to share a [`Framebuffer`].
+//!
+//! A [`PipelineGate`] represents a whole graphics pipeline as seen as just above. It is created by
+//! a [`GraphicsContext`] when you ask to create a pipeline gate. A [`PipelineGate`] is typically
 //! destroyed at the end of the current frame, but that’s not a general rule.
 //!
-//! Such an object gives you access, via the [`PipelineGate::pipeline`], to two other objects
-//! :
+//! Such an object gives you access, via the [`PipelineGate::pipeline`], to two other objects:
 //!
 //! - A [`ShadingGate`], explained below.
 //! - A [`Pipeline`].
 //!
-//! A [`Pipeline`] is a special object you can use to use some specific scarce resources, such as
-//! _textures_ and _buffers_. Those are treated a bit specifically on the GPU, so you have to use
-//! the [`Pipeline`] interface to deal with them.
+//! A [`Pipeline`] is a special object you can use to handle some specific scarce resources, such as
+//! _textures_ and _shader data. Those are treated a bit specifically on the backend, so you have to
+//! use the [`Pipeline`] interface to deal with them. Those scarce resources can be shared at different
+//! depth in the graphics pipeline, which is the reason why they are exposed via this [`Pipeline`]
+//! object, that you can pass down the graph.
 //!
 //! Creating a [`PipelineGate`] requires two resources: a [`Framebuffer`] to render to, and a
-//! [`PipelineState`], allowing to customize how the pipeline will perform renders at runtime.
+//! [`PipelineState`], allowing to customize how the pipeline will perform renders at runtime. This gate
+//! will then do a couple of things on the backend, depending mainly on the [`PipelineState`] you pass.
+//! For instance, framebuffer clearing, sRGB conversion or scissor test is done at that level.
 //!
 //! # ShadingGate
 //!
-//! When you create a pipeline, you’re also handed a [`ShadingGate`]. A [`ShadingGate`] is an object
-//! that allows you to create _shader_ nodes in the [AST] you’re building. You have no other way
-//! to go deeper in the [AST].
+//! A [`ShadingGate`] is the gate allowing to share a shader [`Program`].
 //!
-//! That node will typically borrow a shader [`Program`] and will move you one level lower in the
-//! graph ([AST]). A shader [`Program`] is typically an object you create at initialization or at
-//! specific moment in time (i.e. you don’t create them each frame) that tells the GPU how vertices
+//! When you enter a [`PipelineGate`], you’re handed a [`ShadingGate`]. A [`ShadingGate`] is an object
+//! that allows you to create _shader_ nodes in the graphics pipeline. You have no other way to go deeper
+//! in the graph.
+//!
+//! A shader [`Program`] is typically an object you create at initialization or at specific moment in time
+//! (i.e. you don’t create them on each frame, that would be super costly) that tells the GPU how vertices
 //! should be transformed; how primitives should be moved and generated, how tessellation occurs and
 //! how fragment (i.e. pixels) are computed / shaded — hence the name.
 //!
-//! At that level (i.e. in that closure), you are given two objects:
+//! At that level (i.e. in that closure), you are given three objects:
 //!
-//!   - A [`RenderGate`], discussed below.
-//!   - A [`ProgramInterface`], which has as type parameter the type of uniform your shader
-//!     [`Program`] defines.
+//! - A [`RenderGate`], discussed below.
+//! - A [`ProgramInterface`], which has as type parameter the type of uniform your shader
+//!   [`Program`] defines.
+//! - The uniform interface the [`Program`] was made to work with.
 //!
 //! The [`ProgramInterface`] is the only way for you to access your _uniform interface_. More on
 //! this in the dedicated section. It also provides you with the [`ProgramInterface::query`]
 //! method, that allows you to perform _dynamic uniform lookup_.
 //!
+//! Once you have entered this gate, you know that everything nested will be shaded with the shared shader
+//! [`Program`].
+//!
 //! # RenderGate
 //!
+//! A [`RenderGate`] is the gate allowing to prepare renders by sharing [`RenderState`].
+//!
 //! A [`RenderGate`] is the second to last gate you will be handling. It allows you to create
-//! _render state_ nodes in your [AST], creating a new level for you to render tessellations with
+//! _render state_ nodes in your graph, creating a new level for you to render tessellations with
 //! an obvious, final gate: the [`TessGate`].
 //!
 //! The kind of object that node manipulates is [`RenderState`]. A [`RenderState`] — a bit like for
 //! [`PipelineGate`] with [`PipelineState`] — enables to customize how a render of a specific set
-//! of objects (i.e. tessellations) will occur. It’s a bit more specific to renders than pipelines.
+//! of objects (i.e. tessellations) will occur. It’s a bit more specific to renders than pipelines and
+//! will allow customizing aspects like _blending_, _depth test_, _backface culling_, etc.
 //!
 //! # TessGate
 //!
-//! The [`TessGate`] is the final gate you use in an [AST]. It’s used to create _tessellation
-//! nodes_. Those are used to render actual [`Tess`]. You cannot go any deeper in the [AST] at that
-//! stage.
+//! A [`TessGate`] is the final gate, allowing to share [`Tess`].
+//!
+//! The [`TessGate`] is the final gate you use in a graphics pipeline. It’s used to create _tessellation
+//! nodes_. Those are used to render actual [`Tess`]. You cannot go any deeper in the graph at that stage.
 //!
 //! [`TessGate`]s don’t immediately use [`Tess`] as inputs. They use [`TessView`]. That type is
-//! a simple GPU view into a GPU tessellation ([`Tess`]). It can be obtained from a [`Tess`] via
-//! the [`View`] trait or built explicitly.
+//! a simple immutable view into a [`Tess`]. It can be obtained from a [`Tess`] via the [`View`] trait or
+//! built explicitly.
 //!
-//! [AST]: https://en.wikipedia.org/wiki/Abstract_syntax_tree
 //! [`Tess`]: crate::tess::Tess
 //! [`Program`]: crate::shader::Program
 //! [`Framebuffer`]: crate::framebuffer::Framebuffer

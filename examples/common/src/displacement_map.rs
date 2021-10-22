@@ -13,7 +13,7 @@
 //!
 //! > Note: for this example, it is recommended to compile with --release to speed up image loading.
 //!
-//! https://docs.rs/luminance
+//! <https://docs.rs/luminance>
 
 use crate::{
   shared::{load_texture, RGBTexture},

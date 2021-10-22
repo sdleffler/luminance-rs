@@ -3,7 +3,7 @@
 //!
 //! This example is requires a file system to run as it will write the output to it.
 //!
-//! https://docs.rs/luminance
+//! <https://docs.rs/luminance>
 
 use crate::{
   shared::{Semantics, Vertex, VertexColor, VertexPosition},

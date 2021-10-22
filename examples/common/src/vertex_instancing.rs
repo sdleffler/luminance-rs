@@ -1,6 +1,6 @@
 //! This program shows you how to do *vertex instancing*, the easy way.
 //!
-//! https://docs.rs/luminance
+//! <https://docs.rs/luminance>
 
 use crate::{
   shared::{

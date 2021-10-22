@@ -5,13 +5,13 @@
 //!
 //! Press the <main action> to change the viewing method.
 //!
-//! https://docs.rs/luminance
+//! <https://docs.rs/luminance>
 //!
 //! Bonus: for interested peeps, you’ll notice here the concept of slice. Unfortunately, the current
 //! Index trait doesn’t allow us to use it (:(). More information on an RFC to try to change that
 //! here:
 //!
-//! https://github.com/rust-lang/rfcs/pull/2473
+//! <https://github.com/rust-lang/rfcs/pull/2473>
 
 use crate::{
   shared::{Semantics, Vertex, VertexColor, VertexPosition},
