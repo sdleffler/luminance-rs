@@ -81,8 +81,8 @@ pub use luminance::vertex;
 
 // select the backend type
 
-#[cfg(all(feature = "gl33", not(target_arch = "wasm32")))]
+#[cfg(all(feature = "gl33", not(target_family = "wasm")))]
 pub type Backend = luminance_gl::GL33;
 
-#[cfg(all(feature = "webgl2", target_arch = "wasm32"))]
+#[cfg(all(feature = "webgl2", target_family = "wasm"))]
 pub type Backend = luminance_webgl::webgl2::WebGL2;

@@ -25,8 +25,8 @@ webgl2 = ["luminance-webgl"] # WebGL2 backend
 [dependencies]
 luminance = { version = "0.44", path = "../luminance" }
 
-[target.'cfg(not(target_arch = "wasm32"))'.dependencies]
+[target.'cfg(not(target_family = "wasm"))'.dependencies]
 luminance-gl = { version = "0.17", path = "../luminance-gl", optional = true }
 
-[target.'cfg(target_arch = "wasm32")'.dependencies]
+[target.'cfg(target_family = "wasm")'.dependencies]
 luminance-webgl = { version = "0.4", path = "../luminance-webgl", optional = true }
