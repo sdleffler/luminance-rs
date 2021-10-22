@@ -281,15 +281,31 @@ pub enum Viewport {
 #[derive(Clone, Debug)]
 pub struct PipelineState {
   /// Color to use when clearing buffers.
-  pub clear_color: [f32; 4],
-  /// Whether clearing color buffers.
-  pub clear_color_enabled: bool,
+  ///
+  /// Set this to `Some(color)` to use that color to clear the [`Framebuffer`] when running a [`PipelineGate`]. Set it
+  /// to `None` not to clear the framebuffer when running the [`PipelineGate`].
+  ///
+  /// An example of not setting the clear color is if you want to accumulate renders in a [`Framebuffer`] (for instance
+  /// for a paint-like application).
+  pub clear_color: Option<[f32; 4]>,
+
   /// Whether clearing depth buffers.
   pub clear_depth_enabled: bool,
+
   /// Viewport to use when rendering.
   pub viewport: Viewport,
-  /// Whether [sRGB](https://en.wikipedia.org/wiki/SRGB) should be enabled.
+
+  /// Whether [sRGB](https://en.wikipedia.org/wiki/SRGB) support should be enabled.
+  ///
+  /// When this is set to `true`, shader outputs that go in [`Framebuffer`] for each of the color slots have sRGB pixel
+  /// formats are assumed to be in the linear RGB color space. The pipeline will then convert that linear color outputs
+  /// to sRGB to be stored in the [`Framebuffer`].
+  ///
+  /// Typical examples are when you are rendering into an image that is to be displayed to on screen: the
+  /// [`Framebuffer`] can use sRGB color pixel formats and the shader doesn’t have to worry about converting from linear
+  /// color space into sRGB color space, as the pipeline will do that for you.
   pub srgb_enabled: bool,
+
   /// Whether to use scissor test when clearing buffers.
   pub clear_scissor: Option<ScissorRegion>,
 }
@@ -297,16 +313,14 @@ pub struct PipelineState {
 impl Default for PipelineState {
   /// Default [`PipelineState`]:
   ///
-  /// - Clear color is `[0, 0, 0, 1]`.
-  /// - Color is always cleared.
+  /// - Clear color is `Some([0, 0, 0, 1])`.
   /// - Depth is always cleared.
   /// - The viewport uses the whole framebuffer’s.
   /// - sRGB encoding is disabled.
   /// - No scissor test is performed.
   fn default() -> Self {
     PipelineState {
-      clear_color: [0., 0., 0., 1.],
-      clear_color_enabled: true,
+      clear_color: Some([0., 0., 0., 1.]),
       clear_depth_enabled: true,
       viewport: Viewport::Whole,
       srgb_enabled: false,
@@ -323,30 +337,22 @@ impl PipelineState {
     Self::default()
   }
 
-  /// Get the clear color.
-  pub fn clear_color(&self) -> [f32; 4] {
-    self.clear_color
+  /// Get the clear color, if any.
+  pub fn clear_color(&self) -> Option<&[f32; 4]> {
+    self.clear_color.as_ref()
   }
 
   /// Set the clear color.
-  pub fn set_clear_color(self, clear_color: [f32; 4]) -> Self {
+  pub fn set_clear_color(self, clear_color: impl Into<Option<[f32; 4]>>) -> Self {
     Self {
-      clear_color,
+      clear_color: clear_color.into(),
       ..self
     }
   }
 
   /// Check whether the pipeline’s framebuffer’s color buffers will be cleared.
   pub fn is_clear_color_enabled(&self) -> bool {
-    self.clear_color_enabled
-  }
-
-  /// Enable clearing color buffers.
-  pub fn enable_clear_color(self, clear_color_enabled: bool) -> Self {
-    Self {
-      clear_color_enabled,
-      ..self
-    }
+    self.clear_color.is_some()
   }
 
   /// Check whether the pipeline’s framebuffer’s depth buffer will be cleared.

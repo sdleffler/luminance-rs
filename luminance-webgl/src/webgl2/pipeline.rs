@@ -101,9 +101,6 @@ where
 
     state.bind_draw_framebuffer(framebuffer.handle.as_ref());
 
-    let clear_color = pipeline_state.clear_color;
-    state.set_clear_color(clear_color);
-
     let size = framebuffer.size;
 
     let (x, y, w, h) = match pipeline_state.viewport {
@@ -118,32 +115,31 @@ where
 
     state.set_viewport([x as _, y as _, w as _, h as _]);
 
-    if pipeline_state.clear_color_enabled || pipeline_state.clear_depth_enabled {
-      let color_bit = if pipeline_state.clear_color_enabled {
-        WebGl2RenderingContext::COLOR_BUFFER_BIT
-      } else {
-        0
-      };
+    let mut clear_buffer_bits = 0;
 
-      let depth_bit = if pipeline_state.clear_depth_enabled {
-        WebGl2RenderingContext::DEPTH_BUFFER_BIT
-      } else {
-        0
-      };
+    if let Some(clear_color) = pipeline_state.clear_color {
+      state.set_clear_color(clear_color);
+      clear_buffer_bits |= WebGl2RenderingContext::COLOR_BUFFER_BIT;
+    }
 
-      // scissor test
-      match pipeline_state.scissor() {
-        Some(region) => {
-          state.set_scissor_state(ScissorState::On);
-          state.set_scissor_region(region);
-        }
+    if pipeline_state.clear_depth_enabled {
+      clear_buffer_bits |= WebGl2RenderingContext::DEPTH_BUFFER_BIT;
+    }
 
-        None => {
-          state.set_scissor_state(ScissorState::Off);
-        }
+    // scissor test
+    match pipeline_state.scissor() {
+      Some(region) => {
+        state.set_scissor_state(ScissorState::On);
+        state.set_scissor_region(region);
       }
 
-      state.ctx.clear(color_bit | depth_bit);
+      None => {
+        state.set_scissor_state(ScissorState::Off);
+      }
+    }
+
+    if clear_buffer_bits != 0 {
+      state.ctx.clear(clear_buffer_bits);
     }
   }
 }
