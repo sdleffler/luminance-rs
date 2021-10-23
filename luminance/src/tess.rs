@@ -9,9 +9,10 @@
 //!   a default number of vertices (typically, the whole [`Tess`]).
 //! - A default number of _instances_, which allows for geometry instancing. Geometry instancing
 //!   is the fact of drawing with the same [`Tess`] several times, only changing the
-//!   instance index every time a new render is performed. This is done entirely on the GPU to
+//!   instance index every time a new render is performed. This is done entirely on the backend to
 //!   prevent bandwidth exhaustion. The index of the instance, in the shader stages, is often used
-//!   to pick material properties, matrices, etc. to customize each instances.
+//!   to pick material properties, matrices, etc. to customize each instances. Instances can manually
+//!   be asked when using a [`TessView`].
 //! - An indexed configuration, allowing to tell the GPU how to render the vertices by referring to
 //!   them via indices.
 //! - For indexed configuration, an optional _primitive restart index_ can be specified. That
@@ -38,14 +39,15 @@
 //! [`TessGate`]. In order to do so, you need a [`TessView`].
 //!
 //! A [`TessView`] is a temporary _view_ into a [`Tess`], describing what part of it should be
-//! drawn. Creating [`TessView`]s is a cheap operation, and can be done in two different ways:
+//! drawn. It is also responsible in providing the number of instances to draw.
+//! Creating [`TessView`]s is a cheap operation, and can be done in two different ways:
 //!
 //! - By directly using the methods from [`TessView`].
 //! - By using the [`View`] trait.
 //!
 //! The [`View`] trait is a convenient way to create [`TessView`]. It provides the
-//! [`View::view`] and [`View::inst_view`] methods, which accept Rust’s range operators
-//! to create the [`TessView`]s in a more comfortable way.
+//! [`View::view`] and [`View::inst_view`] (for instanced rendering) methods, which accept Rust’s
+//! range operators to create the [`TessView`]s in a more comfortable way.
 //!
 //! # Tessellation mapping
 //!
