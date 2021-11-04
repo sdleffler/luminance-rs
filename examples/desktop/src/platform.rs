@@ -8,7 +8,6 @@ use std::{collections::HashMap, error::Error, fmt};
 /// Desktop implementation of the [`PlatformServices`] API.
 #[derive(Debug)]
 pub struct DesktopPlatformServices {
-  cli_opts: CLIOpts,
   textures: HashMap<String, image::RgbImage>,
 }
 
@@ -17,7 +16,6 @@ impl DesktopPlatformServices {
     let textures = features.textures();
     if textures.is_empty() {
       Self {
-        cli_opts,
         textures: HashMap::new(),
       }
     } else {
@@ -33,7 +31,7 @@ impl DesktopPlatformServices {
         })
         .collect();
 
-      Self { cli_opts, textures }
+      Self { textures }
     }
   }
 }

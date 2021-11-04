@@ -1,10 +1,11 @@
 mod platform;
 
-use glfw::{Action, Context as _, Key, Modifiers, MouseButton, WindowEvent};
+use glfw::{
+  Action, Context as _, Key, Modifiers, MouseButton, SwapInterval, WindowEvent, WindowMode,
+};
 use luminance_examples::{Example, InputAction, LoopFeedback};
 use luminance_gl::GL33;
-use luminance_glfw::GlfwSurface;
-use luminance_windowing::{WindowDim, WindowOpt};
+use luminance_glfw::{GlfwSurface, GlfwSurfaceError};
 use platform::DesktopPlatformServices;
 use std::{iter, path::PathBuf, time::Instant};
 use structopt::StructOpt;
@@ -82,6 +83,11 @@ macro_rules! examples {
   }
 }
 
+#[derive(Debug)]
+pub enum PlatformError {
+  CannotCreateWindow,
+}
+
 // Run an example.
 fn run_example<E>(cli_opts: CLIOpts, name: &str)
 where
@@ -91,12 +97,19 @@ where
   let mut services = DesktopPlatformServices::new(cli_opts, E::features());
 
   // First thing first: we create a new surface to render to and get events from.
-  let dim = WindowDim::Windowed {
-    width: 960,
-    height: 540,
-  };
-  let surface =
-    GlfwSurface::new_gl33(name, WindowOpt::default().set_dim(dim)).expect("GLFW surface creation");
+  let surface = GlfwSurface::new(|glfw| {
+    let (mut window, events) = glfw
+      .create_window(960, 540, name, WindowMode::Windowed)
+      .ok_or_else(|| GlfwSurfaceError::UserError(PlatformError::CannotCreateWindow))?;
+
+    window.make_current();
+    window.set_all_polling(true);
+    glfw.set_swap_interval(SwapInterval::Sync(1));
+
+    Ok((window, events))
+  })
+  .expect("GLFW surface creation");
+
   let mut context = surface.context;
   let events = surface.events_rx;
 
