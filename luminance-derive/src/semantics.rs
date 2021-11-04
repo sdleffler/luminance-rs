@@ -113,9 +113,10 @@ pub(crate) fn generate_enum_semantics_impl(
 
         // field-based code generation
         let field_gen = quote! {
-          // vertex attrib type
+          /// Vertex attribute type (representing #repr_ty_name).
           #[derive(Clone, Copy, Debug, PartialEq, PartialOrd)]
           pub struct #ty_name {
+            /// Internal representation.
             pub repr: #repr_ty_name
           }
 
@@ -143,6 +144,7 @@ pub(crate) fn generate_enum_semantics_impl(
 
           // convert from the repr type to the vertex attrib type
           impl #ty_name {
+            /// Create a new vertex attribute based on its inner representation.
             pub const fn new(repr: #repr_ty_name) -> Self {
              #ty_name {
                repr
