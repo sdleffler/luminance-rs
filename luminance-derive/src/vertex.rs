@@ -211,6 +211,7 @@ fn process_struct(
 
     quote! {
       impl #struct_name {
+        /// Create a new vertex.
         pub const fn new(#(#i : #fields_types),*) -> Self {
           #struct_name ( #(#i),* )
         }
@@ -219,6 +220,7 @@ fn process_struct(
   } else {
     quote! {
       impl #struct_name {
+        /// Create a new vertex.
         pub const fn new(#(#fields_names : #fields_types),*) -> Self {
           #struct_name { #(#fields_names),* }
         }

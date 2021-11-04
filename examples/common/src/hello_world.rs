@@ -7,6 +7,8 @@
 //!
 //! <https://docs.rs/luminance>
 
+#![deny(missing_docs)]
+
 use crate::{Example, InputAction, LoopFeedback, PlatformServices};
 use luminance::{tess::Deinterleaved, Semantics, Vertex};
 use luminance_front::{
@@ -24,21 +26,21 @@ use luminance_front::{
 const VS: &'static str = include_str!("simple-vs.glsl");
 const FS: &'static str = include_str!("simple-fs.glsl");
 
-// Vertex semantics. Those are needed to instruct the GPU how to select vertex’s attributes from
-// the memory we fill at render time, in shaders. You don’t have to worry about them; just keep in
-// mind they’re mandatory and act as “protocol” between GPU’s memory regions and shaders.
-//
-// We derive Semantics automatically and provide the mapping as field attributes.
+/// Vertex semantics. Those are needed to instruct the GPU how to select vertex’s attributes from
+/// the memory we fill at render time, in shaders. You don’t have to worry about them; just keep in
+/// mind they’re mandatory and act as “protocol” between GPU’s memory regions and shaders.
+///
+/// We derive Semantics automatically and provide the mapping as field attributes.
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Semantics)]
 pub enum Semantics {
-  // - Reference vertex positions with the "co" variable in vertex shaders.
-  // - The underlying representation is [f32; 2], which is a vec2 in GLSL.
-  // - The wrapper type you can use to handle such a semantics is VertexPosition.
+  /// - Reference vertex positions with the "co" variable in vertex shaders.
+  /// - The underlying representation is [f32; 2], which is a vec2 in GLSL.
+  /// - The wrapper type you can use to handle such a semantics is VertexPosition.
   #[sem(name = "co", repr = "[f32; 2]", wrapper = "VertexPosition")]
   Position,
-  // - Reference vertex colors with the "color" variable in vertex shaders.
-  // - The underlying representation is [u8; 3], which is a uvec3 in GLSL.
-  // - The wrapper type you can use to handle such a semantics is VertexColor.
+  /// - Reference vertex colors with the "color" variable in vertex shaders.
+  /// - The underlying representation is [u8; 3], which is a uvec3 in GLSL.
+  /// - The wrapper type you can use to handle such a semantics is VertexColor.
   #[sem(name = "color", repr = "[u8; 3]", wrapper = "VertexColor")]
   Color,
 }
@@ -139,6 +141,7 @@ impl TessMethod {
   }
 }
 
+/// Local example; this will be picked by the example runner.
 pub struct LocalExample {
   program: Program<Semantics, (), ()>,
   direct_triangles: Tess<Vertex>,
