@@ -153,10 +153,6 @@ jobs:
         run: |
           cd $GITHUB_WORKSPACE/luminance-webgl
           cargo sync-readme -c
-      - name: cargo sync-readme luminance-windowing
-        run: |
-          cd $GITHUB_WORKSPACE/luminance-windowing
-          cargo sync-readme -c
       - name: rustfmt
         run: |
           cargo fmt -- --check

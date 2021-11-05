@@ -51,6 +51,11 @@
 # `luminance-glfw`
 
 - Add support for `glfw-0.42`.
+- Remove support for `luminance-windowing`. The interface now requires you to pass a function to build the `Window` and
+  the `Receiver` for the events. This might seem like a regression but it actually allows for a more flexible way to use
+  `luminance`. Instead of hiding the window construction to the user and trying to do things for them, `luminance-glfw`
+  now just passes the strict minimum to the `Glfw` object (basically, the OpenGL context), and the user can create the
+  window the way they want.
 
 # `luminance-glutin`
 
@@ -61,6 +66,8 @@
 - New crate, `luminance-std140` provides the `Std140` trait, allowing implementations to easily provide types for OpenGL-based backends.
 
 # `luminance-web-sys`
+
+- Remove useless dependency (`luminance-windowing`).
 
 # `luminance-webgl`
 
@@ -73,3 +80,5 @@
 - Support the new color clearing.
 
 # `luminance-windowing`
+
+- Final version of the crate as it is now deprecated and will not be maintained.

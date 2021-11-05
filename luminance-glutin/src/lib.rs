@@ -1,7 +1,4 @@
-//! The [glutin] windowing implementation for [luminance-windowing].
-//!
-//! [glutin]: https://crates.io/crates/glutin
-//! [luminance-windowing]: https://crates.io/crates/luminance-windowing
+//! The [glutin](https://crates.io/crates/glutin) platform crate for [luminance](https://crates.io/crates/luminance).
 
 #![deny(missing_docs)]
 

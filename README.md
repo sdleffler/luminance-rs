@@ -102,8 +102,6 @@ It is currently composed of several different crates:
 - [luminance-glutin]: a platform implementation for [glutin].
 - [luminance-sdl2]: a platform implementation for [sdl2].
 - [luminance-web-sys]: a platform implementation for [web-sys].
-- [luminance-windowing]: a small interface crate for windowing purposes. It’s unlikely you will
-  need it, but it provides some basic and shared data structures you might use.
 
 ## Other crates
 
@@ -166,7 +164,6 @@ Those projects use luminance:
 [luminance-sdl2]: ./luminance-sdl2
 [luminance-webgl]: ./luminance-webgl
 [luminance-web-sys]: ./luminance-web-sys
-[luminance-windowing]: ./luminance-windowing
 [luminance-front]: ./luminance-front
 [luminance-std140]: ./luminance-std140
 [examples]: ./examples
