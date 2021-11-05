@@ -1,10 +1,6 @@
-//! # The windowing types for luminance
-//!
-//! This crate provides you with a set of common types you can use when implementing windowing
-//! crates. Even though the crate is used in most [luminance] windowing backends.
-//!
-//! [luminance]: https://crates.io/crates/luminance
+//! This crate is deprecated! You must now use the platform crates to customize how a window should be opened.
 
+#![deprecated = "luminance-windowing is not maintained anymore; please directly use the platform crates from now on"]
 #![deny(missing_docs)]
 
 /// Dimension metrics.

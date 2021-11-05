@@ -80,3 +80,5 @@
 - Support the new color clearing.
 
 # `luminance-windowing`
+
+- Final version of the crate as it is now deprecated and will not be maintained.
