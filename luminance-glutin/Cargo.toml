@@ -21,7 +21,6 @@ gl = "0.14"
 glutin = { version = "0.27", default-features = false }
 luminance = { version = "0.44", path = "../luminance" }
 luminance-gl = { version = "0.17", path = "../luminance-gl" }
-luminance-windowing = { version = "0.10", path = "../luminance-windowing" }
 
 [features]
 default = ["x11", "wayland"]

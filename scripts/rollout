@@ -13,7 +13,6 @@ crates=(
   luminance-derive
   luminance-std140
   luminance
-  luminance-windowing
   luminance-gl
   luminance-glfw
   luminance-glutin

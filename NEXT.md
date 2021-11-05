@@ -67,6 +67,8 @@
 
 # `luminance-web-sys`
 
+- Remove useless dependency (`luminance-windowing`).
+
 # `luminance-webgl`
 
 - Fix buffer kind not correctly being used (i.e. mixing vertex and index buffers is not possible, for instance). This
