@@ -301,6 +301,12 @@ pub(crate) fn webgl_pixel_format(pf: PixelFormat) -> Option<(u32, u32, u32)> {
       WebGl2RenderingContext::FLOAT,
     )),
 
+    (Format::DepthStencil(Size::ThirtyTwo, Size::Eight), Type::Floating) => Some((
+      WebGl2RenderingContext::DEPTH_STENCIL,
+      WebGl2RenderingContext::DEPTH32F_STENCIL8,
+      WebGl2RenderingContext::FLOAT_32_UNSIGNED_INT_24_8_REV,
+    )),
+
     _ => None,
   }
 }

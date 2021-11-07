@@ -34,7 +34,7 @@ pub unsafe trait ColorPixel: Pixel {}
 /// Constraint on [`Pixel`] for depth ones.
 pub unsafe trait DepthPixel: Pixel {}
 
-/// Constaint on [`Pixel`] for renderable ones.
+/// Constraint on [`Pixel`] for renderable ones.
 pub unsafe trait RenderablePixel: Pixel {}
 
 /// Reify a static sample type at runtime.
@@ -79,6 +79,7 @@ impl PixelFormat {
       Format::SRGB(_, _, _) => 3,
       Format::SRGBA(_, _, _, _) => 4,
       Format::Depth(_) => 1,
+      Format::DepthStencil(_, _) => 2,
     }
   }
 }
@@ -126,6 +127,8 @@ pub enum Format {
   SRGBA(Size, Size, Size, Size),
   /// Holds a depth channel.
   Depth(Size),
+  /// Holds a depth+stencil channel.
+  DepthStencil(Size, Size),
 }
 
 impl Format {
@@ -139,6 +142,7 @@ impl Format {
       Format::SRGB(r, g, b) => r.bits_len() + g.bits_len() + b.bits_len(),
       Format::SRGBA(r, g, b, a) => r.bits_len() + g.bits_len() + b.bits_len() + a.bits_len(),
       Format::Depth(d) => d.bits_len(),
+      Format::DepthStencil(d, s) => d.bits_len() + s.bits_len(),
     };
 
     bits / 8
@@ -1003,3 +1007,16 @@ pub struct Depth32F;
 
 impl_Pixel!(Depth32F, f32, f32, Floating, Format::Depth(Size::ThirtyTwo));
 impl_DepthPixel!(Depth32F);
+
+/// A depth 24-bit + stencil 8-bit pixel format.
+#[derive(Clone, Copy, Debug)]
+pub struct Depth32FStencil8;
+
+impl_Pixel!(
+  Depth32FStencil8,
+  f32,
+  f32,
+  Floating,
+  Format::DepthStencil(Size::ThirtyTwo, Size::Eight)
+);
+impl_DepthPixel!(Depth32FStencil8);

@@ -27,7 +27,7 @@ use cgmath::{
 use luminance::UniformInterface;
 use luminance_front::{
   context::GraphicsContext,
-  depth_test::DepthWrite,
+  depth_stencil::Write,
   framebuffer::Framebuffer,
   pipeline::{PipelineState, TextureBinding},
   pixel::{NormRGB8UI, NormUnsigned},
@@ -240,7 +240,7 @@ impl Example for LocalExample {
     // A special render state to use when rendering the skybox: because we render the skybox as
     // a fullscreen quad, we don’t want to write the depth (otherwise the cube won’t get displayed,
     // as there’s nothing closer than a fullscreen quad!).
-    let rdr_st = RenderState::default().set_depth_write(DepthWrite::Off);
+    let rdr_st = RenderState::default().set_depth_write(Write::Off);
 
     for action in actions {
       match action {

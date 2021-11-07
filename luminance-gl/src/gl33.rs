@@ -3,7 +3,7 @@
 //! This module implements an OpenGL 3.3 backend for luminance. The backend type is [`GL33`].
 
 mod buffer;
-mod depth_test;
+mod depth_stencil;
 mod framebuffer;
 mod pipeline;
 mod pixel;

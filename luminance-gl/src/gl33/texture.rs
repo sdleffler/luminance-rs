@@ -1,20 +1,13 @@
-use gl;
-use gl::types::*;
-use luminance::backend::texture::{Texture as TextureBackend, TextureBase};
-use luminance::pixel::{Pixel, PixelFormat};
-use luminance::texture::{
-  Dim, Dimensionable, GenMipmaps, MagFilter, MinFilter, Sampler, TextureError, Wrap,
+use crate::gl33::{
+  depth_stencil::comparison_to_glenum, pixel::opengl_pixel_format, state::GLState, GL33,
 };
-use std::cell::RefCell;
-use std::mem;
-use std::os::raw::c_void;
-use std::ptr;
-use std::rc::Rc;
-
-use crate::gl33::depth_test::depth_comparison_to_glenum;
-use crate::gl33::pixel::opengl_pixel_format;
-use crate::gl33::state::GLState;
-use crate::gl33::GL33;
+use gl::{self, types::*};
+use luminance::{
+  backend::texture::{Texture as TextureBackend, TextureBase},
+  pixel::{Pixel, PixelFormat},
+  texture::{Dim, Dimensionable, GenMipmaps, MagFilter, MinFilter, Sampler, TextureError, Wrap},
+};
+use std::{cell::RefCell, mem, os::raw::c_void, ptr, rc::Rc};
 
 pub struct Texture {
   pub(crate) handle: GLuint, // handle to the GPU texture object
@@ -281,7 +274,7 @@ fn apply_sampler_to_texture(target: GLenum, sampler: Sampler) {
         gl::TexParameteri(
           target,
           gl::TEXTURE_COMPARE_FUNC,
-          depth_comparison_to_glenum(fun) as GLint,
+          comparison_to_glenum(fun) as GLint,
         );
         gl::TexParameteri(
           target,

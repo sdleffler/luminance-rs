@@ -228,6 +228,7 @@ examples! {
   "mrt", mrt,
   "skybox", skybox,
   "shader-data", shader_data,
+  "stencil", stencil,
 
   // examples that do not use luminance-front but luminance polymorphic interface directly
   polymorphic examples:

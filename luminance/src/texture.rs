@@ -33,7 +33,7 @@
 use crate::{
   backend::texture::Texture as TextureBackend,
   context::GraphicsContext,
-  depth_test::DepthComparison,
+  depth_stencil::Comparison,
   pixel::{Pixel, PixelFormat},
 };
 use std::{error, fmt, marker::PhantomData};
@@ -441,7 +441,7 @@ pub struct Sampler {
   /// Magnification filter.
   pub mag_filter: MagFilter,
   /// For depth textures, should we perform depth comparison and if so, how?
-  pub depth_comparison: Option<DepthComparison>,
+  pub depth_comparison: Option<Comparison>,
 }
 
 /// Default value is as following:

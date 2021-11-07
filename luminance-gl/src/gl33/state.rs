@@ -1,10 +1,15 @@
 //! Graphics state.
 
-use crate::gl33::{depth_test::depth_comparison_to_glenum, vertex_restart::VertexRestart};
+use crate::gl33::{
+  depth_stencil::{
+    comparison_to_glenum, glenum_to_comparison, glenum_to_stencil_op, stencil_op_to_glenum,
+  },
+  vertex_restart::VertexRestart,
+};
 use gl::types::*;
 use luminance::{
   blending::{Equation, Factor},
-  depth_test::{DepthComparison, DepthWrite},
+  depth_stencil::{Comparison, StencilOperations, StencilTest, Write},
   face_culling::{FaceCullingMode, FaceCullingOrder},
   scissor::ScissorRegion,
 };
@@ -104,6 +109,8 @@ pub struct GLState {
 
   // clear buffers
   clear_color: Cached<[GLfloat; 4]>,
+  clear_depth: Cached<GLfloat>,
+  clear_stencil: Cached<GLint>,
 
   // blending
   blending_state: Cached<BlendingState>,
@@ -112,10 +119,15 @@ pub struct GLState {
 
   // depth test
   depth_test: Cached<DepthTest>,
-  depth_test_comparison: Cached<DepthComparison>,
+  depth_test_comparison: Cached<Comparison>,
 
   // depth write
-  depth_write: Cached<DepthWrite>,
+  depth_write: Cached<Write>,
+
+  // stencil test
+  stencil_test_enabled: Cached<bool>,
+  stencil_test: Cached<StencilTest>,
+  stencil_operations: Cached<StencilOperations>,
 
   // face culling
   face_culling_state: Cached<FaceCullingState>,
@@ -208,12 +220,17 @@ impl GLState {
       let binding_stack = BindingStack::new();
       let viewport = Cached::new(get_ctx_viewport()?);
       let clear_color = Cached::new(get_ctx_clear_color()?);
+      let clear_depth = Cached::new(get_ctx_clear_depth()?);
+      let clear_stencil = Cached::new(get_ctx_clear_stencil()?);
       let blending_state = Cached::new(get_ctx_blending_state()?);
       let blending_equations = Cached::new(get_ctx_blending_equations()?);
       let blending_funcs = Cached::new(get_ctx_blending_factors()?);
       let depth_test = Cached::new(get_ctx_depth_test()?);
-      let depth_test_comparison = Cached::new(DepthComparison::Less);
+      let depth_test_comparison = Cached::new(Comparison::Less);
       let depth_write = Cached::new(get_ctx_depth_write()?);
+      let stencil_test_enabled = Cached::new(get_ctx_stencil_test_enabled()?);
+      let stencil_test = Cached::new(get_ctx_stencil_test()?);
+      let stencil_operations = Cached::new(get_ctx_stencil_operations()?);
       let face_culling_state = Cached::new(get_ctx_face_culling_state()?);
       let face_culling_order = Cached::new(get_ctx_face_culling_order()?);
       let face_culling_mode = Cached::new(get_ctx_face_culling_mode()?);
@@ -242,12 +259,17 @@ impl GLState {
         binding_stack,
         viewport,
         clear_color,
+        clear_depth,
+        clear_stencil,
         blending_state,
         blending_equations,
         blending_funcs,
         depth_test,
         depth_test_comparison,
         depth_write,
+        stencil_test_enabled,
+        stencil_test,
+        stencil_operations,
         face_culling_state,
         face_culling_order,
         face_culling_mode,
@@ -503,6 +525,20 @@ impl GLState {
     }
   }
 
+  pub(crate) unsafe fn set_clear_depth(&mut self, clear_depth: GLfloat) {
+    if self.clear_depth.is_invalid(&clear_depth) {
+      gl::ClearDepth(clear_depth as _);
+      self.clear_depth.set(clear_depth);
+    }
+  }
+
+  pub(crate) unsafe fn set_clear_stencil(&mut self, clear_stencil: GLint) {
+    if self.clear_stencil.is_invalid(&clear_stencil) {
+      gl::ClearStencil(clear_stencil);
+      self.clear_stencil.set(clear_stencil);
+    }
+  }
+
   pub(crate) unsafe fn set_blending_state(&mut self, state: BlendingState) {
     if self.blending_state.is_invalid(&state) {
       match state {
@@ -623,29 +659,63 @@ impl GLState {
     }
   }
 
-  pub(crate) unsafe fn set_depth_test_comparison(
-    &mut self,
-    depth_test_comparison: DepthComparison,
-  ) {
+  pub(crate) unsafe fn set_depth_test_comparison(&mut self, depth_test_comparison: Comparison) {
     if self
       .depth_test_comparison
       .is_invalid(&depth_test_comparison)
     {
-      gl::DepthFunc(depth_comparison_to_glenum(depth_test_comparison));
+      gl::DepthFunc(comparison_to_glenum(depth_test_comparison));
       self.depth_test_comparison.set(depth_test_comparison);
     }
   }
 
-  pub(crate) unsafe fn set_depth_write(&mut self, depth_write: DepthWrite) {
+  pub(crate) unsafe fn set_depth_write(&mut self, depth_write: Write) {
     if self.depth_write.is_invalid(&depth_write) {
       let enabled = match depth_write {
-        DepthWrite::On => gl::TRUE,
-        DepthWrite::Off => gl::FALSE,
+        Write::On => gl::TRUE,
+        Write::Off => gl::FALSE,
       };
 
       gl::DepthMask(enabled);
 
       self.depth_write.set(depth_write);
+    }
+  }
+
+  pub(crate) unsafe fn enable_stencil_test(&mut self, enable: bool) {
+    if self.stencil_test_enabled.is_invalid(&enable) {
+      if enable {
+        gl::Enable(gl::STENCIL_TEST);
+      } else {
+        gl::Disable(gl::STENCIL_TEST);
+      }
+
+      self.stencil_test_enabled.set(enable);
+    }
+  }
+
+  pub(crate) unsafe fn set_stencil_test(&mut self, stencil_test: StencilTest) {
+    if self.stencil_test.is_invalid(&stencil_test) {
+      let comparison = comparison_to_glenum(stencil_test.comparison);
+      gl::StencilFunc(
+        comparison,
+        stencil_test.reference as _,
+        stencil_test.mask as _,
+      );
+
+      self.stencil_test.set(stencil_test);
+    }
+  }
+
+  pub(crate) unsafe fn set_stencil_operations(&mut self, stencil_ops: StencilOperations) {
+    if self.stencil_operations.is_invalid(&stencil_ops) {
+      gl::StencilOp(
+        stencil_op_to_glenum(stencil_ops.depth_passes_stencil_fails),
+        stencil_op_to_glenum(stencil_ops.depth_fails_stencil_passes),
+        stencil_op_to_glenum(stencil_ops.depth_stencil_pass),
+      );
+
+      self.stencil_operations.set(stencil_ops);
     }
   }
 
@@ -887,8 +957,14 @@ pub enum StateQueryError {
   UnknownBlendingDstFactor(GLenum),
   /// Corrupted depth test state.
   UnknownDepthTestState(GLboolean),
+  /// Corrupted stencil test state.
+  UnknownStencilTestState(GLboolean),
+  /// Corrupted stencil test comparison.
+  UnknownStencilTestComparison(GLint),
+  /// Corrupted stencil op.
+  UnknownStencilOp(GLint),
   /// Corrupted depth write state.
-  UnknownDepthWriteState(GLboolean),
+  UnknownWriteState(GLboolean),
   /// Corrupted face culling state.
   UnknownFaceCullingState(GLboolean),
   /// Corrupted face culling order.
@@ -918,8 +994,17 @@ impl fmt::Display for StateQueryError {
         write!(f, "unknown blending destination factor: {}", k)
       }
       StateQueryError::UnknownDepthTestState(ref s) => write!(f, "unknown depth test state: {}", s),
-      StateQueryError::UnknownDepthWriteState(ref s) => {
+      StateQueryError::UnknownWriteState(ref s) => {
         write!(f, "unknown depth write state: {}", s)
+      }
+      StateQueryError::UnknownStencilTestState(ref s) => {
+        write!(f, "unknown stencil test state: {}", s)
+      }
+      StateQueryError::UnknownStencilTestComparison(ref k) => {
+        write!(f, "unknown stencil test comparison: {}", k)
+      }
+      StateQueryError::UnknownStencilOp(ref op) => {
+        write!(f, "unknown stencil operation: {}", op)
       }
       StateQueryError::UnknownFaceCullingState(ref s) => {
         write!(f, "unknown face culling state: {}", s)
@@ -952,6 +1037,18 @@ unsafe fn get_ctx_viewport() -> Result<[GLint; 4], StateQueryError> {
 unsafe fn get_ctx_clear_color() -> Result<[GLfloat; 4], StateQueryError> {
   let mut data = [0.; 4];
   gl::GetFloatv(gl::COLOR_CLEAR_VALUE, data.as_mut_ptr());
+  Ok(data)
+}
+
+unsafe fn get_ctx_clear_depth() -> Result<GLfloat, StateQueryError> {
+  let mut data = 0.;
+  gl::GetFloatv(gl::DEPTH_CLEAR_VALUE, &mut data);
+  Ok(data)
+}
+
+unsafe fn get_ctx_clear_stencil() -> Result<GLint, StateQueryError> {
+  let mut data = 0;
+  gl::GetIntegerv(gl::STENCIL_CLEAR_VALUE, &mut data);
   Ok(data)
 }
 
@@ -1068,16 +1165,67 @@ unsafe fn get_ctx_depth_test() -> Result<DepthTest, StateQueryError> {
   }
 }
 
-unsafe fn get_ctx_depth_write() -> Result<DepthWrite, StateQueryError> {
+unsafe fn get_ctx_depth_write() -> Result<Write, StateQueryError> {
   let mut state = gl::FALSE;
 
   gl::GetBooleanv(gl::DEPTH_WRITEMASK, &mut state);
 
   match state {
-    gl::TRUE => Ok(DepthWrite::On),
-    gl::FALSE => Ok(DepthWrite::Off),
-    _ => Err(StateQueryError::UnknownDepthWriteState(state)),
+    gl::TRUE => Ok(Write::On),
+    gl::FALSE => Ok(Write::Off),
+    _ => Err(StateQueryError::UnknownWriteState(state)),
   }
+}
+
+unsafe fn get_ctx_stencil_test_enabled() -> Result<bool, StateQueryError> {
+  let state = gl::IsEnabled(gl::STENCIL_TEST);
+
+  match state {
+    gl::TRUE => Ok(true),
+    gl::FALSE => Ok(false),
+    _ => Err(StateQueryError::UnknownStencilTestState(state)),
+  }
+}
+
+unsafe fn get_ctx_stencil_test() -> Result<StencilTest, StateQueryError> {
+  // we need the comparison function, the reference value and the mask
+  let mut data = gl::ALWAYS as GLint;
+
+  gl::GetIntegerv(gl::STENCIL_FUNC, &mut data);
+  let comparison = glenum_to_comparison(data as GLenum)
+    .ok_or_else(|| StateQueryError::UnknownStencilTestComparison(data))?;
+
+  gl::GetIntegerv(gl::STENCIL_REF, &mut data);
+  let reference = data as u8;
+
+  gl::GetIntegerv(gl::STENCIL_VALUE_MASK, &mut data);
+  let mask = data as u8;
+
+  Ok(StencilTest {
+    comparison,
+    reference,
+    mask,
+  })
+}
+
+unsafe fn get_ctx_stencil_operations() -> Result<StencilOperations, StateQueryError> {
+  let mut data = 0 as GLint;
+
+  gl::GetIntegerv(gl::STENCIL_FAIL, &mut data);
+  let depth_passes_stencil_fails =
+    glenum_to_stencil_op(data as _).ok_or_else(|| StateQueryError::UnknownStencilOp(data))?;
+  gl::GetIntegerv(gl::STENCIL_PASS_DEPTH_FAIL, &mut data);
+  let depth_fails_stencil_passes =
+    glenum_to_stencil_op(data as _).ok_or_else(|| StateQueryError::UnknownStencilOp(data))?;
+  gl::GetIntegerv(gl::STENCIL_PASS_DEPTH_PASS, &mut data);
+  let depth_stencil_pass =
+    glenum_to_stencil_op(data as _).ok_or_else(|| StateQueryError::UnknownStencilOp(data))?;
+
+  Ok(StencilOperations {
+    depth_passes_stencil_fails,
+    depth_fails_stencil_passes,
+    depth_stencil_pass,
+  })
 }
 
 unsafe fn get_ctx_face_culling_state() -> Result<FaceCullingState, StateQueryError> {

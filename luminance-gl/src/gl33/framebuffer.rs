@@ -1,15 +1,18 @@
-use gl;
-use gl::types::*;
-use std::cell::RefCell;
-use std::rc::Rc;
-
-use crate::gl33::state::{Bind, GLState};
-use crate::gl33::GL33;
-use luminance::backend::color_slot::ColorSlot;
-use luminance::backend::depth_slot::DepthSlot;
-use luminance::backend::framebuffer::{Framebuffer as FramebufferBackend, FramebufferBackBuffer};
-use luminance::framebuffer::{FramebufferError, IncompleteReason};
-use luminance::texture::{Dim2, Dimensionable, Sampler};
+use crate::gl33::{
+  state::{Bind, GLState},
+  GL33,
+};
+use gl::{self, types::*};
+use luminance::{
+  backend::{
+    color_slot::ColorSlot,
+    depth_stencil_slot::DepthStencilSlot,
+    framebuffer::{Framebuffer as FramebufferBackend, FramebufferBackBuffer},
+  },
+  framebuffer::{FramebufferError, IncompleteReason},
+  texture::{Dim2, Dimensionable, Sampler},
+};
+use std::{cell::RefCell, rc::Rc};
 
 pub struct Framebuffer<D>
 where
@@ -54,7 +57,7 @@ where
   ) -> Result<Self::FramebufferRepr, FramebufferError>
   where
     CS: ColorSlot<Self, D>,
-    DS: DepthSlot<Self, D>,
+    DS: DepthStencilSlot<Self, D>,
   {
     let mut handle: GLuint = 0;
     let color_formats = CS::color_formats();

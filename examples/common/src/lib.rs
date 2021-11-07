@@ -49,6 +49,7 @@ pub mod skybox;
 pub mod sliced_tess;
 pub mod texture;
 pub mod vertex_instancing;
+pub mod stencil;
 
 // functional tests
 #[cfg(feature = "funtest")]

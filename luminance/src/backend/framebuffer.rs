@@ -3,7 +3,7 @@
 //! This interface defines the low-level API framebuffers must implement to be usable.
 
 use crate::{
-  backend::{color_slot::ColorSlot, depth_slot::DepthSlot, texture::TextureBase},
+  backend::{color_slot::ColorSlot, depth_stencil_slot::DepthStencilSlot, texture::TextureBase},
   framebuffer::FramebufferError,
   texture::{Dim2, Dimensionable, Sampler},
 };
@@ -47,7 +47,7 @@ where
   ) -> Result<Self::FramebufferRepr, FramebufferError>
   where
     CS: ColorSlot<Self, D>,
-    DS: DepthSlot<Self, D>;
+    DS: DepthStencilSlot<Self, D>;
 
   /// Attach a single color data to the framebuffer.
   ///

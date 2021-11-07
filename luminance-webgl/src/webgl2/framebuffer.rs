@@ -1,17 +1,18 @@
 //! Framebuffer support for WebGL2.
 
+use crate::webgl2::{state::WebGL2State, WebGL2};
 use js_sys::Uint32Array;
-use luminance::backend::color_slot::ColorSlot;
-use luminance::backend::depth_slot::DepthSlot;
-use luminance::backend::framebuffer::{Framebuffer as FramebufferBackend, FramebufferBackBuffer};
-use luminance::framebuffer::{FramebufferError, IncompleteReason};
-use luminance::texture::{Dim2, Dimensionable, Sampler};
-use std::cell::RefCell;
-use std::rc::Rc;
+use luminance::{
+  backend::{
+    color_slot::ColorSlot,
+    depth_stencil_slot::DepthStencilSlot,
+    framebuffer::{Framebuffer as FramebufferBackend, FramebufferBackBuffer},
+  },
+  framebuffer::{FramebufferError, IncompleteReason},
+  texture::{Dim2, Dimensionable, Sampler},
+};
+use std::{cell::RefCell, rc::Rc};
 use web_sys::{WebGl2RenderingContext, WebGlFramebuffer, WebGlRenderbuffer};
-
-use crate::webgl2::state::WebGL2State;
-use crate::webgl2::WebGL2;
 
 pub struct Framebuffer<D>
 where
@@ -50,7 +51,7 @@ where
   ) -> Result<Self::FramebufferRepr, FramebufferError>
   where
     CS: ColorSlot<Self, D>,
-    DS: DepthSlot<Self, D>,
+    DS: DepthStencilSlot<Self, D>,
   {
     let color_formats = CS::color_formats();
     let depth_format = DS::depth_format();

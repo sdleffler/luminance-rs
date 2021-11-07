@@ -63,14 +63,17 @@
 //! [backend::depth_slot]: crate::backend::depth_slot
 //! [`PipelineGate`]: crate::pipeline::PipelineGate
 
-use std::error;
-use std::fmt;
+use std::{error, fmt};
 
-use crate::backend::color_slot::ColorSlot;
-use crate::backend::depth_slot::DepthSlot;
-use crate::backend::framebuffer::{Framebuffer as FramebufferBackend, FramebufferBackBuffer};
-use crate::context::GraphicsContext;
-use crate::texture::{Dim2, Dimensionable, Sampler, TextureError};
+use crate::{
+  backend::{
+    color_slot::ColorSlot,
+    depth_stencil_slot::DepthStencilSlot,
+    framebuffer::{Framebuffer as FramebufferBackend, FramebufferBackBuffer},
+  },
+  context::GraphicsContext,
+  texture::{Dim2, Dimensionable, Sampler, TextureError},
+};
 
 /// Typed framebuffers.
 ///
@@ -87,11 +90,11 @@ where
   B: ?Sized + FramebufferBackend<D>,
   D: Dimensionable,
   CS: ColorSlot<B, D>,
-  DS: DepthSlot<B, D>,
+  DS: DepthStencilSlot<B, D>,
 {
   pub(crate) repr: B::FramebufferRepr,
   color_slot: CS::ColorTextures,
-  depth_slot: DS::DepthTexture,
+  depth_stencil_slot: DS::DepthStencilTexture,
 }
 
 impl<B, D, CS, DS> Framebuffer<B, D, CS, DS>
@@ -99,7 +102,7 @@ where
   B: ?Sized + FramebufferBackend<D>,
   D: Dimensionable,
   CS: ColorSlot<B, D>,
-  DS: DepthSlot<B, D>,
+  DS: DepthStencilSlot<B, D>,
 {
   /// Create a new [`Framebuffer`].
   ///
@@ -139,7 +142,7 @@ where
       Ok(Framebuffer {
         repr,
         color_slot,
-        depth_slot,
+        depth_stencil_slot: depth_slot,
       })
     }
   }
@@ -149,19 +152,19 @@ where
     unsafe { B::framebuffer_size(&self.repr) }
   }
 
-  /// Access the carried [`ColorSlot`].
+  /// Access the carried color slot.
   pub fn color_slot(&mut self) -> &mut CS::ColorTextures {
     &mut self.color_slot
   }
 
-  /// Access the carried [`DepthSlot`].
-  pub fn depth_slot(&mut self) -> &mut DS::DepthTexture {
-    &mut self.depth_slot
+  /// Access the carried depth/stencil slot.
+  pub fn depth_stencil_slot(&mut self) -> &mut DS::DepthStencilTexture {
+    &mut self.depth_stencil_slot
   }
 
   /// Consume this framebuffer and return the carried slots.
-  pub fn into_slots(self) -> (CS::ColorTextures, DS::DepthTexture) {
-    (self.color_slot, self.depth_slot)
+  pub fn into_slots(self) -> (CS::ColorTextures, DS::DepthStencilTexture) {
+    (self.color_slot, self.depth_stencil_slot)
   }
 
   /// Consume this framebuffer and return the carried [`ColorSlot`].
@@ -170,8 +173,8 @@ where
   }
 
   /// Consume this framebuffer and return the carried [`DepthSlot`].
-  pub fn into_depth_slot(self) -> DS::DepthTexture {
-    self.depth_slot
+  pub fn into_depth_stencil_slot(self) -> DS::DepthStencilTexture {
+    self.depth_stencil_slot
   }
 }
 
@@ -190,7 +193,7 @@ where
     unsafe { ctx.backend().back_buffer(size) }.map(|repr| Framebuffer {
       repr,
       color_slot: (),
-      depth_slot: (),
+      depth_stencil_slot: (),
     })
   }
 }

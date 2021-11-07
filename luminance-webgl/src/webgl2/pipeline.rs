@@ -22,7 +22,7 @@ use web_sys::WebGl2RenderingContext;
 
 use crate::webgl2::{
   array_buffer::IntoArrayBuffer,
-  state::{BlendingState, DepthTest, FaceCullingState, ScissorState, WebGL2State},
+  state::{BlendingState, FaceCullingState, ScissorState, WebGL2State},
   WebGL2,
 };
 
@@ -122,8 +122,14 @@ where
       clear_buffer_bits |= WebGl2RenderingContext::COLOR_BUFFER_BIT;
     }
 
-    if pipeline_state.clear_depth_enabled {
+    if let Some(clear_depth) = pipeline_state.clear_depth {
+      state.set_clear_depth(clear_depth);
       clear_buffer_bits |= WebGl2RenderingContext::DEPTH_BUFFER_BIT;
+    }
+
+    if let Some(clear_stencil) = pipeline_state.clear_stencil {
+      state.set_clear_stencil(clear_stencil);
+      clear_buffer_bits |= WebGl2RenderingContext::STENCIL_BUFFER_BIT;
     }
 
     // scissor test
@@ -288,13 +294,24 @@ unsafe impl RenderGate for WebGL2 {
 
     // depth-related state
     if let Some(depth_comparison) = rdr_st.depth_test() {
-      state.set_depth_test(DepthTest::On);
+      state.enable_depth_test(true);
       state.set_depth_test_comparison(depth_comparison);
     } else {
-      state.set_depth_test(DepthTest::Off);
+      state.enable_depth_test(false);
     }
 
     state.set_depth_write(rdr_st.depth_write());
+
+    // stencil-related state
+    if let Some(stencil_test) = rdr_st.stencil_test() {
+      state.enable_stencil_test(true);
+      state.set_stencil_test(*stencil_test);
+    } else {
+      state.enable_stencil_test(false);
+    }
+
+    // stencil operations are always active
+    state.set_stencil_operations(*rdr_st.stencil_operations());
 
     // face culling state
     match rdr_st.face_culling() {
