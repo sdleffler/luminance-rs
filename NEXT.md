@@ -27,6 +27,7 @@
 - Support for uniform array and runtime-check them.
 - Change the encoding of clear color. Now, `PipelineState` expects an `Option<[f32; 4]>`. If it’s `None`, then
   color clearing will be disabled. Otherwise, it will be enabled with the provided color.
+- Add support for stencil buffers.
 
 # `luminance-derive`
 

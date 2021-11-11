@@ -86,7 +86,7 @@
 #![allow(missing_docs)]
 
 pub mod color_slot;
-pub mod depth_slot;
+pub mod depth_stencil_slot;
 pub mod framebuffer;
 pub mod pipeline;
 pub mod query;

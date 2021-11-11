@@ -126,7 +126,7 @@ use std::{
 use crate::{
   backend::{
     color_slot::ColorSlot,
-    depth_slot::DepthSlot,
+    depth_stencil_slot::DepthStencilSlot,
     framebuffer::Framebuffer as FramebufferBackend,
     pipeline::{Pipeline as PipelineBackend, PipelineBase, PipelineShaderData, PipelineTexture},
   },
@@ -175,7 +175,7 @@ pub enum Viewport {
 #[non_exhaustive]
 #[derive(Clone, Debug)]
 pub struct PipelineState {
-  /// Color to use when clearing buffers.
+  /// Color to use when clearing color buffers.
   ///
   /// Set this to `Some(color)` to use that color to clear the [`Framebuffer`] when running a [`PipelineGate`]. Set it
   /// to `None` not to clear the framebuffer when running the [`PipelineGate`].
@@ -184,8 +184,15 @@ pub struct PipelineState {
   /// for a paint-like application).
   pub clear_color: Option<[f32; 4]>,
 
-  /// Whether clearing depth buffers.
-  pub clear_depth_enabled: bool,
+  /// Depth value to use when clearing the depth buffer.
+  ///
+  /// Set this to `Some(depth)` to use that depth to clear the [`Framebuffer`] depth buffer.
+  pub clear_depth: Option<f32>,
+
+  /// Stencil value to use when clearing the stencil buffer.
+  ///
+  /// Set this to `Some(stencil)` to use that stencil to clear the [`Framebuffer`] stencil buffer.
+  pub clear_stencil: Option<i32>,
 
   /// Viewport to use when rendering.
   pub viewport: Viewport,
@@ -208,15 +215,17 @@ pub struct PipelineState {
 impl Default for PipelineState {
   /// Default [`PipelineState`]:
   ///
-  /// - Clear color is `Some([0, 0, 0, 1])`.
-  /// - Depth is always cleared.
+  /// - Clear color is `Some([0., 0., 0., 1.])`.
+  /// - Depth value is `Some(1.)`.
+  /// - Stencil value is `Some(0)`.
   /// - The viewport uses the whole framebuffer’s.
   /// - sRGB encoding is disabled.
   /// - No scissor test is performed.
   fn default() -> Self {
     PipelineState {
       clear_color: Some([0., 0., 0., 1.]),
-      clear_depth_enabled: true,
+      clear_depth: Some(1.),
+      clear_stencil: Some(0),
       viewport: Viewport::Whole,
       srgb_enabled: false,
       clear_scissor: None,
@@ -245,20 +254,28 @@ impl PipelineState {
     }
   }
 
-  /// Check whether the pipeline’s framebuffer’s color buffers will be cleared.
-  pub fn is_clear_color_enabled(&self) -> bool {
-    self.clear_color.is_some()
+  /// Get the clear depth, if any.
+  pub fn clear_depth(&self) -> Option<f32> {
+    self.clear_depth
   }
 
-  /// Check whether the pipeline’s framebuffer’s depth buffer will be cleared.
-  pub fn is_clear_depth_enabled(&self) -> bool {
-    self.clear_depth_enabled
-  }
-
-  /// Enable clearing depth buffers.
-  pub fn enable_clear_depth(self, clear_depth_enabled: bool) -> Self {
+  /// Set the clear depth.
+  pub fn set_clear_depth(self, clear_depth: impl Into<Option<f32>>) -> Self {
     Self {
-      clear_depth_enabled,
+      clear_depth: clear_depth.into(),
+      ..self
+    }
+  }
+
+  /// Get the clear stencil, if any.
+  pub fn clear_stencil(&self) -> Option<i32> {
+    self.clear_stencil
+  }
+
+  /// Set the clear stencil.
+  pub fn set_clear_stencil(self, clear_stencil: impl Into<Option<i32>>) -> Self {
+    Self {
+      clear_stencil: clear_stencil.into(),
       ..self
     }
   }
@@ -409,7 +426,7 @@ impl<'a, B> PipelineGate<'a, B> {
     B: FramebufferBackend<D> + PipelineBackend<D>,
     D: Dimensionable,
     CS: ColorSlot<B, D>,
-    DS: DepthSlot<B, D>,
+    DS: DepthStencilSlot<B, D>,
     F: for<'b> FnOnce(Pipeline<'b, B>, ShadingGate<'b, B>) -> Result<(), E>,
     E: From<PipelineError>,
   {

@@ -3,7 +3,7 @@
 use js_sys::{Float32Array, Int32Array, Uint32Array};
 use luminance::{
   blending::{Equation, Factor},
-  depth_test::{DepthComparison, DepthWrite},
+  depth_stencil::{Comparison, StencilOp, StencilOperations, StencilTest, Write},
   face_culling::{FaceCullingMode, FaceCullingOrder},
   scissor::ScissorRegion,
 };
@@ -54,6 +54,8 @@ pub struct WebGL2State {
 
   // clear buffers
   clear_color: [f32; 4],
+  clear_depth: f32,
+  clear_stencil: i32,
 
   // blending
   blending_state: BlendingState,
@@ -61,11 +63,16 @@ pub struct WebGL2State {
   blending_funcs: BlendingFactors,
 
   // depth test
-  depth_test: DepthTest,
-  depth_test_comparison: DepthComparison,
+  depth_test_enabled: bool,
+  depth_test_comparison: Comparison,
+
+  // stencil test
+  stencil_test_enabled: bool,
+  stencil_test: StencilTest,
+  stencil_operations: StencilOperations,
 
   // depth write
-  depth_write: DepthWrite,
+  depth_write: Write,
 
   // face culling
   face_culling_state: FaceCullingState,
@@ -146,12 +153,17 @@ impl WebGL2State {
     let binding_stack = BindingStack::new();
     let viewport = get_ctx_viewport(&mut ctx)?;
     let clear_color = get_ctx_clear_color(&mut ctx)?;
+    let clear_depth = get_ctx_clear_depth(&mut ctx)?;
+    let clear_stencil = get_ctx_clear_stencil(&mut ctx)?;
     let blending_state = get_ctx_blending_state(&mut ctx);
     let blending_equations = get_ctx_blending_equations(&mut ctx)?;
     let blending_funcs = get_ctx_blending_factors(&mut ctx)?;
-    let depth_test = get_ctx_depth_test(&mut ctx);
-    let depth_test_comparison = DepthComparison::Less;
+    let depth_test_enabled = get_ctx_depth_test_enabled(&mut ctx);
+    let depth_test_comparison = Comparison::Less;
     let depth_write = get_ctx_depth_write(&mut ctx)?;
+    let stencil_test_enabled = get_ctx_stencil_test_enabled(&mut ctx);
+    let stencil_test = get_ctx_stencil_test(&mut ctx)?;
+    let stencil_operations = get_ctx_stencil_operations(&mut ctx)?;
     let face_culling_state = get_ctx_face_culling_state(&mut ctx);
     let face_culling_order = get_ctx_face_culling_order(&mut ctx)?;
     let face_culling_mode = get_ctx_face_culling_mode(&mut ctx)?;
@@ -183,12 +195,17 @@ impl WebGL2State {
       binding_stack,
       viewport,
       clear_color,
+      clear_depth,
+      clear_stencil,
       blending_state,
       blending_equations,
       blending_funcs,
-      depth_test,
+      depth_test_enabled,
       depth_test_comparison,
       depth_write,
+      stencil_test_enabled,
+      stencil_test,
+      stencil_operations,
       face_culling_state,
       face_culling_order,
       face_culling_mode,
@@ -422,6 +439,20 @@ impl WebGL2State {
     }
   }
 
+  pub(crate) fn set_clear_depth(&mut self, clear_depth: f32) {
+    if self.clear_depth != clear_depth {
+      self.ctx.clear_depth(clear_depth);
+      self.clear_depth = clear_depth;
+    }
+  }
+
+  pub(crate) fn set_clear_stencil(&mut self, clear_stencil: i32) {
+    if self.clear_stencil != clear_stencil {
+      self.ctx.clear_stencil(clear_stencil);
+      self.clear_stencil = clear_stencil;
+    }
+  }
+
   pub(crate) fn set_blending_state(&mut self, state: BlendingState) {
     if self.blending_state != state {
       match state {
@@ -509,37 +540,71 @@ impl WebGL2State {
     }
   }
 
-  pub(crate) fn set_depth_test(&mut self, depth_test: DepthTest) {
-    if self.depth_test != depth_test {
-      match depth_test {
-        DepthTest::On => self.ctx.enable(WebGl2RenderingContext::DEPTH_TEST),
-        DepthTest::Off => self.ctx.disable(WebGl2RenderingContext::DEPTH_TEST),
+  pub(crate) fn enable_depth_test(&mut self, enabled: bool) {
+    if self.depth_test_enabled != enabled {
+      if enabled {
+        self.ctx.enable(WebGl2RenderingContext::DEPTH_TEST);
+      } else {
+        self.ctx.disable(WebGl2RenderingContext::DEPTH_TEST);
       }
 
-      self.depth_test = depth_test;
+      self.depth_test_enabled = enabled;
     }
   }
 
-  pub(crate) fn set_depth_test_comparison(&mut self, depth_test_comparison: DepthComparison) {
+  pub(crate) fn set_depth_test_comparison(&mut self, depth_test_comparison: Comparison) {
     if self.depth_test_comparison != depth_test_comparison {
       self
         .ctx
-        .depth_func(depth_comparison_to_webgl(depth_test_comparison));
+        .depth_func(comparison_to_glenum(depth_test_comparison));
 
       self.depth_test_comparison = depth_test_comparison;
     }
   }
 
-  pub(crate) fn set_depth_write(&mut self, depth_write: DepthWrite) {
+  pub(crate) fn set_depth_write(&mut self, depth_write: Write) {
     if self.depth_write != depth_write {
       let enabled = match depth_write {
-        DepthWrite::On => true,
-        DepthWrite::Off => false,
+        Write::On => true,
+        Write::Off => false,
       };
 
       self.ctx.depth_mask(enabled);
 
       self.depth_write = depth_write;
+    }
+  }
+
+  pub(crate) fn enable_stencil_test(&mut self, enabled: bool) {
+    if self.stencil_test_enabled != enabled {
+      if enabled {
+        self.ctx.enable(WebGl2RenderingContext::STENCIL_TEST);
+      } else {
+        self.ctx.disable(WebGl2RenderingContext::STENCIL_TEST);
+      }
+
+      self.stencil_test_enabled = enabled;
+    }
+  }
+
+  pub(crate) fn set_stencil_test(&mut self, stencil_test: StencilTest) {
+    if self.stencil_test != stencil_test {
+      self.ctx.stencil_func(
+        comparison_to_glenum(stencil_test.comparison),
+        stencil_test.reference as _,
+        stencil_test.mask as _,
+      );
+    }
+  }
+
+  pub(crate) fn set_stencil_operations(&mut self, ops: StencilOperations) {
+    if self.stencil_operations != ops {
+      self.ctx.stencil_op(
+        stencil_op_to_glenum(ops.depth_passes_stencil_fails),
+        stencil_op_to_glenum(ops.depth_fails_stencil_passes),
+        stencil_op_to_glenum(ops.depth_stencil_pass),
+      );
+      self.stencil_operations = ops;
     }
   }
 
@@ -678,6 +743,18 @@ pub enum StateQueryError {
   UnknownViewportInitialState,
   /// Unknown clear color initial state.
   UnknownClearColorInitialState,
+  /// Unknown clear depth initial state.
+  UnknownClearDepthInitialState,
+  /// Unknown clear stencil initial state.
+  UnknownClearStencilInitialState,
+  /// Unknown stencil comparison function initial state.
+  UnknownStencilComparisonInitialState,
+  /// Unknown stencil reference initial state.
+  UnknownStencilReferenceState,
+  /// Unknown stencil mask initial state.
+  UnknownStencilMaskState,
+  /// Unknown stencil operation initial state.
+  UnknownStencilOpState,
   /// Unknown depth write mask initial state.
   UnknownDepthWriteMaskState,
   /// Corrupted blending equation.
@@ -725,6 +802,28 @@ impl fmt::Display for StateQueryError {
 
       StateQueryError::UnknownClearColorInitialState => {
         write!(f, "unknown clear color initial state")
+      }
+
+      StateQueryError::UnknownClearDepthInitialState => {
+        write!(f, "unknown clear depth initial state")
+      }
+
+      StateQueryError::UnknownClearStencilInitialState => {
+        write!(f, "unknown clear stencil initial state")
+      }
+
+      StateQueryError::UnknownStencilComparisonInitialState => {
+        f.write_str("unknown stencil comparison initial state")
+      }
+
+      StateQueryError::UnknownStencilReferenceState => {
+        f.write_str("unknown stencil reference initial state")
+      }
+
+      StateQueryError::UnknownStencilMaskState => f.write_str("unknown stencil mask initial state"),
+
+      StateQueryError::UnknownStencilOpState => {
+        f.write_str("unknown stencil operation initial state")
       }
 
       StateQueryError::UnknownDepthWriteMaskState => f.write_str("unknown depth write mask state"),
@@ -822,6 +921,22 @@ fn get_ctx_clear_color(ctx: &mut WebGl2RenderingContext) -> Result<[f32; 4], Sta
   Ok(color)
 }
 
+fn get_ctx_clear_depth(ctx: &mut WebGl2RenderingContext) -> Result<f32, StateQueryError> {
+  let depth = ctx
+    .get_webgl_param(WebGl2RenderingContext::DEPTH_CLEAR_VALUE)
+    .ok_or_else(|| StateQueryError::UnknownClearDepthInitialState)?;
+
+  Ok(depth)
+}
+
+fn get_ctx_clear_stencil(ctx: &mut WebGl2RenderingContext) -> Result<i32, StateQueryError> {
+  let stencil = ctx
+    .get_webgl_param(WebGl2RenderingContext::STENCIL_CLEAR_VALUE)
+    .ok_or_else(|| StateQueryError::UnknownClearDepthInitialState)?;
+
+  Ok(stencil)
+}
+
 fn get_ctx_blending_state(ctx: &mut WebGl2RenderingContext) -> BlendingState {
   if ctx.is_enabled(WebGl2RenderingContext::BLEND) {
     BlendingState::On
@@ -910,25 +1025,115 @@ fn from_gl_blending_factor(factor: u32) -> Result<Factor, u32> {
   }
 }
 
-fn get_ctx_depth_test(ctx: &mut WebGl2RenderingContext) -> DepthTest {
-  let enabled = ctx.is_enabled(WebGl2RenderingContext::DEPTH_TEST);
+fn get_ctx_depth_test_enabled(ctx: &mut WebGl2RenderingContext) -> bool {
+  ctx.is_enabled(WebGl2RenderingContext::DEPTH_TEST)
+}
 
-  if enabled {
-    DepthTest::On
-  } else {
-    DepthTest::Off
+fn get_ctx_stencil_test_enabled(ctx: &mut WebGl2RenderingContext) -> bool {
+  ctx.is_enabled(WebGl2RenderingContext::STENCIL_TEST)
+}
+
+fn get_ctx_stencil_test(ctx: &mut WebGl2RenderingContext) -> Result<StencilTest, StateQueryError> {
+  let comparison = ctx
+    .get_webgl_param(WebGl2RenderingContext::STENCIL_FUNC)
+    .and_then(glenum_to_comparison)
+    .ok_or_else(|| StateQueryError::UnknownStencilComparisonInitialState)?;
+  let reference = ctx
+    .get_webgl_param(WebGl2RenderingContext::STENCIL_REF)
+    .ok_or_else(|| StateQueryError::UnknownStencilReferenceState)?;
+  let mask = ctx
+    .get_webgl_param(WebGl2RenderingContext::STENCIL_VALUE_MASK)
+    .ok_or_else(|| StateQueryError::UnknownStencilMaskState)?;
+
+  Ok(StencilTest::new(comparison, reference, mask))
+}
+
+fn get_ctx_stencil_operations(
+  ctx: &mut WebGl2RenderingContext,
+) -> Result<StencilOperations, StateQueryError> {
+  let depth_passes_stencil_fails = ctx
+    .get_webgl_param(WebGl2RenderingContext::STENCIL_FAIL)
+    .and_then(glenum_to_stencil_op)
+    .ok_or_else(|| StateQueryError::UnknownStencilOpState)?;
+  let depth_fails_stencil_passes = ctx
+    .get_webgl_param(WebGl2RenderingContext::STENCIL_PASS_DEPTH_FAIL)
+    .and_then(glenum_to_stencil_op)
+    .ok_or_else(|| StateQueryError::UnknownStencilOpState)?;
+  let depth_stencil_pass = ctx
+    .get_webgl_param(WebGl2RenderingContext::STENCIL_PASS_DEPTH_PASS)
+    .and_then(glenum_to_stencil_op)
+    .ok_or_else(|| StateQueryError::UnknownStencilOpState)?;
+
+  Ok(StencilOperations {
+    depth_passes_stencil_fails,
+    depth_fails_stencil_passes,
+    depth_stencil_pass,
+  })
+}
+
+pub(crate) fn comparison_to_glenum(comparison: Comparison) -> u32 {
+  match comparison {
+    Comparison::Never => WebGl2RenderingContext::NEVER,
+    Comparison::Always => WebGl2RenderingContext::ALWAYS,
+    Comparison::Equal => WebGl2RenderingContext::EQUAL,
+    Comparison::NotEqual => WebGl2RenderingContext::NOTEQUAL,
+    Comparison::Less => WebGl2RenderingContext::LESS,
+    Comparison::LessOrEqual => WebGl2RenderingContext::LEQUAL,
+    Comparison::Greater => WebGl2RenderingContext::GREATER,
+    Comparison::GreaterOrEqual => WebGl2RenderingContext::GEQUAL,
   }
 }
 
-fn get_ctx_depth_write(ctx: &mut WebGl2RenderingContext) -> Result<DepthWrite, StateQueryError> {
+fn glenum_to_comparison(func: u32) -> Option<Comparison> {
+  match func {
+    WebGl2RenderingContext::NEVER => Some(Comparison::Never),
+    WebGl2RenderingContext::ALWAYS => Some(Comparison::Always),
+    WebGl2RenderingContext::EQUAL => Some(Comparison::Equal),
+    WebGl2RenderingContext::NOTEQUAL => Some(Comparison::NotEqual),
+    WebGl2RenderingContext::LESS => Some(Comparison::Less),
+    WebGl2RenderingContext::LEQUAL => Some(Comparison::LessOrEqual),
+    WebGl2RenderingContext::GREATER => Some(Comparison::Greater),
+    WebGl2RenderingContext::GEQUAL => Some(Comparison::GreaterOrEqual),
+    _ => None,
+  }
+}
+
+fn stencil_op_to_glenum(op: StencilOp) -> u32 {
+  match op {
+    StencilOp::Keep => WebGl2RenderingContext::KEEP,
+    StencilOp::Zero => WebGl2RenderingContext::ZERO,
+    StencilOp::Replace => WebGl2RenderingContext::REPLACE,
+    StencilOp::Increment => WebGl2RenderingContext::INCR,
+    StencilOp::IncrementWrap => WebGl2RenderingContext::INCR_WRAP,
+    StencilOp::Decrement => WebGl2RenderingContext::DECR,
+    StencilOp::DecrementWrap => WebGl2RenderingContext::DECR_WRAP,
+    StencilOp::Invert => WebGl2RenderingContext::INVERT,
+  }
+}
+
+fn glenum_to_stencil_op(op: u32) -> Option<StencilOp> {
+  match op {
+    WebGl2RenderingContext::KEEP => Some(StencilOp::Keep),
+    WebGl2RenderingContext::ZERO => Some(StencilOp::Zero),
+    WebGl2RenderingContext::REPLACE => Some(StencilOp::Replace),
+    WebGl2RenderingContext::INCR => Some(StencilOp::Increment),
+    WebGl2RenderingContext::INCR_WRAP => Some(StencilOp::IncrementWrap),
+    WebGl2RenderingContext::DECR => Some(StencilOp::Decrement),
+    WebGl2RenderingContext::DECR_WRAP => Some(StencilOp::DecrementWrap),
+    WebGl2RenderingContext::INVERT => Some(StencilOp::Invert),
+    _ => None,
+  }
+}
+
+fn get_ctx_depth_write(ctx: &mut WebGl2RenderingContext) -> Result<Write, StateQueryError> {
   let enabled = ctx
     .get_webgl_param(WebGl2RenderingContext::DEPTH_WRITEMASK)
     .ok_or_else(|| StateQueryError::UnknownDepthWriteMaskState)?;
 
   if enabled {
-    Ok(DepthWrite::On)
+    Ok(Write::On)
   } else {
-    Ok(DepthWrite::Off)
+    Ok(Write::Off)
   }
 }
 
@@ -1059,15 +1264,6 @@ pub(crate) struct BlendingEquations {
   alpha: Equation,
 }
 
-/// Whether or not depth test should be enabled.
-#[derive(Copy, Clone, Debug, Eq, PartialEq)]
-pub(crate) enum DepthTest {
-  /// The depth test is enabled.
-  On,
-  /// The depth test is disabled.
-  Off,
-}
-
 /// Should face culling be enabled?
 #[derive(Copy, Clone, Debug, Eq, PartialEq)]
 pub(crate) enum FaceCullingState {
@@ -1075,20 +1271,6 @@ pub(crate) enum FaceCullingState {
   On,
   /// Disable face culling.
   Off,
-}
-
-#[inline]
-fn depth_comparison_to_webgl(dc: DepthComparison) -> u32 {
-  match dc {
-    DepthComparison::Never => WebGl2RenderingContext::NEVER,
-    DepthComparison::Always => WebGl2RenderingContext::ALWAYS,
-    DepthComparison::Equal => WebGl2RenderingContext::EQUAL,
-    DepthComparison::NotEqual => WebGl2RenderingContext::NOTEQUAL,
-    DepthComparison::Less => WebGl2RenderingContext::LESS,
-    DepthComparison::LessOrEqual => WebGl2RenderingContext::LEQUAL,
-    DepthComparison::Greater => WebGl2RenderingContext::GREATER,
-    DepthComparison::GreaterOrEqual => WebGl2RenderingContext::GEQUAL,
-  }
 }
 
 #[inline]
@@ -1140,7 +1322,7 @@ macro_rules! impl_GetWebGLParam_integer {
   }
 }
 
-impl_GetWebGLParam_integer!(u32, usize);
+impl_GetWebGLParam_integer!(i32, u8, u32, usize, f32);
 
 macro_rules! impl_GetWebGLParam_array {
   ($($arr_ty:ty),*) => {

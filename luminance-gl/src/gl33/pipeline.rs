@@ -92,7 +92,6 @@ where
 
     state.bind_draw_framebuffer(framebuffer.handle);
 
-    let clear_color = pipeline_state.clear_color;
     let size = framebuffer.size;
 
     match pipeline_state.viewport {
@@ -111,7 +110,7 @@ where
     }
 
     let mut clear_buffer_bits = 0;
-    if let Some(clear_color) = clear_color {
+    if let Some(clear_color) = pipeline_state.clear_color {
       state.set_clear_color([
         clear_color[0] as _,
         clear_color[1] as _,
@@ -122,8 +121,14 @@ where
       clear_buffer_bits |= gl::COLOR_BUFFER_BIT;
     }
 
-    if pipeline_state.clear_depth_enabled {
+    if let Some(clear_depth) = pipeline_state.clear_depth {
+      state.set_clear_depth(clear_depth);
       clear_buffer_bits |= gl::DEPTH_BUFFER_BIT;
+    }
+
+    if let Some(clear_stencil) = pipeline_state.clear_stencil {
+      state.set_clear_stencil(clear_stencil);
+      clear_buffer_bits |= gl::STENCIL_BUFFER_BIT;
     }
 
     match pipeline_state.scissor().as_ref() {
@@ -284,6 +289,17 @@ unsafe impl RenderGate for GL33 {
     }
 
     gfx_state.set_depth_write(rdr_st.depth_write());
+
+    // stencil-related state
+    if let Some(stencil_test) = rdr_st.stencil_test() {
+      gfx_state.enable_stencil_test(true);
+      gfx_state.set_stencil_test(*stencil_test);
+    } else {
+      gfx_state.enable_stencil_test(false);
+    }
+
+    // stencil operations are always active
+    gfx_state.set_stencil_operations(*rdr_st.stencil_operations());
 
     // face-culling state
     match rdr_st.face_culling() {

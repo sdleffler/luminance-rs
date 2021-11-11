@@ -72,7 +72,7 @@ pub mod texture;
 
 // re-export
 pub use luminance::blending;
-pub use luminance::depth_test;
+pub use luminance::depth_stencil;
 pub use luminance::face_culling;
 pub use luminance::pixel;
 pub use luminance::render_state;

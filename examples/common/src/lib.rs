@@ -47,6 +47,7 @@ pub mod shader_uniforms;
 pub mod shared;
 pub mod skybox;
 pub mod sliced_tess;
+pub mod stencil;
 pub mod texture;
 pub mod vertex_instancing;
 

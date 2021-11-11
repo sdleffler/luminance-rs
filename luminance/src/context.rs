@@ -45,21 +45,23 @@
 
 use crate::backend::{
   color_slot::ColorSlot,
-  depth_slot::DepthSlot,
+  depth_stencil_slot::DepthStencilSlot,
   framebuffer::Framebuffer as FramebufferBackend,
   query::Query as QueryBackend,
   shader::{Shader, ShaderData as ShaderDataBackend},
   tess::Tess as TessBackend,
   texture::Texture as TextureBackend,
 };
-use crate::framebuffer::{Framebuffer, FramebufferError};
-use crate::pipeline::PipelineGate;
-use crate::pixel::Pixel;
-use crate::query::Query;
-use crate::shader::{ProgramBuilder, ShaderData, ShaderDataError, Stage, StageError, StageType};
-use crate::tess::{Deinterleaved, Interleaved, TessBuilder, TessVertexData};
-use crate::texture::{Dimensionable, GenMipmaps, Sampler, Texture, TextureError};
-use crate::vertex::Semantics;
+use crate::{
+  framebuffer::{Framebuffer, FramebufferError},
+  pipeline::PipelineGate,
+  pixel::Pixel,
+  query::Query,
+  shader::{ProgramBuilder, ShaderData, ShaderDataError, Stage, StageError, StageType},
+  tess::{Deinterleaved, Interleaved, TessBuilder, TessVertexData},
+  texture::{Dimensionable, GenMipmaps, Sampler, Texture, TextureError},
+  vertex::Semantics,
+};
 
 /// Class of graphics context.
 ///
@@ -99,7 +101,7 @@ pub unsafe trait GraphicsContext: Sized {
     Self::Backend: FramebufferBackend<D>,
     D: Dimensionable,
     CS: ColorSlot<Self::Backend, D>,
-    DS: DepthSlot<Self::Backend, D>,
+    DS: DepthStencilSlot<Self::Backend, D>,
   {
     Framebuffer::new(self, size, mipmaps, sampler)
   }

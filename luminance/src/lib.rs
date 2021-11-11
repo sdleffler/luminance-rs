@@ -328,7 +328,7 @@ pub use luminance_derive::*;
 pub mod backend;
 pub mod blending;
 pub mod context;
-pub mod depth_test;
+pub mod depth_stencil;
 pub mod face_culling;
 pub mod framebuffer;
 pub mod pipeline;

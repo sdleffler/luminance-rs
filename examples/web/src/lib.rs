@@ -276,6 +276,7 @@ examples! {
   "mrt", mrt,
   "skybox", skybox,
   "shader-data", shader_data,
+  "stencil", stencil,
 
   funtests:
   "funtest-tess-no-data", funtest_tess_no_data,

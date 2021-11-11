@@ -192,6 +192,12 @@ pub(crate) fn opengl_pixel_format(pf: PixelFormat) -> Option<(GLenum, GLenum, GL
       Some((gl::DEPTH_COMPONENT, gl::DEPTH_COMPONENT32F, gl::FLOAT))
     }
 
+    (Format::DepthStencil(Size::ThirtyTwo, Size::Eight), Type::Floating) => Some((
+      gl::DEPTH_STENCIL,
+      gl::DEPTH32F_STENCIL8,
+      gl::FLOAT_32_UNSIGNED_INT_24_8_REV,
+    )),
+
     _ => None,
   }
 }

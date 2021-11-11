@@ -362,7 +362,7 @@ fn uniform_type_match(
     .ok_or_else(|| UniformWarning::TypeMismatch("cannot retrieve active uniform".to_owned(), ty))?;
 
   let found_size = info.size() as usize;
-  if found_size != size {
+  if size > 0 && found_size != size {
     return Err(UniformWarning::size_mismatch(name, size, found_size));
   }
 

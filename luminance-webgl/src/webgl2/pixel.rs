@@ -39,12 +39,12 @@ pub(crate) fn webgl_pixel_format(pf: PixelFormat) -> Option<(u32, u32, u32)> {
 
     (Format::R(Size::ThirtyTwo), Type::NormUnsigned) => Some((
       WebGl2RenderingContext::RED_INTEGER,
-      WebGl2RenderingContext::RED,
+      WebGl2RenderingContext::R32F,
       WebGl2RenderingContext::UNSIGNED_INT,
     )),
     (Format::R(Size::ThirtyTwo), Type::NormIntegral) => Some((
       WebGl2RenderingContext::RED_INTEGER,
-      WebGl2RenderingContext::RED,
+      WebGl2RenderingContext::R32F,
       WebGl2RenderingContext::INT,
     )),
     (Format::R(Size::ThirtyTwo), Type::Integral) => Some((
@@ -98,12 +98,12 @@ pub(crate) fn webgl_pixel_format(pf: PixelFormat) -> Option<(u32, u32, u32)> {
 
     (Format::RG(Size::ThirtyTwo, Size::ThirtyTwo), Type::NormUnsigned) => Some((
       WebGl2RenderingContext::RG,
-      WebGl2RenderingContext::RG,
+      WebGl2RenderingContext::RG32F,
       WebGl2RenderingContext::UNSIGNED_INT,
     )),
     (Format::RG(Size::ThirtyTwo, Size::ThirtyTwo), Type::NormIntegral) => Some((
       WebGl2RenderingContext::RG,
-      WebGl2RenderingContext::RG,
+      WebGl2RenderingContext::RG32F,
       WebGl2RenderingContext::INT,
     )),
     (Format::RG(Size::ThirtyTwo, Size::ThirtyTwo), Type::Integral) => Some((
@@ -163,12 +163,12 @@ pub(crate) fn webgl_pixel_format(pf: PixelFormat) -> Option<(u32, u32, u32)> {
 
     (Format::RGB(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo), Type::NormUnsigned) => Some((
       WebGl2RenderingContext::RGB,
-      WebGl2RenderingContext::RGB,
+      WebGl2RenderingContext::RGB32F,
       WebGl2RenderingContext::UNSIGNED_INT,
     )),
     (Format::RGB(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo), Type::NormIntegral) => Some((
       WebGl2RenderingContext::RGB,
-      WebGl2RenderingContext::RGB,
+      WebGl2RenderingContext::RGB32F,
       WebGl2RenderingContext::INT,
     )),
     (Format::RGB(Size::ThirtyTwo, Size::ThirtyTwo, Size::ThirtyTwo), Type::Integral) => Some((
@@ -233,7 +233,7 @@ pub(crate) fn webgl_pixel_format(pf: PixelFormat) -> Option<(u32, u32, u32)> {
       Type::NormUnsigned,
     ) => Some((
       WebGl2RenderingContext::RGBA,
-      WebGl2RenderingContext::RGBA,
+      WebGl2RenderingContext::RGBA32F,
       WebGl2RenderingContext::UNSIGNED_INT,
     )),
     (
@@ -241,7 +241,7 @@ pub(crate) fn webgl_pixel_format(pf: PixelFormat) -> Option<(u32, u32, u32)> {
       Type::NormIntegral,
     ) => Some((
       WebGl2RenderingContext::RGBA,
-      WebGl2RenderingContext::RGBA,
+      WebGl2RenderingContext::RGBA32F,
       WebGl2RenderingContext::INT,
     )),
     (
@@ -299,6 +299,12 @@ pub(crate) fn webgl_pixel_format(pf: PixelFormat) -> Option<(u32, u32, u32)> {
       WebGl2RenderingContext::DEPTH_COMPONENT,
       WebGl2RenderingContext::DEPTH_COMPONENT32F,
       WebGl2RenderingContext::FLOAT,
+    )),
+
+    (Format::DepthStencil(Size::ThirtyTwo, Size::Eight), Type::Floating) => Some((
+      WebGl2RenderingContext::DEPTH_STENCIL,
+      WebGl2RenderingContext::DEPTH32F_STENCIL8,
+      WebGl2RenderingContext::FLOAT_32_UNSIGNED_INT_24_8_REV,
     )),
 
     _ => None,

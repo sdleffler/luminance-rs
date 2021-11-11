@@ -1,19 +1,16 @@
-use luminance::backend::texture::{Texture as TextureBackend, TextureBase};
-use luminance::depth_test::DepthComparison;
-use luminance::pixel::{Pixel, PixelFormat};
-use luminance::texture::{
-  Dim, Dimensionable, GenMipmaps, MagFilter, MinFilter, Sampler, TextureError, Wrap,
+use crate::webgl2::{
+  array_buffer::IntoArrayBuffer,
+  pixel::webgl_pixel_format,
+  state::{comparison_to_glenum, WebGL2State},
+  WebGL2,
 };
-use std::cell::RefCell;
-use std::mem;
-use std::rc::Rc;
-use std::slice;
+use luminance::{
+  backend::texture::{Texture as TextureBackend, TextureBase},
+  pixel::{Pixel, PixelFormat},
+  texture::{Dim, Dimensionable, GenMipmaps, MagFilter, MinFilter, Sampler, TextureError, Wrap},
+};
+use std::{cell::RefCell, mem, rc::Rc, slice};
 use web_sys::{WebGl2RenderingContext, WebGlTexture};
-
-use crate::webgl2::array_buffer::IntoArrayBuffer;
-use crate::webgl2::pixel::webgl_pixel_format;
-use crate::webgl2::state::WebGL2State;
-use crate::webgl2::WebGL2;
 
 pub struct Texture {
   pub(crate) handle: WebGlTexture,
@@ -341,7 +338,7 @@ fn apply_sampler_to_texture(state: &mut WebGL2State, target: u32, sampler: Sampl
       state.ctx.tex_parameteri(
         target,
         WebGl2RenderingContext::TEXTURE_COMPARE_FUNC,
-        webgl_depth_comparison(fun) as i32,
+        comparison_to_glenum(fun) as i32,
       );
       state.ctx.tex_parameteri(
         target,
@@ -663,17 +660,4 @@ where
   D: Dimensionable,
 {
   D::width(size) * D::height(size) * D::depth(size)
-}
-
-pub(crate) fn webgl_depth_comparison(dc: DepthComparison) -> u32 {
-  match dc {
-    DepthComparison::Never => WebGl2RenderingContext::NEVER,
-    DepthComparison::Always => WebGl2RenderingContext::ALWAYS,
-    DepthComparison::Equal => WebGl2RenderingContext::EQUAL,
-    DepthComparison::NotEqual => WebGl2RenderingContext::NOTEQUAL,
-    DepthComparison::Less => WebGl2RenderingContext::LESS,
-    DepthComparison::LessOrEqual => WebGl2RenderingContext::LEQUAL,
-    DepthComparison::Greater => WebGl2RenderingContext::GREATER,
-    DepthComparison::GreaterOrEqual => WebGl2RenderingContext::GEQUAL,
-  }
 }
