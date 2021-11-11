@@ -94,7 +94,7 @@ impl Example for LocalExample {
       .ignore_warnings();
 
     let framebuffer = context
-      .new_framebuffer([1, 1], 1, Sampler::default())
+      .new_framebuffer([1, 1], 0, Sampler::default())
       .expect("framebuffer");
 
     let triangle = context
@@ -133,7 +133,7 @@ impl Example for LocalExample {
 
         InputAction::Resized { width, height } => {
           self.framebuffer = context
-            .new_framebuffer([width, height], 1, Sampler::default())
+            .new_framebuffer([width, height], 0, Sampler::default())
             .expect("framebuffer");
         }
 
