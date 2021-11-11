@@ -12,7 +12,7 @@
 
 use crate::{
   pixel::Pixel,
-  texture::{Dimensionable, GenMipmaps, Sampler, TextureError},
+  texture::{Dimensionable, Sampler, TexelUpload, TextureError},
 };
 
 /// Type family giving the backend representation type.
@@ -38,8 +38,16 @@ where
   unsafe fn new_texture(
     &mut self,
     size: D::Size,
-    mipmaps: usize,
     sampler: Sampler,
+    texels: TexelUpload<[P::Encoding]>,
+  ) -> Result<Self::TextureRepr, TextureError>;
+
+  /// Create a new texture from raw texels.
+  unsafe fn new_texture_raw(
+    &mut self,
+    size: D::Size,
+    sampler: Sampler,
+    texels: TexelUpload<[P::RawEncoding]>,
   ) -> Result<Self::TextureRepr, TextureError>;
 
   /// Get the number of mimaps associated with the texture.
@@ -50,14 +58,11 @@ where
   /// This method will use the input pixel and will copy it everywhere in the part formed with `offset` and `size`. For
   /// instance, for 2D textures, `offset` and `size` form a rectangle: that rectangle of pixels will be cleared with the
   /// input pixel.
-  ///
-  /// If [`GenMipmaps::Yes`] is provided, mipmaps must be reconstructed.
   unsafe fn clear_part(
     texture: &mut Self::TextureRepr,
-    gen_mipmaps: GenMipmaps,
     offset: D::Offset,
     size: D::Size,
-    pixel: P::Encoding,
+    texel: TexelUpload<P::Encoding>,
   ) -> Result<(), TextureError>;
 
   /// Clear a texture using a pixel as clear value.
@@ -67,9 +72,8 @@ where
   /// input `size` value.
   unsafe fn clear(
     texture: &mut Self::TextureRepr,
-    gen_mipmaps: GenMipmaps,
     size: D::Size,
-    pixel: P::Encoding,
+    texel: TexelUpload<P::Encoding>,
   ) -> Result<(), TextureError>;
 
   /// Upload texels to a part of a texture.
@@ -79,10 +83,9 @@ where
   /// provided input texels.
   unsafe fn upload_part(
     texture: &mut Self::TextureRepr,
-    gen_mipmaps: GenMipmaps,
     offset: D::Offset,
     size: D::Size,
-    texels: &[P::Encoding],
+    texels: TexelUpload<[P::Encoding]>,
   ) -> Result<(), TextureError>;
 
   /// Upload texels to a whole texture.
@@ -92,9 +95,8 @@ where
   /// the input `size` value.
   unsafe fn upload(
     texture: &mut Self::TextureRepr,
-    gen_mipmaps: GenMipmaps,
     size: D::Size,
-    texels: &[P::Encoding],
+    texels: TexelUpload<[P::Encoding]>,
   ) -> Result<(), TextureError>;
 
   /// Upload texels to a part of a texture.
@@ -108,10 +110,9 @@ where
   /// > data instead of rich texels.
   unsafe fn upload_part_raw(
     texture: &mut Self::TextureRepr,
-    gen_mipmaps: GenMipmaps,
     offset: D::Offset,
     size: D::Size,
-    texels: &[P::RawEncoding],
+    texels: TexelUpload<[P::RawEncoding]>,
   ) -> Result<(), TextureError>;
 
   /// Upload texels to a whole texture.
@@ -125,9 +126,8 @@ where
   /// > data instead of rich texels.
   unsafe fn upload_raw(
     texture: &mut Self::TextureRepr,
-    gen_mipmaps: GenMipmaps,
     size: D::Size,
-    texels: &[P::RawEncoding],
+    texels: TexelUpload<[P::RawEncoding]>,
   ) -> Result<(), TextureError>;
 
   /// Get a copy of the raw texels stored in the texture.
@@ -147,6 +147,16 @@ where
   unsafe fn resize(
     texture: &mut Self::TextureRepr,
     size: D::Size,
-    mipmaps: usize,
+    texel: TexelUpload<[P::Encoding]>,
+  ) -> Result<(), TextureError>;
+
+  /// Resize the texture with raw texels.
+  ///
+  /// Once the texture is resized, pixels are left in an unknown state. Depending on the implementation of the backend,
+  /// it is likely that texels will either be old ones, or completely random data.
+  unsafe fn resize_raw(
+    texture: &mut Self::TextureRepr,
+    size: D::Size,
+    texel: TexelUpload<[P::RawEncoding]>,
   ) -> Result<(), TextureError>;
 }

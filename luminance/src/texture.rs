@@ -458,15 +458,58 @@ impl Default for Sampler {
   }
 }
 
-/// Whether mipmaps should be generated.
-#[derive(Clone, Copy, Debug, Eq, Hash, PartialEq)]
-pub enum GenMipmaps {
-  /// Mipmaps should be generated.
+/// Texel upload.
+///
+/// You have the choice between different options regarding mipmaps.:
+///
+/// - You can upload texels and let mipmaps being automatically created for you.
+/// - You can upload texels and disable mipmap creation.
+/// - You can upload texels by manually providing all the mipmap levels.
+#[derive(Debug)]
+pub enum TexelUpload<'a, T>
+where
+  T: ?Sized,
+{
+  /// Provide the base level and whether mipmaps should be generated.
+  BaseLevel {
+    /// Texels list to upload.
+    texels: &'a T,
+
+    /// Whether mipmap levels should be automatically created.
+    mipmaps: Option<usize>,
+  },
+
+  /// Provide all the levels at once.
   ///
-  /// Mipmaps are generated when creating textures but also when uploading texels, clearing, etc.
-  Yes,
-  /// Never generate mipmaps.
-  No,
+  /// The number of elements in the outer slice represents the number of mipmaps; each inner slice represents the texels
+  /// to be uploaded to the mipmap level.
+  Levels(&'a [&'a T]),
+}
+
+impl<'a, T> TexelUpload<'a, T>
+where
+  T: ?Sized,
+{
+  /// Create a texel upload for the base level of a texture and let mipmap levels be automatically created.
+  pub fn base_level_with_mipmaps(texels: &'a T, mipmaps: usize) -> Self {
+    Self::BaseLevel {
+      texels,
+      mipmaps: Some(mipmaps),
+    }
+  }
+
+  /// Create a texel upload for the base level of a texture without mipmap levels.
+  pub fn base_level_without_mipmaps(texels: &'a T) -> Self {
+    Self::BaseLevel {
+      texels,
+      mipmaps: None,
+    }
+  }
+
+  /// Create a texel upload by manually providing all base + mipmap levels.
+  pub fn levels(texels: &'a [&'a T]) -> Self {
+    Self::Levels(texels)
+  }
 }
 
 /// Errors that might happen when working with textures.
@@ -629,54 +672,16 @@ where
   D: Dimensionable,
   P: Pixel,
 {
-  /// Create a new [`Texture`] by reserving space for texels.
-  ///
-  /// `size` is the wished size of the [`Texture`].
-  ///
-  /// `mipmaps` is the number of extra mipmaps to allocate with the texture. `0` means that the
-  /// texture will only be made of a _base level_.
-  ///
-  /// `sampler` is a [`Sampler`] object that will be used when sampling the texture from inside a
-  /// shader, for instance.
-  ///
-  /// # Notes
-  ///
-  /// Feel free to have a look at the documentation of [`GraphicsContext::new_texture_no_texels`] for a
-  /// simpler interface.
-  pub fn new_no_texels<C>(
-    ctx: &mut C,
-    size: D::Size,
-    mipmaps: usize,
-    sampler: Sampler,
-  ) -> Result<Self, TextureError>
-  where
-    C: GraphicsContext<Backend = B>,
-  {
-    unsafe {
-      ctx
-        .backend()
-        .new_texture(size, mipmaps, sampler)
-        .map(|repr| Texture {
-          repr,
-          size,
-          _phantom: PhantomData,
-        })
-    }
-  }
-
   /// Create a new [`Texture`].
   ///
-  /// `size` is the wished size of the [`Texture`].
-  ///
-  /// `mipmaps` is the number of extra mipmaps to allocate with the texture. `0` means that the
-  /// texture will only be made of a _base level_.
+  /// `size` is the desired size of the [`Texture`].
   ///
   /// `sampler` is a [`Sampler`] object that will be used when sampling the texture from inside a
   /// shader, for instance.
   ///
   /// `gen_mipmaps` determines whether mipmaps should be generated automatically.
   ///
-  /// `texels` is a slice of raw texels to put into the texture store.
+  /// `texels` is a [`TexelUpload`] of texels to put into the texture store.
   ///
   /// # Notes
   ///
@@ -685,41 +690,32 @@ where
   pub fn new<C>(
     ctx: &mut C,
     size: D::Size,
-    mipmaps: usize,
     sampler: Sampler,
-    gen_mipmaps: GenMipmaps,
-    texels: &[P::Encoding],
+    texels: TexelUpload<[P::Encoding]>,
   ) -> Result<Self, TextureError>
   where
     C: GraphicsContext<Backend = B>,
   {
-    let mut tex = unsafe {
+    unsafe {
       ctx
         .backend()
-        .new_texture(size, mipmaps, sampler)
+        .new_texture(size, sampler, texels)
         .map(|repr| Texture {
           repr,
           size,
           _phantom: PhantomData,
-        })?
-    };
-    tex.upload(gen_mipmaps, texels)?;
-    Ok(tex)
+        })
+    }
   }
 
   /// Create a new [`Texture`] with raw texels.
   ///
   /// `size` is the wished size of the [`Texture`].
   ///
-  /// `mipmaps` is the number of extra mipmaps to allocate with the texture. `0` means that the
-  /// texture will only be made of a _base level_.
-  ///
   /// `sampler` is a [`Sampler`] object that will be used when sampling the texture from inside a
   /// shader, for instance.
   ///
-  /// `gen_mipmaps` determines whether mipmaps should be generated automatically.
-  ///
-  /// `texels` is a slice of raw texels to put into the texture store.
+  /// `texels` is a [`TexelUpload`] of raw texels to put into the texture store.
   ///
   /// # Notes
   ///
@@ -728,26 +724,22 @@ where
   pub fn new_raw<C>(
     ctx: &mut C,
     size: D::Size,
-    mipmaps: usize,
     sampler: Sampler,
-    gen_mipmaps: GenMipmaps,
-    texels: &[P::RawEncoding],
+    texels: TexelUpload<[P::RawEncoding]>,
   ) -> Result<Self, TextureError>
   where
     C: GraphicsContext<Backend = B>,
   {
-    let mut tex = unsafe {
+    unsafe {
       ctx
         .backend()
-        .new_texture(size, mipmaps, sampler)
+        .new_texture_raw(size, sampler, texels)
         .map(|repr| Texture {
           repr,
           size,
           _phantom: PhantomData,
-        })?
-    };
-    tex.upload_raw(gen_mipmaps, texels)?;
-    Ok(tex)
+        })
+    }
   }
 
   /// Return the number of mipmaps.
@@ -767,13 +759,10 @@ where
   pub fn resize(
     &mut self,
     size: D::Size,
-    mipmaps: usize,
-    gen_mipmaps: GenMipmaps,
-    texels: &[P::Encoding],
+    texels: TexelUpload<[P::Encoding]>,
   ) -> Result<(), TextureError> {
     self.size = size;
-    unsafe { B::resize(&mut self.repr, size, mipmaps) }?;
-    self.upload(gen_mipmaps, texels)
+    unsafe { B::resize(&mut self.repr, size, texels) }
   }
 
   /// Resize the texture by providing a new size and raw texels by reusing its GPU resources.
@@ -783,13 +772,10 @@ where
   pub fn resize_raw(
     &mut self,
     size: D::Size,
-    mipmaps: usize,
-    gen_mipmaps: GenMipmaps,
-    texels: &[P::RawEncoding],
+    texels: TexelUpload<[P::RawEncoding]>,
   ) -> Result<(), TextureError> {
     self.size = size;
-    unsafe { B::resize(&mut self.repr, size, mipmaps) }?;
-    self.upload_raw(gen_mipmaps, texels)
+    unsafe { B::resize_raw(&mut self.repr, size, texels) }
   }
 
   /// Clear the texture with a single pixel value.
@@ -798,61 +784,50 @@ where
   /// by `size` and `offset` in the texture.
   pub fn clear_part(
     &mut self,
-    gen_mipmaps: GenMipmaps,
     offset: D::Offset,
     size: D::Size,
-    pixel: P::Encoding,
+    pixel: TexelUpload<P::Encoding>,
   ) -> Result<(), TextureError> {
-    unsafe { B::clear_part(&mut self.repr, gen_mipmaps, offset, size, pixel) }
+    unsafe { B::clear_part(&mut self.repr, offset, size, pixel) }
   }
 
   /// Clear the texture with a single pixel value.
   ///
   /// This function will assign the input pixel value to all the pixels in the texture.
-  pub fn clear(&mut self, gen_mipmaps: GenMipmaps, pixel: P::Encoding) -> Result<(), TextureError> {
-    unsafe { B::clear(&mut self.repr, gen_mipmaps, self.size, pixel) }
+  pub fn clear(&mut self, pixel: TexelUpload<P::Encoding>) -> Result<(), TextureError> {
+    unsafe { B::clear(&mut self.repr, self.size, pixel) }
   }
 
   /// Upload pixels to a region of the texture described by the rectangle made with `size` and
   /// `offset`.
   pub fn upload_part(
     &mut self,
-    gen_mipmaps: GenMipmaps,
     offset: D::Offset,
     size: D::Size,
-    texels: &[P::Encoding],
+    texels: TexelUpload<[P::Encoding]>,
   ) -> Result<(), TextureError> {
-    unsafe { B::upload_part(&mut self.repr, gen_mipmaps, offset, size, texels) }
+    unsafe { B::upload_part(&mut self.repr, offset, size, texels) }
   }
 
   /// Upload pixels to the whole texture.
-  pub fn upload(
-    &mut self,
-    gen_mipmaps: GenMipmaps,
-    texels: &[P::Encoding],
-  ) -> Result<(), TextureError> {
-    unsafe { B::upload(&mut self.repr, gen_mipmaps, self.size, texels) }
+  pub fn upload(&mut self, texels: TexelUpload<[P::Encoding]>) -> Result<(), TextureError> {
+    unsafe { B::upload(&mut self.repr, self.size, texels) }
   }
 
   /// Upload raw data to a region of the texture described by the rectangle made with `size` and
   /// `offset`.
   pub fn upload_part_raw(
     &mut self,
-    gen_mipmaps: GenMipmaps,
     offset: D::Offset,
     size: D::Size,
-    texels: &[P::RawEncoding],
+    texels: TexelUpload<[P::RawEncoding]>,
   ) -> Result<(), TextureError> {
-    unsafe { B::upload_part_raw(&mut self.repr, gen_mipmaps, offset, size, texels) }
+    unsafe { B::upload_part_raw(&mut self.repr, offset, size, texels) }
   }
 
   /// Upload raw data to the whole texture.
-  pub fn upload_raw(
-    &mut self,
-    gen_mipmaps: GenMipmaps,
-    texels: &[P::RawEncoding],
-  ) -> Result<(), TextureError> {
-    unsafe { B::upload_raw(&mut self.repr, gen_mipmaps, self.size, texels) }
+  pub fn upload_raw(&mut self, texels: TexelUpload<[P::RawEncoding]>) -> Result<(), TextureError> {
+    unsafe { B::upload_raw(&mut self.repr, self.size, texels) }
   }
 
   /// Get a copy of all the pixels from the texture.

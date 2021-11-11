@@ -14,7 +14,7 @@ use crate::{
   context::GraphicsContext,
   framebuffer::FramebufferError,
   pixel::{Depth32F, Depth32FStencil8, Pixel as _, PixelFormat},
-  texture::{Dimensionable, Sampler, Texture},
+  texture::{Dimensionable, Sampler, TexelUpload, Texture},
 };
 
 /// A depth/stencil slot.
@@ -105,7 +105,12 @@ where
   where
     C: GraphicsContext<Backend = B>,
   {
-    let texture = Texture::new_no_texels(ctx, size, mipmaps, sampler.clone())?;
+    let texture = Texture::new(
+      ctx,
+      size,
+      sampler.clone(),
+      TexelUpload::base_level_with_mipmaps(&[], mipmaps),
+    )?;
     unsafe { B::attach_depth_texture(framebuffer, &texture.repr)? };
 
     Ok(texture)
@@ -134,7 +139,12 @@ where
   where
     C: GraphicsContext<Backend = B>,
   {
-    let texture = Texture::new_no_texels(ctx, size, mipmaps, sampler.clone())?;
+    let texture = Texture::new(
+      ctx,
+      size,
+      sampler.clone(),
+      TexelUpload::base_level_with_mipmaps(&[], mipmaps),
+    )?;
     unsafe { B::attach_depth_texture(framebuffer, &texture.repr)? };
 
     Ok(texture)
