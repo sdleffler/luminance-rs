@@ -510,6 +510,22 @@ where
   pub fn levels(texels: &'a [&'a T]) -> Self {
     Self::Levels(texels)
   }
+
+  /// Number of mipmaps.
+  pub fn mipmaps(&self) -> usize {
+    match self {
+      TexelUpload::BaseLevel { mipmaps, .. } => mipmaps.unwrap_or(0),
+      TexelUpload::Levels(levels) => levels.len(),
+    }
+  }
+
+  /// Get the base level texels.
+  pub fn base_level(&self) -> Option<&'a T> {
+    match self {
+      TexelUpload::BaseLevel { texels, .. } => Some(*texels),
+      TexelUpload::Levels(levels) => levels.get(0).map(|base_level| *base_level),
+    }
+  }
 }
 
 /// Errors that might happen when working with textures.
@@ -520,6 +536,7 @@ pub enum TextureError {
   ///
   /// The carried [`String`] gives the reason of the failure.
   TextureStorageCreationFailed(String),
+
   /// Not enough pixel data provided for the given area asked.
   ///
   /// You must provide at least as many pixels as expected by the area in the texture you’re
@@ -530,16 +547,19 @@ pub enum TextureError {
     /// Provided number of pixels in bytes.
     provided_bytes: usize,
   },
+
   /// Unsupported pixel format.
   ///
   /// Sometimes, some hardware might not support a given pixel format (or the format exists on
   /// the interface side but doesn’t in the implementation). That error represents such a case.
   UnsupportedPixelFormat(PixelFormat),
+
   /// Cannot retrieve texels from a texture.
   ///
   /// That error might happen on some hardware implementations if the user tries to retrieve
   /// texels from a texture that doesn’t support getting its texels retrieved.
   CannotRetrieveTexels(String),
+
   /// Failed to upload texels.
   CannotUploadTexels(String),
 }
@@ -620,8 +640,6 @@ impl error::Error for TextureError {}
 /// - [`Texture::upload`]
 /// - [`Texture::upload_part_raw`]
 /// - [`Texture::upload_raw`]
-/// - [`Texture::clear_part`]
-/// - [`Texture::clear`]
 ///
 /// In the second case, a [`Texture`] can be used as part of a [`ColorSlot`] or [`DepthSlot`] of a [`Framebuffer`]. This
 /// allows to create graphics pipeline that will output into the [`Texture`], that you can use in another graphics
@@ -776,26 +794,6 @@ where
   ) -> Result<(), TextureError> {
     self.size = size;
     unsafe { B::resize_raw(&mut self.repr, size, texels) }
-  }
-
-  /// Clear the texture with a single pixel value.
-  ///
-  /// This function will assign the input pixel value to all the pixels in the rectangle described
-  /// by `size` and `offset` in the texture.
-  pub fn clear_part(
-    &mut self,
-    offset: D::Offset,
-    size: D::Size,
-    pixel: TexelUpload<P::Encoding>,
-  ) -> Result<(), TextureError> {
-    unsafe { B::clear_part(&mut self.repr, offset, size, pixel) }
-  }
-
-  /// Clear the texture with a single pixel value.
-  ///
-  /// This function will assign the input pixel value to all the pixels in the texture.
-  pub fn clear(&mut self, pixel: TexelUpload<P::Encoding>) -> Result<(), TextureError> {
-    unsafe { B::clear(&mut self.repr, self.size, pixel) }
   }
 
   /// Upload pixels to a region of the texture described by the rectangle made with `size` and

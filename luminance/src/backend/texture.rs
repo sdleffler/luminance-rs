@@ -53,29 +53,6 @@ where
   /// Get the number of mimaps associated with the texture.
   unsafe fn mipmaps(texture: &Self::TextureRepr) -> usize;
 
-  /// Clear a part to texture using a pixel as clear value.
-  ///
-  /// This method will use the input pixel and will copy it everywhere in the part formed with `offset` and `size`. For
-  /// instance, for 2D textures, `offset` and `size` form a rectangle: that rectangle of pixels will be cleared with the
-  /// input pixel.
-  unsafe fn clear_part(
-    texture: &mut Self::TextureRepr,
-    offset: D::Offset,
-    size: D::Size,
-    texel: TexelUpload<P::Encoding>,
-  ) -> Result<(), TextureError>;
-
-  /// Clear a texture using a pixel as clear value.
-  ///
-  /// This method is similar to [`Texture::clear_part`] but instead of clearing a part of it, it will clear the whole
-  /// texture at once. The size will match the size of the texture so you do not have to cache it and simply can use the
-  /// input `size` value.
-  unsafe fn clear(
-    texture: &mut Self::TextureRepr,
-    size: D::Size,
-    texel: TexelUpload<P::Encoding>,
-  ) -> Result<(), TextureError>;
-
   /// Upload texels to a part of a texture.
   ///
   /// This method will use the input texels and will copy them everywhere in the part formed with `offset` and `size`. For
