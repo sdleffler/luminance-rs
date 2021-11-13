@@ -29,7 +29,7 @@ use luminance_front::{
   render_state::RenderState,
   shader::{types::Vec2, Program, Uniform},
   tess::{Mode, Tess},
-  texture::{Dim2, GenMipmaps, Sampler},
+  texture::{Dim2, Sampler, TexelUpload},
   Backend,
 };
 
@@ -175,10 +175,8 @@ fn load_displacement_map(
   context
     .new_texture_raw(
       [width, height],
-      0,
       Sampler::default(),
-      GenMipmaps::No,
-      texels,
+      TexelUpload::base_level_without_mipmaps(texels),
     )
     .map_err(|e| log::error!("error while creating texture: {}", e))
     .ok()

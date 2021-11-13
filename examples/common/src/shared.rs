@@ -2,7 +2,7 @@ use luminance::{Semantics, Vertex};
 use luminance_front::{
   context::GraphicsContext,
   pixel::NormRGB8UI,
-  texture::{Dim2, GenMipmaps, Sampler, Texture},
+  texture::{Dim2, Sampler, TexelUpload, Texture},
   Backend,
 };
 
@@ -135,10 +135,8 @@ pub fn load_texture(
   context
     .new_texture_raw(
       [width, height],
-      0,
       Sampler::default(),
-      GenMipmaps::No,
-      texels,
+      TexelUpload::base_level_without_mipmaps(texels),
     )
     .map_err(|e| log::error!("error while creating texture: {}", e))
     .ok()

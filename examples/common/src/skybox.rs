@@ -34,7 +34,7 @@ use luminance_front::{
   render_state::RenderState,
   shader::{types::Mat44, Program, Uniform},
   tess::{Mode, Tess},
-  texture::{CubeFace, Cubemap, Dim2, GenMipmaps, Sampler, Texture},
+  texture::{CubeFace, Cubemap, Dim2, Sampler, TexelUpload, Texture},
   Backend,
 };
 use shared::cube;
@@ -469,7 +469,11 @@ fn upload_cubemap(
 
   // Create the cubemap on the GPU; we ask for two mipmaps… because why not.
   let mut texture = context
-    .new_texture_no_texels(size, 2, Sampler::default())
+    .new_texture(
+      size,
+      Sampler::default(),
+      TexelUpload::base_level_with_mipmaps(&[], 2),
+    )
     .map_err(|e| AppError::CannotCreateTexture(Box::new(e)))?;
 
   // Upload each face, starting from U, then L, F, R, B and finally D. This part of the code is
@@ -581,6 +585,10 @@ fn upload_face(
   }
 
   texture
-    .upload_part_raw(GenMipmaps::Yes, ([0, 0], face), size as u32, &face_buffer)
+    .upload_part_raw(
+      ([0, 0], face),
+      size as u32,
+      TexelUpload::base_level_without_mipmaps(&face_buffer),
+    )
     .map_err(|e| AppError::CannotUploadToFace(Box::new(e)))
 }
