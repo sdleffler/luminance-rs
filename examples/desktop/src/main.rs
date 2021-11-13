@@ -7,17 +7,17 @@ use luminance_examples::{Example, InputAction, LoopFeedback};
 use luminance_gl::GL33;
 use luminance_glfw::{GlfwSurface, GlfwSurfaceError};
 use platform::DesktopPlatformServices;
-use std::{iter, path::PathBuf, time::Instant};
+use std::{iter, time::Instant};
 use structopt::StructOpt;
 
 #[derive(Debug, StructOpt)]
 pub struct CLIOpts {
+  /// List of textures (paths) to load from.
   #[structopt(short, long)]
-  /// Directory where to pick textures from.
-  textures: Option<PathBuf>,
+  textures: Vec<String>,
 
-  #[structopt(short, long)]
   /// List available examples.
+  #[structopt(short, long)]
   list_examples: bool,
 
   /// Example to run.
@@ -94,7 +94,7 @@ where
   E: Example<GL33>,
 {
   // Check the features so that we know what we need to load.
-  let mut services = DesktopPlatformServices::new(cli_opts, E::features());
+  let mut services = DesktopPlatformServices::new(cli_opts);
 
   // First thing first: we create a new surface to render to and get events from.
   let surface = GlfwSurface::new(|glfw| {
@@ -251,6 +251,8 @@ fn main() {
     .parse_default_env()
     .init();
   let cli_opts = CLIOpts::from_args();
+
+  log::debug!("CLI options:\n{:#?}", cli_opts);
 
   if cli_opts.list_examples {
     show_available_examples();

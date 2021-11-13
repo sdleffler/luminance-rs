@@ -41,7 +41,7 @@ use shared::cube;
 
 use crate::{
   shared::{self, CubeVertex, Semantics, VertexIndex},
-  Example, Features, InputAction, LoopFeedback, PlatformServices,
+  Example, InputAction, LoopFeedback, PlatformServices,
 };
 
 // A bunch of shaders sources. The SKYBOX_* shader is used to render the skybox all around your
@@ -144,16 +144,12 @@ pub struct LocalExample {
 }
 
 impl Example for LocalExample {
-  fn features() -> Features {
-    Features::default().texture("skybox.png")
-  }
-
   fn bootstrap(
     platform: &mut impl PlatformServices,
     context: &mut impl GraphicsContext<Backend = Backend>,
   ) -> Self {
-    let skybox_img = platform.fetch_texture("skybox.png").expect("skybox image");
-    let skybox = upload_cubemap(context, skybox_img).expect("skybox cubemap");
+    let skybox_img = platform.fetch_texture().expect("skybox image");
+    let skybox = upload_cubemap(context, &skybox_img).expect("skybox cubemap");
 
     let [width, height] = [800., 600.];
 
@@ -588,7 +584,7 @@ fn upload_face(
     .upload_part_raw(
       ([0, 0], face),
       size as u32,
-      TexelUpload::base_level_without_mipmaps(&face_buffer),
+      TexelUpload::base_level_with_mipmaps(face_buffer, 2),
     )
     .map_err(|e| AppError::CannotUploadToFace(Box::new(e)))
 }

@@ -72,11 +72,6 @@ pub trait Example<B = Backend>: Sized
 where
   B: FramebufferBackBuffer,
 {
-  /// List of features required by the example.
-  fn features() -> Features {
-    Features::default()
-  }
-
   /// Bootstrap the example.
   fn bootstrap(
     platform: &mut impl PlatformServices,
@@ -91,41 +86,6 @@ where
     actions: impl Iterator<Item = InputAction>,
     context: &mut impl GraphicsContext<Backend = B>,
   ) -> LoopFeedback<Self>;
-}
-
-/// Feature set.
-///
-/// Features allow to provide more interactivity in the examples.
-pub struct Features {
-  textures: Vec<String>,
-}
-
-impl Default for Features {
-  fn default() -> Self {
-    Features {
-      textures: Vec::new(),
-    }
-  }
-}
-
-impl Features {
-  /// Create an empty feature set.
-  pub fn none() -> Self {
-    Features::default()
-  }
-
-  /// Add a texture to be loaded.
-  pub fn texture(self, name: impl Into<String>) -> Self {
-    let mut textures = self.textures;
-    textures.push(name.into());
-
-    Features { textures, ..self }
-  }
-
-  /// List of textures to be loaded.
-  pub fn textures(&self) -> &[String] {
-    &self.textures
-  }
 }
 
 /// A type used to pass “inputs” to examples.
@@ -187,6 +147,6 @@ pub enum LoopFeedback<T> {
 pub trait PlatformServices {
   type FetchError: Error;
 
-  /// Fetch a texture given its name.
-  fn fetch_texture(&mut self, name: impl AsRef<str>) -> Result<&image::RgbImage, Self::FetchError>;
+  /// Fetch the next texture, if available.
+  fn fetch_texture(&mut self) -> Result<image::RgbImage, Self::FetchError>;
 }
