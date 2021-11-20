@@ -28,6 +28,12 @@
 - Change the encoding of clear color. Now, `PipelineState` expects an `Option<[f32; 4]>`. If it’s `None`, then
   color clearing will be disabled. Otherwise, it will be enabled with the provided color.
 - Add support for stencil buffers.
+- Change the way texture uploads / texture creation works. Methods such as `GraphicsContext::new_texture_no_texels` are
+  removed. Instead, all the texture API functions must go through the new `TexelUpload` type, which encodes various
+  different situations:
+  - Providing the base level, the number of mipmaps and let luminance generate the mipmaps automatically.
+  - Providing the base level with no mipmaps.
+  - Providing the base level as well as all the mipmap levels.
 
 # `luminance-derive`
 
@@ -48,6 +54,7 @@
 - Support for uniform array and runtime-check them.
 - Document public symbols.
 - Support the new color clearing.
+- Implement the new `TexelUpload` interface.
 
 # `luminance-glfw`
 
@@ -79,6 +86,7 @@
 - Implement the new `Uniformable` interface.
 - Support for uniform array and runtime-check them.
 - Support the new color clearing.
+- Implement the new `TexelUpload` interface.
 
 # `luminance-windowing`
 
