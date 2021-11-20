@@ -1,13 +1,13 @@
 const rust = import('./pkg');
 
 // set to true when an example is ready to be rendered
-let example_ready = false;
-const such_a_shame = function(v) {
-  if (v !== undefined) {
-    example_ready = v;
-  }
+let example_ready = null;
+const set_ready = function(v) {
+  example_ready = v;
+}
 
-  return example_ready;
+const is_ready = function() {
+  return example_ready !== null;
 }
 
 // things we can be waiting for in the user input arg field
@@ -27,10 +27,14 @@ let example_select = document.createElement('select');
 example_select.add(document.createElement('option'));
 widgets.appendChild(example_select);
 
-// user input, if needed
-let user_input_args = document.createElement('input');
-user_input_args.hidden = true;
-widgets.appendChild(user_input_args);
+// textures (leave empty for no texture)
+let texture_input = document.createElement('input');
+widgets.appendChild(texture_input);
+
+// run button
+let run_button = document.createElement('button')
+run_button.innerText = 'Run';
+widgets.appendChild(run_button);
 
 let canvas = document.createElement('canvas');
 canvas.tabIndex = 0;
@@ -43,17 +47,15 @@ document.body.appendChild(canvas);
 // Reset the view to its default.
 const reset_view = function() {
   canvas.hidden = true;
-  user_input_args.hidden = true;
-  example_ready = false;
+  texture_input.value = '';
+  example_select.value = '';
+  set_ready(null);
 }
 
 rust
   .then(wasm => {
     // get the showcase
     const showcase = wasm.get_showcase('luminance-canvas');
-
-    // FIXME
-    let user_input_type = null;
 
     // build the <select> shit madness
     const example_names = wasm.examples_names();
@@ -63,51 +65,38 @@ rust
       example_select.add(option);
     });
 
-    // handle example change
-    example_select.onchange = change => {
-      reset_view();
-      showcase.reset();
+    // handle run
+    run_button.onclick = () => {
+      // check that something is selected
+      const example_name = example_select.value;
 
-      const value = change.target.value;
-      canvas.hidden = value === '';
-      if (value !== '') {
-        // check the features
-        const features = showcase.get_features(change.target.value);
-        const textures = features.textures();
-
-        // if we require some textures
-        if (textures.length > 0) {
-          if (textures.length == 1) {
-            user_input_args.placeholder = 'URL to texture';
-            user_input_args.hidden = false;
-            user_input_type = user_input_types.TEXTURE;
-          } else {
-            error('not implemented yet');
-          }
-        } else {
-          such_a_shame(true);
-        }
+      if (example_name === '') {
+        return;
       }
-    };
 
-    // handle user input
-    user_input_args.onchange = change => {
-      const value = change.target.value;
+      // if the user has typed any texture path, load it and make it available to the example
+      const texture_name = texture_input.value;
+      if (texture_name !== '') {
+        console.log('there’s a texture OMG, and it’s ' + texture_name);
+        fetch(texture_name)
+          .then(res => res.blob())
+          .then(res => res.arrayBuffer())
+          .then(res => {
+            console.log('adding the texture');
+            showcase.add_texture(new Uint8Array(res));
 
-      switch (user_input_type) {
-        case user_input_types.TEXTURE:
-          fetch(value)
-            .then(res => res.blob())
-            .then(res => res.arrayBuffer())
-            .then(res => {
-              showcase.add_texture(value, new Uint8Array(res));
-              such_a_shame(true);
-            });
-          break;
-
-        default: ;
+            set_ready(example_name);
+            canvas.hidden = false;
+          }).catch(error => {
+            console.error(error);
+          });
+      } else {
+        // set it ready right away
+        set_ready(example_name);
+        canvas.hidden = false;
       }
-    };
+
+    }
 
     // transform events into input actions
     canvas.addEventListener('keyup', (event) => {
@@ -177,13 +166,11 @@ rust
     };
 
     const renderFrame = (now) => {
-      if (such_a_shame()) {
-        const feedback = showcase.render_example(example_select.value, now * 1e-3);
+      if (is_ready()) {
+        const feedback = showcase.render_example(example_ready, now * 1e-3);
 
         if (!feedback) {
-          example_select.value = '';
-          showcase.reset();
-          canvas.hidden = true;
+          reset_view();
         }
       }
 

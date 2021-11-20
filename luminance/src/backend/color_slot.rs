@@ -11,7 +11,7 @@ use crate::{
   backend::{framebuffer::Framebuffer, texture::Texture as TextureBackend},
   context::GraphicsContext,
   framebuffer::FramebufferError,
-  texture::Texture,
+  texture::{TexelUpload, Texture},
 };
 use crate::{
   pixel::{ColorPixel, PixelFormat, RenderablePixel},
@@ -118,7 +118,13 @@ where
   where
     C: GraphicsContext<Backend = B>,
   {
-    let texture = Texture::new_no_texels(ctx, size, mipmaps, sampler.clone())?;
+    let texture = Texture::new(
+      ctx,
+      size,
+      sampler.clone(),
+      TexelUpload::base_level_with_mipmaps(&[], mipmaps),
+    )?;
+
     unsafe { B::attach_color_texture(framebuffer, &texture.repr, attachment_index)? };
 
     Ok(texture)

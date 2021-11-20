@@ -7,7 +7,7 @@
 
 use crate::{
   shared::{load_texture, RGBTexture},
-  Example, Features, InputAction, LoopFeedback, PlatformServices,
+  Example, InputAction, LoopFeedback, PlatformServices,
 };
 use luminance::UniformInterface;
 use luminance_front::{
@@ -39,15 +39,11 @@ pub struct LocalExample {
 }
 
 impl Example for LocalExample {
-  fn features() -> Features {
-    Features::none().texture("source.jpg")
-  }
-
   fn bootstrap(
     platform: &mut impl PlatformServices,
     context: &mut impl GraphicsContext<Backend = Backend>,
   ) -> Self {
-    let image = load_texture(context, platform, "source.jpg").expect("texture to display");
+    let image = load_texture(context, platform).expect("texture to display");
 
     // set the uniform interface to our type so that we can read textures from the shader
     let program = context

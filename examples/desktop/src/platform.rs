@@ -2,32 +2,30 @@
 
 use crate::CLIOpts;
 use image::ImageError;
-use luminance_examples::{Features, PlatformServices};
-use std::{collections::HashMap, error::Error, fmt};
+use luminance_examples::PlatformServices;
+use std::{error::Error, fmt};
 
 /// Desktop implementation of the [`PlatformServices`] API.
 #[derive(Debug)]
 pub struct DesktopPlatformServices {
-  textures: HashMap<String, image::RgbImage>,
+  textures: Vec<image::RgbImage>,
 }
 
 impl DesktopPlatformServices {
-  pub fn new(cli_opts: CLIOpts, features: Features) -> Self {
-    let textures = features.textures();
+  pub fn new(cli_opts: CLIOpts) -> Self {
+    let textures = cli_opts.textures;
+
     if textures.is_empty() {
       Self {
-        textures: HashMap::new(),
+        textures: Vec::new(),
       }
     } else {
-      let texture_root = cli_opts.textures.as_ref().expect("no texture root");
       let textures = textures
-        .iter()
-        .map(|name| {
-          let path = texture_root.join(name);
-          let texture = image::open(&path)
+        .into_iter()
+        .map(|path| {
+          image::open(&path)
             .map(|img| img.flipv().to_rgb8())
-            .expect(&format!("image {}", path.display()));
-          (name.clone(), texture)
+            .expect(&format!("image {}", path))
         })
         .collect();
 
@@ -38,14 +36,14 @@ impl DesktopPlatformServices {
 
 #[derive(Debug)]
 pub enum DesktopFetchError {
-  UnknownTexture(String),
+  NoMoreTexture,
   ImageError(ImageError),
 }
 
 impl fmt::Display for DesktopFetchError {
   fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
     match self {
-      DesktopFetchError::UnknownTexture(ref name) => write!(f, "unknown texture to load: {}", name),
+      DesktopFetchError::NoMoreTexture => f.write_str("no more texture, sorry"),
       DesktopFetchError::ImageError(ref e) => write!(f, "cannot fetch texture: {}", e),
     }
   }
@@ -62,11 +60,11 @@ impl From<ImageError> for DesktopFetchError {
 impl PlatformServices for DesktopPlatformServices {
   type FetchError = DesktopFetchError;
 
-  fn fetch_texture(&mut self, name: impl AsRef<str>) -> Result<&image::RgbImage, Self::FetchError> {
-    let path = name.as_ref();
-    self
-      .textures
-      .get(path)
-      .ok_or_else(|| DesktopFetchError::UnknownTexture(path.to_owned()))
+  fn fetch_texture(&mut self) -> Result<image::RgbImage, Self::FetchError> {
+    if self.textures.is_empty() {
+      Err(DesktopFetchError::NoMoreTexture)
+    } else {
+      Ok(self.textures.remove(0)) // bit of a cost but for small textures who cares?
+    }
   }
 }

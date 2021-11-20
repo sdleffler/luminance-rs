@@ -3,26 +3,9 @@
 mod platform;
 
 use crate::platform::WebPlatformServices;
-use luminance_examples::{Example as _, Features, InputAction, LoopFeedback};
+use luminance_examples::{Example as _, InputAction, LoopFeedback};
 use luminance_web_sys::WebSysWebGL2Surface;
 use wasm_bindgen::prelude::*;
-
-/// Web features.
-#[wasm_bindgen]
-pub struct WebFeatures(Features);
-
-#[wasm_bindgen]
-impl WebFeatures {
-  pub fn textures(&self) -> Box<[JsValue]> {
-    let v: Vec<_> = self
-      .0
-      .textures()
-      .iter()
-      .map(|n| JsValue::from_str(n))
-      .collect();
-    v.into_boxed_slice()
-  }
-}
 
 /// Macro to declaratively add examples.
 macro_rules! examples {
@@ -152,21 +135,8 @@ macro_rules! examples {
         )*
       }
 
-      pub fn get_features(&mut self, name: &str) -> Option<WebFeatures> {
-        match name {
-          $(
-            $test_name => Some(WebFeatures(luminance_examples::$test_ident::LocalExample::features())),
-          )*
-          $(
-            #[cfg(all(feature = "funtest", $(feature = $fun_feature_gate)?))]
-            $fun_name => Some(WebFeatures(luminance_examples::$fun_ident::LocalExample::features())),
-          )*
-          _ => None
-        }
-      }
-
-      pub fn add_texture(&mut self, name: &str, blob: Vec<u8>) {
-        self.platform.add_texture(name, blob);
+      pub fn add_texture(&mut self, blob: Vec<u8>) {
+        self.platform.add_texture(blob);
       }
 
       pub fn render_example(&mut self, name: &str, time: f32) -> bool {

@@ -2,7 +2,7 @@ use luminance::{Semantics, Vertex};
 use luminance_front::{
   context::GraphicsContext,
   pixel::NormRGB8UI,
-  texture::{Dim2, GenMipmaps, Sampler, Texture},
+  texture::{Dim2, Sampler, TexelUpload, Texture},
   Backend,
 };
 
@@ -118,10 +118,9 @@ pub type RGBTexture = Texture<Dim2, NormRGB8UI>;
 pub fn load_texture(
   context: &mut impl GraphicsContext<Backend = Backend>,
   platform: &mut impl PlatformServices,
-  name: impl AsRef<str>,
 ) -> Option<RGBTexture> {
   let img = platform
-    .fetch_texture(name)
+    .fetch_texture()
     .map_err(|e| log::error!("error while loading image: {}", e))
     .ok()?;
   let (width, height) = img.dimensions();
@@ -135,10 +134,8 @@ pub fn load_texture(
   context
     .new_texture_raw(
       [width, height],
-      0,
       Sampler::default(),
-      GenMipmaps::No,
-      texels,
+      TexelUpload::base_level_without_mipmaps(texels),
     )
     .map_err(|e| log::error!("error while creating texture: {}", e))
     .ok()

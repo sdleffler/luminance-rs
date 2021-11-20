@@ -43,14 +43,17 @@
 //! let buffer = context.new_buffer_from_slice(slice).unwrap();
 //! ```
 
-use crate::backend::{
-  color_slot::ColorSlot,
-  depth_stencil_slot::DepthStencilSlot,
-  framebuffer::Framebuffer as FramebufferBackend,
-  query::Query as QueryBackend,
-  shader::{Shader, ShaderData as ShaderDataBackend},
-  tess::Tess as TessBackend,
-  texture::Texture as TextureBackend,
+use crate::{
+  backend::{
+    color_slot::ColorSlot,
+    depth_stencil_slot::DepthStencilSlot,
+    framebuffer::Framebuffer as FramebufferBackend,
+    query::Query as QueryBackend,
+    shader::{Shader, ShaderData as ShaderDataBackend},
+    tess::Tess as TessBackend,
+    texture::Texture as TextureBackend,
+  },
+  texture::TexelUpload,
 };
 use crate::{
   framebuffer::{Framebuffer, FramebufferError},
@@ -59,7 +62,7 @@ use crate::{
   query::Query,
   shader::{ProgramBuilder, ShaderData, ShaderDataError, Stage, StageError, StageType},
   tess::{Deinterleaved, Interleaved, TessBuilder, TessVertexData},
-  texture::{Dimensionable, GenMipmaps, Sampler, Texture, TextureError},
+  texture::{Dimensionable, Sampler, Texture, TextureError},
   vertex::Semantics,
 };
 
@@ -167,42 +170,21 @@ pub unsafe trait GraphicsContext: Sized {
     TessBuilder::new(self)
   }
 
-  /// Create a new texture by reserving space for texels.
-  ///
-  /// Feel free to have a look at the documentation of [`Texture::new_no_texels`] for further details.
-  ///
-  /// [`Texture::new_no_texels`]: crate::texture::Texture::new_no_texels
-  fn new_texture_no_texels<D, P>(
-    &mut self,
-    size: D::Size,
-    mipmaps: usize,
-    sampler: Sampler,
-  ) -> Result<Texture<Self::Backend, D, P>, TextureError>
-  where
-    Self::Backend: TextureBackend<D, P>,
-    D: Dimensionable,
-    P: Pixel,
-  {
-    Texture::new_no_texels(self, size, mipmaps, sampler)
-  }
-
   /// Create a new texture from texels.
   ///
   /// Feel free to have a look at the documentation of [`Texture::new`] for further details.
   fn new_texture<D, P>(
     &mut self,
     size: D::Size,
-    mipmaps: usize,
     sampler: Sampler,
-    gen_mipmaps: GenMipmaps,
-    texels: &[P::Encoding],
+    texels: TexelUpload<[P::Encoding]>,
   ) -> Result<Texture<Self::Backend, D, P>, TextureError>
   where
     Self::Backend: TextureBackend<D, P>,
     D: Dimensionable,
     P: Pixel,
   {
-    Texture::new(self, size, mipmaps, sampler, gen_mipmaps, texels)
+    Texture::new(self, size, sampler, texels)
   }
 
   /// Create a new texture from raw texels.
@@ -211,16 +193,14 @@ pub unsafe trait GraphicsContext: Sized {
   fn new_texture_raw<D, P>(
     &mut self,
     size: D::Size,
-    mipmaps: usize,
     sampler: Sampler,
-    gen_mipmaps: GenMipmaps,
-    texels: &[P::RawEncoding],
+    texels: TexelUpload<[P::RawEncoding]>,
   ) -> Result<Texture<Self::Backend, D, P>, TextureError>
   where
     Self::Backend: TextureBackend<D, P>,
     D: Dimensionable,
     P: Pixel,
   {
-    Texture::new_raw(self, size, mipmaps, sampler, gen_mipmaps, texels)
+    Texture::new_raw(self, size, sampler, texels)
   }
 }
