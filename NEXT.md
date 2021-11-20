@@ -69,6 +69,8 @@
 
 # `luminance-sdl2`
 
+- Bump support of `sdl2-0.35.1`.
+
 # `luminance-std140`
 
 - New crate, `luminance-std140` provides the `Std140` trait, allowing implementations to easily provide types for OpenGL-based backends.
