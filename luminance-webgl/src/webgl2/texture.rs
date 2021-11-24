@@ -7,7 +7,7 @@ use crate::webgl2::{
 use luminance::{
   backend::texture::{Texture as TextureBackend, TextureBase},
   pixel::{Pixel, PixelFormat},
-  texture::{Dim, Dimensionable, GenMipmaps, MagFilter, MinFilter, Sampler, TextureError, Wrap},
+  texture::{Dim, Dimensionable, MagFilter, MinFilter, Sampler, TexelUpload, TextureError, Wrap},
 };
 use std::{cell::RefCell, mem, rc::Rc, slice};
 use web_sys::{WebGl2RenderingContext, WebGlTexture};
@@ -49,76 +49,30 @@ where
   unsafe fn new_texture(
     &mut self,
     size: D::Size,
-    mipmaps: usize,
     sampler: Sampler,
+    texels: TexelUpload<[P::Encoding]>,
   ) -> Result<Self::TextureRepr, TextureError> {
-    let mipmaps = mipmaps + 1; // + 1 prevent having 0 mipmaps
-    let dim = D::dim();
-    let target = opengl_target(dim).ok_or_else(|| {
-      TextureError::TextureStorageCreationFailed(format!("incompatible texture dim: {}", dim))
-    })?;
+    generic_new_texture::<D, P, P::Encoding>(self, size, sampler, texels)
+  }
 
-    let mut state = self.state.borrow_mut();
-
-    let handle = state.create_texture().ok_or_else(|| {
-      TextureError::TextureStorageCreationFailed("cannot create texture".to_owned())
-    })?;
-    state.bind_texture(target, Some(&handle));
-
-    setup_texture::<D>(
-      &mut state,
-      target,
-      size,
-      mipmaps,
-      P::pixel_format(),
-      sampler,
-    )?;
-
-    let texture = Texture {
-      handle,
-      target,
-      mipmaps,
-      state: self.state.clone(),
-    };
-
-    Ok(texture)
+  unsafe fn new_texture_raw(
+    &mut self,
+    size: D::Size,
+    sampler: Sampler,
+    texels: TexelUpload<[P::RawEncoding]>,
+  ) -> Result<Self::TextureRepr, TextureError> {
+    generic_new_texture::<D, P, P::RawEncoding>(self, size, sampler, texels)
   }
 
   unsafe fn mipmaps(texture: &Self::TextureRepr) -> usize {
     texture.mipmaps
   }
 
-  unsafe fn clear_part(
-    texture: &mut Self::TextureRepr,
-    gen_mipmaps: GenMipmaps,
-    offset: D::Offset,
-    size: D::Size,
-    pixel: P::Encoding,
-  ) -> Result<(), TextureError> {
-    <Self as TextureBackend<D, P>>::upload_part(
-      texture,
-      gen_mipmaps,
-      offset,
-      size,
-      &vec![pixel; dim_capacity::<D>(size) as usize],
-    )
-  }
-
-  unsafe fn clear(
-    texture: &mut Self::TextureRepr,
-    gen_mipmaps: GenMipmaps,
-    size: D::Size,
-    pixel: P::Encoding,
-  ) -> Result<(), TextureError> {
-    <Self as TextureBackend<D, P>>::clear_part(texture, gen_mipmaps, D::ZERO_OFFSET, size, pixel)
-  }
-
   unsafe fn upload_part(
     texture: &mut Self::TextureRepr,
-    gen_mipmaps: GenMipmaps,
     offset: D::Offset,
     size: D::Size,
-    texels: &[P::Encoding],
+    texels: TexelUpload<[P::Encoding]>,
   ) -> Result<(), TextureError> {
     let mut gfx_state = texture.state.borrow_mut();
 
@@ -126,28 +80,22 @@ where
 
     upload_texels::<D, P, P::Encoding>(&mut gfx_state, texture.target, offset, size, texels)?;
 
-    if gen_mipmaps == GenMipmaps::Yes {
-      gfx_state.ctx.generate_mipmap(texture.target);
-    }
-
     Ok(())
   }
 
   unsafe fn upload(
     texture: &mut Self::TextureRepr,
-    gen_mipmaps: GenMipmaps,
     size: D::Size,
-    texels: &[P::Encoding],
+    texels: TexelUpload<[P::Encoding]>,
   ) -> Result<(), TextureError> {
-    <Self as TextureBackend<D, P>>::upload_part(texture, gen_mipmaps, D::ZERO_OFFSET, size, texels)
+    <Self as TextureBackend<D, P>>::upload_part(texture, D::ZERO_OFFSET, size, texels)
   }
 
   unsafe fn upload_part_raw(
     texture: &mut Self::TextureRepr,
-    gen_mipmaps: GenMipmaps,
     offset: D::Offset,
     size: D::Size,
-    texels: &[P::RawEncoding],
+    texels: TexelUpload<[P::RawEncoding]>,
   ) -> Result<(), TextureError> {
     let mut gfx_state = texture.state.borrow_mut();
 
@@ -155,26 +103,15 @@ where
 
     upload_texels::<D, P, P::RawEncoding>(&mut gfx_state, texture.target, offset, size, texels)?;
 
-    if gen_mipmaps == GenMipmaps::Yes {
-      gfx_state.ctx.generate_mipmap(texture.target);
-    }
-
     Ok(())
   }
 
   unsafe fn upload_raw(
     texture: &mut Self::TextureRepr,
-    gen_mipmaps: GenMipmaps,
     size: D::Size,
-    texels: &[P::RawEncoding],
+    texels: TexelUpload<[P::RawEncoding]>,
   ) -> Result<(), TextureError> {
-    <Self as TextureBackend<D, P>>::upload_part_raw(
-      texture,
-      gen_mipmaps,
-      D::ZERO_OFFSET,
-      size,
-      texels,
-    )
+    <Self as TextureBackend<D, P>>::upload_part_raw(texture, D::ZERO_OFFSET, size, texels)
   }
 
   unsafe fn get_raw_texels(
@@ -259,11 +196,27 @@ where
   unsafe fn resize(
     texture: &mut Self::TextureRepr,
     size: D::Size,
-    mipmaps: usize,
+    texels: TexelUpload<[P::Encoding]>,
   ) -> Result<(), TextureError> {
-    let mipmaps = mipmaps + 1; // + 1 to prevent having 0 mipmaps
+    let mipmaps = texels.mipmaps();
     let mut state = texture.state.borrow_mut();
-    create_texture_storage::<D>(&mut state, size, mipmaps, P::pixel_format())
+
+    state.bind_texture(texture.target, Some(&texture.handle));
+    create_texture_storage::<D>(&mut state, size, mipmaps, P::pixel_format())?;
+    upload_texels::<D, P, P::Encoding>(&mut state, texture.target, D::ZERO_OFFSET, size, texels)
+  }
+
+  unsafe fn resize_raw(
+    texture: &mut Self::TextureRepr,
+    size: D::Size,
+    texels: TexelUpload<[P::RawEncoding]>,
+  ) -> Result<(), TextureError> {
+    let mipmaps = texels.mipmaps();
+    let mut state = texture.state.borrow_mut();
+
+    state.bind_texture(texture.target, Some(&texture.handle));
+    create_texture_storage::<D>(&mut state, size, mipmaps, P::pixel_format())?;
+    upload_texels::<D, P, P::RawEncoding>(&mut state, texture.target, D::ZERO_OFFSET, size, texels)
   }
 }
 
@@ -275,6 +228,52 @@ pub(crate) fn opengl_target(d: Dim) -> Option<u32> {
     Dim::Dim2Array => Some(WebGl2RenderingContext::TEXTURE_2D_ARRAY),
     _ => None,
   }
+}
+
+unsafe fn generic_new_texture<D, P, Px>(
+  webgl2: &mut WebGL2,
+  size: D::Size,
+  sampler: Sampler,
+  texels: TexelUpload<[Px]>,
+) -> Result<Texture, TextureError>
+where
+  D: Dimensionable,
+  P: Pixel,
+  Px: IntoArrayBuffer,
+{
+  let dim = D::dim();
+  let target = opengl_target(dim).ok_or_else(|| {
+    TextureError::TextureStorageCreationFailed(format!("incompatible texture dim: {}", dim))
+  })?;
+
+  let mut state = webgl2.state.borrow_mut();
+
+  let handle = state.create_texture().ok_or_else(|| {
+    TextureError::TextureStorageCreationFailed("cannot create texture".to_owned())
+  })?;
+  state.bind_texture(target, Some(&handle));
+
+  let mipmaps = texels.mipmaps();
+
+  setup_texture::<D>(
+    &mut state,
+    target,
+    size,
+    mipmaps,
+    P::pixel_format(),
+    sampler,
+  )?;
+
+  upload_texels::<D, P, Px>(&mut state, target, D::ZERO_OFFSET, size, texels)?;
+
+  let texture = Texture {
+    handle,
+    target,
+    mipmaps,
+    state: webgl2.state.clone(),
+  };
+
+  Ok(texture)
 }
 
 /// Set all the required internal state required for the texture to be valid.
@@ -291,7 +290,7 @@ where
 {
   set_texture_levels(state, target, mipmaps);
   apply_sampler_to_texture(state, target, sampler);
-  create_texture_storage::<D>(state, size, mipmaps, pf)
+  create_texture_storage::<D>(state, size, 1 + mipmaps, pf)
 }
 
 fn set_texture_levels(state: &mut WebGL2State, target: u32, mipmaps: usize) {
@@ -302,7 +301,7 @@ fn set_texture_levels(state: &mut WebGL2State, target: u32, mipmaps: usize) {
   state.ctx.tex_parameteri(
     target,
     WebGl2RenderingContext::TEXTURE_MAX_LEVEL,
-    mipmaps as i32 - 1,
+    mipmaps as i32,
   );
 }
 
@@ -386,7 +385,7 @@ fn webgl_mag_filter(filter: MagFilter) -> u32 {
 fn create_texture_storage<D>(
   state: &mut WebGL2State,
   size: D::Size,
-  mipmaps: usize,
+  levels: usize,
   pf: PixelFormat,
 ) -> Result<(), TextureError>
 where
@@ -405,7 +404,7 @@ where
             iformat,
             D::width(size),
             D::height(size),
-            mipmaps,
+            levels,
           )?;
           Ok(())
         }
@@ -419,14 +418,14 @@ where
             D::width(size),
             D::height(size),
             D::depth(size),
-            mipmaps,
+            levels,
           )?;
           Ok(())
         }
 
         // cubemap
         Dim::Cubemap => {
-          create_cubemap_storage(state, iformat, D::width(size), mipmaps)?;
+          create_cubemap_storage(state, iformat, D::width(size), levels)?;
           Ok(())
         }
 
@@ -439,7 +438,7 @@ where
             D::width(size),
             D::height(size),
             D::depth(size),
-            mipmaps,
+            levels,
           )?;
           Ok(())
         }
@@ -458,11 +457,11 @@ fn create_texture_2d_storage(
   iformat: u32,
   w: u32,
   h: u32,
-  mipmaps: usize,
+  levels: usize,
 ) -> Result<(), TextureError> {
   state
     .ctx
-    .tex_storage_2d(target, mipmaps as i32, iformat, w as i32, h as i32);
+    .tex_storage_2d(target, levels as i32, iformat, w as i32, h as i32);
 
   Ok(())
 }
@@ -474,16 +473,11 @@ fn create_texture_3d_storage(
   w: u32,
   h: u32,
   d: u32,
-  mipmaps: usize,
+  levels: usize,
 ) -> Result<(), TextureError> {
-  state.ctx.tex_storage_3d(
-    target,
-    mipmaps as i32,
-    iformat,
-    w as i32,
-    h as i32,
-    d as i32,
-  );
+  state
+    .ctx
+    .tex_storage_3d(target, levels as i32, iformat, w as i32, h as i32, d as i32);
 
   Ok(())
 }
@@ -538,7 +532,7 @@ fn upload_texels<D, P, T>(
   target: u32,
   off: D::Offset,
   size: D::Size,
-  texels: &[T],
+  texels: TexelUpload<[T]>,
 ) -> Result<(), TextureError>
 where
   D: Dimensionable,
@@ -546,10 +540,20 @@ where
   T: IntoArrayBuffer,
 {
   // number of bytes in the input texels argument
-  let input_bytes = texels.len() * mem::size_of::<T>();
   let pf = P::pixel_format();
   let pf_size = pf.format.bytes_len();
   let expected_bytes = D::count(size) * pf_size;
+
+  // get base level texels
+  let base_level_texels = texels
+    .base_level()
+    .ok_or_else(|| TextureError::NotEnoughPixels {
+      expected_bytes,
+      provided_bytes: 0,
+    })?;
+
+  // number of bytes in the input texels argument
+  let input_bytes = base_level_texels.len() * mem::size_of::<T>();
 
   if input_bytes < expected_bytes {
     // potential segfault / overflow; abort
@@ -562,6 +566,38 @@ where
   let skip_bytes = (D::width(size) as usize * pf_size) % 8;
   set_unpack_alignment(state, skip_bytes);
 
+  match texels {
+    TexelUpload::BaseLevel { texels, mipmaps } => {
+      set_texels::<D, _>(state, target, pf, 0, size, off, texels)?;
+
+      if mipmaps.is_some() {
+        state.ctx.generate_mipmap(target);
+      }
+    }
+
+    TexelUpload::Levels(levels) => {
+      for (i, &texels) in levels.into_iter().enumerate() {
+        set_texels::<D, _>(state, target, pf, i as _, size, off, texels)?;
+      }
+    }
+  }
+  Ok(())
+}
+
+// Set texels for a texture.
+fn set_texels<D, T>(
+  state: &mut WebGL2State,
+  target: u32,
+  pf: PixelFormat,
+  level: i32,
+  size: D::Size,
+  off: D::Offset,
+  texels: &[T],
+) -> Result<(), TextureError>
+where
+  D: Dimensionable,
+  T: IntoArrayBuffer,
+{
   // coerce the texels slice into a web-sys array buffer so that we can pass them to the super ugly
   // method below
   let array_buffer;
@@ -576,7 +612,7 @@ where
           .ctx
           .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_array_buffer_view_and_src_offset(
             target,
-            0,
+            level,
             D::x_offset(off) as i32,
             D::y_offset(off) as i32,
             D::width(size) as i32,
@@ -594,7 +630,7 @@ where
           .ctx
           .tex_sub_image_3d_with_opt_array_buffer_view(
             target,
-            0,
+            level,
             D::x_offset(off) as i32,
             D::y_offset(off) as i32,
             D::z_offset(off) as i32,
@@ -613,7 +649,7 @@ where
           .ctx
           .tex_sub_image_2d_with_i32_and_i32_and_u32_and_type_and_array_buffer_view_and_src_offset(
             WebGl2RenderingContext::TEXTURE_CUBE_MAP_POSITIVE_X + D::z_offset(off),
-            0,
+            level,
             D::x_offset(off) as i32,
             D::y_offset(off) as i32,
             D::width(size) as i32,
@@ -631,7 +667,7 @@ where
           .ctx
           .tex_sub_image_3d_with_opt_array_buffer_view(
             target,
-            0,
+            level,
             D::x_offset(off) as i32,
             D::y_offset(off) as i32,
             D::z_offset(off) as i32,
@@ -652,12 +688,4 @@ where
   }
 
   Ok(())
-}
-
-// Capacity of the dimension, which is the product of the width, height and depth.
-fn dim_capacity<D>(size: D::Size) -> u32
-where
-  D: Dimensionable,
-{
-  D::width(size) * D::height(size) * D::depth(size)
 }

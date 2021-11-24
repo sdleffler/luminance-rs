@@ -3,7 +3,7 @@ use luminance_front::{
   context::GraphicsContext,
   framebuffer::Framebuffer,
   pixel::RGB8UI,
-  texture::{Dim2, Sampler, Texture},
+  texture::{Dim2, Sampler, TexelUpload, Texture},
   Backend,
 };
 
@@ -15,7 +15,11 @@ impl Example for LocalExample {
     context: &mut impl GraphicsContext<Backend = Backend>,
   ) -> Self {
     let _texture: Texture<Dim2, RGB8UI> = context
-      .new_texture_no_texels([100, 100], 0, Sampler::default())
+      .new_texture(
+        [100, 100],
+        Sampler::default(),
+        TexelUpload::base_level_without_mipmaps(&[]),
+      )
       .unwrap();
 
     LocalExample

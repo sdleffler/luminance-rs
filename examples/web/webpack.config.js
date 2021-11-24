@@ -24,6 +24,6 @@ module.exports = {
     ],
     mode: 'development',
     devServer: {
-        contentBase: './static'
+        contentBase: '.'
     }
 };

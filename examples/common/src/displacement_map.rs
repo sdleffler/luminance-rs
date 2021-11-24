@@ -17,7 +17,7 @@
 
 use crate::{
   shared::{load_texture, RGBTexture},
-  Example, Features, InputAction, LoopFeedback, PlatformServices,
+  Example, InputAction, LoopFeedback, PlatformServices,
 };
 use luminance::UniformInterface;
 use luminance_front::{
@@ -29,7 +29,7 @@ use luminance_front::{
   render_state::RenderState,
   shader::{types::Vec2, Program, Uniform},
   tess::{Mode, Tess},
-  texture::{Dim2, GenMipmaps, Sampler},
+  texture::{Dim2, Sampler, TexelUpload},
   Backend,
 };
 
@@ -55,15 +55,11 @@ pub struct LocalExample {
 }
 
 impl Example for LocalExample {
-  fn features() -> Features {
-    Features::default().texture("source.jpg")
-  }
-
   fn bootstrap(
     platform: &mut impl PlatformServices,
     context: &mut impl GraphicsContext<Backend = Backend>,
   ) -> Self {
-    let image = load_texture(context, platform, "source.jpg").expect("texture to displace");
+    let image = load_texture(context, platform).expect("texture to displace");
     let displacement_maps = [
       load_displacement_map(
         context,
@@ -175,10 +171,8 @@ fn load_displacement_map(
   context
     .new_texture_raw(
       [width, height],
-      0,
       Sampler::default(),
-      GenMipmaps::No,
-      texels,
+      TexelUpload::base_level_without_mipmaps(texels),
     )
     .map_err(|e| log::error!("error while creating texture: {}", e))
     .ok()
